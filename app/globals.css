@@ -2,66 +2,57 @@
 @import "tailwindcss-animate";
 
 /*
- * Atlas — warm "Quad" theme on shadcn/ui tokens (Tailwind v4).
- * Stone base · deep pine primary · marigold accent · terracotta destructive.
- * Type: Hanken Grotesk (sans) + Fraunces (display). No Inter, no purple.
+ * Atlas — upscaled from the original Personal-Canvas / Kairos aesthetic:
+ * shadcn `neutral` (monochrome), a faint dot-grid canvas, soft radii, Geist.
+ * Quiet and immersive. Colour is functional only (a single restrained warning signal).
  */
 :root {
-  --radius: 0.8rem;
+  --radius: 0.625rem;
 
-  --background: hsl(39 38% 95%);
-  --foreground: hsl(28 18% 14%);
-  --card: hsl(40 50% 98%);
-  --card-foreground: hsl(28 18% 14%);
-  --popover: hsl(40 50% 98%);
-  --popover-foreground: hsl(28 18% 14%);
-  --primary: hsl(158 39% 22%);
-  --primary-foreground: hsl(40 44% 96%);
-  --secondary: hsl(38 32% 91%);
-  --secondary-foreground: hsl(28 18% 18%);
-  --muted: hsl(38 26% 90%);
-  --muted-foreground: hsl(30 9% 40%);
-  --accent: hsl(37 34% 88%);
-  --accent-foreground: hsl(28 18% 16%);
-  --destructive: hsl(12 62% 47%);
-  --destructive-foreground: hsl(40 44% 96%);
-  --border: hsl(34 20% 85%);
-  --input: hsl(34 22% 83%);
-  --ring: hsl(158 39% 30%);
-
-  /* brand extensions */
-  --gold: hsl(36 86% 49%);
-  --gold-foreground: hsl(30 45% 12%);
-  --clay: hsl(14 58% 49%);
-  --chart-1: hsl(158 39% 28%);
-  --chart-2: hsl(36 86% 49%);
-  --chart-3: hsl(14 58% 49%);
-  --chart-4: hsl(200 30% 45%);
-  --chart-5: hsl(45 60% 50%);
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(240 10% 3.9%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(240 10% 3.9%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(240 10% 3.9%);
+  --primary: hsl(240 5.9% 10%);
+  --primary-foreground: hsl(0 0% 98%);
+  --secondary: hsl(240 4.8% 95.9%);
+  --secondary-foreground: hsl(240 5.9% 10%);
+  --muted: hsl(240 4.8% 95.9%);
+  --muted-foreground: hsl(240 3.8% 46.1%);
+  --accent: hsl(240 4.8% 95.9%);
+  --accent-foreground: hsl(240 5.9% 10%);
+  --destructive: hsl(0 72% 51%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(240 5.9% 90%);
+  --input: hsl(240 5.9% 90%);
+  --ring: hsl(240 5% 65%);
+  --sidebar: hsl(240 4.8% 98%);
+  --warn: hsl(35 92% 45%);
 }
 
 .dark {
-  --background: hsl(160 14% 8%);
-  --foreground: hsl(40 30% 92%);
-  --card: hsl(160 12% 11%);
-  --card-foreground: hsl(40 30% 92%);
-  --popover: hsl(160 12% 11%);
-  --popover-foreground: hsl(40 30% 92%);
-  --primary: hsl(152 44% 60%);
-  --primary-foreground: hsl(160 30% 10%);
-  --secondary: hsl(160 8% 18%);
-  --secondary-foreground: hsl(40 30% 92%);
-  --muted: hsl(160 8% 18%);
-  --muted-foreground: hsl(40 10% 64%);
-  --accent: hsl(160 8% 20%);
-  --accent-foreground: hsl(40 30% 92%);
-  --destructive: hsl(12 60% 56%);
-  --destructive-foreground: hsl(160 30% 10%);
-  --border: hsl(160 8% 22%);
-  --input: hsl(160 8% 24%);
-  --ring: hsl(152 44% 50%);
-  --gold: hsl(40 80% 58%);
-  --clay: hsl(14 60% 60%);
+  --background: hsl(240 10% 3.9%);
+  --foreground: hsl(0 0% 98%);
+  --card: hsl(240 10% 5.5%);
+  --card-foreground: hsl(0 0% 98%);
+  --popover: hsl(240 10% 5.5%);
+  --popover-foreground: hsl(0 0% 98%);
+  --primary: hsl(0 0% 98%);
+  --primary-foreground: hsl(240 5.9% 10%);
+  --secondary: hsl(240 3.7% 15.9%);
+  --secondary-foreground: hsl(0 0% 98%);
+  --muted: hsl(240 3.7% 15.9%);
+  --muted-foreground: hsl(240 5% 64.9%);
+  --accent: hsl(240 3.7% 15.9%);
+  --accent-foreground: hsl(0 0% 98%);
+  --destructive: hsl(0 62% 50%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(240 3.7% 15.9%);
+  --input: hsl(240 3.7% 18%);
+  --ring: hsl(240 4.9% 60%);
+  --sidebar: hsl(240 10% 6.5%);
 }
 
 @theme inline {
@@ -84,18 +75,17 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-gold: var(--gold);
-  --color-gold-foreground: var(--gold-foreground);
-  --color-clay: var(--clay);
+  --color-sidebar: var(--sidebar);
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
 
-  --font-sans: "Hanken Grotesk", system-ui, sans-serif;
-  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Geist", system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
 
-  /* Family Values golden easing */
   --ease-fluid: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -107,8 +97,18 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     letter-spacing: -0.005em;
+    /* the signature: a faint dot-grid that makes the canvas feel like paper */
+    background-image: radial-gradient(color-mix(in oklab, var(--muted-foreground) 16%, transparent) 1px, transparent 1px);
+    background-size: 22px 22px;
   }
-  .font-display { font-family: var(--font-display); letter-spacing: -0.012em; }
+  /* refined letter-spaced micro-labels (mono) — a Kairos signature */
+  .label-mono {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.7rem;
+    color: var(--muted-foreground);
+  }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   }

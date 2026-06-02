@@ -2,21 +2,20 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
+/** shadcn/ui badge — monochrome `neutral`; `destructive` is the only colour, used sparingly. */
 const badgeVariants = cva(
-  "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors [&_svg]:size-3",
+  "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors [&_svg]:size-3 [&_svg]:opacity-80",
   {
     variants: {
       variant: {
         default: "border-transparent bg-primary text-primary-foreground",
         secondary: "border-transparent bg-secondary text-secondary-foreground",
-        outline: "text-foreground",
-        pine: "border-transparent bg-primary/10 text-primary",
-        gold: "border-transparent bg-gold/15 text-gold-foreground",
-        clay: "border-transparent bg-clay/12 text-clay",
-        destructive: "border-transparent bg-destructive/12 text-destructive",
+        muted: "border-transparent bg-secondary text-muted-foreground",
+        outline: "text-muted-foreground",
+        destructive: "border-transparent bg-destructive/10 text-destructive",
       },
     },
-    defaultVariants: { variant: "default" },
+    defaultVariants: { variant: "secondary" },
   }
 );
 

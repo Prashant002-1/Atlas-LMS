@@ -1,36 +1,44 @@
 # Atlas — Design System
 
-The product's premise is **reducing friction**, so the interface must feel calm, fast, and in control. Principles below are enforced in `prototype/atlas-demo.html` and are the spec for the React build.
+Built on **shadcn/ui** (Radix + Tailwind v4) with a warm, scholarly theme and the **Family Values** philosophy (Simplicity → Fluidity → Delight). The premise is reducing friction, so the interface must feel calm, fast, and unmistakably in the user's control. Tokens live in `app/globals.css`; the prototype `prototype/atlas-demo.html` mirrors them exactly.
 
-## Principles (the anti-slop rules)
-1. **Every component has a job.** No decorative filler. If a panel doesn't help the user decide or act, it's cut.
-2. **Empty states teach the next action** (they always offer "Ask Atlas").
-3. **The human is always in control.** Agent output is *draft* until approved; **Stop** is always visible while the agent works; high-stakes actions (publish, grade, send) require explicit confirmation; low-stakes ones don't (no approval fatigue).
-4. **The agent is a distinct, calm layer** — never noisy. Reasoning is present but collapsed by default.
-5. **Motion conveys causality, not flair** — 180–300ms, ease `cubic-bezier(.22,.61,.36,1)`; stream content in, count values up, transition views. Respect `prefers-reduced-motion` (real build).
+## Why warm (not the generic default)
+Most AI UI converges on Inter + violet gradients + flat instant state changes — lifeless slop. Atlas deliberately rejects that: a warm parchment canvas, a deep **pine** primary (scholarly, calm), and a sharp **marigold** accent reserved for the agent and for delight. It should feel like a beautifully made textbook that's quietly alive — not a SaaS template.
 
-## Information architecture — 3 columns
-- **Left rail** — one role-aware nav with full LMS breadth, *identical structure across every course* (fixes the #1 complaint).
-- **Center** — the content/artifact being read or built.
-- **Right (Atlas)** — the always-present co-pilot: chat to steer, plan chips, tool cards, reasoning drawer, approval controls. Collapsible.
-- **Top bar** — context breadcrumb, ⌘K (agent one keystroke away), always-visible agent status + Stop, persona switch.
+## Theme (shadcn tokens, warm "Quad")
+- **Canvas** parchment `hsl(39 38% 95%)` · **card** `hsl(40 50% 98%)` · **ink** `hsl(28 18% 14%)`
+- **Primary — deep pine** `hsl(158 39% 22%)`: structure and confirm/structural actions
+- **Accent — marigold gold** `hsl(36 86% 49%)`: the *agent* layer + delight pops (sharp, used sparingly)
+- **Clay / terracotta** `hsl(14 58% 49%)`: risk, at-risk, warnings
+- **Destructive** `hsl(12 62% 47%)`; muted/secondary are warm sands; `--radius: 0.8rem`
+- Dark mode tokens included. Two-color system: **pine = institution, gold = the living agent.**
 
-## Tokens
-**Type:** `Inter` for UI (400–700, ‑0.005em tracking); `Instrument Serif` for display/wordmark *only* (warmth without noise).
-**Color:**
-- Canvas `#FBFAF8` warm-white · surface `#FFFFFF` · ink `#16141B`
-- **Institutional indigo** `#4F46E5` for LMS chrome/structure
-- **Agent violet** `#7C5CFF` (+ tint `rgba(124,92,255,.07)`, dashed borders for *proposed* states) — so "Atlas thinking" always reads as its own layer
-- Semantic: ok `#15A66A`, amber `#D08700`, red `#DC2626` — used sparingly, only to signal state
-**Surface:** radius 9/13/18px; hairline borders `rgba(22,20,27,.09)`; soft shadows (1px + diffuse); generous padding — data-dense but breathing.
+## Typography (intentional pairing — no Inter)
+- **Display:** Fraunces (optical serif, warm and characterful) — headlines + wordmark only
+- **UI/body:** Hanken Grotesk (humanist grotesk, crisp, distinct from Inter)
+- Mono: Geist Mono for labels/numerals; tabular-nums on all changing figures
 
-## Signature components
-- **Plan chips** — dashed-violet, editable (×), appear before the agent acts.
-- **Tool cards** — inline, with spinner → check; never raw logs.
-- **Proposal bar** — sticky; tag flips `Draft · not created` → `Created · published`; shows a diff; Approve / Edit / Regenerate.
-- **Coverage ring + objective bars** — readiness weighted by what's assessed; the gap is amber, not hidden.
-- **Citations** — every tutor claim links to the source (slide/syllabus).
-- **Autonomy slider** — Approve each → Auto + review → Run & summarize.
+## Components (shadcn/ui)
+`components/ui/` holds real shadcn components (New York style) on the warm theme — `button` (with an added `gold` variant for AI actions), `card`, `badge` (`pine`/`gold`/`clay` variants). `lib/utils.ts` exports `cn`. Generate more with `npx shadcn@latest add sheet tabs dialog progress scroll-area command tooltip`. The prototype demonstrates the full set (sheets/trays, command palette, tabs-as-personas, progress rings) styled identically.
 
-## States to never skip
-Loading (skeleton, not blank) · streaming (token-by-token) · draft vs. live (unmistakable) · empty (teaches) · success (quiet, not confetti).
+## Motion (Fluidity — "we fly instead of teleport")
+- **Golden easing `cubic-bezier(0.16, 1, 0.3, 1)`** for every entrance/morph (`--ease-fluid`); `ease-in` for exits; never linear.
+- Directional view transitions (forward → from right, back → from left). Persona/autonomy switches use a sliding glider, not a cut.
+- The proposal bar **travels** in; the agent's plan arrives as staggered chips; tool spinners resolve to checks in place.
+- Text-morph on the primary CTA ("Draft the course" → "Drafting…" → "Drafted ✓") — production uses `torph`; the prototype uses a shared-prefix crossfade.
+- Persistent chrome never re-animates; only the changing region moves.
+
+## Delight (selective emphasis — the Delight-Impact Curve)
+- **Frequent = subtle:** count-up numbers (stat tiles, the readiness ring), chevron/nav micro-motion, button press.
+- **Rare = theatrical:** approving a course publish fires a **confetti** celebration ("STAT-201 is live") — a once-per-course moment, not a checkmark.
+- **Designed empty states:** the Course Builder empty state floats an illustration and points to the action — never bare text.
+- **Easter egg:** click the Atlas mark → it spins and bursts confetti.
+- All corners polished equally; success states are inline + animated (never toasts).
+
+## Simplicity (gradual revelation)
+- One primary action per view; everything else is secondary/ghost.
+- Transient actions (publish, post grades, send nudges, start a session) are **trays** that overlay context with varying heights and a title + dismiss — never full-page jumps.
+- Outputs are **draft by default**; the destructive/irreversible step always gets an explicit, counted confirm ("publish to 32 students").
+
+## The taste checklist
+Run `Design with Taste (Family Values)` before shipping any surface. No dirty bathrooms: the settings page gets the same care as the hero.

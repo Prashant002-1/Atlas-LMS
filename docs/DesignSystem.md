@@ -1,44 +1,34 @@
 # Atlas — Design System
 
-Built on **shadcn/ui** (Radix + Tailwind v4) with a warm, scholarly theme and the **Family Values** philosophy (Simplicity → Fluidity → Delight). The premise is reducing friction, so the interface must feel calm, fast, and unmistakably in the user's control. Tokens live in `app/globals.css`; the prototype `prototype/atlas-demo.html` mirrors them exactly.
+**Upscaled from the original Personal-Canvas / Kairos aesthetic — not reinvented.** The original was praised for being *quiet yet immersive*; Atlas keeps that exact register and refines it. Built on **shadcn/ui** (Radix + Tailwind v4), `neutral` base. The job is to reduce friction and stay out of the way — so the interface whispers.
 
-## Why warm (not the generic default)
-Most AI UI converges on Inter + violet gradients + flat instant state changes — lifeless slop. Atlas deliberately rejects that: a warm parchment canvas, a deep **pine** primary (scholarly, calm), and a sharp **marigold** accent reserved for the agent and for delight. It should feel like a beautifully made textbook that's quietly alive — not a SaaS template.
+## The register (what "quiet + immersive" means here)
+- **Monochrome.** Black, white, and neutral grays. Near-zero decorative colour. Colour is *functional only*: a single restrained warning signal (`--warn`) and `destructive` red, used tiny. No brand gradients, no accent fills.
+- **The dot-grid canvas.** The content area carries a faint dotted background (`radial-gradient`, 22px) — the signature that makes it feel like paper, not a dashboard. Carried over verbatim from the original.
+- **Soft, translucent layering.** Cards are `bg-card` with hairline borders, soft radii (10–22px), and gentle shadows; many surfaces sit at `/70`–`/80` opacity over the grid.
+- **Refined micro-labels.** Uppercase, letter-spaced (`0.14em`), in **Geist Mono** — for section labels, eyebrows, the agent's goal, autonomy. This is the original's `tracking-[0.18em]` signature, upscaled.
+- **Generous whitespace.** Centered max-width canvas (~880px), calm rhythm.
 
-## Theme (shadcn tokens, warm "Quad")
-- **Canvas** parchment `hsl(39 38% 95%)` · **card** `hsl(40 50% 98%)` · **ink** `hsl(28 18% 14%)`
-- **Primary — deep pine** `hsl(158 39% 22%)`: structure and confirm/structural actions
-- **Accent — marigold gold** `hsl(36 86% 49%)`: the *agent* layer + delight pops (sharp, used sparingly)
-- **Clay / terracotta** `hsl(14 58% 49%)`: risk, at-risk, warnings
-- **Destructive** `hsl(12 62% 47%)`; muted/secondary are warm sands; `--radius: 0.8rem`
-- Dark mode tokens included. Two-color system: **pine = institution, gold = the living agent.**
+## Anti-slop guardrails (lessons paid for)
+Do **not** reach for the AI-default register: Inter, purple/violet, warm-cream "editorial," display serifs, confetti, easter-egg theatrics, rainbow badges. Those read as generated. Restraint is the brand.
 
-## Typography (intentional pairing — no Inter)
-- **Display:** Fraunces (optical serif, warm and characterful) — headlines + wordmark only
-- **UI/body:** Hanken Grotesk (humanist grotesk, crisp, distinct from Inter)
-- Mono: Geist Mono for labels/numerals; tabular-nums on all changing figures
+## Typography
+- **Geist** (sans) for everything; **Geist Mono** for labels, numerals, and IDs. Headlines `tracking-tight`, weight 600. No serif.
 
-## Components (shadcn/ui)
-`components/ui/` holds real shadcn components (New York style) on the warm theme — `button` (with an added `gold` variant for AI actions), `card`, `badge` (`pine`/`gold`/`clay` variants). `lib/utils.ts` exports `cn`. Generate more with `npx shadcn@latest add sheet tabs dialog progress scroll-area command tooltip`. The prototype demonstrates the full set (sheets/trays, command palette, tabs-as-personas, progress rings) styled identically.
+## Theme tokens (`app/globals.css`, shadcn `neutral`)
+- bg `0 0% 100%` · foreground `240 10% 3.9%` · primary `240 5.9% 10%` (near-black) · muted-foreground `240 3.8% 46.1%` · border `240 5.9% 90%` · sidebar `240 4.8% 98%`.
+- `--warn 35 92% 45%` and `--destructive` are the only non-neutral values; both used as small foreground signals, never fills.
+- `--radius 0.625rem`; dark mode tokens included. Golden easing `--ease-fluid: cubic-bezier(0.16,1,0.3,1)`.
 
-## Motion (Fluidity — "we fly instead of teleport")
-- **Golden easing `cubic-bezier(0.16, 1, 0.3, 1)`** for every entrance/morph (`--ease-fluid`); `ease-in` for exits; never linear.
-- Directional view transitions (forward → from right, back → from left). Persona/autonomy switches use a sliding glider, not a cut.
-- The proposal bar **travels** in; the agent's plan arrives as staggered chips; tool spinners resolve to checks in place.
-- Text-morph on the primary CTA ("Draft the course" → "Drafting…" → "Drafted ✓") — production uses `torph`; the prototype uses a shared-prefix crossfade.
-- Persistent chrome never re-animates; only the changing region moves.
+## Components (`components/ui/`)
+Real shadcn — `button` (default/secondary/outline/ghost/destructive/link), `badge` (secondary/muted/outline/destructive), `card`, `lib/utils.ts` `cn`. Generate the rest with `npx shadcn@latest add sheet tabs dialog command progress scroll-area tooltip`. The prototype mirrors these tokens exactly.
 
-## Delight (selective emphasis — the Delight-Impact Curve)
-- **Frequent = subtle:** count-up numbers (stat tiles, the readiness ring), chevron/nav micro-motion, button press.
-- **Rare = theatrical:** approving a course publish fires a **confetti** celebration ("STAT-201 is live") — a once-per-course moment, not a checkmark.
-- **Designed empty states:** the Course Builder empty state floats an illustration and points to the action — never bare text.
-- **Easter egg:** click the Atlas mark → it spins and bursts confetti.
-- All corners polished equally; success states are inline + animated (never toasts).
+## Motion (gentle, framer-grade — from the original)
+- Entrances: `opacity` + `y:8`, ~0.25–0.4s, **golden easing**. Sheets spring up (`damping ~32, stiffness ~300`). Tabs/views slide directionally. Tool spinners resolve to checks in place; the proposal bar travels in.
+- Persistent chrome never re-animates. No theatrics — restraint over flourish.
 
 ## Simplicity (gradual revelation)
-- One primary action per view; everything else is secondary/ghost.
-- Transient actions (publish, post grades, send nudges, start a session) are **trays** that overlay context with varying heights and a title + dismiss — never full-page jumps.
-- Outputs are **draft by default**; the destructive/irreversible step always gets an explicit, counted confirm ("publish to 32 students").
+One primary action per view; transient actions (publish, post grades, send nudges, start a session) are context-preserving **trays** with a title + dismiss; everything draft-by-default with an explicit, counted confirm.
 
-## The taste checklist
-Run `Design with Taste (Family Values)` before shipping any surface. No dirty bathrooms: the settings page gets the same care as the hero.
+## Reference
+The prototype `prototype/atlas-demo.html` is the canonical visual spec. When in doubt, match the original repo's feel: quiet, paper-like, monochrome, immersive.

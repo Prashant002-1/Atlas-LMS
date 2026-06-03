@@ -3,6 +3,8 @@
 **The AI-native learning platform.** The agent isn't a feature bolted onto an LMS — it _is_ the LMS. It builds and runs courses for professors, and tutors students inside them, with every piece of content grounded in the professor's actual learning objectives.
 
 > Canvas is a filing cabinet. Atlas is a partner — on both sides of the classroom.
+>
+> **Read this first ([docs/Philosophy.md](docs/Philosophy.md)):** Atlas is the professor's agent, not an agent that manages the professor.
 
 ---
 

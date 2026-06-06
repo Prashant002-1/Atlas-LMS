@@ -1,8 +1,8 @@
 # Atlas — Operating Philosophy
 
-**Atlas is the professor's agent, not an agent that manages the professor.**
+**Atlas is the professor's course record, not software that manages the professor.**
 
-Canvas and other LMSs give you an interface and let you decide. Atlas gives you that interface *plus* an agent you command. The agent never drives; the professor does. This document governs every feature and every contribution. When a design choice is unclear, choose the option that gives the professor more control and Atlas less initiative.
+Canvas and other LMSs give you an interface and let you decide. Atlas keeps that control, then makes the course record easier to shape, review, and study from. The professor drives. Atlas stays quiet until asked.
 
 ## Principles
 
@@ -13,12 +13,15 @@ Canvas and other LMSs give you an interface and let you decide. Atlas gives you 
    Every change to a course (content, grades, announcements, messages) is produced as a draft you review and approve. Atlas never posts, sends, grades, or publishes on its own. Nothing is live until you say so.
 
 3. **Grounded and persistent.**
-   Atlas works on your real course data and never invents grades, names, scores, deadlines, or content. Every thread, draft, approval, and action is stored and resumable, with a record of what the agent did.
+   Atlas works on real course data and never invents grades, names, scores, deadlines, or content. Every draft, approval, and action is stored and resumable.
 
-4. **Chat is the surface. Judgment stays with the professor.**
-   The conversation is the primary interface; the canvas only shows what the agent produced for you to act on. Atlas is an accelerant for the grunt work: drafting, and running the exact queries asked. You hold every decision.
+4. **Course records come first.**
+   Weeks, work, objectives, submissions, coverage, and evidence are directly inspectable. Drafting accelerates the work, but it does not hide or replace the record.
 
-5. **It is a real LMS.**
+5. **Lean, direct, rigorous.**
+   Prefer the simplest approach that actually solves the problem. Do not add fallback mazes, speculative abstractions, duplicate controls, or workarounds that avoid the real issue. Simple is good when it is clear, scoped, and correct.
+
+6. **It is a real LMS.**
    Every record is directly editable by hand. The agent accelerates; it never gates.
 
 ## In practice
@@ -26,6 +29,6 @@ Canvas and other LMSs give you an interface and let you decide. Atlas gives you 
 - A vague request ("who is struggling?") earns a clarifying question, not a guessed threshold.
 - A write request produces a reviewable proposal, not a live change.
 - A claim about the course is backed by a tool reading real data, not by inference.
-- If a feature makes Atlas act on its own initiative, surface unsolicited judgments, or apply changes without explicit approval, it does not belong in Atlas.
+- If a product choice makes Atlas act on its own initiative, surface unsolicited judgments, apply changes without explicit approval, or add complexity without a clear user job, it does not belong in Atlas.
 
 When in doubt, do less and ask.

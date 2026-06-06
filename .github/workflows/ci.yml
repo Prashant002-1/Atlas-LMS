@@ -1,6 +1,3 @@
-# Move this file to .github/workflows/ci.yml.
-# It is parked here because the GitHub App lacked the workflow scope at push time.
-
 name: CI
 
 on:
@@ -21,7 +18,9 @@ jobs:
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U atlas -d atlas"
-          --health-interval 5s --health-timeout 5s --health-retries 10
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       DATABASE_URL: postgres://atlas:atlas@localhost:5432/atlas
       AUTH_SECRET: ci-placeholder-secret-not-used-for-anything-real
@@ -34,6 +33,6 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm run db:push   # applies the Drizzle schema to the ephemeral DB
+      - run: npm run db:push
       - run: npm test
       - run: npm run build

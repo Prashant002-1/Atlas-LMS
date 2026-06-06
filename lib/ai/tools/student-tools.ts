@@ -6,7 +6,6 @@ import {
   courses,
   assignments,
   announcements,
-  enrollments,
   submissions,
   learningObjectives,
   contentAlignments,

@@ -7,8 +7,8 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL!,
   },
-  // pgvector lives outside Drizzle's managed types; don't let push try to drop it.
-  extensionsFilters: ["postgres"],
+  // Drizzle only types managed extension filters such as postgis; pgvector remains unmanaged.
+  extensionsFilters: ["postgis"],
   verbose: true,
   strict: true,
 });

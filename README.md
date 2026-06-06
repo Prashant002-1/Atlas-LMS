@@ -1,55 +1,67 @@
 # Atlas LMS
 
-**The AI-native learning platform.** The agent isn't a feature bolted onto an LMS — it _is_ the LMS. It builds and runs courses for professors, and tutors students inside them, with every piece of content grounded in the professor's actual learning objectives.
+Atlas is a course record for teaching and study. Objectives, modules, assignments, submissions, practice bases, and evidence share one model, so professors can shape a course and students can study from the same record.
 
-> Canvas is a filing cabinet. Atlas is a partner — on both sides of the classroom.
->
-> **Read this first ([docs/Philosophy.md](docs/Philosophy.md)):** Atlas is the professor's agent, not an agent that manages the professor.
+Start with the product context in [`PRODUCT.md`](PRODUCT.md), then read [`docs/Brand.md`](docs/Brand.md) for brand direction, [`docs/DesignSystem.md`](docs/DesignSystem.md) for UI rules, [`docs/Vision.md`](docs/Vision.md) for the broader thesis, and [`docs/Architecture.md`](docs/Architecture.md) for the system shape.
 
 ---
 
-## Why Atlas exists
+## Why Atlas Exists
 
-Today, every university runs an **instructional-design center**: staff whose entire job is helping professors operate Canvas/Blackboard/Moodle — building modules, formatting syllabi, organizing content, wiring up assignments. That's headcount that exists only because the tools are hostile.
+Today, professors lose time to course mechanics: building module trees, aligning assignments, copying term structure forward, and proving coverage after the fact. Students study from material scattered across the LMS, notes, and outside tools, then guess whether they covered what will be assessed.
 
-- **Professors** burn absurd amounts of time on course _mechanics_ instead of teaching.
-- **Students** do all their real learning _outside_ the LMS — copy-pasting into ChatGPT and NotebookLM — disconnected from the syllabus. They never know if what they studied is what the professor actually wanted. Exams become surprises.
-
-The current LMS _feels_ secure and entrenched. In an AI-fast world it's bloatware.
-
-**Atlas changes both sides at once:**
+Atlas makes course intent explicit:
 
 | Persona | Today | With Atlas |
 |---|---|---|
-| **Professor** | Weeks wrestling Canvas + an ID center | "Build a 14-week stats course aligned to these 5 outcomes" → drafted syllabus, modules, assignments, rubrics. Professor curates, doesn't construct. |
-| **Student** | Copy-paste to ChatGPT, hope it's relevant | A tutor _inside_ the course, grounded in the real material and syllabus. Always knows: "Is this what will be tested?" |
+| Professor | Course structure, objectives, and assessments drift apart | Review one course record: weeks, work, objectives, coverage, and drafted changes. |
+| Student | Material and assessed work feel disconnected | Study from the course record: focus objective, source material, practice, response, and coverage. |
 
-The connective tissue is the **Alignment Graph**: every objective, every piece of content, every study session is mapped to learning outcomes. That's the thing neither Canvas nor ChatGPT has — and the thing that makes "no surprises" real.
-
-See [`docs/Vision.md`](docs/Vision.md) for the full thesis (problem, wedge, moat, why-now) and [`docs/Architecture.md`](docs/Architecture.md) for the system design.
+The connective tissue is the Alignment Graph: every objective, module, assignment, submission, and study action can be tied back to the course intent.
 
 ---
 
-## What's in this repo
+## What runs now
 
-This is the **product foundation** — the architecture and the spine, ported from the award-winning _Personal Canvas_ prototype and rebuilt to be multi-tenant, authenticated, read-write, and grounded in the Alignment Graph.
+This repo now includes a working local MVP surface:
+
+- `/` — product overview with a live course preview.
+- `/sign-in` — role entry for teaching or study.
+- `/sign-up` — one-course start surface.
+- `/teach` — teaching view with modules, work, objective coverage, review, outline drafting, publish, and recent decisions.
+- `/student` — study view with focus objective, aligned material, practice response, work, evidence, and standing.
+- `/api/health` — database health check.
+
+Workspace routes redirect signed-out visitors to the matching role entry path.
+
+The local seed creates one organization, one instructor, one student, one course, four objectives, four modules, two assignments, one graded submission, and one pending review item.
+
+## Repo Shape
 
 ```
 app/                      Next.js 16 App Router (marketing + authed app + API)
-  api/chat/               Persona-aware agent endpoint (streamText + typed tools)
+  page.tsx                Overview
+  sign-in/                Role-based access
+  sign-up/                Course start
+  teach/                  Teaching view
+  student/                Study view
+  api/chat/               Persona-aware course endpoint
 lib/
-  db/schema.ts            Drizzle schema — academic core + Alignment Graph + auth + AI runtime
+  db/schema.ts            Drizzle schema: academic core, Alignment Graph, auth, runtime
   auth/                   Auth.js (sessions carry userId, orgId, role)
   ai/
-    provider.ts           Model config + fallback chain
+    provider.ts           Model config
     tools/student-tools.ts     Read tools, scoped to the signed-in student
-    tools/instructor-tools.ts  Authoring tools (human-in-the-loop change proposals)
-  workspace/              The generative-UI engine (decision → validation → reducer)
-docs/                     Vision, Architecture, Roadmap
-drizzle/                  Migrations
+    tools/instructor-tools.ts  Authoring tools that create reviewable changes
+  instructor/             DB-backed teaching record + review actions
+  student/                DB-backed study record + response actions
+  workspace/              Workspace decision contract + route-contract tests
+components/atlas/         Shared shell and primitives
+docs/                     Brand, DesignSystem, Vision, Architecture, Roadmap
+.github/workflows/ci.yml  Verification on pull requests and main
 ```
 
-The **generative-UI engine** (`lib/workspace/`) is the crown jewel: the agent must emit a validated _decision_ (`goal / view / panels / actions / reason / evidence`) before it touches data. The frontend only renders registered layouts. We extended it from student planning views to **instructor authoring views** — a trusted generative UI for _building_ an LMS, not just consuming one.
+`lib/workspace/` holds the decision contract used by product surfaces and tools. Views, panels, actions, and evidence are registered explicitly so course state renders through known layouts instead of arbitrary UI.
 
 ---
 
@@ -74,20 +86,41 @@ cp .env.example .env.local
 # 4. Create the schema (Drizzle is the source of truth)
 npm run db:push
 
-# 5. Seed a demo org, an instructor, a student, and a course
+# 5. Reset and seed the local demo tenant
 npm run db:seed
 
-# 6. Run
+# 6. Run locally
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
+Local access:
+- Use the Instructor or Student button on `/sign-in`.
+- Manual credentials are still available for direct auth checks:
+  - `instructor@demo.edu` / `atlas1234`
+  - `student@demo.edu` / `atlas1234`
+
+`npm run db:seed` deletes and recreates only the local demo tenant. The seeded course starts with four objectives, a source-backed module map, one graded student submission, and one pending teaching review item.
+
 ---
+
+## Verification
+
+```bash
+npm run verify
+
+# With the dev server running:
+npm run smoke
+```
+
+`npm run verify` runs typecheck, lint, tests, and a production build. `npm run smoke` checks the local routes, public page copy, custom 404, health, signed-out redirects, and signed-in teaching/study pages against `http://localhost:3000`; set `ATLAS_BASE_URL` to point it at a different host.
+
+`npm test` includes an MVP contract check so required routes exist, internal links/redirects target implemented routes, core record actions stay wired, and DB-backed row details stay surfaced.
 
 ## Status
 
-> ⚠️ **Foundation, not finished.** This commit establishes the architecture, data model, auth, agent scaffolding, and infrastructure. The UI surfaces (authoring canvas, student desk) and full tool implementations are being built on top of it. See [`docs/Roadmap.md`](docs/Roadmap.md).
+Atlas is still early, but the local MVP is runnable: the core routes render, the seeded teaching/study flows are DB-backed, protected routes go through role entry, signed-in pages render real course data, teaching can draft/review/apply course changes, and study connects focus, material, response, work, and evidence from the course record. See [`docs/Roadmap.md`](docs/Roadmap.md) for the larger product path.
 
 ## License
 

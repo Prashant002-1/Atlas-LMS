@@ -1,60 +1,131 @@
-import Link from "next/link";
+import { BookOpenCheck, FileText, Target } from "lucide-react";
+import { atlasDemo } from "@/lib/demo/atlas";
+import { BrandMark, ButtonLink, CodeList, IconLabel, PageFrame, ProgressBar, StatusBadge } from "@/components/atlas/primitives";
+import { RecordFact } from "@/components/atlas/record";
 
 export default function Landing() {
   return (
-    <main className="min-h-screen mx-auto max-w-5xl px-6 py-20">
-      <header className="flex items-center justify-between">
-        <span className="text-lg font-semibold tracking-tight">Atlas</span>
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href="/sign-in" className="text-neutral-500 hover:text-neutral-900">
-            Sign in
-          </Link>
-          <Link href="/sign-up" className="rounded-full bg-neutral-900 px-4 py-1.5 text-white hover:bg-neutral-700">
-            Get started
-          </Link>
-        </nav>
+    <PageFrame>
+      <header className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-5 md:px-8">
+        <BrandMark />
+        <ButtonLink href="/sign-in" variant="secondary" icon={false}>
+          Sign in
+        </ButtonLink>
       </header>
 
-      <section className="mt-24 max-w-3xl">
-        <p className="text-sm font-medium uppercase tracking-widest text-neutral-400">The AI-native LMS</p>
-        <h1 className="mt-4 text-5xl font-semibold leading-tight tracking-tight">
-          The agent <em>is</em> the LMS.
-        </h1>
-        <p className="mt-6 text-lg leading-relaxed text-neutral-600">
-          Atlas builds and runs courses for professors, and tutors students inside them — every piece grounded in the
-          professor&apos;s actual learning objectives. No instructional-design center. No copy-pasting to ChatGPT. No
-          surprises on exam day.
-        </p>
-        <div className="mt-8 flex gap-3">
-          <Link href="/sign-up" className="rounded-full bg-neutral-900 px-6 py-3 text-white hover:bg-neutral-700">
-            Start a course
-          </Link>
-          <Link href="/sign-in" className="rounded-full border border-neutral-300 px-6 py-3 hover:border-neutral-900">
-            I&apos;m a student
-          </Link>
-        </div>
-      </section>
-
-      <section className="mt-24 grid gap-8 md:grid-cols-2">
-        <div className="rounded-2xl border border-neutral-200 p-6">
-          <h2 className="text-xl font-semibold">For professors</h2>
-          <p className="mt-2 text-neutral-600">
-            &ldquo;Build a 14-week stats course aligned to these five outcomes.&rdquo; Atlas drafts the syllabus, modules,
-            assignments, and rubrics — you review and approve. Roll a course forward in one click.
+      <section className="mx-auto grid max-w-6xl gap-8 px-5 pb-12 pt-8 md:px-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(440px,1.08fr)] lg:items-center lg:pt-16">
+        <div>
+          <h1 className="atlas-serif max-w-3xl text-[48px] font-semibold leading-[1.02] text-[var(--color-ink)] md:text-[68px]">
+            Course design and study in one record.
+          </h1>
+          <p className="mt-6 max-w-2xl text-[18px] leading-8 text-[var(--color-muted)]">
+            Objectives, modules, assignments, and evidence stay attached to the course as it changes.
           </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <ButtonLink href="/sign-up">Start with one course</ButtonLink>
+            <ButtonLink href="/sign-in?role=student" variant="secondary">
+              Study this course
+            </ButtonLink>
+          </div>
+          <div className="mt-8 max-w-xl border-y border-[var(--color-border)] py-4">
+            <p className="text-[13px] font-medium text-[var(--color-ink)]">{atlasDemo.course.code} · {atlasDemo.course.term}</p>
+            <p className="mt-1 text-[13px] leading-5 text-[var(--color-muted)]">Applied Statistics is the working course.</p>
+          </div>
         </div>
-        <div className="rounded-2xl border border-neutral-200 p-6">
-          <h2 className="text-xl font-semibold">For students</h2>
-          <p className="mt-2 text-neutral-600">
-            A tutor that lives inside the course, grounded in the real material and the syllabus. Always know whether
-            you&apos;ve covered what will actually be assessed.
-          </p>
-        </div>
-      </section>
 
-      <footer className="mt-24 border-t border-neutral-200 pt-8 text-sm text-neutral-400">
-        Atlas LMS · foundation build · see docs/Vision.md
-      </footer>
-    </main>
+        <ProductPreview />
+      </section>
+    </PageFrame>
+  );
+}
+
+function ProductPreview() {
+  const visibleObjectives = atlasDemo.objectives.slice(1, 4);
+  const visibleModules = atlasDemo.modules.slice(0, 4);
+  const gap =
+    [...atlasDemo.objectives].sort((a, b) => b.assessedWeight * (100 - b.coverage) - a.assessedWeight * (100 - a.coverage))[0] ??
+    atlasDemo.objectives[0];
+  const nextModule = atlasDemo.modules.find((module) => module.objectiveCodes.includes(gap.code)) ?? atlasDemo.modules.find((module) => module.status !== "approved");
+  const nextWork = gap.code === "LO3" ? "Project milestone" : "Problem Set 2";
+  const nextChange = atlasDemo.proposals.find((proposal) => proposal.status === "pending") ?? atlasDemo.proposals[0];
+
+  return (
+    <div className="rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+        <div>
+          <p className="text-[13px] font-semibold text-[var(--color-ink)]">{atlasDemo.course.code}</p>
+          <p className="text-[12px] text-[var(--color-muted)]">{atlasDemo.course.name}</p>
+        </div>
+        <StatusBadge tone="accent">Current</StatusBadge>
+      </div>
+      <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_240px]">
+        <div className="p-4">
+          <div className="border-b border-[var(--color-border)] pb-4">
+            <IconLabel icon={FileText}>Course map</IconLabel>
+            <p className="mt-3 text-[15px] leading-6 text-[var(--color-ink)]">{atlasDemo.course.prompt}</p>
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_210px]">
+            <div className="divide-y divide-[var(--color-border)]">
+              {visibleModules.map((module) => (
+                <div key={module.title} className="grid gap-3 py-3 first:pt-0 last:pb-0 sm:grid-cols-[32px_minmax(0,1fr)_74px] sm:items-center">
+                  <span className="text-[12px] font-semibold text-[var(--color-faint)]">{module.week}</span>
+                  <div>
+                    <p className="text-[13px] font-medium leading-5 text-[var(--color-ink)]">{module.title}</p>
+                    <div className="mt-2">
+                      <CodeList codes={module.objectiveCodes} />
+                    </div>
+                  </div>
+                  <StatusBadge tone={module.status === "approved" ? "good" : "neutral"}>
+                    {module.status === "approved" ? "Live" : "Draft"}
+                  </StatusBadge>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-[var(--color-border)] pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+              <p className="text-[12px] font-medium text-[var(--color-ink)]">Coverage</p>
+              <div className="mt-2 divide-y divide-[var(--color-border)]">
+                {visibleObjectives.map((objective) => (
+                  <div key={objective.code} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[13px] font-medium text-[var(--color-ink)]">{objective.code}</span>
+                      <StatusBadge tone={objective.coverage >= 70 ? "good" : "warn"}>{objective.coverage}%</StatusBadge>
+                    </div>
+                    <div className="mt-2">
+                      <ProgressBar value={objective.coverage} label="Coverage" />
+                    </div>
+                    <p className="mt-2 text-[12px] text-[var(--color-muted)]">Weight {objective.assessedWeight}%</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        <aside className="border-t border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4 md:border-l md:border-t-0">
+          <div>
+            <IconLabel icon={Target}>Study path</IconLabel>
+            <p className="mt-3 text-[15px] font-semibold leading-6 text-[var(--color-ink)]">
+              {gap.code}: {gap.title}
+            </p>
+            <p className="mt-2 text-[12px] leading-5 text-[var(--color-muted)]">{gap.description}</p>
+            <div className="mt-3">
+              <ProgressBar value={gap.coverage} label="Completed" />
+            </div>
+          </div>
+          <div className="mt-5 border-t border-[var(--color-border)] pt-4">
+            <IconLabel icon={BookOpenCheck}>Next</IconLabel>
+            <div className="mt-3 space-y-3">
+              <RecordFact label="Review" value={nextModule?.title ?? "Course material"} variant="stack" />
+              <RecordFact label="Do" value={nextWork} variant="stack" />
+              <RecordFact label="Check" value={gap.code} variant="stack" />
+            </div>
+          </div>
+          <div className="mt-5 border-t border-[var(--color-border)] pt-4">
+            <p className="text-[12px] font-medium text-[var(--color-ink)]">Review</p>
+            <p className="mt-2 text-[13px] font-medium leading-5 text-[var(--color-ink)]">{nextChange.title}</p>
+            <p className="mt-2 text-[12px] leading-5 text-[var(--color-muted)]">{nextChange.summary}</p>
+          </div>
+        </aside>
+      </div>
+    </div>
   );
 }

@@ -22,14 +22,14 @@
 ```
                      ┌──────────────────────────────────────────────┐
   Browser  ─────────▶│  Next.js App Router                          │
-  (student /         │   /(marketing)      public landing            │
-   instructor)       │   /(app)/student    student desk (gen-UI)     │
-                     │   /(app)/teach      authoring canvas (gen-UI) │
-                     │   /api/chat         persona-aware agent       │
+  (student /         │   /                 product overview          │
+   instructor)       │   /student          study view                │
+                     │   /teach            teaching view             │
+                     │   /api/chat         persona-aware course API  │
                      └───────────────┬──────────────────────────────┘
                                      │  session = { userId, orgId, role }
                      ┌───────────────▼──────────────────────────────┐
-                     │  Agent loop (streamText, ≤8 steps)            │
+                     │  Course runtime                               │
                      │   1. setWorkspaceDecision  (validated)        │
                      │   2. typed tools (parameterized SQL/Drizzle)  │
                      │        • student-tools  (read, scoped)        │
@@ -45,22 +45,20 @@
 
 ---
 
-## The generative-UI engine (`lib/workspace/`)
+## Workspace Decision Contract (`lib/workspace/`)
 
-This is the prototype's best idea, carried forward and extended. The agent cannot freely draw UI. It must first call `setWorkspaceDecision` and emit a structured plan:
+The runtime cannot freely draw UI. It must first call `setWorkspaceDecision` and emit a structured plan:
 
 ```
 goal · focus · view · panels[] · actions[] · reason · evidence[]
 ```
 
-`validation.ts` checks that plan against `VIEW_RULES`: only registered views, panels only in their allowed slots, only allowed actions per view. The frontend `reducer.ts` folds the streamed tool outputs into view state and renders **only registered layouts/panels**. The model orchestrates the UI; it can never inject an unsafe or unknown one.
+`validation.ts` checks that plan against `VIEW_RULES`: only registered views, panels only in their allowed slots, only allowed actions per view. Product surfaces render registered layouts and panels only.
 
-**What we added:** the prototype only had student _planning_ views (`todayDesk`, `weekMap`, `assignmentFocus`, …). Atlas extends the same contract to two personas:
+The current contract covers two personas:
 
-- **Student views:** `todayDesk`, `weekMap`, `assignmentFocus`, `coursePulse`, `studySession` (grounded tutor), `objectiveCoverage` (alignment to syllabus).
+- **Student views:** `todayDesk`, `weekMap`, `assignmentFocus`, `coursePulse`, `studySession`, `objectiveCoverage`.
 - **Instructor views:** `courseBuilder`, `syllabusComposer`, `assessmentBuilder`, `gradingDesk`, `classInsights`, `objectiveMap`.
-
-A "trusted generative UI for authoring an LMS" is, as far as we know, novel.
 
 ---
 
@@ -77,9 +75,9 @@ From this graph we compute: student coverage vs. assessed weight, professor cove
 
 ---
 
-## Human-in-the-loop authoring
+## Review-Based Authoring
 
-Agent _write_ actions never mutate the course directly. They produce a **`change_proposal`** (a structured diff + summary) that the instructor reviews, edits, and approves. Only on approval is it applied. This keeps the professor in control and creates an audit trail — essential for institutional trust.
+Write actions create a `change_proposal` with structured diff and summary. The teaching view shows pending changes in Review; applying a change writes draft course rows, and publishing moves those rows live. Applied or dismissed decisions stay traceable without crowding the main course map.
 
 ---
 

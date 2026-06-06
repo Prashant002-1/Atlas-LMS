@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Atlas LMS — the AI-native learning platform",
+  title: "Atlas LMS - course record for teaching and study",
   description:
-    "The agent builds courses for professors and tutors students inside them — every piece grounded in the professor's learning objectives, so nothing is a surprise.",
+    "Atlas keeps course design, practice, and study grounded in one course record.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

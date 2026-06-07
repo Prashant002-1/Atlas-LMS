@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ComponentType, CSSProperties, ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import type { LucideProps } from "lucide-react";
 import { ArrowRight } from "lucide-react";
 
@@ -7,49 +7,44 @@ type Icon = ComponentType<LucideProps>;
 
 const badgeTone = {
   neutral: "border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-muted)]",
-  accent: "border-[rgba(0,112,124,0.24)] bg-[rgba(0,112,124,0.08)] text-[var(--color-accent-strong)]",
-  good: "border-[rgba(24,128,85,0.22)] bg-[rgba(24,128,85,0.08)] text-[var(--color-good)]",
-  warn: "border-[rgba(168,98,0,0.22)] bg-[rgba(168,98,0,0.08)] text-[var(--color-warn)]",
+  accent: "border-[rgba(30,126,140,0.30)] bg-[rgba(30,126,140,0.09)] text-[var(--color-accent-strong)]",
+  good: "border-[rgba(62,122,82,0.28)] bg-[rgba(62,122,82,0.09)] text-[var(--color-good)]",
+  warn: "border-[rgba(154,106,34,0.28)] bg-[rgba(154,106,34,0.09)] text-[var(--color-warn)]",
 };
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
-    <Link href="/" className="group inline-flex items-center gap-3">
+    <Link href="/" aria-label="Atlas" className="group inline-flex items-center gap-3">
       <AtlasMark compact={compact} />
       {!compact ? (
         <span className="leading-none">
-          <span className="block text-[15px] font-semibold text-[var(--color-ink)]">Atlas</span>
-          <span className="mt-1 block text-[12px] text-[var(--color-muted)]">Learning record</span>
+          <span className="atlas-serif block text-[18px] font-medium text-[var(--color-ink)]">Atlas</span>
+          <span className="mt-1 block text-[12px] text-[var(--color-muted)]">Course record</span>
         </span>
       ) : null}
     </Link>
   );
 }
 
-const markPixels = [
-  [3, 3, "ink"],
-  [11, 7, "accent"],
-  [18, 4, "faint"],
-  [24, 11, "accent"],
-  [7, 17, "faint"],
-  [15, 20, "ink"],
-  [27, 23, "good"],
-  [10, 28, "accent"],
-  [21, 30, "faint"],
-] as const;
-
 function AtlasMark({ compact }: { compact: boolean }) {
+  const size = compact ? 28 : 34;
   return (
-    <span className={`atlas-mark ${compact ? "atlas-mark--compact" : ""}`} aria-hidden="true">
-      {markPixels.map(([x, y, tone]) => (
-        <span
-          key={`${x}-${y}-${tone}`}
-          data-tone={tone}
-          style={{ "--x": x, "--y": y } as CSSProperties}
-          className="atlas-mark__pixel"
-        />
-      ))}
-    </span>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      aria-hidden="true"
+      className="flex-none"
+    >
+      <circle cx="32" cy="32" r="17" fill="none" stroke="var(--color-indigo)" strokeWidth="2.4" />
+      <g stroke="var(--color-ink)" strokeWidth="2.2" strokeLinecap="round">
+        <line x1="32" y1="11" x2="32" y2="19" />
+        <line x1="32" y1="45" x2="32" y2="53" />
+        <line x1="11" y1="32" x2="19" y2="32" />
+        <line x1="45" y1="32" x2="53" y2="32" />
+      </g>
+      <circle cx="32" cy="32" r="3.1" fill="var(--color-accent)" />
+    </svg>
   );
 }
 
@@ -189,7 +184,7 @@ export function ActionButton({
     quiet:
       "border-transparent bg-transparent text-[var(--color-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]",
     danger:
-      "border-[rgba(163,58,42,0.28)] bg-transparent text-[var(--color-danger)] hover:bg-[rgba(163,58,42,0.08)]",
+      "border-[rgba(166,67,47,0.30)] bg-transparent text-[var(--color-danger)] hover:bg-[rgba(166,67,47,0.08)]",
   };
 
   return (

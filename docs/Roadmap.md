@@ -18,7 +18,7 @@ Sequenced so each phase unlocks the next. Auth + tenancy first, because everythi
 - Signed-out teaching/study requests redirect through the role entry path instead of exposing preview data.
 - Seed script resets the local demo tenant with one org, instructor, student, course, objectives, modules, assignments, submission, and review item.
 - DB-backed teaching/study pages; signed-in pages render real course data.
-- Direct record actions: instructors can publish draft weeks/work, and students submit written practice responses tied to aligned work.
+- Direct record actions: instructors can publish draft weeks/work, and students submit written responses tied to aligned work.
 - MVP contract tests cover required routes, links/redirects, direct record actions, and row detail fields.
 - Active GitHub Actions CI runs lint, typecheck, schema push, tests, and build against Postgres.
 
@@ -28,18 +28,19 @@ Remaining before an institutional pilot:
 - Migration-based CI once Drizzle migrations are committed instead of schema push.
 
 ## Phase 2 — Student experience
-- Current: DB-backed study view with actionable focus objective, aligned published material, grounded practice, written response submission, work, evidence, standing, and empty/unavailable states.
-- Current: practice can draw from a course-level practice base, so the task references a professor-provided dataset/problem frame instead of generic textbook phrasing.
+- Current: DB-backed study view with actionable focus, latest course note, aligned published material, grounded practice, material-to-work detail flow, written response submission, missing recovery, waiting/done work state, evidence, standing, and empty/unavailable states.
+- Current: practice draws from persisted course material so the task references a professor-provided dataset/problem frame before falling back.
+- Current: student Atlas requests persist to the active course chat record, return a compact study package, reappear as recent study context, and follow into linked material/work records.
 - Next: render the planning views (`todayDesk`, `weekMap`, `assignmentFocus`) from the validated course-view contract.
 - `studySession` view: grounded tutor (RAG over course content embeddings, Socratic prompting, citations)
 - `objectiveCoverage` view: the "am I aligned to the syllabus?" coverage meter
 - Per-user memory + planner, scoped
 
 ## Phase 3 — Instructor authoring
-- Current: DB-backed teaching view with week and work rows, live objective coverage from alignments, course gaps, Review, recent decisions, outline drafting, week/work publishing, and module/assignment/objective/outline apply/dismiss.
-- Current: teaching view shows the active practice base alongside the course map, framing how future practice variants should be generated from professor-owned data.
-- Next: richer teaching composers for `courseBuilder` / `syllabusComposer` / `assessmentBuilder`.
-- Next: persist editable practice bases per course/objective, including dataset variables, concept alignment, variant families, and review state.
+- Current: DB-backed teaching view with week, work, and course-note rows, linked material on work records, live coverage from alignments, grading-first Today, missing-work recording, standing updates from graded work, Review, light generated-record edits, applied-record handoff, recent decisions, Today-owned Atlas command drafting, review-to-live publishing, queue publishing, and proposal dismiss.
+- Current: common Atlas command requests become reviewable material/work drafts; explicit practice bases, concepts, and shifts persist into ordinary course records; unclear requests still persist as proposals.
+- Next: route richer `courseBuilder` / `syllabusComposer` / `assessmentBuilder` outputs through the same command/proposal lane.
+- Next: generate practice materials from professor-provided context without exposing separate authoring layers.
 - Rich change-proposal diffs with edit-before-apply.
 - Objective definition + auto-alignment tooling (`objectiveMap`)
 - **One-click Canvas import** (repurpose the prototype parser) → restructure → align

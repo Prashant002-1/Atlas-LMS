@@ -1,6 +1,6 @@
 # Atlas LMS
 
-Atlas is a course record for teaching and study. Objectives, modules, assignments, submissions, practice bases, and evidence share one model, so professors can shape a course and students can study from the same record.
+Atlas is a course record for teaching and study. Objectives, modules, assignments, submissions, proposals, and evidence share one model, so professors can shape a course and students can study from the same record.
 
 Start with the product context in [`PRODUCT.md`](PRODUCT.md), then read [`docs/Brand.md`](docs/Brand.md) for brand direction, [`docs/DesignSystem.md`](docs/DesignSystem.md) for UI rules, [`docs/Vision.md`](docs/Vision.md) for the broader thesis, and [`docs/Architecture.md`](docs/Architecture.md) for the system shape.
 
@@ -29,7 +29,7 @@ This repo now includes a working local MVP surface:
 - `/sign-in` — role entry for teaching or study.
 - `/sign-up` — one-course start surface.
 - `/teach` — teaching view with modules, work, objective coverage, review, outline drafting, publish, and recent decisions.
-- `/student` — study view with focus objective, aligned material, practice response, work, evidence, and standing.
+- `/student` — study view with focus objective, Atlas package request, aligned material, practice response, work, evidence, and standing.
 - `/api/health` — database health check.
 
 Workspace routes redirect signed-out visitors to the matching role entry path.
@@ -120,7 +120,7 @@ npm run smoke
 
 ## Status
 
-Atlas is still early, but the local MVP is runnable: the core routes render, the seeded teaching/study flows are DB-backed, protected routes go through role entry, signed-in pages render real course data, teaching can draft/review/apply course changes, and study connects focus, material, response, work, and evidence from the course record. See [`docs/Roadmap.md`](docs/Roadmap.md) for the larger product path.
+Atlas is still early, but the local MVP is runnable: the core routes render, the seeded teaching/study flows are DB-backed, protected routes go through role entry, signed-in pages render real course data, teaching can draft/review/apply course changes, and study connects focus, package requests, material, response, work, and evidence from the course record. See [`docs/Roadmap.md`](docs/Roadmap.md) for the larger product path.
 
 ## License
 

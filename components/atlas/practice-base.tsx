@@ -40,6 +40,24 @@ export function PracticeBasePanel({ base }: { base: PracticeBase }) {
   );
 }
 
+export function PracticeVariants({ base, limit = 3 }: { base: PracticeBase; limit?: number }) {
+  const variants = base.variants.slice(0, limit);
+  if (variants.length === 0) return null;
+
+  return (
+    <div className="mt-4 border-t border-[var(--color-border)] pt-4">
+      <p className="text-[12px] font-medium text-[var(--color-ink)]">Ways to practice</p>
+      <div className="mt-2 divide-y divide-[var(--color-border)]">
+        {variants.map((variant) => (
+          <p key={variant} className="py-2 text-[13px] leading-5 text-[var(--color-ink)] first:pt-0 last:pb-0">
+            {variant}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PracticeGlyph({ compact = false }: { compact?: boolean }) {
   const points = compact
     ? [

@@ -1,7 +1,9 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
+  announcements,
   assignments,
+  chatSessions,
   contentAlignments,
   courses,
   enrollments,
@@ -25,6 +27,9 @@ export type StudentWorkspace = {
   assignments: StudentAssignment[];
   materials: StudentMaterial[];
   practice: StudentPractice;
+  studyMessages: StudentStudyMessage[];
+  studyPackage?: StudentStudyPackage;
+  notices: StudentCourseNotice[];
   sources: string[];
   problem?: {
     title: string;
@@ -49,6 +54,12 @@ export type StudentAssignment = {
   detail: string;
   description?: string | null;
   response?: string | null;
+  dueAt?: Date | null;
+  points?: number | null;
+  submittedAt?: Date | null;
+  gradedAt?: Date | null;
+  score?: number | null;
+  grade?: string | null;
   objectiveCodes: string[];
 };
 
@@ -77,12 +88,186 @@ export type StudentPractice = {
   };
 };
 
+export type StudentStudyMessage = {
+  id: string;
+  text: string;
+  createdAt?: string;
+};
+
+export type StudentStudyPackage = {
+  id: string;
+  request: string;
+  title: string;
+  summary: string;
+  review: string;
+  reviewHref?: string;
+  practice: string;
+  do: string;
+  doHref?: string;
+  check: string;
+  createdAt?: string;
+};
+
+export type StudentCourseNotice = {
+  id?: string;
+  title: string;
+  message?: string | null;
+  postedAt?: Date | null;
+};
+
+type StoredStudyMessage = {
+  id?: unknown;
+  role?: unknown;
+  parts?: unknown;
+  metadata?: unknown;
+  createdAt?: unknown;
+};
+
+type StoredTextPart = {
+  type?: unknown;
+  text?: unknown;
+};
+
+type AtlasMetadata = {
+  atlas?: {
+    kind?: unknown;
+    createdAt?: unknown;
+    package?: unknown;
+  };
+};
+
+export type StudentAssignmentWorkspace = {
+  source: StudentWorkspace["source"];
+  course: StudentWorkspace["course"];
+  student: StudentWorkspace["student"];
+  assignment?: StudentAssignment;
+  materials: StudentMaterial[];
+  objectives: StudentObjective[];
+  practice: StudentPractice;
+  studyPackage?: StudentStudyPackage;
+  problem?: {
+    title: string;
+    detail: string;
+  };
+};
+
+export type StudentMaterialWorkspace = {
+  source: StudentWorkspace["source"];
+  course: StudentWorkspace["course"];
+  student: StudentWorkspace["student"];
+  material?: StudentMaterial;
+  assignments: StudentAssignment[];
+  objectives: StudentObjective[];
+  practice: StudentPractice;
+  studyPackage?: StudentStudyPackage;
+  problem?: {
+    title: string;
+    detail: string;
+  };
+};
+
 type Actor = {
   id: string;
   orgId: string | null;
   role: Role;
   name?: string | null;
 };
+
+export async function loadStudentAssignmentWorkspace(
+  actor: Actor | null | undefined,
+  assignmentId: string
+): Promise<StudentAssignmentWorkspace> {
+  const workspace = await loadStudentWorkspace(actor);
+  const base = {
+    source: workspace.source,
+    course: workspace.course,
+    student: workspace.student,
+    practice: workspace.practice,
+    studyPackage: packageForAssignment(workspace.studyPackage, assignmentId),
+  };
+
+  if (workspace.problem) {
+    return {
+      ...base,
+      materials: [],
+      objectives: [],
+      problem: workspace.problem,
+    };
+  }
+
+  const assignment = workspace.assignments.find((item) => item.id === assignmentId);
+  if (!assignment) {
+    return {
+      ...base,
+      materials: [],
+      objectives: [],
+      problem: {
+        title: "Work unavailable",
+        detail: "This work is not attached to the active course record.",
+      },
+    };
+  }
+
+  const objectiveCodes = new Set(assignment.objectiveCodes);
+  const objectives = workspace.objectives.filter((objective) => objectiveCodes.has(objective.code));
+  const materials = workspace.materials.filter((material) => material.objectiveCodes.some((code) => objectiveCodes.has(code)));
+
+  return {
+    ...base,
+    assignment,
+    materials,
+    objectives: objectives.length > 0 ? objectives : [workspace.focus],
+  };
+}
+
+export async function loadStudentMaterialWorkspace(
+  actor: Actor | null | undefined,
+  moduleId: string
+): Promise<StudentMaterialWorkspace> {
+  const workspace = await loadStudentWorkspace(actor);
+  const base = {
+    source: workspace.source,
+    course: workspace.course,
+    student: workspace.student,
+    practice: workspace.practice,
+    studyPackage: packageForMaterial(workspace.studyPackage, moduleId),
+  };
+
+  if (workspace.problem) {
+    return {
+      ...base,
+      assignments: [],
+      objectives: [],
+      problem: workspace.problem,
+    };
+  }
+
+  const material = workspace.materials.find((item) => item.id === moduleId);
+  if (!material) {
+    return {
+      ...base,
+      assignments: [],
+      objectives: [],
+      problem: {
+        title: "Material unavailable",
+        detail: "This material is not attached to the active course record.",
+      },
+    };
+  }
+
+  const objectiveCodes = new Set(material.objectiveCodes);
+  const objectives = workspace.objectives.filter((objective) => objectiveCodes.has(objective.code));
+  const assignments = workspace.assignments.filter((assignment) => assignment.objectiveCodes.some((code) => objectiveCodes.has(code)));
+  const materialObjectives = objectives.length > 0 ? objectives : [workspace.focus];
+
+  return {
+    ...base,
+    material,
+    assignments,
+    objectives: materialObjectives,
+    practice: buildPractice(materialObjectives[0] ?? workspace.focus, [material], assignments),
+  };
+}
 
 export async function loadStudentWorkspace(actor?: Actor | null): Promise<StudentWorkspace> {
   if (!actor) {
@@ -162,6 +347,32 @@ export async function loadStudentWorkspace(actor?: Actor | null): Promise<Studen
       .where(and(eq(modules.orgId, actor.orgId), eq(modules.courseId, course.id), eq(modules.published, true)))
       .orderBy(asc(modules.position), asc(modules.name))
       .limit(12);
+
+    const noticeRows = await db
+      .select({
+        id: announcements.id,
+        title: announcements.title,
+        message: announcements.messageMd,
+        postedAt: announcements.postedAt,
+      })
+      .from(announcements)
+      .where(and(eq(announcements.orgId, actor.orgId), eq(announcements.courseId, course.id), eq(announcements.published, true)))
+      .orderBy(desc(announcements.postedAt))
+      .limit(3);
+
+    const [studySession] = await db
+      .select({ messages: chatSessions.messages })
+      .from(chatSessions)
+      .where(
+        and(
+          eq(chatSessions.orgId, actor.orgId),
+          eq(chatSessions.userId, actor.id),
+          eq(chatSessions.courseId, course.id),
+          eq(chatSessions.persona, "student")
+        )
+      )
+      .orderBy(desc(chatSessions.updatedAt))
+      .limit(1);
 
     const submissionRows = await db
       .select({
@@ -272,6 +483,12 @@ export async function loadStudentWorkspace(actor?: Actor | null): Promise<Studen
           detail: submission?.grade ?? scoreLabel(submission?.score, assignment.pointsPossible) ?? formatDue(assignment.dueAt) ?? "Open",
           description: assignment.descriptionMd,
           response: submission?.body,
+          dueAt: assignment.dueAt,
+          points: assignment.pointsPossible,
+          submittedAt: submission?.submittedAt,
+          gradedAt: submission?.gradedAt,
+          score: submission?.score,
+          grade: submission?.grade,
           objectiveCodes: codes,
         };
       })
@@ -319,6 +536,9 @@ export async function loadStudentWorkspace(actor?: Actor | null): Promise<Studen
       assignments: mappedAssignments,
       materials,
       practice,
+      studyMessages: toStudyMessages(studySession?.messages),
+      studyPackage: toStudyPackage(studySession?.messages),
+      notices: noticeRows,
       sources,
     };
   } catch {
@@ -329,9 +549,36 @@ export async function loadStudentWorkspace(actor?: Actor | null): Promise<Studen
 function previewWorkspace(): StudentWorkspace {
   const objectives = atlasDemo.objectives;
   const assignments = [
-    { name: "Project milestone", status: "open" as const, detail: "Next", description: "Model a relationship and explain uncertainty.", objectiveCodes: ["LO3"] },
-    { name: "Problem Set 4", status: "open" as const, detail: "Practice", description: "Regression interpretation and assumptions.", objectiveCodes: ["LO3", "LO4"] },
-    { name: "Problem Set 1", status: "graded" as const, detail: "A-", description: "Descriptive statistics on the provided dataset.", objectiveCodes: ["LO1"] },
+    {
+      name: "Project milestone",
+      status: "open" as const,
+      detail: "Due Jun 18",
+      description: "Model a relationship and explain uncertainty.",
+      dueAt: new Date("2026-06-18T16:00:00.000Z"),
+      points: 100,
+      objectiveCodes: ["LO3"],
+    },
+    {
+      name: "Problem Set 4",
+      status: "open" as const,
+      detail: "Due Jun 21",
+      description: "Regression interpretation and assumptions.",
+      dueAt: new Date("2026-06-21T16:00:00.000Z"),
+      points: 50,
+      objectiveCodes: ["LO3", "LO4"],
+    },
+    {
+      name: "Problem Set 1",
+      status: "graded" as const,
+      detail: "A-",
+      description: "Descriptive statistics on the provided dataset.",
+      submittedAt: new Date("2026-06-04T16:00:00.000Z"),
+      gradedAt: new Date("2026-06-06T16:00:00.000Z"),
+      score: 91,
+      points: 100,
+      grade: "A-",
+      objectiveCodes: ["LO1"],
+    },
   ];
   const materials = atlasDemo.modules
     .filter((module) => module.status === "approved")
@@ -355,6 +602,15 @@ function previewWorkspace(): StudentWorkspace {
     assignments,
     materials,
     practice: buildPractice(focus, materials, assignments),
+    studyMessages: [],
+    studyPackage: undefined,
+    notices: [
+      {
+        title: "Week 2 note",
+        message: "Bring one question from the sampling notes to the next class.",
+        postedAt: new Date("2026-06-08T14:00:00.000Z"),
+      },
+    ],
     sources: atlasDemo.student.sources,
   };
 }
@@ -389,9 +645,125 @@ function unavailableWorkspace(name: string | null | undefined, title: string, de
     assignments: [],
     materials: [],
     practice: buildPractice(focus, [], []),
+    studyMessages: [],
+    studyPackage: undefined,
+    notices: [],
     sources: [],
     problem: { title, detail },
   };
+}
+
+function toStudyMessages(messages: unknown): StudentStudyMessage[] {
+  if (!Array.isArray(messages)) return [];
+
+  return messages
+    .map((message) => readStudyMessage(message))
+    .filter((message): message is StudentStudyMessage => Boolean(message))
+    .slice(-3)
+    .reverse();
+}
+
+function readStudyMessage(message: unknown): StudentStudyMessage | null {
+  if (!message || typeof message !== "object") return null;
+
+  const record = message as StoredStudyMessage;
+  if (record.role !== "user" || !Array.isArray(record.parts)) return null;
+
+  const text = record.parts
+    .map((part) => {
+      if (!part || typeof part !== "object") return "";
+      const textPart = part as StoredTextPart;
+      return textPart.type === "text" && typeof textPart.text === "string" ? textPart.text : "";
+    })
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!text) return null;
+
+  return {
+    id: typeof record.id === "string" ? record.id : text,
+    text,
+    createdAt: atlasMetadata(record)?.createdAt,
+  };
+}
+
+function toStudyPackage(messages: unknown): StudentStudyPackage | undefined {
+  if (!Array.isArray(messages)) return undefined;
+
+  for (const message of [...messages].reverse()) {
+    const parsed = readStudyPackage(message);
+    if (parsed) return parsed;
+  }
+
+  return undefined;
+}
+
+function readStudyPackage(message: unknown): StudentStudyPackage | null {
+  if (!message || typeof message !== "object") return null;
+
+  const record = message as StoredStudyMessage;
+  if (record.role !== "assistant") return null;
+
+  const metadata = atlasMetadata(record);
+  if (metadata?.kind !== "study_package") return null;
+
+  return parseStudyPackage(metadata.package, typeof record.id === "string" ? record.id : undefined, metadata.createdAt);
+}
+
+function parseStudyPackage(value: unknown, fallbackId?: string, createdAt?: string): StudentStudyPackage | null {
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  const request = readString(record.request);
+  const title = readString(record.title);
+  const summary = readString(record.summary);
+  const review = readString(record.review);
+  const practice = readString(record.practice);
+  const doText = readString(record.do);
+  const check = readString(record.check);
+
+  if (!title || !summary || !review || !practice || !doText || !check) return null;
+
+  return {
+    id: readString(record.id) ?? fallbackId ?? title,
+    request: request ?? "",
+    title,
+    summary,
+    review,
+    reviewHref: readString(record.reviewHref),
+    practice,
+    do: doText,
+    doHref: readString(record.doHref),
+    check,
+    createdAt,
+  };
+}
+
+function atlasMetadata(record: StoredStudyMessage) {
+  if (!record.metadata || typeof record.metadata !== "object") return undefined;
+
+  const metadata = record.metadata as AtlasMetadata;
+  const atlas = metadata.atlas;
+  if (!atlas || typeof atlas !== "object") return undefined;
+
+  return {
+    kind: atlas.kind,
+    createdAt: typeof atlas.createdAt === "string" ? atlas.createdAt : undefined,
+    package: atlas.package,
+  };
+}
+
+function readString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function packageForAssignment(studyPackage: StudentStudyPackage | undefined, assignmentId: string) {
+  return studyPackage?.doHref === `/student/work/${assignmentId}` ? studyPackage : undefined;
+}
+
+function packageForMaterial(studyPackage: StudentStudyPackage | undefined, moduleId: string) {
+  return studyPackage?.reviewHref === `/student/material/${moduleId}` ? studyPackage : undefined;
 }
 
 function buildPractice(
@@ -404,7 +776,7 @@ function buildPractice(
     assignments.find((item) => item.objectiveCodes.includes(focus.code) && item.status !== "graded") ??
     assignments.find((item) => item.objectiveCodes.includes(focus.code)) ??
     assignments[0];
-  const base = practiceBaseForObjective(focus.code);
+  const base = practiceBaseFromCourseRecord(focus, material, assignment, practiceBaseForObjective(focus.code));
 
   return {
     objectiveCode: focus.code,
@@ -422,6 +794,60 @@ function buildPractice(
       verify: focus.code,
     },
   };
+}
+
+function practiceBaseFromCourseRecord(
+  focus: StudentObjective,
+  material: StudentMaterial | undefined,
+  assignment: StudentAssignment | undefined,
+  fallback: PracticeBase
+): PracticeBase {
+  const source = `${material?.summary ?? ""}\n${assignment?.description ?? ""}`;
+  const dataset = labeledValue(source, "Base") ?? fallback.dataset;
+  const variants = splitList(labeledValue(source, "Shifts")) ?? fallback.variants;
+  const concepts = splitList(labeledValue(source, "Concepts")) ?? [];
+  const frame = stripPracticeLabels(material?.summary) ?? stripPracticeLabels(assignment?.description) ?? fallback.frame;
+
+  return {
+    title: material?.title ?? fallback.title,
+    dataset,
+    frame,
+    conceptCodes: focus.code ? [focus.code] : fallback.conceptCodes,
+    variables: concepts.length > 0 ? concepts : fallback.variables,
+    variants,
+  };
+}
+
+function labeledValue(value: string, label: "Base" | "Shifts" | "Concepts") {
+  const marker = new RegExp(`\\b${label}\\s*:`, "i").exec(value);
+  if (!marker) return undefined;
+
+  const rest = value.slice(marker.index + marker[0].length);
+  const nextMarker = /\b(?:Base|Shifts|Concepts)\s*:/i.exec(rest);
+  const segment = (nextMarker ? rest.slice(0, nextMarker.index) : rest)
+    .replace(/\s+/g, " ")
+    .replace(/^[\s:;.,-]+|[\s:;.,-]+$/g, "")
+    .trim();
+
+  return segment || undefined;
+}
+
+function splitList(value: string | undefined) {
+  const items = value
+    ?.split(/\s*(?:;|\n|,|\.)\s*/)
+    .map((item) => item.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  return items && items.length > 0 ? items.slice(0, 6) : undefined;
+}
+
+function stripPracticeLabels(value: string | null | undefined) {
+  const cleaned = value
+    ?.replace(/\bBase\s*:\s*.*?(?=\b(?:Shifts|Concepts)\s*:|$)/gi, "")
+    .replace(/\bShifts\s*:\s*.*?(?=\b(?:Base|Concepts)\s*:|$)/gi, "")
+    .replace(/\bConcepts\s*:\s*.*?(?=\b(?:Base|Shifts)\s*:|$)/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned || undefined;
 }
 
 function practicePrompt(focus: StudentObjective, base: PracticeBase) {

@@ -88,6 +88,10 @@ select {
   background-size: 24px 24px;
 }
 
+.atlas-section {
+  scroll-margin-top: 118px;
+}
+
 /* Practice base surface: a professor-provided dataset or problem frame. */
 .atlas-practice-glyph {
   position: relative;

@@ -2,6 +2,8 @@
 const nextConfig = {
   // Emit a standalone server bundle for the Docker image.
   output: "standalone",
+  allowedDevOrigins: ["127.0.0.1"],
+  devIndicators: false,
   turbopack: {
     root: import.meta.dirname,
   },

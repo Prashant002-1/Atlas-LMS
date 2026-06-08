@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 import { signInWithCredentials, signInWithWorkspaceRole, type SignInState } from "@/lib/auth/actions";
 
 const initialState: SignInState = {};
+const focusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent-strong)]";
 
 const roleCopy = {
   instructor: {
@@ -48,7 +49,7 @@ export function SignInForm({ defaultRole = "instructor" }: { defaultRole?: Acces
         </form>
 
         <details className="mt-5 border-t border-[var(--color-border)] pt-3">
-          <summary className="cursor-pointer list-none py-2 text-[13px] font-medium text-[var(--color-ink)] transition hover:text-[var(--color-accent-strong)] [&::-webkit-details-marker]:hidden">
+          <summary className={`cursor-pointer list-none rounded-[6px] py-2 text-[13px] font-medium text-[var(--color-ink)] transition hover:text-[var(--color-accent-strong)] [&::-webkit-details-marker]:hidden ${focusStyle}`}>
             Use email
           </summary>
           <form action={formAction}>
@@ -59,7 +60,7 @@ export function SignInForm({ defaultRole = "instructor" }: { defaultRole?: Acces
                   name="email"
                   type="email"
                   autoComplete="email"
-                  className="min-h-11 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)]"
+                  className={`min-h-11 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] ${focusStyle}`}
                 />
               </label>
               <label className="grid gap-2 text-[13px] font-medium text-[var(--color-ink)]">
@@ -68,7 +69,7 @@ export function SignInForm({ defaultRole = "instructor" }: { defaultRole?: Acces
                   name="password"
                   type="password"
                   autoComplete="current-password"
-                  className="min-h-11 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)]"
+                  className={`min-h-11 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] ${focusStyle}`}
                 />
               </label>
 
@@ -94,7 +95,7 @@ function RoleTab({ href, active, children }: { href: string; active: boolean; ch
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`inline-flex min-h-9 items-center justify-center rounded-[6px] px-3 text-[13px] font-medium transition ${
+      className={`inline-flex min-h-9 items-center justify-center rounded-[6px] px-3 text-[13px] font-medium transition ${focusStyle} ${
         active
           ? "bg-[var(--color-surface)] text-[var(--color-ink)] shadow-[var(--shadow-panel)]"
           : "text-[var(--color-muted)] hover:text-[var(--color-ink)]"
@@ -111,7 +112,7 @@ function WorkspaceButton({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex min-h-10 w-full items-center justify-center rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-4 text-[14px] font-medium text-white transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+      className={`inline-flex min-h-10 w-full items-center justify-center rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-4 text-[14px] font-medium text-white transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60 ${focusStyle}`}
     >
       {pending ? "Opening..." : label}
     </button>
@@ -124,7 +125,7 @@ function SubmitButton({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex min-h-10 w-full items-center justify-center rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-4 text-[14px] font-medium text-white transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+      className={`inline-flex min-h-10 w-full items-center justify-center rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-4 text-[14px] font-medium text-white transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60 ${focusStyle}`}
     >
       {pending ? "Signing in..." : label}
     </button>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
 import type { LucideProps } from "lucide-react";
-import { ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 type Icon = ComponentType<LucideProps>;
 
@@ -12,9 +12,11 @@ const badgeTone = {
   warn: "border-[rgba(154,106,34,0.28)] bg-[rgba(154,106,34,0.09)] text-[var(--color-warn)]",
 };
 
+const focusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent-strong)]";
+
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
-    <Link href="/" aria-label="Atlas" className="group inline-flex items-center gap-3">
+    <Link href="/" aria-label="Atlas" className={`group inline-flex items-center gap-3 rounded-[6px] ${focusStyle}`}>
       <AtlasMark compact={compact} />
       {!compact ? (
         <span className="leading-none">
@@ -70,10 +72,41 @@ export function ButtonLink({
   return (
     <Link
       href={href}
-      className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-[8px] border px-4 text-[14px] font-medium transition ${styles[variant]}`}
+      className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-[8px] border px-4 text-[14px] font-medium transition ${focusStyle} ${styles[variant]}`}
     >
       <span>{children}</span>
       {icon ? <ArrowRight size={16} strokeWidth={2} aria-hidden="true" /> : null}
+    </Link>
+  );
+}
+
+export function TextLink({
+  href,
+  children,
+  className = "",
+}: {
+  href: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`rounded-[4px] font-medium text-[var(--color-ink)] transition hover:text-[var(--color-accent-strong)] ${focusStyle} ${className}`}
+    >
+      {children}
+    </Link>
+  );
+}
+
+export function BackLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className={`inline-flex w-fit items-center gap-2 rounded-[6px] text-[13px] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)] ${focusStyle}`}
+    >
+      <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" />
+      <span>{children}</span>
     </Link>
   );
 }
@@ -111,11 +144,13 @@ export function CommandBand({
   eyebrow,
   title,
   detail,
+  after,
   children,
 }: {
   eyebrow: string;
   title: ReactNode;
   detail?: ReactNode;
+  after?: ReactNode;
   children?: ReactNode;
 }) {
   return (
@@ -128,6 +163,7 @@ export function CommandBand({
         </div>
         {children ? <div className="grid gap-2 text-[13px] sm:grid-cols-2">{children}</div> : null}
       </div>
+      {after ? <div className="mt-4 border-t border-[var(--color-border)] pt-4">{after}</div> : null}
     </section>
   );
 }
@@ -192,7 +228,7 @@ export function ActionButton({
       type={type}
       aria-label={ariaLabel}
       title={title}
-      className={`inline-flex min-h-9 items-center justify-center rounded-[8px] border px-3 text-[13px] font-medium transition ${styles[variant]} ${className}`}
+      className={`inline-flex min-h-9 items-center justify-center rounded-[8px] border px-3 text-[13px] font-medium transition ${focusStyle} ${styles[variant]} ${className}`}
     >
       {children}
     </button>

@@ -64,7 +64,7 @@ function ProductPreview() {
             <IconLabel icon={FileText}>Course map</IconLabel>
             <p className="mt-3 text-[15px] leading-6 text-[var(--color-ink)]">{atlasDemo.course.prompt}</p>
           </div>
-          <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_210px]">
+          <div className="mt-4 grid gap-5">
             <div className="divide-y divide-[var(--color-border)]">
               {visibleModules.map((module) => (
                 <div key={module.title} className="grid gap-3 py-3 first:pt-0 last:pb-0 sm:grid-cols-[32px_minmax(0,1fr)_74px] sm:items-center">
@@ -81,8 +81,11 @@ function ProductPreview() {
                 </div>
               ))}
             </div>
-            <div className="border-t border-[var(--color-border)] pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
-              <p className="text-[12px] font-medium text-[var(--color-ink)]">Coverage</p>
+            <div className="border-t border-[var(--color-border)] pt-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[12px] font-medium text-[var(--color-ink)]">Coverage</p>
+                <span className="text-[12px] text-[var(--color-muted)]">{visibleObjectives.length} objectives</span>
+              </div>
               <div className="mt-2 divide-y divide-[var(--color-border)]">
                 {visibleObjectives.map((objective) => (
                   <div key={objective.code} className="py-3 first:pt-0 last:pb-0">

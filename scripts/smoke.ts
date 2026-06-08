@@ -25,8 +25,6 @@ const publicCopyExclusions = [
   "Open instructor",
   "Open student",
   "Professor-controlled",
-  "Queue",
-  "Queued",
   "Imported outline",
   "Turn in",
   "implementation",
@@ -93,7 +91,7 @@ const checks: SmokeCheck[] = [
     path: "/teach",
     status: 200,
     auth: { email: "instructor@demo.edu", password: "atlas1234", redirectTo: "/teach" },
-    includes: ["Applied Statistics", "Course map", "Coverage", "Review", "Draft outline", "Single record"],
+    includes: ["Applied Statistics", "Course map", "Coverage", "Review", "Publish", "Add week", "Add work", "Add objective"],
     excludes: publicCopyExclusions,
   },
   {

@@ -21,44 +21,44 @@
 
 ```
                      ┌──────────────────────────────────────────────┐
-  Browser  ─────────▶│  Next.js App Router                          │
-  (student /         │   /                 product overview          │
-   instructor)       │   /student          study view                │
-                     │   /teach            teaching view             │
-                     │   /api/chat         persona-aware course API  │
+  Browser  ─────────▶│  Next.js App Router (everything behind auth) │
+  (student /         │   /                  role router             │
+   instructor)       │   /student           study record + cues     │
+                     │   /teach             teaching record         │
+                     │   /teach/atlas       AI policy + BYOK keys   │
+                     │   /api/agent/command professor surface (SSE) │
+                     │   /api/agent/cue     student surface (SSE)   │
                      └───────────────┬──────────────────────────────┘
                                      │  session = { userId, orgId, role }
                      ┌───────────────▼──────────────────────────────┐
-                     │  Course runtime                               │
-                     │   1. setWorkspaceDecision  (validated)        │
-                     │   2. typed tools (parameterized SQL/Drizzle)  │
-                     │        • student-tools  (read, scoped)        │
-                     │        • instructor-tools (write → proposals) │
+                     │  Agent runtime (lib/agent/)                   │
+                     │   context.ts  deterministic course packs      │
+                     │   session.ts  anchored sessions + compaction  │
+                     │   blocks.ts   typed block registry (zod)      │
+                     │   runtime.ts  surfaces, prompts, tools        │
+                     │   apply.ts    proposal blocks → live records  │
+                     │   keys.ts     BYOK (AES-GCM) + provider res.  │
                      └───────────────┬──────────────────────────────┘
                                      │
                      ┌───────────────▼──────────────────────────────┐
                      │  Postgres 16 + pgvector  (org-scoped)         │
-                     │   Academic core · Alignment Graph ·           │
-                     │   Change proposals · AI runtime · Auth        │
+                     │   Academic core · Terms · Alignment Graph ·   │
+                     │   Proposals + blocks · Sessions/turns ·       │
+                     │   Cue events · AI policy · Provider keys      │
                      └──────────────────────────────────────────────┘
 ```
 
 ---
 
-## Workspace Decision Contract (`lib/workspace/`)
+## The generative-UI contract (`lib/agent/blocks.ts`)
 
-The runtime cannot freely draw UI. It must first call `setWorkspaceDecision` and emit a structured plan:
+The agent never draws UI and never writes prose-as-product. It emits **typed blocks** — a closed, versioned zod registry (objective, module, assignment, page, announcement, practice_set, rubric, explanation, answer). Three consumers share the one schema:
 
-```
-goal · focus · view · panels[] · actions[] · reason · evidence[]
-```
+1. the agent's tool inputs (what it is allowed to say),
+2. the React component map (`components/agent/block-views.tsx`) used both for live streaming and for re-rendering persisted proposals,
+3. the `proposal_blocks` rows (what gets applied to the course).
 
-`validation.ts` checks that plan against `VIEW_RULES`: only registered views, panels only in their allowed slots, only allowed actions per view. Product surfaces render registered layouts and panels only.
-
-The current contract covers two personas:
-
-- **Student views:** `todayDesk`, `weekMap`, `assignmentFocus`, `coursePulse`, `studySession`, `objectiveCoverage`.
-- **Instructor views:** `courseBuilder`, `syllabusComposer`, `assessmentBuilder`, `gradingDesk`, `classInsights`, `objectiveMap`.
+Professor surface: one command → one `change_proposal` → N blocks, each independently applicable. Student surface: one cue → exactly one response block, shaped by the course AI policy (depth, citations, persona, limits).
 
 ---
 
@@ -77,7 +77,7 @@ From this graph we compute: student coverage vs. assessed weight, professor cove
 
 ## Review-Based Authoring
 
-Write actions create a `change_proposal` with structured diff and summary. The teaching view shows pending changes in Review; applying a change writes draft course rows, and publishing moves those rows live. Applied or dismissed decisions stay traceable without crowding the main course map.
+Agent write tools append typed blocks to one pending `change_proposal` per run. Review renders the blocks through the component registry; applying writes the corresponding course rows in a single transaction (objectives first, so same-run alignments resolve), links `content_alignments`, and stamps each block with the record it created. Dismissing closes the proposal. There is no other path from agent output to live course state.
 
 ---
 

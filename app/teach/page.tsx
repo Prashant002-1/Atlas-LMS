@@ -3,7 +3,6 @@ import { Check, ClipboardCheck, Clock3, FileText, Layers3, Plus, Send, Target, U
 import { ProductShell, type CourseSection } from "@/components/atlas/product-shell";
 import { ActionButton, CodeList, CommandBand, IconLabel, Panel, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { EmptyRecord, ObjectiveChecklist, ObjectiveMeter, RecordFact } from "@/components/atlas/record";
-import { PracticeBasePanel, PracticeBaseStrip, PracticeVariants } from "@/components/atlas/practice-base";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
@@ -12,14 +11,13 @@ import {
   createAssignmentRecord,
   createModuleRecord,
   createObjectiveRecord,
-  draftCourseProposal,
   publishAssignment,
   publishDraftRecords,
   publishModule,
   reviewCourseProposal,
-  updateCourseProposal,
 } from "@/lib/instructor/actions";
-import { practiceBaseForObjective } from "@/lib/practice/base";
+import { CommandComposer } from "@/components/agent/command-composer";
+import { BlockView } from "@/components/agent/block-views";
 
 const statusTone = {
   approved: "good",
@@ -34,18 +32,14 @@ const statusLabel = {
 } as const;
 
 const proposalTone = {
-  ready: "good",
   pending: "good",
-  "needs-edit": "warn",
   approved: "good",
   rejected: "warn",
   applied: "accent",
 } as const;
 
 const proposalLabel = {
-  ready: "Ready",
   pending: "Ready",
-  "needs-edit": "Needs edit",
   approved: "Approved",
   rejected: "Dismissed",
   applied: "Applied",
@@ -68,7 +62,6 @@ export default async function TeachPage() {
     redirect("/student");
   }
   const workspace = await loadInstructorWorkspace(session.user);
-  const practiceBase = workspace.problem ? null : practiceBaseForObjective(priorityObjective(workspace.objectives)?.code);
 
   return (
     <ProductShell
@@ -77,8 +70,10 @@ export default async function TeachPage() {
       title={workspace.course.name}
       subtitle={`${workspace.course.code} / ${workspace.course.term}`}
       actor={session?.user}
+      scope={workspace.scope}
+      scopePath="/teach"
       sections={workspace.problem ? undefined : instructorSections}
-      rail={workspace.problem ? undefined : <InstructorRail workspace={workspace} practiceBase={practiceBase} />}
+      rail={workspace.problem ? undefined : <InstructorRail workspace={workspace} />}
     >
       {workspace.problem ? (
         <WorkspaceProblem title={workspace.problem.title} detail={workspace.problem.detail} />
@@ -94,24 +89,27 @@ export default async function TeachPage() {
         </>
       )}
 
-      <section id="map" className="atlas-section">
-        <Panel
-          title="Course map"
-          eyebrow={workspace.course.code}
-          action={<StatusBadge tone="neutral">{recordTotal(workspace.modules.length, workspace.assignments.length)}</StatusBadge>}
-        >
-          <div className="max-w-3xl border-b border-[var(--color-border)] pb-5">
-            <IconLabel icon={FileText}>Brief</IconLabel>
-            <p className="mt-3 text-[17px] leading-7 text-[var(--color-ink)]">{workspace.course.prompt}</p>
-          </div>
-          {practiceBase ? <PracticeBaseStrip base={practiceBase} /> : null}
+      {workspace.problem ? null : (
+        <section id="map" className="atlas-section">
+          <Panel
+            title="Course map"
+            eyebrow={workspace.course.code}
+            action={<StatusBadge tone="neutral">{recordTotal(workspace.modules.length, workspace.assignments.length)}</StatusBadge>}
+          >
+            {workspace.course.description ? (
+              <div className="max-w-3xl border-b border-[var(--color-border)] pb-5">
+                <IconLabel icon={FileText}>Brief</IconLabel>
+                <p className="mt-3 text-[15px] leading-7 text-[var(--color-ink)]">{workspace.course.description}</p>
+              </div>
+            ) : null}
 
-          <div className="grid gap-6 pt-2 xl:grid-cols-[minmax(0,1fr)_300px]">
-            <CourseStructure modules={workspace.modules} assignments={workspace.assignments} />
-            <ObjectiveCoverage objectives={workspace.objectives} />
-          </div>
-        </Panel>
-      </section>
+            <div className="grid gap-6 pt-2 xl:grid-cols-[minmax(0,1fr)_300px]">
+              <CourseStructure modules={workspace.modules} assignments={workspace.assignments} />
+              <ObjectiveCoverage objectives={workspace.objectives} />
+            </div>
+          </Panel>
+        </section>
+      )}
     </ProductShell>
   );
 }
@@ -249,9 +247,8 @@ function WorkspaceProblem({ title, detail }: { title: string; detail: string }) 
 }
 
 function TeachingCommand({ workspace }: { workspace: InstructorWorkspace }) {
-  const reviewItems = workspace.proposals.filter((proposal) => proposal.status !== "applied" && proposal.status !== "rejected");
+  const reviewItems = workspace.proposals.filter((proposal) => proposal.status === "pending");
   const currentReview = reviewItems[0];
-  const ready = workspace.proposals.filter((proposal) => proposal.status === "pending" || proposal.status === "ready").length;
   const drafts =
     workspace.modules.filter((module) => module.status !== "approved").length +
     workspace.assignments.filter((assignment) => assignment.status !== "approved").length;
@@ -315,19 +312,24 @@ function TeachingCommand({ workspace }: { workspace: InstructorWorkspace }) {
       eyebrow={command.eyebrow}
       title={command.title}
       detail={command.detail}
-      after={<RecordComposer workspace={workspace} focus={gap} />}
+      after={
+        <div className="grid gap-5">
+          {workspace.course.id ? <CommandComposer courseId={workspace.course.id} /> : null}
+          <RecordComposer workspace={workspace} focus={gap} />
+        </div>
+      }
     >
       <RecordFact label="Next" value={<TextLink href={command.href}>{command.action}</TextLink>} />
       <RecordFact label="Grade" value={gradeQueue} />
       <RecordFact label="Draft" value={drafts} />
-      <RecordFact label="Review" value={ready} />
+      <RecordFact label="Review" value={reviewItems.length} />
     </CommandBand>
   );
 }
 
 function ReviewPanel({ workspace }: { workspace: InstructorWorkspace }) {
-  const reviewItems = workspace.proposals.filter((proposal) => proposal.status !== "applied" && proposal.status !== "rejected");
-  const ready = reviewItems.filter((proposal) => proposal.status === "pending" || proposal.status === "ready").length;
+  const reviewItems = workspace.proposals.filter((proposal) => proposal.status === "pending" || proposal.status === "approved");
+  const ready = reviewItems.filter((proposal) => proposal.status === "pending").length;
   const recentItems = workspace.proposals
     .filter((proposal) => proposal.status === "applied" || proposal.status === "rejected")
     .sort((a, b) => decisionTime(b) - decisionTime(a))
@@ -610,12 +612,11 @@ function RecordComposer({
 
   return (
     <div className="grid gap-5">
-      <CourseCommand focus={focus} />
       <CommandHistory proposals={recent} />
       <details className="border-t border-[var(--color-border)] pt-4">
         <summary className="cursor-pointer rounded-[6px] marker:text-[var(--color-faint)]">
           <span className="inline-flex w-[calc(100%-1.5rem)] items-center justify-between gap-3 align-middle">
-            <span className="text-[14px] font-semibold text-[var(--color-ink)]">Records</span>
+            <span className="text-[14px] font-semibold text-[var(--color-ink)]">Add by hand</span>
             <span className="text-right text-[12px] text-[var(--color-muted)]">Weeks / Work / Outcomes</span>
           </span>
         </summary>
@@ -665,45 +666,6 @@ function CommandHistory({ proposals }: { proposals: InstructorWorkspace["proposa
   );
 }
 
-function CourseCommand({ focus }: { focus?: InstructorWorkspace["objectives"][number] }) {
-  const placeholder = [
-    "Create a short practice sequence for next week from the clinic wait sample.",
-    "Turn the regression notes into a week and one checkpoint.",
-    "Tell the class to bring one question from the sampling notes.",
-    focus ? `Keep the emphasis on ${focus.title.toLowerCase()}.` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  return (
-    <form action={draftCourseProposal} className="grid gap-3">
-      <input type="hidden" name="kind" value="import" />
-      {focus ? (
-        <>
-          <input type="hidden" name="focusCode" value={focus.code} />
-          <input type="hidden" name="focusTitle" value={focus.title} />
-          <input type="hidden" name="focusDescription" value={focus.description} />
-        </>
-      ) : null}
-      <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
-        Message
-        <textarea
-          name="intent"
-          required
-          minLength={12}
-          placeholder={placeholder}
-          className="min-h-40 resize-none rounded-[8px] border border-[var(--color-border)] bg-white px-3 py-3 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)]"
-        />
-      </label>
-      <div>
-        <ActionButton>
-          <Send size={14} strokeWidth={2} aria-hidden="true" />
-          <span className="ml-1.5">Send</span>
-        </ActionButton>
-      </div>
-    </form>
-  );
-}
 
 function ComposerTask({ title, detail, children }: { title: string; detail: string; children: ReactNode }) {
   return (
@@ -882,15 +844,8 @@ function nextObjectiveLabel(objectives: InstructorWorkspace["objectives"]) {
   return `LO${highest + 1}`;
 }
 
-function InstructorRail({
-  workspace,
-  practiceBase,
-}: {
-  workspace: InstructorWorkspace;
-  practiceBase: ReturnType<typeof practiceBaseForObjective> | null;
-}) {
-  const reviewItems = workspace.proposals.filter((proposal) => proposal.status !== "applied" && proposal.status !== "rejected");
-  const ready = reviewItems.filter((proposal) => proposal.status === "pending" || proposal.status === "ready").length;
+function InstructorRail({ workspace }: { workspace: InstructorWorkspace }) {
+  const ready = workspace.proposals.filter((proposal) => proposal.status === "pending").length;
   const focus = priorityObjective(workspace.objectives);
   const live =
     workspace.modules.filter((module) => module.status === "approved").length +
@@ -925,13 +880,37 @@ function InstructorRail({
         ) : null}
       </Panel>
 
-      {practiceBase ? (
-        <Panel title="Practice">
-          <PracticeBasePanel base={practiceBase} />
-          <PracticeVariants base={practiceBase} />
-        </Panel>
-      ) : null}
+      <AtlasPolicyCard policy={workspace.policy} />
     </div>
+  );
+}
+
+function AtlasPolicyCard({ policy }: { policy: InstructorWorkspace["policy"] }) {
+  const cues = [
+    policy?.allowExplain !== false ? "Explain" : null,
+    policy?.allowPractice !== false ? "Practice" : null,
+    policy?.allowQuestions !== false ? "Ask" : null,
+  ].filter((value): value is string => Boolean(value));
+
+  return (
+    <Panel title="Atlas in this course">
+      <div className="space-y-3 text-[13px]">
+        <RecordFact label="Student cues" value={cues.length > 0 ? cues.join(" · ") : "Off"} />
+        <RecordFact label="Depth" value={policy?.explanationDepth ?? "guided"} />
+        <RecordFact label="Citations" value={policy?.citationsRequired === false ? "Optional" : "Required"} />
+        {policy?.personaName ? <RecordFact label="Voice" value={policy.personaName} /> : null}
+        <RecordFact label="Daily limit" value={policy?.studentDailyLimit ?? 40} />
+        <RecordFact label="Class signal" value={policy?.shareStruggleSignal ? "Opt-in" : "Off"} />
+      </div>
+      <p className="mt-4 border-t border-[var(--color-border)] pt-3 text-[12px] leading-5 text-[var(--color-muted)]">
+        What Atlas may do for students here — which cues exist, how deep they go, in whose voice.
+        <span className="mt-1 block">
+          <TextLink href="/teach/atlas" className="text-[12px]">
+            Adjust
+          </TextLink>
+        </span>
+      </p>
+    </Panel>
   );
 }
 
@@ -952,27 +931,17 @@ function RecentDecisions({ proposals }: { proposals: InstructorWorkspace["propos
 
 function DecisionItem({ proposal }: { proposal: InstructorWorkspace["proposals"][number] }) {
   const summary = uniqueText(proposal.summary, proposal.title) ? proposal.summary : null;
-  const details = proposal.details.filter((detail) => uniqueText(detail, proposal.title, proposal.summary));
 
   return (
     <article className="py-3 first:pt-0 last:pb-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[13px] font-semibold leading-5 text-[var(--color-ink)]">{proposal.title}</p>
-          <p className="mt-1 text-[12px] text-[var(--color-muted)]">{formatKind(proposal.kind)}</p>
+          <p className="mt-1 text-[12px] text-[var(--color-muted)]">{blockCountLabel(proposal)}</p>
         </div>
         <StatusBadge tone={proposalTone[proposal.status]}>{proposalLabel[proposal.status]}</StatusBadge>
       </div>
       {summary ? <p className="mt-2 text-[12px] leading-5 text-[var(--color-muted)]">{summary}</p> : null}
-      {details.length > 0 ? (
-        <div className="mt-2 space-y-1">
-          {details.slice(0, 2).map((detail) => (
-            <p key={detail} className="text-[12px] leading-5 text-[var(--color-faint)]">
-              {detail}
-            </p>
-          ))}
-        </div>
-      ) : null}
       {proposal.appliedRecords.length > 0 ? <AppliedRecordLinks records={proposal.appliedRecords} /> : null}
       <ProposalMeta proposal={proposal} />
     </article>
@@ -994,120 +963,43 @@ function AppliedRecordLinks({ records }: { records: InstructorWorkspace["proposa
 function ReviewItem({ proposal, compact = false }: { proposal: InstructorWorkspace["proposals"][number]; compact?: boolean }) {
   const readyProposalId = proposal.status === "pending" ? proposal.id : undefined;
   const summary = uniqueText(proposal.summary, proposal.title) ? proposal.summary : null;
-  const details = proposal.details.filter((detail) => uniqueText(detail, proposal.title, proposal.summary));
-  const reviewAction = proposal.actionLabel ?? (["assignment", "import", "module"].includes(proposal.kind) ? "Make live" : "Apply");
+  const reviewAction = proposal.blocks.some((block) => block.type === "announcement") ? "Post" : "Apply";
 
   return (
     <article className={compact ? "py-3 first:pt-0 last:pb-0" : "py-1"}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[14px] font-semibold leading-5 text-[var(--color-ink)]">{proposal.title}</p>
-          <p className="mt-1 text-[12px] text-[var(--color-muted)]">{formatKind(proposal.kind)}</p>
+          <p className="mt-1 text-[12px] text-[var(--color-muted)]">{blockCountLabel(proposal)}</p>
         </div>
         <StatusBadge tone={proposalTone[proposal.status]}>{proposalLabel[proposal.status]}</StatusBadge>
       </div>
       {!compact && summary ? <p className="mt-3 text-[13px] leading-5 text-[var(--color-muted)]">{summary}</p> : null}
-      {!compact && details.length > 0 ? <ReviewDetails details={details} /> : null}
-      {!compact && readyProposalId && proposal.editableDraft ? <ProposalEditForm proposalId={readyProposalId} draft={proposal.editableDraft} /> : null}
+      {!compact && proposal.blocks.length > 0 ? (
+        <div className="mt-4 space-y-3">
+          {proposal.blocks.map((block, index) => (
+            <BlockView key={index} block={block} />
+          ))}
+        </div>
+      ) : null}
       <ProposalMeta proposal={proposal} />
       {readyProposalId ? <ProposalReviewActions proposalId={readyProposalId} primaryLabel={reviewAction} /> : null}
     </article>
   );
 }
 
-function ProposalEditForm({
-  proposalId,
-  draft,
-}: {
-  proposalId: string;
-  draft: NonNullable<InstructorWorkspace["proposals"][number]["editableDraft"]>;
-}) {
-  return (
-    <details className="mt-3 border-t border-[var(--color-border)] pt-3">
-      <summary className="cursor-pointer text-[12px] font-medium text-[var(--color-muted)] marker:text-[var(--color-faint)]">
-        Edit
-      </summary>
-      <form action={updateCourseProposal} className="mt-3 grid gap-3">
-        <input type="hidden" name="proposalId" value={proposalId} />
-        {draft.material ? (
-          <div className="grid gap-3">
-            <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
-              Material
-              <input
-                name="materialTitle"
-                type="text"
-                defaultValue={draft.material.title}
-                className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)]"
-              />
-            </label>
-            <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
-              Notes
-              <textarea
-                name="materialSummary"
-                defaultValue={draft.material.summary}
-                className="min-h-24 resize-none rounded-[8px] border border-[var(--color-border)] bg-white px-3 py-3 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)]"
-              />
-            </label>
-          </div>
-        ) : null}
-        {draft.work ? (
-          <div className="grid gap-3 border-t border-[var(--color-border)] pt-3">
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px]">
-              <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
-                Work
-                <input
-                  name="workTitle"
-                  type="text"
-                  defaultValue={draft.work.title}
-                  className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)]"
-                />
-              </label>
-              <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
-                Points
-                <input
-                  name="workPoints"
-                  type="number"
-                  min={0.01}
-                  step="0.01"
-                  defaultValue={draft.work.points}
-                  className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)]"
-                />
-              </label>
-            </div>
-            <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
-              Prompt
-              <textarea
-                name="workDetail"
-                defaultValue={draft.work.detail}
-                className="min-h-24 resize-none rounded-[8px] border border-[var(--color-border)] bg-white px-3 py-3 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)]"
-              />
-            </label>
-          </div>
-        ) : null}
-        <div>
-          <ActionButton variant="secondary">Save draft</ActionButton>
-        </div>
-      </form>
-    </details>
-  );
+function blockCountLabel(proposal: InstructorWorkspace["proposals"][number]) {
+  if (proposal.blocks.length === 0) return formatKind(proposal.kind);
+  const counts = new Map<string, number>();
+  for (const block of proposal.blocks) {
+    counts.set(block.type, (counts.get(block.type) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([type, count]) => `${count} ${type.replaceAll("_", " ")}${count === 1 ? "" : "s"}`)
+    .join(" · ");
 }
 
-function ReviewDetails({ details }: { details: string[] }) {
-  return (
-    <details className="mt-3 border-t border-[var(--color-border)] pt-3">
-      <summary className="cursor-pointer text-[12px] font-medium text-[var(--color-muted)] marker:text-[var(--color-faint)]">
-        Details
-      </summary>
-      <div className="mt-3 space-y-2">
-        {details.map((detail) => (
-          <p key={detail} className="text-[13px] leading-5 text-[var(--color-muted)]">
-            {detail}
-          </p>
-        ))}
-      </div>
-    </details>
-  );
-}
+
 
 function ProposalReviewActions({ proposalId, primaryLabel }: { proposalId: string; primaryLabel: string }) {
   return (

@@ -12,9 +12,12 @@ import {
   submissions,
   users,
 } from "@/lib/db/schema";
-import { atlasDemo, type ModuleDraft, type Objective } from "@/lib/demo/atlas";
 import { isInstructorLike, type Role } from "@/lib/auth/session";
-import { normalizeImportDiff } from "@/lib/instructor/import-outline";
+import { resolveScope, type WorkspaceCourse, type WorkspaceScope } from "@/lib/workspace/scope";
+import { loadProposalBlocks } from "@/lib/agent/apply";
+import type { Block } from "@/lib/agent/blocks";
+import type { Objective, ModuleDraft } from "@/lib/workspace/records";
+import { courseAiPolicies, type CourseAiPolicy } from "@/lib/db/schema";
 
 export type InstructorAssignment = {
   id?: string;
@@ -124,43 +127,35 @@ export type InstructorModuleWorkspace = {
   };
 };
 
+export type InstructorProposal = {
+  id: string;
+  title: string;
+  kind: string;
+  summary: string;
+  status: "pending" | "approved" | "rejected" | "applied";
+  createdAt?: Date | null;
+  decidedAt?: Date | null;
+  /** Typed blocks the agent drafted onto this proposal, in order. */
+  blocks: Block[];
+  /** After apply: links to the records the blocks created. */
+  appliedRecords: InstructorProposalAppliedRecord[];
+};
+
 export type InstructorWorkspace = {
-  source: "database" | "preview" | "unavailable";
-  course: typeof atlasDemo.course & { id?: string };
+  source: "database" | "unavailable";
+  course: WorkspaceCourse;
+  scope: WorkspaceScope;
+  policy: CourseAiPolicy | null;
   objectives: Objective[];
   modules: ModuleDraft[];
   assignments: InstructorAssignment[];
   students: InstructorStudentProgress[];
   workProgress: InstructorWorkProgress[];
   notices: InstructorCourseNotice[];
-  proposals: Array<{
-    id?: string;
-    title: string;
-    kind: string;
-    summary: string;
-    status: "pending" | "approved" | "rejected" | "applied" | "ready" | "needs-edit";
-    createdAt?: Date | null;
-    decidedAt?: Date | null;
-    details: string[];
-    actionLabel?: string;
-    editableDraft?: InstructorProposalEditableDraft;
-    appliedRecords: InstructorProposalAppliedRecord[];
-  }>;
+  proposals: InstructorProposal[];
   problem?: {
     title: string;
     detail: string;
-  };
-};
-
-export type InstructorProposalEditableDraft = {
-  material?: {
-    title: string;
-    summary: string;
-  };
-  work?: {
-    title: string;
-    detail: string;
-    points: number;
   };
 };
 
@@ -176,18 +171,29 @@ type Actor = {
 };
 
 export async function loadInstructorWorkspace(actor?: Actor | null): Promise<InstructorWorkspace> {
-  if (!actor) {
-    return previewWorkspace();
-  }
-
-  if (!actor.orgId || !isInstructorLike(actor.role)) {
+  if (!actor?.orgId || !isInstructorLike(actor.role)) {
     return unavailableWorkspace("Course unavailable", "No editable course is attached to this account.");
   }
 
+  const scope = await resolveScope({ orgId: actor.orgId, userId: actor.id, role: actor.role, teachingOnly: true });
+
   try {
-    const course = await findEditableCourse(actor);
+    const course = scope.course
+      ? await db
+          .select({ id: courses.id, code: courses.code, name: courses.name, term: courses.term, description: courses.description })
+          .from(courses)
+          .where(and(eq(courses.orgId, actor.orgId), eq(courses.id, scope.course.id)))
+          .limit(1)
+          .then((rows) => rows[0] ?? null)
+      : null;
     if (!course) {
-      return unavailableWorkspace("Course unavailable", "No editable course is attached to this account.");
+      return unavailableWorkspace(
+        "No course in this semester",
+        scope.term
+          ? `You are not teaching anything in ${scope.term.name}. Switch semesters from the header.`
+          : "No semester is set up for this organization yet.",
+        scope
+      );
     }
 
     const objectiveRows = await db
@@ -354,71 +360,92 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
       .orderBy(desc(announcements.postedAt))
       .limit(3);
 
+    const [policy] = await db
+      .select()
+      .from(courseAiPolicies)
+      .where(and(eq(courseAiPolicies.orgId, actor.orgId), eq(courseAiPolicies.courseId, course.id)))
+      .limit(1);
+
+    const proposals: InstructorProposal[] = [];
+    for (const row of proposalRows) {
+      const blockEntries = await loadProposalBlocks(actor.orgId, row.id);
+      proposals.push({
+        id: row.id,
+        title: proposalTitle(blockEntries.map((e) => e.block).filter((b): b is Block => b !== null), row.summary),
+        kind: row.kind,
+        summary: row.summary,
+        status: row.status,
+        createdAt: row.createdAt,
+        decidedAt: row.decidedAt,
+        blocks: blockEntries.map((e) => e.block).filter((b): b is Block => b !== null),
+        appliedRecords: blockEntries
+          .filter((e) => e.row.status === "applied" && e.row.appliedItemId)
+          .map((e) => appliedRecordLink(e.row.appliedItemType, e.row.appliedItemId!))
+          .filter((r): r is InstructorProposalAppliedRecord => r !== null),
+      });
+    }
+
     return {
       source: "database",
       course: {
-        ...atlasDemo.course,
         id: course.id,
         code: course.code,
         name: course.name,
-        term: course.term ?? atlasDemo.course.term,
+        term: course.term ?? scope.term?.name ?? "",
+        description: course.description,
       },
+      scope,
+      policy: policy ?? null,
       objectives: toObjectives(objectiveRows, moduleRows, assignmentRows, [...moduleAlignmentRows, ...assignmentAlignmentRows]),
       modules: toModuleDrafts(moduleRows, moduleAlignmentRows, objectiveRows),
       assignments: toAssignmentDrafts(assignmentRows, assignmentAlignmentRows, objectiveRows),
       students: toStudentProgress(studentEnrollmentRows, studentRows, assignmentRows, submissionRows),
       workProgress: toWorkProgress(assignmentRows, assignmentAlignmentRows, objectiveRows, submissionRows, studentEnrollmentRows.length),
       notices: noticeRows,
-      proposals: proposalRows.map((proposal) => ({
-        id: proposal.id,
-        title: proposalTitle(proposal.diff, proposal.kind),
-        kind: proposal.kind,
-        summary: cleanSummary(proposal.summary),
-        status: proposal.status,
-        createdAt: proposal.createdAt,
-        decidedAt: proposal.decidedAt,
-        details: proposalDetails(proposal.diff),
-        actionLabel: proposalActionLabel(proposal.diff, proposal.kind),
-        editableDraft: proposalEditableDraft(proposal.diff, proposal.kind, proposal.summary),
-        appliedRecords: proposalAppliedRecords(proposal.diff),
-      })),
+      proposals,
     };
   } catch {
-    return unavailableWorkspace("Course unavailable", "The course record could not be loaded.");
+    return unavailableWorkspace("Course unavailable", "The course record could not be loaded.", scope);
   }
 }
 
+function proposalTitle(blocks: Block[], summary: string): string {
+  const first = blocks[0];
+  if (first) {
+    if ("name" in first && typeof first.name === "string") return first.name;
+    if ("title" in first && typeof first.title === "string") return first.title;
+    if (first.type === "objective") return `${first.code}: ${first.description.slice(0, 80)}`;
+  }
+  return summary.slice(0, 90) || "Drafted change";
+}
+
+function appliedRecordLink(itemType: string | null, itemId: string): InstructorProposalAppliedRecord | null {
+  if (itemType === "module") return { label: "Material", href: `/teach/week/${itemId}` };
+  if (itemType === "assignment") return { label: "Work", href: `/teach/work/${itemId}` };
+  if (itemType === "page" || itemType === "quiz") return { label: "Record", href: "/teach#map" };
+  return null;
+}
+
+/**
+ * The course in scope for teaching: honors the term + course cookies via
+ * resolveScope, then verifies the row. Falls back to the first course the
+ * actor teaches in the term in view.
+ */
 export async function findEditableCourse(actor: Actor) {
   if (!actor.orgId) return null;
 
-  if (actor.role === "admin" || actor.role === "superadmin") {
-    const [course] = await db
-      .select({ id: courses.id, code: courses.code, name: courses.name, term: courses.term })
-      .from(courses)
-      .where(eq(courses.orgId, actor.orgId))
-      .orderBy(desc(courses.createdAt))
-      .limit(1);
-    return course ?? null;
-  }
-
-  const [teaching] = await db
-    .select({ courseId: enrollments.courseId })
-    .from(enrollments)
-    .where(
-      and(
-        eq(enrollments.orgId, actor.orgId),
-        eq(enrollments.userId, actor.id),
-        eq(enrollments.role, "instructor")
-      )
-    )
-    .limit(1);
-
-  if (!teaching) return null;
+  const scope = await resolveScope({
+    orgId: actor.orgId,
+    userId: actor.id,
+    role: actor.role,
+    teachingOnly: true,
+  });
+  if (!scope.course) return null;
 
   const [course] = await db
     .select({ id: courses.id, code: courses.code, name: courses.name, term: courses.term })
     .from(courses)
-    .where(and(eq(courses.orgId, actor.orgId), eq(courses.id, teaching.courseId)))
+    .where(and(eq(courses.orgId, actor.orgId), eq(courses.id, scope.course.id)))
     .limit(1);
 
   return course ?? null;
@@ -693,77 +720,6 @@ export async function loadInstructorStudentWorkspace(
   };
 }
 
-function previewWorkspace(): InstructorWorkspace {
-  return {
-    source: "preview",
-    course: atlasDemo.course,
-    objectives: atlasDemo.objectives,
-    modules: atlasDemo.modules,
-    assignments: [
-      {
-        title: "Problem Set 1 - Descriptive Stats",
-        detail: "Compute mean, median, and variance for the provided dataset.",
-        points: 100,
-        objectiveCodes: ["LO1"],
-        status: "approved",
-      },
-      {
-        title: "Problem Set 2 - Hypothesis Testing",
-        detail: "Choose the test, state the hypotheses, and interpret the result.",
-        points: 100,
-        objectiveCodes: ["LO2"],
-        status: "approved",
-      },
-    ],
-    students: [
-      {
-        name: atlasDemo.student.name,
-        email: "student@demo.edu",
-        standing: atlasDemo.student.courseStanding,
-        submitted: 1,
-        graded: 1,
-        missing: 0,
-        open: 1,
-        evidence: ["Problem Set 1 - Descriptive Stats / A-"],
-      },
-    ],
-    notices: [
-      {
-        title: "Week 2 note",
-        message: "Bring one question from the sampling notes to the next class.",
-        postedAt: new Date("2026-06-08T14:00:00.000Z"),
-      },
-    ],
-    workProgress: [
-      {
-        title: "Problem Set 1 - Descriptive Stats",
-        points: 100,
-        objectiveCodes: ["LO1"],
-        submitted: 1,
-        graded: 1,
-        missing: 0,
-        open: 0,
-        responses: 0,
-      },
-      {
-        title: "Problem Set 2 - Hypothesis Testing",
-        points: 100,
-        objectiveCodes: ["LO2"],
-        submitted: 0,
-        graded: 0,
-        missing: 0,
-        open: 1,
-        responses: 0,
-      },
-    ],
-    proposals: atlasDemo.proposals.map((proposal) => ({
-      ...proposal,
-      details: [],
-      appliedRecords: [],
-    })),
-  };
-}
-
 function emptyWorkProgress(assignment: InstructorAssignment): InstructorWorkProgress {
   return {
     assignmentId: assignment.id,
@@ -788,17 +744,12 @@ function previewSubmissions(students: InstructorStudentProgress[]): InstructorAs
   }));
 }
 
-function unavailableWorkspace(title: string, detail: string): InstructorWorkspace {
+function unavailableWorkspace(title: string, detail: string, scope?: WorkspaceScope): InstructorWorkspace {
   return {
     source: "unavailable",
-    course: {
-      ...atlasDemo.course,
-      code: "Course",
-      name: title,
-      term: "",
-      prompt: detail,
-      thesis: "",
-    },
+    course: { code: "Course", name: title, term: scope?.term?.name ?? "", description: detail },
+    scope: scope ?? { term: null, terms: [], course: null, courses: [] },
+    policy: null,
     objectives: [],
     modules: [],
     assignments: [],
@@ -867,7 +818,6 @@ function toObjectives(
   }
 
   return objectiveRows.map((objective) => {
-    const fallback = atlasDemo.objectives.find((item) => item.code === objective.code);
     const rows = alignmentsByObjective.get(objective.id) ?? [];
     const totalWeight = rows.reduce((sum, row) => sum + row.weight, 0);
     const liveWeight = rows.reduce((sum, row) => {
@@ -886,7 +836,7 @@ function toObjectives(
 
     return {
       code: objective.code,
-      title: fallback?.title ?? objective.description,
+      title: objectiveTitle(objective.description),
       description: objective.description,
       bloom: objective.bloomLevel ?? "objective",
       assessedWeight: Math.round((objective.assessmentWeight ?? 0) * 100),
@@ -894,6 +844,13 @@ function toObjectives(
       evidence,
     };
   });
+}
+
+/** Short display title from an objective's description ("Summarize data with…" → "Summarize data"). */
+function objectiveTitle(description: string): string {
+  const words = description.replace(/[.!?].*$/, "").split(/\s+/);
+  const short = words.slice(0, 4).join(" ");
+  return short.length > 2 ? short : description.slice(0, 40);
 }
 
 function toModuleDrafts(
@@ -1127,115 +1084,3 @@ function submissionTime(submission: { submittedAt: Date | null; gradedAt: Date |
   return submission.gradedAt?.getTime() ?? submission.submittedAt?.getTime() ?? 0;
 }
 
-function proposalTitle(diff: unknown, kind: string) {
-  if (diff && typeof diff === "object") {
-    const record = diff as Record<string, unknown>;
-    const title = record.title ?? record.name ?? record.label;
-    if (typeof title === "string" && title.trim()) return title.trim();
-  }
-  return `${formatKind(kind)} change`;
-}
-
-function proposalDetails(diff: unknown) {
-  if (!diff || typeof diff !== "object") return [];
-  const record = diff as Record<string, unknown>;
-  const announcementDetail = announcementProposalDetail(record);
-  const importDetail = importProposalDetail(record);
-  const details = [announcementDetail, importDetail, record.intent]
-    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-    .map((value) => value.trim());
-  return Array.from(new Set(details)).slice(0, 4);
-}
-
-function proposalActionLabel(diff: unknown, kind: string) {
-  if (isAnnouncementDiff(diff)) return "Post";
-  if (["assignment", "import", "module"].includes(kind)) return "Make live";
-  return "Apply";
-}
-
-function announcementProposalDetail(record: Record<string, unknown>) {
-  if (record.type !== "announcement") return null;
-  return typeof record.messageMd === "string" && record.messageMd.trim() ? record.messageMd : null;
-}
-
-function isAnnouncementDiff(diff: unknown) {
-  return Boolean(diff && typeof diff === "object" && (diff as Record<string, unknown>).type === "announcement");
-}
-
-function importProposalDetail(record: Record<string, unknown>) {
-  const moduleRows = Array.isArray(record.modules) ? record.modules : [];
-  const sampleMaterials = moduleRows.filter((module) => Boolean(module && typeof module === "object" && (module as Record<string, unknown>).source === "sample_practice")).length;
-  const modules = moduleRows.length;
-  const assignments = Array.isArray(record.assignments) ? record.assignments.length : 0;
-  const objectives = Array.isArray(record.objectives) ? record.objectives.length : 0;
-  if (modules + assignments + objectives === 0) return null;
-  if (sampleMaterials > 0) {
-    return `${countLabel(sampleMaterials, "material")}, ${countLabel(assignments, "work item")}, ${countLabel(objectives, "objective")}`;
-  }
-  return `${countLabel(modules, "week")}, ${countLabel(assignments, "assignment")}, ${countLabel(objectives, "objective")}`;
-}
-
-function proposalEditableDraft(diff: unknown, kind: string, summary: string): InstructorProposalEditableDraft | undefined {
-  if (kind !== "import") return undefined;
-  const imported = normalizeImportDiff(diff, summary);
-  const material = imported.modules[0];
-  const work = imported.assignments[0];
-  if (!material && !work) return undefined;
-
-  return {
-    material: material
-      ? {
-          title: material.name,
-          summary: material.summaryMd,
-        }
-      : undefined,
-    work: work
-      ? {
-          title: work.name,
-          detail: work.descriptionMd,
-          points: work.pointsPossible,
-        }
-      : undefined,
-  };
-}
-
-function proposalAppliedRecords(diff: unknown): InstructorProposalAppliedRecord[] {
-  if (!diff || typeof diff !== "object") return [];
-  const record = diff as Record<string, unknown>;
-  const moduleIds = [
-    stringValue(record.appliedModuleId),
-    ...stringArrayValue(record.appliedModuleIds),
-  ].filter((value): value is string => Boolean(value));
-  const assignmentIds = [
-    stringValue(record.appliedAssignmentId),
-    ...stringArrayValue(record.appliedAssignmentIds),
-  ].filter((value): value is string => Boolean(value));
-
-  return [
-    ...moduleIds.map((id) => ({ label: "Material", href: `/teach/week/${id}` })),
-    ...assignmentIds.map((id) => ({ label: "Work", href: `/teach/work/${id}` })),
-  ];
-}
-
-function stringValue(value: unknown) {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
-function stringArrayValue(value: unknown) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
-}
-
-function cleanSummary(summary: string) {
-  return summary.replace(/^[a-z]+ proposal:\s*/i, "").trim();
-}
-
-function countLabel(count: number, singular: string) {
-  return `${count} ${count === 1 ? singular : `${singular}s`}`;
-}
-
-function formatKind(value: string) {
-  return value
-    .split("-")
-    .map((part) => `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`)
-    .join(" ");
-}

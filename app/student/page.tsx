@@ -1,6 +1,6 @@
-import { BookOpenCheck, Check, ClipboardCheck, Clock3, FileText, PenLine, Send, Target } from "lucide-react";
+import { BookOpenCheck, Check, ClipboardCheck, Clock3, FileText, PenLine, Target } from "lucide-react";
 import { ProductShell, type CourseSection } from "@/components/atlas/product-shell";
-import { ActionButton, CodeList, CommandBand, IconLabel, Panel, ProgressBar, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { CodeList, CommandBand, IconLabel, Panel, ProgressBar, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { PracticeBasePanel, PracticeVariants } from "@/components/atlas/practice-base";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -9,11 +9,9 @@ import {
   type StudentAssignment,
   type StudentCourseNotice,
   type StudentMaterial,
-  type StudentStudyMessage,
-  type StudentStudyPackage,
   type StudentWorkspace,
 } from "@/lib/student/workspace";
-import { saveStudyCommand } from "@/lib/student/actions";
+import { CuePanel } from "@/components/agent/cue-panel";
 import { EmptyRecord, ObjectiveMeter, RecordFact } from "@/components/atlas/record";
 
 const assignmentTone = {
@@ -65,6 +63,8 @@ export default async function StudentPage() {
       title={workspace.course.name}
       subtitle={`${workspace.course.code} / ${workspace.course.term}`}
       actor={session?.user}
+      scope={workspace.scope}
+      scopePath="/student"
       sections={workspace.problem ? undefined : studentSections}
       rail={workspace.problem ? undefined : <StudentRail workspace={workspace} />}
     >
@@ -173,7 +173,7 @@ function StudentCommand({
       eyebrow="Today"
       title={todayTitle(workspace.focus.title, assignment)}
       detail={todayDetail(primaryMaterial, next, assignment)}
-      after={<StudentTodayContext notices={notices} messages={workspace.studyMessages} studyPackage={workspace.studyPackage} />}
+      after={<StudentTodayContext notices={notices} workspace={workspace} />}
     >
       <RecordFact
         label="Next"
@@ -188,17 +188,20 @@ function StudentCommand({
 
 function StudentTodayContext({
   notices,
-  messages,
-  studyPackage,
+  workspace,
 }: {
   notices: StudentCourseNotice[];
-  messages: StudentStudyMessage[];
-  studyPackage?: StudentStudyPackage;
+  workspace: StudentWorkspace;
 }) {
   return (
     <div className="grid gap-4">
       <CourseNotice notices={notices} />
-      <StudyCommandBox messages={messages} studyPackage={studyPackage} />
+      {workspace.course.id ? (
+        <CuePanel
+          target={{ courseId: workspace.course.id, targetType: "course", targetId: null }}
+          availability={workspace.cuePolicy}
+        />
+      ) : null}
     </div>
   );
 }
@@ -252,90 +255,7 @@ function todayDetail(material: StudentMaterial | undefined, next: string, assign
   return `Ask for a package, then move into the next piece of work.`;
 }
 
-function StudyCommandBox({
-  messages,
-  studyPackage,
-}: {
-  messages: StudentStudyMessage[];
-  studyPackage?: StudentStudyPackage;
-}) {
-  return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(220px,0.45fr)] lg:items-start">
-      <div className="min-w-0">
-        <form action={saveStudyCommand} className="grid gap-2">
-          <label htmlFor="study-message" className="text-[12px] font-medium text-[var(--color-accent-strong)]">
-            Atlas
-          </label>
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <textarea
-              id="study-message"
-              name="message"
-              minLength={3}
-              rows={2}
-              placeholder="What should we work on?"
-              className="min-h-[74px] w-full resize-none rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[14px] leading-6 text-[var(--color-ink)] outline-none transition placeholder:text-[var(--color-faint)] focus:border-[var(--color-accent-strong)]"
-              required
-            />
-            <ActionButton ariaLabel="Send" title="Send" className="h-full min-h-[44px] px-4">
-              <Send size={16} strokeWidth={2} aria-hidden="true" />
-            </ActionButton>
-          </div>
-        </form>
 
-        {messages.length > 0 ? (
-          <div className="mt-3">
-            <p className="text-[12px] font-medium text-[var(--color-muted)]">Recent</p>
-            <p className="mt-1 truncate text-[13px] leading-5 text-[var(--color-ink)]">{messages[0].text}</p>
-          </div>
-        ) : null}
-      </div>
-
-      {studyPackage ? (
-        <StudyPackage studyPackage={studyPackage} />
-      ) : messages.length > 1 ? (
-        <div className="min-w-0 border-t border-[var(--color-border)] pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
-          <p className="text-[12px] font-medium text-[var(--color-muted)]">Recent</p>
-          <div className="mt-2 divide-y divide-[var(--color-border)]">
-            {messages.slice(1).map((message) => (
-              <p key={message.id} className="break-words py-2 text-[13px] leading-5 text-[var(--color-ink)] first:pt-0 last:pb-0">
-                {message.text}
-              </p>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function StudyPackage({ studyPackage }: { studyPackage: StudentStudyPackage }) {
-  return (
-    <div className="min-w-0 border-t border-[var(--color-border)] pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[12px] font-medium text-[var(--color-muted)]">Package</p>
-          <h3 className="mt-1 text-[15px] font-semibold leading-6 text-[var(--color-ink)]">{studyPackage.title}</h3>
-        </div>
-        <StatusBadge tone="accent">Ready</StatusBadge>
-      </div>
-      <p className="mt-2 text-[13px] leading-5 text-[var(--color-muted)]">{studyPackage.summary}</p>
-      <div className="mt-3 divide-y divide-[var(--color-border)]">
-        <RecordFact
-          label="Review"
-          value={studyPackage.reviewHref ? <TextLink href={studyPackage.reviewHref}>{studyPackage.review}</TextLink> : studyPackage.review}
-          variant="stack"
-        />
-        <RecordFact label="Practice" value={studyPackage.practice} variant="stack" />
-        <RecordFact
-          label="Do"
-          value={studyPackage.doHref ? <TextLink href={studyPackage.doHref}>{studyPackage.do}</TextLink> : studyPackage.do}
-          variant="stack"
-        />
-        <RecordFact label="Check" value={studyPackage.check} variant="stack" />
-      </div>
-    </div>
-  );
-}
 
 function nextStudentAction(status?: StudentAssignment["status"]) {
   switch (status) {

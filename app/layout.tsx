@@ -1,25 +1,36 @@
 import type { Metadata } from "next";
-import { Spectral, Hanken_Grotesk, IBM_Plex_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const spectral = Spectral({
-  subsets: ["latin"],
-  weight: ["300", "400", "500"],
-  style: ["normal", "italic"],
+/*
+ * Fonts ship with the repo (public/fonts, latin subsets) so builds are
+ * hermetic — no Google Fonts fetch at build time, identical output in CI,
+ * Docker, and offline dev.
+ */
+const spectral = localFont({
+  src: [
+    { path: "../public/fonts/spectral-300.woff2", weight: "300", style: "normal" },
+    { path: "../public/fonts/spectral-300-italic.woff2", weight: "300", style: "italic" },
+    { path: "../public/fonts/spectral-400.woff2", weight: "400", style: "normal" },
+    { path: "../public/fonts/spectral-400-italic.woff2", weight: "400", style: "italic" },
+    { path: "../public/fonts/spectral-500.woff2", weight: "500", style: "normal" },
+    { path: "../public/fonts/spectral-500-italic.woff2", weight: "500", style: "italic" },
+  ],
   variable: "--font-spectral",
   display: "swap",
 });
 
-const hanken = Hanken_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+const hanken = localFont({
+  src: [{ path: "../public/fonts/hanken-grotesk-variable.woff2", weight: "100 900", style: "normal" }],
   variable: "--font-hanken",
   display: "swap",
 });
 
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
+const plexMono = localFont({
+  src: [
+    { path: "../public/fonts/ibm-plex-mono-400.woff2", weight: "400", style: "normal" },
+    { path: "../public/fonts/ibm-plex-mono-500.woff2", weight: "500", style: "normal" },
+  ],
   variable: "--font-plex-mono",
   display: "swap",
 });

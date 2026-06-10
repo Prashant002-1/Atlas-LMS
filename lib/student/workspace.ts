@@ -11,13 +11,32 @@ import {
   modules,
   submissions,
 } from "@/lib/db/schema";
-import { atlasDemo } from "@/lib/demo/atlas";
 import type { Role } from "@/lib/auth/session";
 import { practiceBaseForObjective, type PracticeBase } from "@/lib/practice/base";
+import { resolveScope, type WorkspaceCourse, type WorkspaceScope } from "@/lib/workspace/scope";
+import { courseAiPolicies, type CourseAiPolicy } from "@/lib/db/schema";
+
+export type StudentCuePolicy = {
+  allowExplain: boolean;
+  allowPractice: boolean;
+  allowQuestions: boolean;
+  personaName: string | null;
+};
+
+export function toCuePolicy(policy: CourseAiPolicy | null): StudentCuePolicy {
+  return {
+    allowExplain: policy?.allowExplain !== false,
+    allowPractice: policy?.allowPractice !== false,
+    allowQuestions: policy?.allowQuestions !== false,
+    personaName: policy?.personaName ?? null,
+  };
+}
 
 export type StudentWorkspace = {
-  source: "database" | "preview" | "unavailable";
-  course: typeof atlasDemo.course & { id?: string };
+  source: "database" | "unavailable";
+  course: WorkspaceCourse;
+  scope: WorkspaceScope;
+  cuePolicy: StudentCuePolicy;
   student: {
     name: string;
     courseStanding: string;
@@ -140,6 +159,7 @@ export type StudentAssignmentWorkspace = {
   source: StudentWorkspace["source"];
   course: StudentWorkspace["course"];
   student: StudentWorkspace["student"];
+  cuePolicy: StudentCuePolicy;
   assignment?: StudentAssignment;
   materials: StudentMaterial[];
   objectives: StudentObjective[];
@@ -155,6 +175,7 @@ export type StudentMaterialWorkspace = {
   source: StudentWorkspace["source"];
   course: StudentWorkspace["course"];
   student: StudentWorkspace["student"];
+  cuePolicy: StudentCuePolicy;
   material?: StudentMaterial;
   assignments: StudentAssignment[];
   objectives: StudentObjective[];
@@ -182,6 +203,7 @@ export async function loadStudentAssignmentWorkspace(
     source: workspace.source,
     course: workspace.course,
     student: workspace.student,
+    cuePolicy: workspace.cuePolicy,
     practice: workspace.practice,
     studyPackage: packageForAssignment(workspace.studyPackage, assignmentId),
   };
@@ -229,6 +251,7 @@ export async function loadStudentMaterialWorkspace(
     source: workspace.source,
     course: workspace.course,
     student: workspace.student,
+    cuePolicy: workspace.cuePolicy,
     practice: workspace.practice,
     studyPackage: packageForMaterial(workspace.studyPackage, moduleId),
   };
@@ -270,15 +293,24 @@ export async function loadStudentMaterialWorkspace(
 }
 
 export async function loadStudentWorkspace(actor?: Actor | null): Promise<StudentWorkspace> {
-  if (!actor) {
-    return previewWorkspace();
+  if (!actor?.orgId || actor.role !== "student") {
+    return unavailableWorkspace(actor?.name, "Course unavailable", "No active course is attached to this account.");
   }
 
-  if (!actor.orgId || actor.role !== "student") {
-    return unavailableWorkspace(actor.name, "Course unavailable", "No active course is attached to this account.");
-  }
+  const scope = await resolveScope({ orgId: actor.orgId, userId: actor.id, role: actor.role, teachingOnly: false });
 
   try {
+    if (!scope.course) {
+      return unavailableWorkspace(
+        actor.name,
+        "No course in this semester",
+        scope.term
+          ? `You are not enrolled in anything in ${scope.term.name}. Switch semesters from the header.`
+          : "No semester is set up yet.",
+        scope
+      );
+    }
+
     const [enrollment] = await db
       .select({
         courseId: enrollments.courseId,
@@ -290,26 +322,32 @@ export async function loadStudentWorkspace(actor?: Actor | null): Promise<Studen
         and(
           eq(enrollments.orgId, actor.orgId),
           eq(enrollments.userId, actor.id),
+          eq(enrollments.courseId, scope.course.id),
           eq(enrollments.role, "student"),
           eq(enrollments.state, "active")
         )
       )
-      .orderBy(desc(enrollments.createdAt))
       .limit(1);
 
     if (!enrollment) {
-      return unavailableWorkspace(actor.name, "Course unavailable", "No active course is attached to this account.");
+      return unavailableWorkspace(actor.name, "Course unavailable", "No active course is attached to this account.", scope);
     }
 
     const [course] = await db
-      .select({ id: courses.id, code: courses.code, name: courses.name, term: courses.term })
+      .select({ id: courses.id, code: courses.code, name: courses.name, term: courses.term, description: courses.description })
       .from(courses)
       .where(and(eq(courses.orgId, actor.orgId), eq(courses.id, enrollment.courseId)))
       .limit(1);
 
     if (!course) {
-      return unavailableWorkspace(actor.name, "Course unavailable", "No active course is attached to this account.");
+      return unavailableWorkspace(actor.name, "Course unavailable", "No active course is attached to this account.", scope);
     }
+
+    const [policy] = await db
+      .select()
+      .from(courseAiPolicies)
+      .where(and(eq(courseAiPolicies.orgId, actor.orgId), eq(courseAiPolicies.courseId, course.id)))
+      .limit(1);
 
     const objectiveRows = await db
       .select({
@@ -442,7 +480,6 @@ export async function loadStudentWorkspace(actor?: Actor | null): Promise<Studen
         const submission = submissionByAssignment.get(row.itemId);
         return submission?.gradedAt && !submission.missing ? sum + row.weight : sum;
       }, 0);
-      const fallback = atlasDemo.objectives.find((item) => item.code === objective.code);
       const coverage = totalWeight > 0 ? Math.round((completeWeight / totalWeight) * 100) : 0;
       const evidence = rows
         .map((row) => {
@@ -458,7 +495,7 @@ export async function loadStudentWorkspace(actor?: Actor | null): Promise<Studen
 
       return {
         code: objective.code,
-        title: fallback?.title ?? objective.description,
+        title: objectiveTitle(objective.description),
         description: objective.description,
         bloom: objective.bloomLevel ?? "objective",
         assessedWeight: Math.round((objective.assessmentWeight ?? 0) * 100),
@@ -521,15 +558,17 @@ export async function loadStudentWorkspace(actor?: Actor | null): Promise<Studen
     return {
       source: "database",
       course: {
-        ...atlasDemo.course,
         id: course.id,
         code: course.code,
         name: course.name,
-        term: course.term ?? atlasDemo.course.term,
+        term: course.term ?? scope.term?.name ?? "",
+        description: course.description,
       },
+      scope,
+      cuePolicy: toCuePolicy(policy ?? null),
       student: {
-        name: actor.name ?? atlasDemo.student.name,
-        courseStanding: enrollment.currentGrade ?? scoreLabel(enrollment.currentScore, 100) ?? atlasDemo.student.courseStanding,
+        name: actor.name ?? "Student",
+        courseStanding: enrollment.currentGrade ?? scoreLabel(enrollment.currentScore, 100) ?? "—",
       },
       focus,
       objectives,
@@ -542,80 +581,22 @@ export async function loadStudentWorkspace(actor?: Actor | null): Promise<Studen
       sources,
     };
   } catch {
-    return unavailableWorkspace(actor.name, "Course unavailable", "The course record could not be loaded.");
+    return unavailableWorkspace(actor.name, "Course unavailable", "The course record could not be loaded.", scope);
   }
 }
 
-function previewWorkspace(): StudentWorkspace {
-  const objectives = atlasDemo.objectives;
-  const assignments = [
-    {
-      name: "Project milestone",
-      status: "open" as const,
-      detail: "Due Jun 18",
-      description: "Model a relationship and explain uncertainty.",
-      dueAt: new Date("2026-06-18T16:00:00.000Z"),
-      points: 100,
-      objectiveCodes: ["LO3"],
-    },
-    {
-      name: "Problem Set 4",
-      status: "open" as const,
-      detail: "Due Jun 21",
-      description: "Regression interpretation and assumptions.",
-      dueAt: new Date("2026-06-21T16:00:00.000Z"),
-      points: 50,
-      objectiveCodes: ["LO3", "LO4"],
-    },
-    {
-      name: "Problem Set 1",
-      status: "graded" as const,
-      detail: "A-",
-      description: "Descriptive statistics on the provided dataset.",
-      submittedAt: new Date("2026-06-04T16:00:00.000Z"),
-      gradedAt: new Date("2026-06-06T16:00:00.000Z"),
-      score: 91,
-      points: 100,
-      grade: "A-",
-      objectiveCodes: ["LO1"],
-    },
-  ];
-  const materials = atlasDemo.modules
-    .filter((module) => module.status === "approved")
-    .map((module) => ({
-      week: module.week,
-      title: module.title,
-      summary: "summary" in module && typeof module.summary === "string" ? module.summary : undefined,
-      objectiveCodes: module.objectiveCodes,
-    }));
-  const focus = strongestActionableGap(objectives, materials, assignments);
-
-  return {
-    source: "preview",
-    course: atlasDemo.course,
-    student: {
-      name: atlasDemo.student.name,
-      courseStanding: atlasDemo.student.courseStanding,
-    },
-    focus,
-    objectives,
-    assignments,
-    materials,
-    practice: buildPractice(focus, materials, assignments),
-    studyMessages: [],
-    studyPackage: undefined,
-    notices: [
-      {
-        title: "Week 2 note",
-        message: "Bring one question from the sampling notes to the next class.",
-        postedAt: new Date("2026-06-08T14:00:00.000Z"),
-      },
-    ],
-    sources: atlasDemo.student.sources,
-  };
+function objectiveTitle(description: string): string {
+  const words = description.replace(/[.!?].*$/, "").split(/\s+/);
+  const short = words.slice(0, 4).join(" ");
+  return short.length > 2 ? short : description.slice(0, 40);
 }
 
-function unavailableWorkspace(name: string | null | undefined, title: string, detail: string): StudentWorkspace {
+function unavailableWorkspace(
+  name: string | null | undefined,
+  title: string,
+  detail: string,
+  scope?: WorkspaceScope
+): StudentWorkspace {
   const focus = {
     code: "Course",
     title,
@@ -628,14 +609,9 @@ function unavailableWorkspace(name: string | null | undefined, title: string, de
 
   return {
     source: "unavailable",
-    course: {
-      ...atlasDemo.course,
-      code: "Course",
-      name: title,
-      term: "",
-      prompt: detail,
-      thesis: "",
-    },
+    course: { code: "Course", name: title, term: scope?.term?.name ?? "", description: detail },
+    scope: scope ?? { term: null, terms: [], course: null, courses: [] },
+    cuePolicy: toCuePolicy(null),
     student: {
       name: name ?? "Student",
       courseStanding: "-",

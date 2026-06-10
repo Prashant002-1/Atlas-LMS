@@ -2,11 +2,10 @@
 
 import { AuthError } from "next-auth";
 import { eq } from "drizzle-orm";
-import { redirect } from "next/navigation";
-import { auth, signIn, signOut } from "@/lib/auth";
+import { signIn, signOut } from "@/lib/auth";
+import { isInstructorLike } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { isInstructorLike } from "@/lib/auth/session";
 
 export type SignInState = {
   error?: string;
@@ -16,39 +15,6 @@ export async function signInWithCredentials(_: SignInState, formData: FormData):
   return signInFromForm(formData);
 }
 
-export async function signInWithWorkspaceRole(formData: FormData): Promise<void> {
-  const role = String(formData.get("role") ?? "");
-  const isStudent = role === "student";
-  const target = isStudent ? "/student" : "/teach";
-  const email = isStudent ? "student@demo.edu" : "instructor@demo.edu";
-
-  try {
-    const session = await auth();
-    const isAlreadyRightRole = isStudent
-      ? session?.user.role === "student"
-      : session?.user.role
-        ? isInstructorLike(session.user.role)
-        : false;
-
-    if (session?.user && !isAlreadyRightRole) {
-      await signOut({ redirect: false });
-    }
-
-    await signIn("credentials", {
-      email,
-      password: "atlas1234",
-      redirect: false,
-      redirectTo: target,
-    });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      redirect(`/sign-in${isStudent ? "?role=student" : ""}`);
-    }
-    throw error;
-  }
-
-  redirect(target);
-}
 
 async function signInFromForm(formData: FormData): Promise<SignInState> {
   const email = String(formData.get("email") ?? "").toLowerCase().trim();

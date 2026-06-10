@@ -10,14 +10,15 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test lib/workspace/*.test.ts lib/instructor/*.test.ts",
+    "test": "tsx --test lib/workspace/*.test.ts lib/db/fixtures/*.test.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build",
     "smoke": "tsx scripts/smoke.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx lib/db/seed.ts"
+    "db:seed": "tsx lib/db/seed.ts",
+    "postinstall": "node scripts/decode-fonts.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.40",

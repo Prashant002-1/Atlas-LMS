@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { BookOpenCheck, Check, ClipboardCheck, Target } from "lucide-react";
 import { redirect } from "next/navigation";
 import { PracticeBasePanel } from "@/components/atlas/practice-base";
@@ -6,6 +7,7 @@ import { EmptyRecord, ObjectiveMeter, RecordFact } from "@/components/atlas/reco
 import { ProductShell } from "@/components/atlas/product-shell";
 import { auth } from "@/lib/auth";
 import { submitAssignment } from "@/lib/student/actions";
+import { CuePanel } from "@/components/agent/cue-panel";
 import {
   loadStudentAssignmentWorkspace,
   type StudentAssignment,
@@ -63,6 +65,14 @@ export default async function StudentAssignmentPage({ params }: { params: Promis
             material={workspace.materials[0]}
             studyPackage={workspace.studyPackage}
             returnTo={`/student/work/${workspace.assignment.id}`}
+            cue={
+              workspace.course.id && workspace.assignment.id ? (
+                <CuePanel
+                  target={{ courseId: workspace.course.id, targetType: "assignment", targetId: workspace.assignment.id }}
+                  availability={workspace.cuePolicy}
+                />
+              ) : null
+            }
           />
           <RelatedMaterial workspace={workspace} />
           <RelatedObjectives workspace={workspace} />
@@ -77,11 +87,13 @@ function StudentWorkRecord({
   material,
   studyPackage,
   returnTo,
+  cue,
 }: {
   assignment: StudentAssignment;
   material?: StudentMaterial;
   studyPackage?: StudentStudyPackage;
   returnTo: string;
+  cue?: ReactNode;
 }) {
   const meta = assignmentMeta(assignment);
   const score = assignmentScore(assignment);
@@ -112,6 +124,7 @@ function StudentWorkRecord({
         </section>
 
         {material ? <WorkMaterialContext material={material} assignment={assignment} /> : null}
+        {cue}
         <StudentResult assignment={assignment} score={score} />
         {response ? <StudentResponse body={response} /> : null}
         {studyPackage ? <StudyPackageContext studyPackage={studyPackage} /> : null}

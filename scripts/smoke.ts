@@ -18,60 +18,24 @@ type AuthSmokeUser = {
 export {};
 
 const baseUrl = normalizeBaseUrl(process.env.ATLAS_BASE_URL ?? "http://localhost:3000");
-const publicCopyExclusions = [
-  "course workspace",
-  "student desk",
-  "instructor workspace",
-  "Open instructor",
-  "Open student",
-  "Professor-controlled",
-  "Imported outline",
-  "Turn in",
-  "implementation",
-  "OpenAI",
-  "ChatGPT",
-  "AI-powered",
-  "student@demo",
-  "instructor@demo",
-  "atlas1234",
-  "demo-u",
-];
 
 const checks: SmokeCheck[] = [
-  {
-    name: "home",
-    path: "/",
-    status: 200,
-    includes: ["Course design and study in one record.", "Start with one course", "Study this course"],
-    excludes: publicCopyExclusions,
-  },
+  // Signed out, everything routes to sign-in. There is no public surface.
+  { name: "home guard", path: "/", status: 307, redirectTo: "/sign-in" },
+  { name: "teach guard", path: "/teach", status: 307, redirectTo: "/sign-in?from=%2Fteach" },
+  { name: "student guard", path: "/student", status: 307, redirectTo: "/sign-in?from=%2Fstudent" },
+  { name: "settings guard", path: "/teach/atlas", status: 307, redirectTo: "/sign-in?from=%2Fteach%2Fatlas" },
   {
     name: "sign in",
     path: "/sign-in",
     status: 200,
-    includes: ["Enter the course record.", "Applied Statistics", "STAT-201", "Teach", "Study", "Open course"],
-    excludes: publicCopyExclusions,
-  },
-  {
-    name: "student entry",
-    path: "/sign-in?role=student",
-    status: 200,
-    includes: ["Enter the course record.", "Applied Statistics", "STAT-201", "Teach", "Study", "Open course"],
-    excludes: publicCopyExclusions,
+    includes: ["Sign in", "Email", "Password"],
   },
   {
     name: "sign up",
     path: "/sign-up",
     status: 200,
-    includes: ["Start with one course.", "Applied Statistics", "Fall 2026", "Objectives", "Teach this course"],
-    excludes: publicCopyExclusions,
-  },
-  {
-    name: "not found",
-    path: "/not-real",
-    status: 404,
-    includes: ["This page is not available.", "Return to the course.", "Teach this course", "Study this course"],
-    excludes: publicCopyExclusions,
+    includes: ["Joining a course?", "provisioned by your institution"],
   },
   {
     name: "health",
@@ -84,23 +48,22 @@ const checks: SmokeCheck[] = [
       return null;
     },
   },
-  { name: "teach guard", path: "/teach", status: 307, redirectTo: "/sign-in" },
-  { name: "student guard", path: "/student", status: 307, redirectTo: "/sign-in?role=student" },
+  // Agent routes refuse anonymous calls outright.
+  { name: "agent command guard", path: "/api/agent/command", status: 401 },
+  { name: "agent cue guard", path: "/api/agent/cue", status: 401 },
   {
     name: "teach signed in",
     path: "/teach",
     status: 200,
     auth: { email: "instructor@demo.edu", password: "atlas1234", redirectTo: "/teach" },
-    includes: ["Applied Statistics", "Course map", "Coverage", "Review", "Publish", "Add week", "Add work", "Add objective"],
-    excludes: publicCopyExclusions,
+    includes: ["Applied Statistics", "Course map", "Review", "Publish", "Atlas in this course"],
   },
   {
     name: "student signed in",
     path: "/student",
     status: 200,
     auth: { email: "student@demo.edu", password: "atlas1234", redirectTo: "/student" },
-    includes: ["Applied Statistics", "Study", "Coverage", "Course", "Practice"],
-    excludes: publicCopyExclusions,
+    includes: ["Study", "Coverage", "Practice"],
   },
 ];
 

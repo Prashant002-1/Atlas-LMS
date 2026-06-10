@@ -7,7 +7,7 @@ Sequenced so each phase unlocks the next. Auth + tenancy first, because everythi
 - Drizzle schema: academic core + Alignment Graph + auth/runtime tables, org-scoped
 - Auth.js scaffolding; session carries `{ userId, orgId, role }`
 - Validated course-view contract with student and instructor personas
-- Tool split: student reads course records; instructor writes reviewable proposals through `/api/chat`
+- Tool split: student reads course records; instructor writes reviewable proposals through the agent runtime
 - Provider configuration with paid-capable models; 1536-dim embeddings
 - Infra: Dockerfile, compose, CI, `.env.example`, drizzle config
 
@@ -26,6 +26,17 @@ Remaining before an institutional pilot:
 - Real org creation, invite flow, and admin setup.
 - Middleware/route-group hardening as the app surface expands beyond the current teaching/study pages.
 - Migration-based CI once Drizzle migrations are committed instead of schema push.
+
+## Phase 1.5 — Agentic core ✅ (this PR)
+- `lib/agent/` runtime: deterministic context packs, anchored sessions with rolling compaction, typed block registry (zod, versioned), per-surface prompts and tools.
+- Professor command surface (`/api/agent/command` + CommandComposer): one intent → one proposal of typed blocks, streamed as real components, applied/dismissed in Review through `lib/agent/apply.ts`.
+- Student cue surface (`/api/agent/cue` + CuePanel): Explain / Practice / Ask buttons anchored to records — no chat wall. Gated by the course AI policy.
+- `course_ai_policies`: professor-owned control object (cues, depth, citations, persona, standing instructions, daily limit, opt-in class signal) with `/teach/atlas` as the control panel.
+- Terms as first-class records + header semester/course pickers (cookie-pinned scope).
+- Full sign-in gating via middleware; no public surface; `/` routes by role.
+- BYOK: org provider keys (AES-256-GCM at rest, masked tails, server-side resolution, env fallback).
+- Shared demo data package: deterministic fixtures (3 semesters, 9 courses, full stacks) + idempotent seed + DB-free integrity tests.
+- Removed: the regex command parser (import-outline), the orphaned `/api/chat` route, the consumer-less workspace-decision contract, fake preview data on auth pages.
 
 ## Phase 2 — Student experience
 - Current: DB-backed study view with actionable focus, latest course note, aligned published material, grounded practice, material-to-work detail flow, written response submission, missing recovery, waiting/done work state, evidence, standing, and empty/unavailable states.

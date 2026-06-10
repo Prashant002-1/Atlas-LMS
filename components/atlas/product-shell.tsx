@@ -4,6 +4,8 @@ import type { LucideIcon } from "lucide-react";
 import { GraduationCap, LayoutDashboard, LogIn, LogOut } from "lucide-react";
 import { BrandMark } from "@/components/atlas/primitives";
 import { signOutOfAtlas } from "@/lib/auth/actions";
+import { ScopePicker } from "@/components/atlas/scope-picker";
+import type { WorkspaceScope } from "@/lib/workspace/scope";
 
 const roleNav = [
   { href: "/teach", label: "Teach", icon: LayoutDashboard },
@@ -33,6 +35,8 @@ export function ProductShell({
   rail,
   actor,
   sections,
+  scope,
+  scopePath,
 }: {
   active: "teach" | "student";
   persona: string;
@@ -42,6 +46,9 @@ export function ProductShell({
   rail?: ReactNode;
   actor?: ShellActor;
   sections?: CourseSection[];
+  /** Term + course pickers render when the page provides its scope. */
+  scope?: WorkspaceScope;
+  scopePath?: string;
 }) {
   const visibleNav = navigationForRole(actor?.role);
   const showNavigation = visibleNav.length > 1;
@@ -75,6 +82,7 @@ export function ProductShell({
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            {scope ? <ScopePicker scope={scope} returnTo={scopePath ?? `/${active}`} /> : null}
             {showNavigation ? <CourseNav active={active} items={visibleNav} /> : null}
             <HeaderAccountAction actor={actor} fallbackName={persona} />
           </div>

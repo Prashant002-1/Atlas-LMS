@@ -66,6 +66,12 @@ export const proposalStatusEnum = pgEnum("proposal_status", [
 ]);
 export const personaEnum = pgEnum("persona", ["student", "instructor"]);
 export const memoryScopeEnum = pgEnum("memory_scope", ["global", "course"]);
+export const agentSurfaceEnum = pgEnum("agent_surface", ["command", "cue"]);
+export const agentTurnRoleEnum = pgEnum("agent_turn_role", ["user", "assistant", "tool"]);
+export const cueKindEnum = pgEnum("cue_kind", ["explain", "practice", "question"]);
+export const cueTargetEnum = pgEnum("cue_target", ["assignment", "module", "page", "course"]);
+export const explanationDepthEnum = pgEnum("explanation_depth", ["hint", "guided", "full"]);
+export const providerKindEnum = pgEnum("provider_kind", ["openrouter", "openai"]);
 
 /* ──────────────────── 1. tenancy & auth ─────────────────── */
 
@@ -133,6 +139,24 @@ export const verificationTokens = pgTable(
 
 /* ──────────────────── 2. academic core ──────────────────── */
 
+// Semester / term. Courses hang off a term; the UI offers a term picker so any
+// account can move between semesters (useful for testing and for real rollover).
+export const terms = pgTable(
+  "terms",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    current: boolean("current").notNull().default(false),
+  },
+  (t) => [uniqueIndex("terms_org_slug_idx").on(t.orgId, t.slug), index("terms_org_idx").on(t.orgId)]
+);
+
 export const courses = pgTable(
   "courses",
   {
@@ -143,6 +167,7 @@ export const courses = pgTable(
     code: text("code").notNull(),
     name: text("name").notNull(),
     term: text("term"),
+    termId: uuid("term_id").references(() => terms.id, { onDelete: "set null" }),
     description: text("description"),
     syllabusMd: text("syllabus_md"),
     status: courseStatusEnum("status").notNull().default("draft"),
@@ -174,6 +199,8 @@ export const enrollments = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     role: enrollmentRoleEnum("role").notNull(),
     state: text("state").notNull().default("active"),
+    // Student's opt-in to share aggregated struggle signal with the professor.
+    aiShareOptIn: boolean("ai_share_opt_in").notNull().default(false),
     currentScore: real("current_score"),
     currentGrade: text("current_grade"),
     finalScore: real("final_score"),
@@ -396,6 +423,35 @@ export const submissions = pgTable(
   ]
 );
 
+/**
+ * Practice sets — professor-approved practice as a first-class record (not a PDF,
+ * not a chat transcript). Drafted by the agent or by hand, applied through Review,
+ * studied interactively by students. Aligned via content_alignments (itemType "quiz").
+ */
+export const practiceSets = pgTable(
+  "practice_sets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    // The shared scenario/dataset the questions stand on.
+    base: text("base"),
+    // Validated PracticeSetBlock.questions payload.
+    questions: jsonb("questions").notNull().default([]),
+    position: integer("position"),
+    published: boolean("published").notNull().default(false),
+    createdByAgent: boolean("created_by_agent").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("practice_sets_course_idx").on(t.courseId, t.position)]
+);
+
 export const calendarEvents = pgTable(
   "calendar_events",
   {
@@ -511,6 +567,183 @@ export const contentAlignments = pgTable(
 
 /* ─────────────────────── 4. AI runtime ─────────────────────── */
 
+/**
+ * Course AI policy — the professor's control object for everything students can
+ * ask of Atlas inside the course. The professor outlines; students dive deeper,
+ * exactly as far as the professor allows. This row IS the product doctrine
+ * ("the professor decides the extent of the explanations") made concrete.
+ */
+export const courseAiPolicies = pgTable(
+  "course_ai_policies",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    // Which cues exist for students in this course.
+    allowExplain: boolean("allow_explain").notNull().default(true),
+    allowPractice: boolean("allow_practice").notNull().default(true),
+    allowQuestions: boolean("allow_questions").notNull().default(true),
+    // How far an explanation goes: a nudge, a guided walk, or the full picture.
+    explanationDepth: explanationDepthEnum("explanation_depth").notNull().default("guided"),
+    citationsRequired: boolean("citations_required").notNull().default(true),
+    // Optional course voice ("The Archivist" for a history course).
+    personaName: text("persona_name"),
+    personaStyle: text("persona_style"),
+    // The professor's own guidance, injected verbatim into student-facing runs.
+    customInstructions: text("custom_instructions"),
+    studentDailyLimit: integer("student_daily_limit").notNull().default(40),
+    // Opt-in, aggregated struggle signal back to the professor. Never surveillance.
+    shareStruggleSignal: boolean("share_struggle_signal").notNull().default(false),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("course_ai_policies_course_idx").on(t.courseId)]
+);
+
+/**
+ * Agent sessions — one per (user, surface, anchor). The professor's command bar
+ * resumes one session per course; a student cue anchored to an assignment gets
+ * its own thread. Turns live in `agent_turns`; compaction state lives here.
+ */
+export const agentSessions = pgTable(
+  "agent_sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    surface: agentSurfaceEnum("surface").notNull(),
+    // What the session is anchored to (a cue on an assignment, the course command bar).
+    anchorType: cueTargetEnum("anchor_type").notNull().default("course"),
+    anchorId: uuid("anchor_id"),
+    title: text("title"),
+    // Rolling compaction: everything through `compactedThroughTurn` is represented
+    // by `summary`; turns after it are sent verbatim.
+    summary: text("summary"),
+    compactedThroughTurn: integer("compacted_through_turn").notNull().default(0),
+    totalTurns: integer("total_turns").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("agent_sessions_user_idx").on(t.userId, t.updatedAt),
+    index("agent_sessions_anchor_idx").on(t.courseId, t.surface, t.anchorType, t.anchorId),
+  ]
+);
+
+export const agentTurns = pgTable(
+  "agent_turns",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => agentSessions.id, { onDelete: "cascade" }),
+    turnIndex: integer("turn_index").notNull(),
+    role: agentTurnRoleEnum("role").notNull(),
+    // UIMessage parts (text, tool calls, tool results) — renderable and replayable.
+    parts: jsonb("parts").notNull(),
+    tokenEstimate: integer("token_estimate").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("agent_turns_session_turn_idx").on(t.sessionId, t.turnIndex)]
+);
+
+/**
+ * Proposal blocks — the generative-UI contract, persisted. The agent emits typed
+ * blocks (validated against the registry in lib/agent/blocks.ts); each block is a
+ * row the professor can apply or dismiss independently. Reopening a proposal
+ * re-renders blocks from these rows — no re-generation.
+ */
+export const proposalBlocks = pgTable(
+  "proposal_blocks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    proposalId: uuid("proposal_id")
+      .notNull()
+      .references(() => changeProposals.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    blockType: text("block_type").notNull(),
+    schemaVersion: text("schema_version").notNull().default("1"),
+    data: jsonb("data").notNull(),
+    status: proposalStatusEnum("status").notNull().default("pending"),
+    // After apply: the live record this block created.
+    appliedItemType: alignmentItemTypeEnum("applied_item_type"),
+    appliedItemId: uuid("applied_item_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("proposal_blocks_proposal_idx").on(t.proposalId, t.position)]
+);
+
+/**
+ * Cue events — every student cue press, with the course/objective context it ran
+ * against. Powers the per-student daily limit and (opt-in only) the aggregated
+ * struggle signal to the professor. Aggregates only; never a per-student feed.
+ */
+export const cueEvents = pgTable(
+  "cue_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id").references(() => agentSessions.id, { onDelete: "set null" }),
+    kind: cueKindEnum("kind").notNull(),
+    targetType: cueTargetEnum("target_type").notNull(),
+    targetId: uuid("target_id"),
+    objectiveCodes: jsonb("objective_codes").notNull().default([]),
+    shared: boolean("shared").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("cue_events_course_idx").on(t.courseId, t.createdAt),
+    index("cue_events_user_day_idx").on(t.userId, t.courseId, t.createdAt),
+  ]
+);
+
+/**
+ * BYOK — org-level provider keys, AES-256-GCM encrypted with the app secret.
+ * Resolution order at runtime: org key → environment fallback. Keys never reach
+ * the client; the settings UI shows only a masked tail.
+ */
+export const orgProviderKeys = pgTable(
+  "org_provider_keys",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    provider: providerKindEnum("provider").notNull(),
+    ciphertext: text("ciphertext").notNull(),
+    iv: text("iv").notNull(),
+    keyTail: text("key_tail").notNull(), // last 4 chars, for display
+    chatModel: text("chat_model"),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("org_provider_keys_org_provider_idx").on(t.orgId, t.provider)]
+);
+
 // Agent write-actions land here as a reviewable diff. Nothing mutates the course until approved.
 export const changeProposals = pgTable(
   "change_proposals",
@@ -525,6 +758,8 @@ export const changeProposals = pgTable(
     status: proposalStatusEnum("status").notNull().default("pending"),
     summary: text("summary").notNull(),
     diff: jsonb("diff").notNull(), // structured description of what would change
+    // The agent session whose run produced this proposal (provenance).
+    sessionId: uuid("session_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
   },
@@ -597,7 +832,15 @@ export const plannerState = pgTable(
 
 export type Organization = typeof organizations.$inferSelect;
 export type User = typeof users.$inferSelect;
+export type Term = typeof terms.$inferSelect;
 export type Course = typeof courses.$inferSelect;
+export type CourseAiPolicy = typeof courseAiPolicies.$inferSelect;
+export type AgentSession = typeof agentSessions.$inferSelect;
+export type AgentTurn = typeof agentTurns.$inferSelect;
+export type ProposalBlock = typeof proposalBlocks.$inferSelect;
+export type PracticeSet = typeof practiceSets.$inferSelect;
+export type CueEvent = typeof cueEvents.$inferSelect;
+export type OrgProviderKey = typeof orgProviderKeys.$inferSelect;
 export type NewCourse = typeof courses.$inferInsert;
 export type Enrollment = typeof enrollments.$inferSelect;
 export type Module = typeof modules.$inferSelect;

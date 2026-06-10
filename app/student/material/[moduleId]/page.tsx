@@ -1,4 +1,5 @@
 import { BookOpenCheck, ClipboardCheck, Target } from "lucide-react";
+import { CuePanel } from "@/components/agent/cue-panel";
 import { redirect } from "next/navigation";
 import { PracticeBasePanel, PracticeVariants } from "@/components/atlas/practice-base";
 import { BackLink, ButtonLink, CodeList, IconLabel, Panel, StatusBadge, TextLink } from "@/components/atlas/primitives";
@@ -68,6 +69,14 @@ export default async function StudentMaterialPage({ params }: { params: Promise<
               </div>
               {workspace.studyPackage ? <MaterialPackageContext studyPackage={workspace.studyPackage} /> : null}
             </div>
+            {workspace.course.id && workspace.material.id ? (
+              <div className="mt-5">
+                <CuePanel
+                  target={{ courseId: workspace.course.id, targetType: "module", targetId: workspace.material.id }}
+                  availability={workspace.cuePolicy}
+                />
+              </div>
+            ) : null}
             <MaterialPracticePath workspace={workspace} />
           </Panel>
           <RelatedWork assignments={workspace.assignments} />

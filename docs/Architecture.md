@@ -1,4 +1,4 @@
-# Atlas LMS — Architecture
+# Atlas LMS, Architecture
 
 ## Stack
 
@@ -52,7 +52,7 @@
 
 ## The generative-UI contract (`lib/agent/blocks.ts`)
 
-The agent never draws UI and never writes prose-as-product. It emits **typed blocks** — a closed, versioned zod registry (objective, module, assignment, page, announcement, practice_set, rubric, explanation, answer). Three consumers share the one schema:
+The agent never draws UI and never writes prose-as-product. It emits **typed blocks**, a closed, versioned zod registry (objective, module, assignment, page, announcement, practice_set, rubric, explanation, answer). Three consumers share the one schema:
 
 1. the agent's tool inputs (what it is allowed to say),
 2. the React component map (`components/agent/block-views.tsx`) used both for live streaming and for re-rendering persisted proposals,
@@ -66,12 +66,12 @@ Professor surface: one command → one `change_proposal` → N blocks, each inde
 
 The tables that make Atlas more than a chat wrapper:
 
-- `learning_objectives` — course/module objectives (with Bloom level), agent- or human-authored.
-- `program_outcomes` — accreditation/program-level outcomes.
-- `objective_outcome_map` — objectives → program outcomes (many-to-many).
-- `content_alignments` — any content item (module, assignment, quiz, page, file) → objective, with weight.
+- `learning_objectives`, course/module objectives (with Bloom level), agent- or human-authored.
+- `program_outcomes`, accreditation/program-level outcomes.
+- `objective_outcome_map`, objectives → program outcomes (many-to-many).
+- `content_alignments`, any content item (module, assignment, quiz, page, file) → objective, with weight.
 
-From this graph we compute: student coverage vs. assessed weight, professor coverage gaps, and accreditation evidence — all as queries, not manual spreadsheets.
+The graph exists to ground the agent and keep records aligned to intent. It is deliberately not surfaced as a score: no coverage percentages, no completion meters. Accreditation reporting can be derived from it later as queries.
 
 ---
 
@@ -83,7 +83,7 @@ Agent write tools append typed blocks to one pending `change_proposal` per run. 
 
 ## Multi-tenancy & auth
 
-- Every domain row carries `org_id`. Every tool resolves the tenant from the session and scopes its queries — no global reads (the prototype read the entire DB unscoped).
+- Every domain row carries `org_id`. Every tool resolves the tenant from the session and scopes its queries, no global reads (the prototype read the entire DB unscoped).
 - Sessions are issued by Auth.js and carry `{ userId, orgId, role }`. `role ∈ {superadmin, admin, instructor, ta, student}`.
 - `requireUser()` / `requireRole()` guard server actions, routes, and tools. Write tools additionally check the actor's role on the specific course (via `enrollments`).
 - Memory and chat sessions are **per-user** (the prototype shared two hardcoded chat IDs across all visitors).
@@ -92,12 +92,12 @@ Agent write tools append typed blocks to one pending `change_proposal` per run. 
 
 ## Architecture Decision Records
 
-**ADR-001 — Drizzle for schema & migrations.** The prototype ran `CREATE TABLE IF NOT EXISTS` / `ALTER` at request time. Products need versioned, reviewable migrations and typed queries. Drizzle keeps us close to SQL while giving both. _Trade-off:_ a build step; acceptable.
+**ADR-001, Drizzle for schema & migrations.** The prototype ran `CREATE TABLE IF NOT EXISTS` / `ALTER` at request time. Products need versioned, reviewable migrations and typed queries. Drizzle keeps us close to SQL while giving both. _Trade-off:_ a build step; acceptable.
 
-**ADR-002 — Auth.js over a managed vendor (e.g. Clerk).** Institutions will demand SAML/SSO and LTI; we need to own the auth layer and avoid per-seat vendor cost at university scale. _Trade-off:_ more code now; strategically necessary.
+**ADR-002, Auth.js over a managed vendor (e.g. Clerk).** Institutions will demand SAML/SSO and LTI; we need to own the auth layer and avoid per-seat vendor cost at university scale. _Trade-off:_ more code now; strategically necessary.
 
-**ADR-003 — App-layer tenancy now, RLS later.** Per-row `org_id` + scoped queries ships fast and is debuggable. Postgres Row-Level Security is a hardening milestone before first paid institution.
+**ADR-003, App-layer tenancy now, RLS later.** Per-row `org_id` + scoped queries ships fast and is debuggable. Postgres Row-Level Security is a hardening milestone before first paid institution.
 
-**ADR-004 — 1536-dim embeddings.** The prototype used a 2048-dim model that _cannot_ be indexed by pgvector (ivfflat/hnsw cap at 2000 dims) and mismatched its own 1536 columns. We standardize on 1536 so content/memory vectors are HNSW-indexable from day one.
+**ADR-004, 1536-dim embeddings.** The prototype used a 2048-dim model that _cannot_ be indexed by pgvector (ivfflat/hnsw cap at 2000 dims) and mismatched its own 1536 columns. We standardize on 1536 so content/memory vectors are HNSW-indexable from day one.
 
 > These four are the biggest reversible-but-load-bearing choices. Flag early if you'd steer differently.

@@ -1,13 +1,13 @@
 /**
- * Atlas demo data package — fixture contract.
+ * Atlas demo data package, fixture contract.
  *
  * Everyone developing on this repo seeds the SAME data package: a small university
  * across multiple semesters, with full course stacks (objectives, weeks, work,
  * pages, announcements, enrollments, submissions, grades, AI policy).
  *
  * Dates are RELATIVE (week numbers / day offsets against the term start) so the
- * package stays evergreen — the seed resolves them to concrete timestamps.
- * Identity is DETERMINISTIC — every row's UUID derives from a stable key, so all
+ * package stays evergreen, the seed resolves them to concrete timestamps.
+ * Identity is DETERMINISTIC, every row's UUID derives from a stable key, so all
  * environments share the same ids and re-seeding is idempotent.
  */
 
@@ -34,7 +34,7 @@ export type FixtureUser = {
 };
 
 export type FixtureObjective = {
-  /** e.g. "LO1" — unique within the course. */
+  /** e.g. "LO1", unique within the course. */
   code: string;
   description: string;
   bloomLevel: "remember" | "understand" | "apply" | "analyze" | "evaluate" | "create";

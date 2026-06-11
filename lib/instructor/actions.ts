@@ -62,7 +62,7 @@ export async function createModuleRecord(formData: FormData) {
 
   revalidatePath("/teach");
   revalidatePath("/student");
-  redirect(createdId ? `/teach/week/${createdId}` : "/teach#map");
+  redirect(createdId ? `/teach/week/${createdId}` : "/teach/weeks");
 }
 
 export async function createAssignmentRecord(formData: FormData) {
@@ -109,7 +109,7 @@ export async function createAssignmentRecord(formData: FormData) {
 
   revalidatePath("/teach");
   revalidatePath("/student");
-  redirect(createdId ? `/teach/work/${createdId}` : "/teach#students");
+  redirect(createdId ? `/teach/work/${createdId}` : "/teach/work");
 }
 
 export async function createObjectiveRecord(formData: FormData) {
@@ -144,7 +144,7 @@ export async function createObjectiveRecord(formData: FormData) {
 
   revalidatePath("/teach");
   revalidatePath("/student");
-  redirect("/teach#map");
+  redirect("/teach/weeks");
 }
 
 export async function publishModule(formData: FormData) {
@@ -183,7 +183,7 @@ export async function updateModuleRecord(formData: FormData) {
   const title = compactField(formData.get("title"), "Week title is required.", 200);
   const summary = optionalLongField(formData.get("summary"), 1200);
   const objectiveCodes = objectiveCodesFromForm(formData);
-  const returnTo = instructorWeekReturnPath(formData.get("returnTo"), moduleId, "/teach#map");
+  const returnTo = instructorWeekReturnPath(formData.get("returnTo"), moduleId, "/teach/weeks");
 
   if (!moduleId) {
     throw new Error("No week selected.");
@@ -253,7 +253,7 @@ export async function publishDraftRecords() {
 
   revalidatePath("/teach");
   revalidatePath("/student");
-  redirect("/teach#publish");
+  redirect("/teach/weeks");
 }
 
 export async function updateAssignmentRecord(formData: FormData) {
@@ -269,7 +269,7 @@ export async function updateAssignmentRecord(formData: FormData) {
   const dueAt = dateField(formData.get("dueDate"));
   const pointsPossible = positiveNumberField(formData.get("points"));
   const objectiveCodes = objectiveCodesFromForm(formData);
-  const returnTo = instructorWorkReturnPath(formData.get("returnTo"), assignmentId, "/teach#students");
+  const returnTo = instructorWorkReturnPath(formData.get("returnTo"), assignmentId, "/teach/work");
 
   if (!assignmentId) {
     throw new Error("No work selected.");
@@ -541,7 +541,7 @@ export async function reviewCourseProposal(formData: FormData) {
     throw new Error("Draft unavailable.");
   }
 
-  let redirectTo = "/teach#review";
+  let redirectTo = "/teach/review";
   if (decision === "approved") {
     const applied = await applyProposal({ orgId: user.orgId, courseId: course.id, userId: user.id, proposalId });
     const first = applied[0];
@@ -550,7 +550,7 @@ export async function reviewCourseProposal(formData: FormData) {
         ? `/teach/week/${first.itemId}`
         : first?.itemType === "assignment"
           ? `/teach/work/${first.itemId}`
-          : "/teach#review";
+          : "/teach/review";
   } else {
     await dismissProposal({ orgId: user.orgId, proposalId });
   }
@@ -561,7 +561,7 @@ export async function reviewCourseProposal(formData: FormData) {
 }
 
 /**
- * The course AI policy — the professor's control surface for student cues.
+ * The course AI policy, the professor's control surface for student cues.
  * One form, one row, everything the runtime needs.
  */
 export async function updateCourseAiPolicy(formData: FormData) {
@@ -822,12 +822,12 @@ function assessmentWeightField(value: FormDataEntryValue | null) {
   return Math.round(percentage * 100) / 10000;
 }
 
-function instructorWorkReturnPath(value: FormDataEntryValue | null, assignmentId: string, fallback = "/teach#students") {
+function instructorWorkReturnPath(value: FormDataEntryValue | null, assignmentId: string, fallback = "/teach/work") {
   const path = typeof value === "string" ? value : "";
   return path === `/teach/work/${assignmentId}` ? path : fallback;
 }
 
-function instructorWeekReturnPath(value: FormDataEntryValue | null, moduleId: string, fallback = "/teach#map") {
+function instructorWeekReturnPath(value: FormDataEntryValue | null, moduleId: string, fallback = "/teach/weeks") {
   const path = typeof value === "string" ? value : "";
   return path === `/teach/week/${moduleId}` ? path : fallback;
 }

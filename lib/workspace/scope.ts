@@ -4,9 +4,9 @@ import { db } from "@/lib/db";
 import { courses, enrollments, terms } from "@/lib/db/schema";
 
 /**
- * Workspace scope — which semester and course the signed-in user is looking at.
+ * Workspace scope, which semester and course the signed-in user is looking at.
  *
- * The term comes from a cookie (any account can move between semesters — real
+ * The term comes from a cookie (any account can move between semesters, real
  * rollover behavior, and exactly what testing needs). The course comes from the
  * route or the user's enrollments within that term. No hidden defaults beyond
  * "the current term, your first course in it."

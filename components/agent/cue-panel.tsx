@@ -7,7 +7,7 @@ import { blockSchema, type Block } from "@/lib/agent/blocks";
 import { BlockView } from "@/components/agent/block-views";
 
 /**
- * Student cues — buttons, not chat. Each cue is anchored to the record on the
+ * Student cues, buttons, not chat. Each cue is anchored to the record on the
  * page and runs once, shaped by the professor's policy. The response is a typed
  * block (explanation, practice set, answer), grounded in the course record.
  */

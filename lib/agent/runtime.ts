@@ -19,12 +19,12 @@ import type { ContextPack } from "@/lib/agent/context";
 import type { CourseAiPolicy } from "@/lib/db/schema";
 
 /**
- * The agent runtime — two surfaces, one doctrine.
+ * The agent runtime, two surfaces, one doctrine.
  *
- *   command — the professor's authoring surface. Every write tool emits a typed
+ *   command, the professor's authoring surface. Every write tool emits a typed
  *             block onto ONE pending proposal per run. Nothing touches the live
  *             course; Review owns apply/dismiss.
- *   cue     — the student surface. No chat persona, no free-roaming: a cue press
+ *   cue    , the student surface. No chat persona, no free-roaming: a cue press
  *             runs once, grounded in the pack, shaped by the professor's policy,
  *             and must answer through a typed block.
  */
@@ -36,7 +36,8 @@ const DOCTRINE = `You are Atlas, the course's own agent. You operate ONLY on the
 - Grounded: never invent grades, names, dates, content, or records. Cite record ids ([id:...]) from the pack when you rely on them.
 - Propose, never perform: your tools create reviewable drafts. Never claim anything is live.
 - Reactive: do exactly what was asked. No unsolicited advice, alerts, or judgments.
-- When the request is vague or under-specified, ask one precise clarifying question instead of guessing.`;
+- When the request is vague or under-specified, ask one precise clarifying question instead of guessing.
+- Write plainly. Never use em dashes; use commas, colons, or separate sentences.`;
 
 export function commandSystemPrompt(pack: ContextPack): string {
   return `${DOCTRINE}
@@ -46,7 +47,7 @@ Surface: the professor's command line. The professor states an intent; you draft
 Authoring standards:
 - Tie every module/assignment/practice block to existing objective codes from the pack. If the right objective doesn't exist, propose it first with proposeObjective.
 - Write in the professor's register: specific, concrete, no filler. Draft content the professor could publish unchanged.
-- Match the course's actual material — reuse its datasets, examples, and terminology from the pack.
+- Match the course's actual material, reuse its datasets, examples, and terminology from the pack.
 - Finish with one short text line summarizing what you drafted (the blocks carry the content; do not repeat them in prose).
 
 COURSE RECORD:
@@ -60,11 +61,11 @@ export function cueSystemPrompt(pack: ContextPack, cue: CueKind, policy: CourseA
       ? "Depth: HINT. Point to the relevant idea and material; never carry out the work or state final answers. End with the single next question the student should ask themselves."
       : depth === "guided"
         ? "Depth: GUIDED. Walk the reasoning in steps the student completes; you may resolve sub-steps but never hand over a final answer to open course work."
-        : "Depth: FULL. Explain completely, including worked reasoning. Still teach — show why, not just what.";
+        : "Depth: FULL. Explain completely, including worked reasoning. Still teach, show why, not just what.";
   const citations = policy?.citationsRequired !== false ? "Citations are REQUIRED: every claim about the course stands on a cited record id from the pack." : "Cite course records where they ground your answer.";
   const persona =
     policy?.personaName && policy.personaStyle
-      ? `Voice: you speak as "${policy.personaName}" — ${policy.personaStyle}. Keep the voice light; clarity always wins over character.`
+      ? `Voice: you speak as "${policy.personaName}", ${policy.personaStyle}. Keep the voice light; clarity always wins over character.`
       : "";
   const custom = policy?.customInstructions ? `Professor's standing instructions (these outrank everything below them): ${policy.customInstructions}` : "";
   const task =

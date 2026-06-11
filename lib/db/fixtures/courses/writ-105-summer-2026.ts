@@ -5,14 +5,14 @@ export const writ105Summer2026: FixtureCourse = {
   name: "Writing the Essay",
   termSlug: "summer-2026",
   description:
-    "An introduction to academic writing as an intellectual practice. Students read essays across genres, develop their own voices, and learn to revise. The course centers on the idea that writing is thinking made visible — and that both can be improved through deliberate practice.",
+    "An introduction to academic writing as an intellectual practice. Students read essays across genres, develop their own voices, and learn to revise. The course centers on the idea that writing is thinking made visible, and that both can be improved through deliberate practice.",
   status: "published",
   instructorKey: "diaz",
   syllabusMd:
-    "# WRIT-105: Writing the Essay — Summer 2026\n\n" +
+    "# WRIT-105: Writing the Essay, Summer 2026\n\n" +
     "**Instructor:** Prof. Carmen Diaz | cdiaz@demo.edu | Office: Whitman Hall 407\n\n" +
     "## Course Description\n" +
-    "Every college student writes. This course asks why and how. We read essays of all kinds — personal, critical, argumentative, lyric — not as models to imitate but as evidence that writing is a set of choices. You will write six essays of increasing length and complexity, receive substantive feedback on each, and revise substantially. By the end you will have a clearer sense of your own voice and a set of tools for developing it.\n\n" +
+    "Every college student writes. This course asks why and how. We read essays of all kinds, personal, critical, argumentative, lyric, not as models to imitate but as evidence that writing is a set of choices. You will write six essays of increasing length and complexity, receive substantive feedback on each, and revise substantially. By the end you will have a clearer sense of your own voice and a set of tools for developing it.\n\n" +
     "## Learning Objectives\n" +
     "1. Construct a focused, defensible thesis and sustain it across a full essay (LO1)\n" +
     "2. Develop arguments with specific evidence, example, and counterargument (LO2)\n" +
@@ -26,7 +26,7 @@ export const writ105Summer2026: FixtureCourse = {
     "| Participation | 10% |\n" +
     "| Reading Responses | 5% |\n\n" +
     "## On Academic Integrity\n" +
-    "This is a writing course: your writing is the work. AI-generated essays are academically dishonest for the same reason that submitting someone else's essay is dishonest — the point is for you to do the thinking. The Atlas AI assistant is available to discuss your ideas and help you understand feedback, but it is not available to generate text for your essays. Any submitted work containing AI-generated prose will be referred to the Academic Integrity Committee.",
+    "This is a writing course: your writing is the work. AI-generated essays are academically dishonest for the same reason that submitting someone else's essay is dishonest, the point is for you to do the thinking. The Atlas AI assistant is available to discuss your ideas and help you understand feedback, but it is not available to generate text for your essays. Any submitted work containing AI-generated prose will be referred to the Academic Integrity Committee.",
 
   objectives: [
     {
@@ -73,7 +73,7 @@ export const writ105Summer2026: FixtureCourse = {
       key: "week-02",
       name: "Thesis and Argument",
       summaryMd:
-        "A thesis is a claim that requires defense — not a statement of fact, not a question, not a topic sentence. This week we practice identifying theses in published essays and writing our own. Essay 1 is assigned: a short argumentative piece on a topic of your choice. Workshop sessions begin this week.",
+        "A thesis is a claim that requires defense, not a statement of fact, not a question, not a topic sentence. This week we practice identifying theses in published essays and writing our own. Essay 1 is assigned: a short argumentative piece on a topic of your choice. Workshop sessions begin this week.",
       objectiveCodes: ["LO1"],
       week: 2,
       published: true,
@@ -82,7 +82,7 @@ export const writ105Summer2026: FixtureCourse = {
       key: "week-03",
       name: "Evidence and the Particular",
       summaryMd:
-        "Good essays are full of specific things: names, dates, moments, sentences quoted precisely, scenes rendered in detail. Abstract claims without particular evidence are unconvincing. This week we study how published essayists use the specific — and practice the same discipline in our own drafts.",
+        "Good essays are full of specific things: names, dates, moments, sentences quoted precisely, scenes rendered in detail. Abstract claims without particular evidence are unconvincing. This week we study how published essayists use the specific, and practice the same discipline in our own drafts.",
       objectiveCodes: ["LO2"],
       week: 3,
       published: true,
@@ -100,7 +100,7 @@ export const writ105Summer2026: FixtureCourse = {
       key: "week-05",
       name: "Voice and Style",
       summaryMd:
-        "Voice is the illusion of a person in prose. Every stylistic choice — sentence length, diction, tonal register, the rhythm of a paragraph — constructs a version of you on the page. We read two essays by the same author written in different tones and ask what changed. Essay 1 revisions are due; peer workshops begin.",
+        "Voice is the illusion of a person in prose. Every stylistic choice, sentence length, diction, tonal register, the rhythm of a paragraph, constructs a version of you on the page. We read two essays by the same author written in different tones and ask what changed. Essay 1 revisions are due; peer workshops begin.",
       objectiveCodes: ["LO3", "LO4"],
       week: 5,
       published: true,
@@ -145,7 +145,7 @@ export const writ105Summer2026: FixtureCourse = {
       key: "week-10",
       name: "The Lyric Essay",
       summaryMd:
-        "The lyric essay is fragmentary, associative, imagistic — it resists the linear argument in favor of accumulation. We read Claudia Rankine and Maggie Nelson to ask: what can this form do that conventional argument cannot? Essay 5 is assigned: an experiment in form.",
+        "The lyric essay is fragmentary, associative, imagistic, it resists the linear argument in favor of accumulation. We read Claudia Rankine and Maggie Nelson to ask: what can this form do that conventional argument cannot? Essay 5 is assigned: an experiment in form.",
       objectiveCodes: ["LO1", "LO4"],
       week: 10,
       published: false,
@@ -181,7 +181,7 @@ export const writ105Summer2026: FixtureCourse = {
       key: "week-14",
       name: "Final Portfolio and Readings",
       summaryMd:
-        "The final portfolio is due at the start of this week. Voluntary public readings of selected work on the final meeting. We close with a discussion of what changes when you know someone will actually read what you wrote — and what writing is for.",
+        "The final portfolio is due at the start of this week. Voluntary public readings of selected work on the final meeting. We close with a discussion of what changes when you know someone will actually read what you wrote, and what writing is for.",
       objectiveCodes: ["LO1", "LO2", "LO3", "LO4"],
       week: 14,
       published: false,
@@ -193,7 +193,7 @@ export const writ105Summer2026: FixtureCourse = {
       key: "essay-1",
       name: "Essay 1: Short Argument",
       descriptionMd:
-        "Write a 600-900 word argumentative essay on a topic of your choice. Your essay must have an arguable thesis — not a statement of fact and not a question — stated clearly within the first paragraph. Develop your argument with at least two specific pieces of evidence. Strong essays take a position that a thoughtful person might reasonably disagree with, then defend it. Submit as a Google Doc with comment access enabled for peer workshop.",
+        "Write a 600-900 word argumentative essay on a topic of your choice. Your essay must have an arguable thesis, not a statement of fact and not a question, stated clearly within the first paragraph. Develop your argument with at least two specific pieces of evidence. Strong essays take a position that a thoughtful person might reasonably disagree with, then defend it. Submit as a Google Doc with comment access enabled for peer workshop.",
       objectiveCodes: ["LO1", "LO2"],
       pointsPossible: 75,
       dueWeek: 3,
@@ -213,7 +213,7 @@ export const writ105Summer2026: FixtureCourse = {
       key: "essay-2",
       name: "Essay 2: Critical Analysis",
       descriptionMd:
-        "Write a 900-1200 word critical analysis of one of the following assigned essays: James Baldwin's 'Notes of a Native Son,' Annie Dillard's 'Living Like Weasels,' or Joan Didion's 'The White Album.' Your analysis should make an argument about how the essay works rhetorically — not a summary of what it says. Focus on one or two specific techniques (structure, voice, use of evidence) and explain how they support the essay's effect. Quote directly from the text.",
+        "Write a 900-1200 word critical analysis of one of the following assigned essays: James Baldwin's 'Notes of a Native Son,' Annie Dillard's 'Living Like Weasels,' or Joan Didion's 'The White Album.' Your analysis should make an argument about how the essay works rhetorically, not a summary of what it says. Focus on one or two specific techniques (structure, voice, use of evidence) and explain how they support the essay's effect. Quote directly from the text.",
       objectiveCodes: ["LO1", "LO2", "LO4"],
       pointsPossible: 100,
       dueWeek: 6,
@@ -243,7 +243,7 @@ export const writ105Summer2026: FixtureCourse = {
       key: "essay-3",
       name: "Essay 3: Research-Supported Argument",
       descriptionMd:
-        "Write a 1200-1500 word argument that uses at least three sources (academic, journalistic, or primary source). Your essay must integrate source material through a combination of direct quotation, paraphrase, and summary — not through quotation-dumping. Sources should support your argument rather than make it for you. Use MLA format for all citations and include a Works Cited page. The Writing Center holds MLA workshops every Tuesday evening.",
+        "Write a 1200-1500 word argument that uses at least three sources (academic, journalistic, or primary source). Your essay must integrate source material through a combination of direct quotation, paraphrase, and summary, not through quotation-dumping. Sources should support your argument rather than make it for you. Use MLA format for all citations and include a Works Cited page. The Writing Center holds MLA workshops every Tuesday evening.",
       objectiveCodes: ["LO1", "LO2"],
       pointsPossible: 100,
       dueWeek: 9,
@@ -283,7 +283,7 @@ export const writ105Summer2026: FixtureCourse = {
       slug: "workshop-protocol",
       title: "Peer Workshop Protocol",
       bodyMd:
-        "## Before Workshop\nRead your peers' drafts carefully and come with written comments. Brief notes in the margin are fine; what matters is that you have engaged with the actual text, not just skimmed it. If you arrive at workshop without having read the drafts, you may not participate that day (your peers' time is not yours to waste).\n\n## During Workshop\nThe author is silent while their essay is discussed. You are there to listen, not to explain what you meant or defend your choices. Take notes. Your instinct will be to say 'I meant...' — resist it. What you meant matters less than what you wrote.\n\n## Comments to Give\nEffective workshop comments do three things: (1) name what the essay is doing; (2) identify where it is working and where it is not; (3) ask questions rather than give orders. 'This paragraph confused me because I could not see how it connected to the thesis' is more useful than 'fix this paragraph.'\n\n## After Workshop\nYou are not obligated to accept every piece of feedback. But you are obligated to engage with it: in your cover letter, explain why you took or declined each major suggestion. 'I disagreed' is acceptable; 'I didn't see that comment' is not.",
+        "## Before Workshop\nRead your peers' drafts carefully and come with written comments. Brief notes in the margin are fine; what matters is that you have engaged with the actual text, not just skimmed it. If you arrive at workshop without having read the drafts, you may not participate that day (your peers' time is not yours to waste).\n\n## During Workshop\nThe author is silent while their essay is discussed. You are there to listen, not to explain what you meant or defend your choices. Take notes. Your instinct will be to say 'I meant...', resist it. What you meant matters less than what you wrote.\n\n## Comments to Give\nEffective workshop comments do three things: (1) name what the essay is doing; (2) identify where it is working and where it is not; (3) ask questions rather than give orders. 'This paragraph confused me because I could not see how it connected to the thesis' is more useful than 'fix this paragraph.'\n\n## After Workshop\nYou are not obligated to accept every piece of feedback. But you are obligated to engage with it: in your cover letter, explain why you took or declined each major suggestion. 'I disagreed' is acceptable; 'I didn't see that comment' is not.",
       objectiveCodes: ["LO3"],
     },
     {
@@ -297,7 +297,7 @@ export const writ105Summer2026: FixtureCourse = {
       slug: "writing-center",
       title: "Writing Center and Additional Resources",
       bodyMd:
-        "## Writing Center\nThe Writing Center (Whitman Hall 102) offers free one-on-one consultations for all stages of the writing process: brainstorming, drafting, revising, and polishing. You can book an appointment online or walk in. I strongly recommend visiting the Writing Center at least once this semester, particularly before submitting Essay 3 or Essay 6.\n\n## What the Writing Center Can Help With\nBrainstorming, thesis development, structure, paragraph organization, transition logic, source integration, citation format. The consultants will not correct grammar throughout a paper, but they will help you understand grammatical patterns that are impeding your prose.\n\n## What the Writing Center Cannot Do\nWrite your essay. Tell you what to say. Proofread an entire paper line by line. They are there to teach you to write better, not to fix your writing for you.\n\n## On AI Writing Assistants\nA note on AI tools: they are good at producing grammatically correct, structurally conventional prose. That is exactly the problem. The point of this course is for you to develop a voice and a mind on the page. Using AI to generate text teaches you nothing about either of those things and is academically dishonest in this course. The Atlas assistant is available to discuss your ideas with you — that is legitimate. Generating text is not.",
+        "## Writing Center\nThe Writing Center (Whitman Hall 102) offers free one-on-one consultations for all stages of the writing process: brainstorming, drafting, revising, and polishing. You can book an appointment online or walk in. I strongly recommend visiting the Writing Center at least once this semester, particularly before submitting Essay 3 or Essay 6.\n\n## What the Writing Center Can Help With\nBrainstorming, thesis development, structure, paragraph organization, transition logic, source integration, citation format. The consultants will not correct grammar throughout a paper, but they will help you understand grammatical patterns that are impeding your prose.\n\n## What the Writing Center Cannot Do\nWrite your essay. Tell you what to say. Proofread an entire paper line by line. They are there to teach you to write better, not to fix your writing for you.\n\n## On AI Writing Assistants\nA note on AI tools: they are good at producing grammatically correct, structurally conventional prose. That is exactly the problem. The point of this course is for you to develop a voice and a mind on the page. Using AI to generate text teaches you nothing about either of those things and is academically dishonest in this course. The Atlas assistant is available to discuss your ideas with you, that is legitimate. Generating text is not.",
       objectiveCodes: ["LO1", "LO2", "LO3"],
     },
   ],
@@ -312,13 +312,13 @@ export const writ105Summer2026: FixtureCourse = {
     {
       title: "Essay 1: Common Issues in First Drafts",
       messageMd:
-        "I have read all the Essay 1 first drafts. I want to name a pattern before our workshop: most of your theses are observations rather than arguments. 'Social media has changed how teenagers communicate' is not a thesis. 'Social media has made teenagers more isolated even while appearing more connected' is a thesis — it is arguable, and a thoughtful person might disagree. Before workshop, reread your thesis and ask: could someone disagree with this? If not, revise it.",
+        "I have read all the Essay 1 first drafts. I want to name a pattern before our workshop: most of your theses are observations rather than arguments. 'Social media has changed how teenagers communicate' is not a thesis. 'Social media has made teenagers more isolated even while appearing more connected' is a thesis, it is arguable, and a thoughtful person might disagree. Before workshop, reread your thesis and ask: could someone disagree with this? If not, revise it.",
       dayOffset: 14,
     },
     {
       title: "Revision vs. Editing: An Important Distinction",
       messageMd:
-        "Several students have submitted revisions that are essentially the same essay with some grammar corrected. This does not meet the revision standard. Revision means revisiting your argument: Is the thesis still the right claim? Does the evidence actually support it? Have you genuinely engaged with the workshop feedback? The cover letter is where I look for evidence of this thinking — and if the cover letter is brief and evasive, I will assume the revision is too.",
+        "Several students have submitted revisions that are essentially the same essay with some grammar corrected. This does not meet the revision standard. Revision means revisiting your argument: Is the thesis still the right claim? Does the evidence actually support it? Have you genuinely engaged with the workshop feedback? The cover letter is where I look for evidence of this thinking, and if the cover letter is brief and evasive, I will assume the revision is too.",
       dayOffset: 35,
     },
     {
@@ -330,7 +330,7 @@ export const writ105Summer2026: FixtureCourse = {
     {
       title: "On Academic Integrity in Writing Courses",
       messageMd:
-        "I want to be direct about AI and this course. I read your writing carefully enough to notice voice inconsistency, and I do. More importantly: this course exists to develop you as a writer. Submitting AI prose is not a shortcut to a grade — it is an opt-out from the only thing this course can teach you. If you are struggling with an essay, come to office hours. That is what office hours are for.",
+        "I want to be direct about AI and this course. I read your writing carefully enough to notice voice inconsistency, and I do. More importantly: this course exists to develop you as a writer. Submitting AI prose is not a shortcut to a grade, it is an opt-out from the only thing this course can teach you. If you are struggling with an essay, come to office hours. That is what office hours are for.",
       dayOffset: 28,
     },
   ],
@@ -350,7 +350,7 @@ export const writ105Summer2026: FixtureCourse = {
   ],
 
   submissions: [
-    // Essay 1 (due week 3) — all graded
+    // Essay 1 (due week 3), all graded
     { assignmentKey: "essay-1", studentKey: "maya", state: "graded", dayOffsetFromDue: -1, score: 68, grade: "B", body: "Social media creates the appearance of connection while eroding the conditions for genuine vulnerability; we share carefully curated versions of ourselves, which is the opposite of intimacy." },
     { assignmentKey: "essay-1", studentKey: "priya", state: "graded", dayOffsetFromDue: -2, score: 72, grade: "A-" },
     { assignmentKey: "essay-1", studentKey: "anna", state: "graded", dayOffsetFromDue: -1, score: 68, grade: "B" },
@@ -362,7 +362,7 @@ export const writ105Summer2026: FixtureCourse = {
     { assignmentKey: "essay-1", studentKey: "isabel", state: "graded", dayOffsetFromDue: 0, score: 70, grade: "B+" },
     { assignmentKey: "essay-1", studentKey: "noah", state: "graded", dayOffsetFromDue: 0, score: 60, grade: "C+" },
 
-    // Essay 1 revision (due week 5) — all graded
+    // Essay 1 revision (due week 5), all graded
     { assignmentKey: "essay-1-revision", studentKey: "maya", state: "graded", dayOffsetFromDue: -1, score: 46, grade: "A-", body: "I revised the thesis to be more specific and arguable. Cover letter explains I removed the second paragraph entirely because it was restating the first." },
     { assignmentKey: "essay-1-revision", studentKey: "priya", state: "graded", dayOffsetFromDue: -1, score: 48, grade: "A" },
     { assignmentKey: "essay-1-revision", studentKey: "anna", state: "graded", dayOffsetFromDue: 0, score: 43, grade: "B" },
@@ -374,7 +374,7 @@ export const writ105Summer2026: FixtureCourse = {
     { assignmentKey: "essay-1-revision", studentKey: "isabel", state: "graded", dayOffsetFromDue: 0, score: 44, grade: "B+" },
     { assignmentKey: "essay-1-revision", studentKey: "noah", state: "graded", dayOffsetFromDue: 0, score: 37, grade: "C+" },
 
-    // Essay 2 (due week 5) — most graded, Maya submitted-ungraded (per Maya story: recently submitted)
+    // Essay 2 (due week 5), most graded, Maya submitted-ungraded (per Maya story: recently submitted)
     { assignmentKey: "essay-2", studentKey: "maya", state: "submitted", dayOffsetFromDue: 0, body: "Didion's structure in 'The White Album' mimics the fragmentation it describes: the essay refuses the consolation of narrative because narrative is exactly what the period denied her." },
     { assignmentKey: "essay-2", studentKey: "priya", state: "graded", dayOffsetFromDue: -1, score: 92, grade: "A" },
     { assignmentKey: "essay-2", studentKey: "anna", state: "graded", dayOffsetFromDue: 0, score: 83, grade: "B" },
@@ -396,6 +396,6 @@ export const writ105Summer2026: FixtureCourse = {
     studentDailyLimit: 20,
     shareStruggleSignal: false,
     customInstructions:
-      "This is a writing course. Never generate essay text, thesis statements, or paragraph content for students — doing so undermines the entire purpose of the course. You may discuss a student's ideas with them, ask questions that help them develop their thinking, explain the difference between observation and argument, or help a student understand instructor feedback. When a student asks you to write something, redirect: ask them what they are trying to say, and help them say it themselves. For questions about MLA citation format, you may give direct guidance.",
+      "This is a writing course. Never generate essay text, thesis statements, or paragraph content for students, doing so undermines the entire purpose of the course. You may discuss a student's ideas with them, ask questions that help them develop their thinking, explain the difference between observation and argument, or help a student understand instructor feedback. When a student asks you to write something, redirect: ask them what they are trying to say, and help them say it themselves. For questions about MLA citation format, you may give direct guidance.",
   },
 };

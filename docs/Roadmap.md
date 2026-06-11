@@ -1,8 +1,8 @@
-# Atlas LMS — Roadmap (local MVP → product)
+# Atlas LMS, Roadmap (local MVP → product)
 
 Sequenced so each phase unlocks the next. Auth + tenancy first, because everything else depends on knowing _who_ and _which org_.
 
-## Phase 0 — Foundation ✅ (this commit)
+## Phase 0, Foundation ✅ (this commit)
 - Product thesis, architecture, ADRs (`docs/`)
 - Drizzle schema: academic core + Alignment Graph + auth/runtime tables, org-scoped
 - Auth.js scaffolding; session carries `{ userId, orgId, role }`
@@ -11,7 +11,7 @@ Sequenced so each phase unlocks the next. Auth + tenancy first, because everythi
 - Provider configuration with paid-capable models; 1536-dim embeddings
 - Infra: Dockerfile, compose, CI, `.env.example`, drizzle config
 
-## Phase 1 — Local walking skeleton ✅
+## Phase 1, Local walking skeleton ✅
 - Working route surface: `/`, `/sign-in`, `/sign-up`, `/teach`, `/student`, `/api/health`.
 - Auth.js credential flow with role entry for seeded instructor/student accounts.
 - Role-gated instructor and student pages; cross-role requests redirect to the correct route.
@@ -27,10 +27,10 @@ Remaining before an institutional pilot:
 - Middleware/route-group hardening as the app surface expands beyond the current teaching/study pages.
 - Migration-based CI once Drizzle migrations are committed instead of schema push.
 
-## Phase 1.5 — Agentic core ✅ (this PR)
+## Phase 1.5, Agentic core ✅ (this PR)
 - `lib/agent/` runtime: deterministic context packs, anchored sessions with rolling compaction, typed block registry (zod, versioned), per-surface prompts and tools.
 - Professor command surface (`/api/agent/command` + CommandComposer): one intent → one proposal of typed blocks, streamed as real components, applied/dismissed in Review through `lib/agent/apply.ts`.
-- Student cue surface (`/api/agent/cue` + CuePanel): Explain / Practice / Ask buttons anchored to records — no chat wall. Gated by the course AI policy.
+- Student cue surface (`/api/agent/cue` + CuePanel): Explain / Practice / Ask buttons anchored to records, no chat wall. Gated by the course AI policy.
 - `course_ai_policies`: professor-owned control object (cues, depth, citations, persona, standing instructions, daily limit, opt-in class signal) with `/teach/atlas` as the control panel.
 - Terms as first-class records + header semester/course pickers (cookie-pinned scope).
 - Full sign-in gating via middleware; no public surface; `/` routes by role.
@@ -38,16 +38,16 @@ Remaining before an institutional pilot:
 - Shared demo data package: deterministic fixtures (3 semesters, 9 courses, full stacks) + idempotent seed + DB-free integrity tests.
 - Removed: the regex command parser (import-outline), the orphaned `/api/chat` route, the consumer-less workspace-decision contract, fake preview data on auth pages.
 
-## Phase 2 — Student experience
+## Phase 2, Student experience
 - Current: DB-backed study view with actionable focus, latest course note, aligned published material, grounded practice, material-to-work detail flow, written response submission, missing recovery, waiting/done work state, evidence, standing, and empty/unavailable states.
 - Current: practice draws from persisted course material so the task references a professor-provided dataset/problem frame before falling back.
 - Current: student Atlas requests persist to the active course chat record, return a compact study package, reappear as recent study context, and follow into linked material/work records.
 - Next: render the planning views (`todayDesk`, `weekMap`, `assignmentFocus`) from the validated course-view contract.
 - `studySession` view: grounded tutor (RAG over course content embeddings, Socratic prompting, citations)
-- `objectiveCoverage` view: the "am I aligned to the syllabus?" coverage meter
+- objective alignment stays internal: it grounds the agent, it is not a meter
 - Per-user memory + planner, scoped
 
-## Phase 3 — Instructor authoring
+## Phase 3, Instructor authoring
 - Current: DB-backed teaching view with week, work, and course-note rows, linked material on work records, live coverage from alignments, grading-first Today, missing-work recording, standing updates from graded work, Review, light generated-record edits, applied-record handoff, recent decisions, Today-owned Atlas command drafting, review-to-live publishing, queue publishing, and proposal dismiss.
 - Current: common Atlas command requests become reviewable material/work drafts; explicit practice bases, concepts, and shifts persist into ordinary course records; unclear requests still persist as proposals.
 - Next: route richer `courseBuilder` / `syllabusComposer` / `assessmentBuilder` outputs through the same command/proposal lane.
@@ -56,14 +56,14 @@ Remaining before an institutional pilot:
 - Objective definition + auto-alignment tooling (`objectiveMap`)
 - **One-click Canvas import** (repurpose the prototype parser) → restructure → align
 
-## Phase 4 — Trust, scale, compliance
+## Phase 4, Trust, scale, compliance
 - Postgres RLS (ADR-003 hardening)
 - Accessibility checks at authoring time (WCAG)
 - Background jobs for embedding/backfill (off the request path); rate limiting; audit logs
 - Observability (tracing on the agent loop, cost dashboards)
 - Accreditation evidence export from the Alignment Graph
 
-## Phase 5 — Go-to-market surface
+## Phase 5, Go-to-market surface
 - SSO (SAML/OIDC) + LTI 1.3 for institutional pilots
 - Grading desk (rubric-grounded, human-in-the-loop)
 - Advisor views from explicit institution-defined criteria

@@ -11,7 +11,7 @@ import { BlockView } from "@/components/agent/block-views";
 /**
  * The professor's command line. One sentence in; a grounded draft out, streamed
  * as typed blocks. The run is visible while it happens, and lands as a proposal
- * in Review — Atlas proposes, the professor decides.
+ * in Review, Atlas proposes, the professor decides.
  */
 
 const TOOL_TO_BLOCK: Record<string, string> = {
@@ -74,7 +74,7 @@ export function CommandComposer({ courseId }: { courseId: string }) {
       setPhase("done");
       setIntent("");
       if (latest && toolParts(latest).some((p) => TOOL_TO_BLOCK[p.toolName])) {
-        // A proposal landed — pull the fresh Review list into the page.
+        // A proposal landed, pull the fresh Review list into the page.
         startTransition(() => router.refresh());
       }
     } catch (err) {
@@ -103,7 +103,7 @@ export function CommandComposer({ courseId }: { courseId: string }) {
             id="atlas-command"
             value={intent}
             onChange={(event) => setIntent(event.target.value)}
-            placeholder="Tell Atlas what to draft — it lands in Review"
+            placeholder="Tell Atlas what to draft, it lands in Review"
             disabled={running}
             autoComplete="off"
             className="min-h-11 w-full rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3.5 text-[14px] text-[var(--color-ink)] placeholder:text-[var(--color-faint)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] disabled:opacity-60"
@@ -171,7 +171,7 @@ export function CommandComposer({ courseId }: { courseId: string }) {
           )}
           {phase === "done" && blocks.length > 0 ? (
             <p className="text-[13px] leading-6 text-[var(--color-muted)]">
-              {narration || "Draft ready."} <span className="font-medium text-[var(--color-ink)]">It is waiting in Review — nothing is live until you apply it.</span>
+              {narration || "Draft ready."} <span className="font-medium text-[var(--color-ink)]">It is waiting in Review, nothing is live until you apply it.</span>
             </p>
           ) : null}
           {phase === "done" && blocks.length === 0 && narration ? (

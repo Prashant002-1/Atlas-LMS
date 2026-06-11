@@ -4,7 +4,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 /**
- * Product contract tests — static checks that the route surface, the agent
+ * Product contract tests, static checks that the route surface, the agent
  * doctrine, and the wiring between them hold. These run without a database.
  */
 
@@ -20,10 +20,16 @@ const requiredRoutes = [
   "/sign-in",
   "/sign-up",
   "/student",
+  "/student/course/[courseId]",
   "/student/material/[moduleId]",
   "/student/work/[assignmentId]",
   "/teach",
   "/teach/atlas",
+  "/teach/review",
+  "/teach/weeks",
+  "/teach/work",
+  "/teach/students",
+  "/teach/settings",
   "/teach/student/[studentId]",
   "/teach/week/[moduleId]",
   "/teach/work/[assignmentId]",
@@ -59,10 +65,10 @@ test("every route is gated: middleware guards the surface, pages check sessions"
   assertSourceIncludes("middleware.ts", '"/api/health"');
   assertSourceIncludes("middleware.ts", "NextResponse.redirect");
 
-  // Defense in depth: pages still resolve the session themselves.
-  for (const page of ["app/teach/page.tsx", "app/student/page.tsx", "app/page.tsx"]) {
-    assertSourceIncludes(page, "auth()");
-    assertSourceIncludes(page, "redirect(");
+  // Defense in depth: the role layouts and the root resolve sessions themselves.
+  for (const gate of ["app/teach/layout.tsx", "app/student/layout.tsx", "app/page.tsx"]) {
+    assertSourceIncludes(gate, "auth()");
+    assertSourceIncludes(gate, "redirect(");
   }
   // No public preview data leaks onto auth pages.
   assertSourceExcludes("app/sign-in/page.tsx", "atlasDemo");
@@ -111,13 +117,17 @@ test("the professor command surface streams blocks and lands proposals in Review
   assertSourceIncludes("app/api/agent/command/route.ts", "buildContextPack");
   assertSourceIncludes("app/api/agent/command/route.ts", "toUIMessageStreamResponse");
 
-  assertSourceIncludes("components/agent/command-composer.tsx", "runAgentStream");
-  assertSourceIncludes("components/agent/command-composer.tsx", "nothing is live until you apply it");
-  assertSourceIncludes("app/teach/page.tsx", "CommandComposer");
+  assertSourceIncludes("components/agent/assistant.tsx", "runAgentStream");
+  assertSourceIncludes("components/agent/assistant.tsx", "Nothing is live until you apply it");
+  assertSourceIncludes("app/teach/atlas/page.tsx", "AtlasAssistant");
+  // The conversation resumes: history hydrates from the persisted session.
+  assertSourceIncludes("app/teach/atlas/page.tsx", "turnsToUIMessages");
+  // Reducing overhead is the point: a pasted syllabus becomes drafted records.
+  assertSourceIncludes("components/agent/assistant.tsx", "Import a syllabus");
 
   // Review renders the typed blocks and owns apply/dismiss.
-  assertSourceIncludes("app/teach/page.tsx", "BlockView");
-  assertSourceIncludes("app/teach/page.tsx", "action={reviewCourseProposal}");
+  assertSourceIncludes("components/teach/proposals.tsx", "BlockView");
+  assertSourceIncludes("components/teach/proposals.tsx", "action={reviewCourseProposal}");
   assertServerAction("lib/instructor/actions.ts", "reviewCourseProposal");
   assertSourceIncludes("lib/instructor/actions.ts", "applyProposal");
   assertSourceIncludes("lib/instructor/actions.ts", "dismissProposal");
@@ -134,9 +144,11 @@ test("students get policy-gated cues, not a chat window", () => {
   assertSourceIncludes("components/agent/cue-panel.tsx", "Explain");
   assertSourceIncludes("components/agent/cue-panel.tsx", "Practice");
   assertSourceIncludes("components/agent/cue-panel.tsx", "Ask");
-  assertSourceIncludes("app/student/page.tsx", "CuePanel");
+  assertSourceIncludes("app/student/course/[courseId]/page.tsx", "CuePanel");
   assertSourceIncludes("app/student/work/[assignmentId]/page.tsx", "CuePanel");
   assertSourceIncludes("app/student/material/[moduleId]/page.tsx", "CuePanel");
+  // The overview is a glance across courses, not a single-course monolith.
+  assertSourceIncludes("app/student/page.tsx", "loadStudentOverview");
 
   // The student surface carries no free-roaming chat composer.
   assertSourceExcludes("app/student/page.tsx", "StudyCommandBox");
@@ -148,20 +160,39 @@ test("the professor owns the AI policy for each course", () => {
   assertSourceIncludes("lib/db/schema.ts", "explanationDepth");
   assertSourceIncludes("lib/db/schema.ts", "shareStruggleSignal");
   assertServerAction("lib/instructor/actions.ts", "updateCourseAiPolicy");
-  assertSourceIncludes("app/teach/atlas/page.tsx", "updateCourseAiPolicy");
-  assertSourceIncludes("app/teach/atlas/page.tsx", "personaName");
+  assertSourceIncludes("app/teach/settings/page.tsx", "updateCourseAiPolicy");
+  assertSourceIncludes("app/teach/settings/page.tsx", "personaName");
   // Policy reaches the runtime: depth and persona shape the cue prompt.
   assertSourceIncludes("lib/agent/runtime.ts", "explanationDepth");
   assertSourceIncludes("lib/agent/runtime.ts", "personaName");
 });
 
-test("semesters and courses are first-class scope", () => {
-  assertSourceIncludes("lib/db/schema.ts", 'pgTable(\n  "terms"');
-  assertSourceIncludes("lib/workspace/scope.ts", "export async function resolveScope");
-  assertServerAction("lib/workspace/scope-actions.ts", "setTermScope");
+test("the app is pages behind one sidebar, not a monolith", () => {
+  assertSourceIncludes("components/atlas/app-shell.tsx", "Collapse sidebar");
+  assertSourceIncludes("components/atlas/app-shell.tsx", "Sign out");
+  // The chrome carries the wordmark only; no taglines.
+  assertSourceExcludes("components/atlas/app-shell.tsx", "Course record");
+  assertSourceIncludes("app/teach/layout.tsx", "AppShell");
+  assertSourceIncludes("app/student/layout.tsx", "AppShell");
   assertServerAction("lib/workspace/scope-actions.ts", "setCourseScope");
-  assertSourceIncludes("components/atlas/scope-picker.tsx", "Semester");
-  assertSourceIncludes("components/atlas/product-shell.tsx", "ScopePicker");
+});
+
+test("no invented metrics: coverage scores and evidence language stay out", () => {
+  for (const file of sourceFiles([path.join(root, "app"), path.join(root, "components")])) {
+    const source = readFileSync(file, "utf8");
+    const relative = path.relative(root, file);
+    assert.equal(source.includes("Coverage"), false, `${relative} renders a coverage metric`);
+    assert.equal(/\bEvidence\b/.test(source), false, `${relative} uses evidence language`);
+  }
+});
+
+test("no em dashes anywhere in the product", () => {
+  for (const dir of ["app", "components", "lib"]) {
+    for (const file of sourceFiles([path.join(root, dir)])) {
+      const source = readFileSync(file, "utf8");
+      assert.equal(source.includes("\u2014"), false, `${path.relative(root, file)} contains an em dash`);
+    }
+  }
 });
 
 test("BYOK keys are encrypted, resolved server-side, and never default silently", () => {
@@ -170,7 +201,7 @@ test("BYOK keys are encrypted, resolved server-side, and never default silently"
   assertSourceIncludes("lib/agent/keys.ts", "keyTail");
   assertServerAction("lib/instructor/actions.ts", "saveProviderKey");
   // The settings page never renders the key itself.
-  assertSourceExcludes("app/teach/atlas/page.tsx", "decryptSecret");
+  assertSourceExcludes("app/teach/settings/page.tsx", "decryptSecret");
 });
 
 test("record actions stay direct and editable by hand (it is a real LMS)", () => {
@@ -185,9 +216,10 @@ test("record actions stay direct and editable by hand (it is a real LMS)", () =>
   assertServerAction("lib/instructor/actions.ts", "gradeSubmission");
   assertServerAction("lib/instructor/actions.ts", "markSubmissionMissing");
   assertServerAction("lib/student/actions.ts", "submitAssignment");
-  assertSourceIncludes("app/teach/page.tsx", "action={publishModule}");
-  assertSourceIncludes("app/teach/page.tsx", "action={publishAssignment}");
-  assertSourceIncludes("app/teach/page.tsx", "action={createModuleRecord}");
+  assertSourceIncludes("app/teach/weeks/page.tsx", "action={publishModule}");
+  assertSourceIncludes("app/teach/work/page.tsx", "action={publishAssignment}");
+  assertSourceIncludes("app/teach/weeks/page.tsx", "action={createModuleRecord}");
+  assertSourceExcludes("app/teach/page.tsx", "action={createModuleRecord}");
   assertSourceIncludes("app/student/work/[assignmentId]/page.tsx", "action={submitAssignment}");
 });
 

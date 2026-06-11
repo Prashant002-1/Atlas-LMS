@@ -9,7 +9,7 @@ export const bio110Summer2026: FixtureCourse = {
   status: "published",
   instructorKey: "amara",
   syllabusMd:
-    "# BIO-110: Foundations of Biology — Summer 2026\n\n" +
+    "# BIO-110: Foundations of Biology, Summer 2026\n\n" +
     "**Instructor:** Dr. Amara Osei | aosei@demo.edu | Office: Whitmore Hall 218\n\n" +
     "## Course Description\n" +
     "Biology is the study of living systems across scales from molecules to ecosystems. This course builds the conceptual scaffolding that every subsequent biology course assumes. We move from cells to genes to populations, always asking: how do we know, and what does it mean?\n\n" +
@@ -64,7 +64,7 @@ export const bio110Summer2026: FixtureCourse = {
       key: "week-01",
       name: "The Scope of Biology and the Scientific Method",
       summaryMd:
-        "What makes something alive? We establish the hierarchy of biological organization (atom to biosphere) and the logic of scientific inquiry: observation, hypothesis, prediction, and test. Lab this week is a microscope orientation — you will look at cells for the first time, which is still one of the most extraordinary things a person can do.",
+        "What makes something alive? We establish the hierarchy of biological organization (atom to biosphere) and the logic of scientific inquiry: observation, hypothesis, prediction, and test. Lab this week is a microscope orientation, you will look at cells for the first time, which is still one of the most extraordinary things a person can do.",
       objectiveCodes: ["LO4"],
       week: 1,
       published: true,
@@ -91,7 +91,7 @@ export const bio110Summer2026: FixtureCourse = {
       key: "week-04",
       name: "Membranes and Transport",
       summaryMd:
-        "The plasma membrane is not a wall but a selective gateway. We explore the fluid mosaic model, passive transport (diffusion, osmosis, facilitated diffusion), and active transport. Lab this week demonstrates osmosis in potato cells — a classic experiment with a clear and measurable result.",
+        "The plasma membrane is not a wall but a selective gateway. We explore the fluid mosaic model, passive transport (diffusion, osmosis, facilitated diffusion), and active transport. Lab this week demonstrates osmosis in potato cells, a classic experiment with a clear and measurable result.",
       objectiveCodes: ["LO1", "LO4"],
       week: 4,
       published: true,
@@ -136,7 +136,7 @@ export const bio110Summer2026: FixtureCourse = {
       key: "week-09",
       name: "Mendelian Genetics",
       summaryMd:
-        "Mendel's pea plant experiments revealed the rules of inheritance without knowledge of DNA. We work through dominance, segregation, independent assortment, and the chi-square test as a way of asking whether observed ratios fit Mendelian predictions. Problem sets in genetics require careful bookkeeping — practice is essential.",
+        "Mendel's pea plant experiments revealed the rules of inheritance without knowledge of DNA. We work through dominance, segregation, independent assortment, and the chi-square test as a way of asking whether observed ratios fit Mendelian predictions. Problem sets in genetics require careful bookkeeping, practice is essential.",
       objectiveCodes: ["LO2", "LO4"],
       week: 9,
       published: true,
@@ -154,7 +154,7 @@ export const bio110Summer2026: FixtureCourse = {
       key: "week-11",
       name: "Gene Expression: Transcription and Translation",
       summaryMd:
-        "The central dogma — DNA makes RNA makes protein — is a simplified but powerful framework. We trace each step in molecular detail: promoters and RNA polymerase, the genetic code, ribosome function, and post-translational modification. A single mutation can be harmless, deleterious, or occasionally beneficial; we examine each case.",
+        "The central dogma, DNA makes RNA makes protein, is a simplified but powerful framework. We trace each step in molecular detail: promoters and RNA polymerase, the genetic code, ribosome function, and post-translational modification. A single mutation can be harmless, deleterious, or occasionally beneficial; we examine each case.",
       objectiveCodes: ["LO2"],
       week: 11,
       published: false,
@@ -163,7 +163,7 @@ export const bio110Summer2026: FixtureCourse = {
       key: "week-12",
       name: "Evolution: Natural Selection and Variation",
       summaryMd:
-        "Darwin's argument is simple: heritable variation exists, some variants survive and reproduce better than others, therefore the population changes over time. We work through the logic carefully, then examine the sources of genetic variation (mutation, recombination) and the conditions under which selection operates. Evolution is not optional — it is the framework that makes biology coherent.",
+        "Darwin's argument is simple: heritable variation exists, some variants survive and reproduce better than others, therefore the population changes over time. We work through the logic carefully, then examine the sources of genetic variation (mutation, recombination) and the conditions under which selection operates. Evolution is not optional, it is the framework that makes biology coherent.",
       objectiveCodes: ["LO3"],
       week: 12,
       published: false,
@@ -223,7 +223,7 @@ export const bio110Summer2026: FixtureCourse = {
       key: "ps-bio-2",
       name: "Problem Set 2: Metabolism and Energy",
       descriptionMd:
-        "Eight problems covering ATP structure, enzyme kinetics, and metabolic pathways. Includes two graph-reading problems on enzyme activity curves. Show all work for any calculations. Problem 7 asks you to predict what happens to cellular ATP levels when a specific enzyme is inhibited — explain your reasoning step by step.",
+        "Eight problems covering ATP structure, enzyme kinetics, and metabolic pathways. Includes two graph-reading problems on enzyme activity curves. Show all work for any calculations. Problem 7 asks you to predict what happens to cellular ATP levels when a specific enzyme is inhibited, explain your reasoning step by step.",
       objectiveCodes: ["LO1", "LO4"],
       pointsPossible: 60,
       dueWeek: 5,
@@ -329,13 +329,13 @@ export const bio110Summer2026: FixtureCourse = {
     {
       title: "Welcome to BIO-110",
       messageMd:
-        "Welcome to Foundations of Biology. This is the course that most biology majors later say gave them their first real sense of what biology is. We will cover a lot of material, but the goal is not to memorize facts — it is to learn to think biologically. Please complete the lab safety module before Friday's lab section; without it you cannot enter the lab.",
+        "Welcome to Foundations of Biology. This is the course that most biology majors later say gave them their first real sense of what biology is. We will cover a lot of material, but the goal is not to memorize facts, it is to learn to think biologically. Please complete the lab safety module before Friday's lab section; without it you cannot enter the lab.",
       dayOffset: 0,
     },
     {
       title: "Lab Safety Certification Deadline",
       messageMd:
-        "The lab safety certification must be completed by Thursday 5 pm. As of this morning, 8 of 38 students have not yet completed it. This is not optional — if you have not certified by the deadline, you will not be admitted to Friday's lab and will receive a zero for Lab Report 1. Please check the checklist on the Lab Safety page.",
+        "The lab safety certification must be completed by Thursday 5 pm. As of this morning, 8 of 38 students have not yet completed it. This is not optional, if you have not certified by the deadline, you will not be admitted to Friday's lab and will receive a zero for Lab Report 1. Please check the checklist on the Lab Safety page.",
       dayOffset: 3,
     },
     {
@@ -367,7 +367,7 @@ export const bio110Summer2026: FixtureCourse = {
   ],
 
   submissions: [
-    // Lab report 1 (due week 2) — all graded
+    // Lab report 1 (due week 2), all graded
     { assignmentKey: "lab-report-1", studentKey: "priya", state: "graded", dayOffsetFromDue: -1, score: 56, grade: "B+" },
     { assignmentKey: "lab-report-1", studentKey: "jose", state: "graded", dayOffsetFromDue: 1, score: 40, grade: "C" },
     { assignmentKey: "lab-report-1", studentKey: "anna", state: "graded", dayOffsetFromDue: 0, score: 52, grade: "B" },
@@ -379,7 +379,7 @@ export const bio110Summer2026: FixtureCourse = {
     { assignmentKey: "lab-report-1", studentKey: "malik", state: "graded", dayOffsetFromDue: 0, score: 48, grade: "B" },
     { assignmentKey: "lab-report-1", studentKey: "chen", state: "graded", dayOffsetFromDue: -2, score: 60, grade: "A" },
 
-    // PS-bio-1 (due week 3) — all graded
+    // PS-bio-1 (due week 3), all graded
     { assignmentKey: "ps-bio-1", studentKey: "priya", state: "graded", dayOffsetFromDue: -1, score: 47, grade: "A-" },
     { assignmentKey: "ps-bio-1", studentKey: "jose", state: "graded", dayOffsetFromDue: 1, score: 33, grade: "C" },
     { assignmentKey: "ps-bio-1", studentKey: "anna", state: "graded", dayOffsetFromDue: 0, score: 42, grade: "B" },
@@ -391,7 +391,7 @@ export const bio110Summer2026: FixtureCourse = {
     { assignmentKey: "ps-bio-1", studentKey: "malik", state: "graded", dayOffsetFromDue: 0, score: 41, grade: "B" },
     { assignmentKey: "ps-bio-1", studentKey: "chen", state: "graded", dayOffsetFromDue: -2, score: 50, grade: "A" },
 
-    // Lab report 2 (due week 4) — all graded
+    // Lab report 2 (due week 4), all graded
     { assignmentKey: "lab-report-2", studentKey: "priya", state: "graded", dayOffsetFromDue: -1, score: 70, grade: "B+" },
     { assignmentKey: "lab-report-2", studentKey: "jose", state: "graded", dayOffsetFromDue: 1, score: 52, grade: "C" },
     { assignmentKey: "lab-report-2", studentKey: "anna", state: "graded", dayOffsetFromDue: 0, score: 63, grade: "B" },
@@ -403,7 +403,7 @@ export const bio110Summer2026: FixtureCourse = {
     { assignmentKey: "lab-report-2", studentKey: "malik", state: "graded", dayOffsetFromDue: 0, score: 62, grade: "B-" },
     { assignmentKey: "lab-report-2", studentKey: "chen", state: "graded", dayOffsetFromDue: -3, score: 75, grade: "A" },
 
-    // PS-bio-2 (due week 5) — all graded
+    // PS-bio-2 (due week 5), all graded
     { assignmentKey: "ps-bio-2", studentKey: "priya", state: "graded", dayOffsetFromDue: -1, score: 56, grade: "B+" },
     { assignmentKey: "ps-bio-2", studentKey: "jose", state: "graded", dayOffsetFromDue: 0, score: 40, grade: "C" },
     { assignmentKey: "ps-bio-2", studentKey: "anna", state: "graded", dayOffsetFromDue: 0, score: 52, grade: "B" },
@@ -415,7 +415,7 @@ export const bio110Summer2026: FixtureCourse = {
     { assignmentKey: "ps-bio-2", studentKey: "malik", state: "graded", dayOffsetFromDue: 0, score: 50, grade: "B" },
     { assignmentKey: "ps-bio-2", studentKey: "chen", state: "graded", dayOffsetFromDue: -2, score: 60, grade: "A" },
 
-    // Lab report 3 (due week 7, published false -- week 6 current) — submitted/ungraded mixed
+    // Lab report 3 (due week 7, published false -- week 6 current), submitted/ungraded mixed
     { assignmentKey: "lab-report-3", studentKey: "priya", state: "submitted", dayOffsetFromDue: -1 },
     { assignmentKey: "lab-report-3", studentKey: "jose", state: "submitted", dayOffsetFromDue: 0 },
     { assignmentKey: "lab-report-3", studentKey: "anna", state: "submitted", dayOffsetFromDue: -1 },

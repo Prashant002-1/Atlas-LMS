@@ -1,5 +1,5 @@
 /**
- * Seed the shared demo data package — one university, three semesters, full
+ * Seed the shared demo data package, one university, three semesters, full
  * course stacks. Deterministic: every row id derives from a stable key, so all
  * environments share the same ids and re-seeding is idempotent.
  *

@@ -1,8 +1,7 @@
-import { Check, CircleAlert, ClipboardCheck, FileText, Target, UsersRound } from "lucide-react";
+import { Check, CircleAlert } from "lucide-react";
 import { redirect } from "next/navigation";
-import { ActionButton, BackLink, CodeList, IconLabel, Panel, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { ActionButton, BackLink, CodeList, Panel, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { EmptyRecord, ObjectiveChecklist, RecordFact } from "@/components/atlas/record";
-import { ProductShell } from "@/components/atlas/product-shell";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { gradeSubmission, markSubmissionMissing, publishAssignment, updateAssignmentRecord } from "@/lib/instructor/actions";
@@ -40,15 +39,8 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
   const workspace = await loadInstructorAssignmentWorkspace(session.user, assignmentId);
 
   return (
-    <ProductShell
-      active="teach"
-      persona="Instructor"
-      title={workspace.course.name}
-      subtitle={`${workspace.course.code} / ${workspace.course.term}`}
-      actor={session.user}
-      rail={workspace.problem ? undefined : <InstructorWorkRail workspace={workspace} />}
-    >
-      <BackLink href="/teach#students">Students</BackLink>
+    <>
+      <BackLink href="/teach/work">Work</BackLink>
       {workspace.problem || !workspace.assignment ? (
         <Panel title={workspace.problem?.title ?? "Work unavailable"}>
           <p className="text-[14px] leading-6 text-[var(--color-muted)]">
@@ -61,7 +53,7 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
           <SubmissionList workspace={workspace} />
         </>
       )}
-    </ProductShell>
+    </>
   );
 }
 
@@ -314,28 +306,6 @@ function GradeForm({ assignment, submission }: { assignment: InstructorAssignmen
   );
 }
 
-function InstructorWorkRail({ workspace }: { workspace: InstructorAssignmentWorkspace }) {
-  return (
-    <div className="space-y-5">
-      <Panel title="Work">
-        <div className="space-y-3 text-[13px]">
-          <RecordFact label="Students" value={workspace.submissions.length} />
-          <RecordFact label="Submitted" value={workspace.progress?.submitted ?? 0} />
-          <RecordFact label="Graded" value={workspace.progress?.graded ?? 0} />
-          <RecordFact label="Open" value={workspace.progress?.open ?? 0} />
-        </div>
-      </Panel>
-      <Panel title="Record">
-        <div className="space-y-3 text-[13px]">
-          <IconLabel icon={UsersRound}>Students</IconLabel>
-          <IconLabel icon={ClipboardCheck}>Submissions</IconLabel>
-          <IconLabel icon={Target}>Objectives</IconLabel>
-          <IconLabel icon={FileText}>Course map</IconLabel>
-        </div>
-      </Panel>
-    </div>
-  );
-}
 
 function submissionMeta(submission: InstructorAssignmentSubmission) {
   if (submission.gradedAt) return `Graded ${formatShortDate(submission.gradedAt)}`;

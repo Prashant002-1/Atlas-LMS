@@ -14,23 +14,23 @@ Atlas makes course intent explicit:
 
 | Persona | Today | With Atlas |
 |---|---|---|
-| Professor | Course structure, objectives, and assessments drift apart | One command line: state an intent, review the drafted blocks, apply. The record stays yours. |
-| Student | Material and assessed work feel disconnected | Study from the course record: cues on every record (Explain, Practice, Ask), shaped by the professor's policy. |
+| Professor | Course structure, objectives, and assessments drift apart | Talk to Atlas: state an intent or paste a syllabus, watch the draft stream in, apply from Review. The record stays yours. |
+| Student | Material and assessed work feel disconnected | A glanceable overview across courses, and cues on every record (Explain, Practice, Ask) shaped by the professor's policy. |
 
-The connective tissue is the Alignment Graph: every objective, module, assignment, submission, and study action ties back to course intent. That structured record is also the context the agent runs on — Atlas is not a chatbot bolted onto an LMS; the context layer is the product.
+The connective tissue is the Alignment Graph: every objective, module, assignment, and submission ties back to course intent. Objectives are alignment for grounding the agent, not a scored metric; nothing on screen is an invented measurement. That structured record is also the context the agent runs on. Atlas is not a chatbot bolted onto an LMS; the context layer is the product.
 
 ---
 
 ## How the agent works
 
-One runtime (`lib/agent/`), two surfaces, one doctrine — reactive on command, propose never perform, grounded in the record:
+One runtime (`lib/agent/`), two surfaces, one doctrine, reactive on command, propose never perform, grounded in the record:
 
-- **Context packs** (`context.ts`) — a deterministic, budgeted rendering of the course record (objectives, modules, work, pages, notes, work-state), every line traceable to a row. Same course state, same pack.
-- **Sessions** (`session.ts`) — persistent and anchored (the command bar resumes per course; each student cue threads to the record it was pressed on), with rolling compaction that preserves record ids verbatim.
-- **Blocks** (`blocks.ts`) — the generative-UI contract. The agent never draws UI; it emits typed blocks (objective, module, assignment, page, announcement, practice set, rubric, explanation, answer) validated against one zod registry. The client renders blocks through one component map (`components/agent/block-views.tsx`); proposals persist blocks as rows (`proposal_blocks`) and re-render from the DB.
-- **Apply** (`apply.ts`) — the only door from draft to live. Approving a proposal writes course rows in one transaction and stamps each block with what it created; dismissing closes it. Nothing the agent does mutates the course before that.
-- **Policy** (`course_ai_policies`) — the professor's control object: which student cues exist, how deep explanations go, citation requirements, a per-course voice, standing instructions, daily limits, and the opt-in class signal. `/teach/atlas` is the control panel.
-- **BYOK** (`keys.ts`) — each org attaches its own OpenRouter/OpenAI key (AES-256-GCM at rest, masked in the UI, resolved server-side per request), with the platform env key as fallback.
+- **Context packs** (`context.ts`), a deterministic, budgeted rendering of the course record (objectives, modules, work, pages, notes, work-state), every line traceable to a row. Same course state, same pack.
+- **Sessions** (`session.ts`), persistent and anchored (the command bar resumes per course; each student cue threads to the record it was pressed on), with rolling compaction that preserves record ids verbatim.
+- **Blocks** (`blocks.ts`), the generative-UI contract. The agent never draws UI; it emits typed blocks (objective, module, assignment, page, announcement, practice set, rubric, explanation, answer) validated against one zod registry. The client renders blocks through one component map (`components/agent/block-views.tsx`); proposals persist blocks as rows (`proposal_blocks`) and re-render from the DB.
+- **Apply** (`apply.ts`), the only door from draft to live. Approving a proposal writes course rows in one transaction and stamps each block with what it created; dismissing closes it. Nothing the agent does mutates the course before that.
+- **Policy** (`course_ai_policies`), the professor's control object: which student cues exist, how deep explanations go, citation requirements, a per-course voice, standing instructions, daily limits, and the opt-in class signal. `/teach/atlas` is the control panel.
+- **BYOK** (`keys.ts`), each org attaches its own OpenRouter/OpenAI key (AES-256-GCM at rest, masked in the UI, resolved server-side per request), with the platform env key as fallback.
 
 Two streaming routes carry all of it: `/api/agent/command` (professor: one intent → one proposal of typed blocks, streamed live) and `/api/agent/cue` (student: one button press → one grounded, policy-shaped response).
 
@@ -38,17 +38,13 @@ Two streaming routes carry all of it: `/api/agent/command` (professor: one inten
 
 ## What runs now
 
-Everything is behind sign-in — there is no public surface.
+Everything is behind sign-in; there is no public surface. The app is pages behind one collapsible sidebar, not a monolith.
 
-- `/` — routes to your workspace by role.
-- `/sign-in`, `/sign-up` — auth. Accounts are provisioned (or seeded).
-- `/teach` — the teaching record: Atlas command line, Review (typed blocks, apply/dismiss), Publish queue, Students, Map.
-- `/teach/atlas` — course AI policy + org model key.
-- `/student` — the study record: today, policy-gated cues, practice, material, work, coverage.
-- Record pages (`/teach/week/…`, `/teach/work/…`, `/student/material/…`, `/student/work/…`) with cues anchored to the record in view.
-- `/api/health` — database health check.
+Teaching: `/teach` (overview at a glance), `/teach/atlas` (the streaming Atlas conversation, with syllabus import), `/teach/review` (typed blocks, apply/dismiss), `/teach/weeks`, `/teach/work`, `/teach/students`, `/teach/settings` (course AI policy + org model key), plus record pages.
 
-A semester picker in the header moves any account between terms (testing and real rollover); courses hang off terms.
+Studying: `/student` (a glance across every enrolled course: due next, waiting, missing), `/student/course/[id]` (one course: this week, notes, work, material, cues), plus record pages with cues anchored to the record in view.
+
+`/api/health` checks the database. The demo package runs one term; courses hang off terms in the schema.
 
 ## Repo Shape
 
@@ -95,7 +91,7 @@ npm install
 
 # 3. Configure environment
 cp .env.example .env.local
-#    Fill in DATABASE_URL and AUTH_SECRET. A platform model key is optional —
+#    Fill in DATABASE_URL and AUTH_SECRET. A platform model key is optional -
 #    you can instead attach an org key in-app (/teach/atlas) after signing in.
 
 # 4. Create the schema (Drizzle is the source of truth)
@@ -108,15 +104,15 @@ npm run db:seed
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — you land on sign-in.
+Open [http://localhost:3000](http://localhost:3000), you land on sign-in.
 
 ### The demo data package
 
-Every developer seeds the same deterministic package: Demo University across three semesters (Fall 2025, Spring 2026, and the current Summer 2026), nine full courses with objectives, week-by-week modules, assignments, pages, announcements, rosters, submissions, grades, and per-course AI policies. Same stable UUIDs in every environment; re-seeding is idempotent and touches only the demo tenant.
+Every developer seeds the same deterministic package: Demo University in one live term (Summer 2026), six full courses with objectives, week-by-week modules, assignments, pages, announcements, rosters, submissions, grades, and per-course AI policies. Same stable UUIDs in every environment; re-seeding is idempotent and touches only the demo tenant.
 
 Canonical accounts (password `atlas1234` for every seeded account):
-- `instructor@demo.edu` — Prof. Alan Torres. Teaches STAT-201 (the flagship: grading queue, missing work, draft weeks to publish) and STAT-405 now; taught STAT-201 in Fall 2025.
-- `student@demo.edu` — Maya Patel. Four current courses with a real story: strong in HIST-310 (which speaks as "The Archivist" — course personas are policy), a sampling-distributions misconception in STAT-201, a missing CS-152 assignment, ungraded WRIT-105 work.
+- `instructor@demo.edu`, Prof. Alan Torres. Teaches STAT-201 (the flagship: grading queue, missing work, draft weeks to publish) and STAT-405 now; taught STAT-201 in Fall 2025.
+- `student@demo.edu`, Maya Patel. Four current courses with a real story: strong in HIST-310 (which speaks as "The Archivist"; course personas are policy), a sampling-distributions misconception in STAT-201, a missing CS-152 assignment, ungraded WRIT-105 work.
 
 ---
 
@@ -129,7 +125,7 @@ npm run verify
 npm run smoke
 ```
 
-`npm run verify` runs typecheck, lint, tests, and a production build. Tests include the product contract (routes exist, every surface is gated, the agent observes the doctrine, blocks stay a closed registry, policy reaches the runtime) and the fixture integrity checks (references resolve, the demo window falls inside the current term, archived terms are fully graded) — all without a database. `npm run smoke` checks the running app: signed-out redirects, auth pages, health, agent-route guards, and signed-in teaching/study pages.
+`npm run verify` runs typecheck, lint, tests, and a production build. Tests include the product contract (routes exist, every surface is gated, the agent observes the doctrine, blocks stay a closed registry, policy reaches the runtime) and the fixture integrity checks (references resolve, the demo window falls inside the current term, archived terms are fully graded), all without a database. `npm run smoke` checks the running app: signed-out redirects, auth pages, health, agent-route guards, and signed-in teaching/study pages.
 
 ## Status
 
@@ -137,4 +133,4 @@ The agentic core is in place: professors draft through the command line and revi
 
 ## License
 
-Proprietary — © Atlas LMS. All rights reserved.
+Proprietary, © Atlas LMS. All rights reserved.

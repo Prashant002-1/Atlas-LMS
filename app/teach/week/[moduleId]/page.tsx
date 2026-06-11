@@ -1,8 +1,7 @@
-import { BookOpenCheck, Check, ClipboardCheck, FileText, Target } from "lucide-react";
+import { Check } from "lucide-react";
 import { redirect } from "next/navigation";
-import { ActionButton, BackLink, CodeList, IconLabel, Panel, StatusBadge, TextLink } from "@/components/atlas/primitives";
-import { EmptyRecord, ObjectiveChecklist, ObjectiveMeter, RecordFact } from "@/components/atlas/record";
-import { ProductShell } from "@/components/atlas/product-shell";
+import { ActionButton, BackLink, CodeList, Panel, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { EmptyRecord, ObjectiveChecklist, RecordFact } from "@/components/atlas/record";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { publishModule, updateModuleRecord } from "@/lib/instructor/actions";
@@ -33,15 +32,8 @@ export default async function InstructorWeekPage({ params }: { params: Promise<{
   const workspace = await loadInstructorModuleWorkspace(session.user, moduleId);
 
   return (
-    <ProductShell
-      active="teach"
-      persona="Instructor"
-      title={workspace.course.name}
-      subtitle={`${workspace.course.code} / ${workspace.course.term}`}
-      actor={session.user}
-      rail={workspace.problem ? undefined : <WeekRail workspace={workspace} />}
-    >
-      <BackLink href="/teach#map">Course map</BackLink>
+    <>
+      <BackLink href="/teach/weeks">Weeks</BackLink>
       {workspace.problem || !workspace.module ? (
         <Panel title={workspace.problem?.title ?? "Week unavailable"}>
           <p className="text-[14px] leading-6 text-[var(--color-muted)]">
@@ -55,7 +47,7 @@ export default async function InstructorWeekPage({ params }: { params: Promise<{
           <RelatedObjectives workspace={workspace} />
         </>
       )}
-    </ProductShell>
+    </>
   );
 }
 
@@ -177,39 +169,20 @@ function AssignmentLine({ assignment }: { assignment: InstructorAssignment }) {
 }
 
 function RelatedObjectives({ workspace }: { workspace: InstructorModuleWorkspace }) {
+  if (workspace.objectives.length === 0) return null;
   return (
-    <Panel title="Coverage" action={<StatusBadge tone="neutral">{workspace.objectives.length}</StatusBadge>}>
+    <Panel title="Objectives this week serves">
       <div className="divide-y divide-[var(--color-border)]">
-        {workspace.objectives.length > 0 ? (
-          workspace.objectives.map((objective) => (
-            <ObjectiveMeter key={objective.code} objective={objective} progressLabel="Coverage" evidenceStyle="line" />
-          ))
-        ) : (
-          <EmptyRecord title="No objectives" detail="No objectives are attached to this week." />
-        )}
+        {workspace.objectives.map((objective) => (
+          <div key={objective.code} className="py-3 first:pt-0 last:pb-0">
+            <p className="text-[13.5px] font-medium">
+              <span className="atlas-mono mr-2 text-[12px] text-[var(--color-faint)]">{objective.code}</span>
+              {objective.description}
+            </p>
+          </div>
+        ))}
       </div>
     </Panel>
   );
 }
 
-function WeekRail({ workspace }: { workspace: InstructorModuleWorkspace }) {
-  return (
-    <div className="space-y-5">
-      <Panel title="Week">
-        <div className="space-y-3 text-[13px]">
-          <RecordFact label="Work" value={workspace.assignments.length} />
-          <RecordFact label="Objectives" value={workspace.objectives.length} />
-          <RecordFact label="Status" value={workspace.module ? moduleLabel[workspace.module.status] : "-"} />
-        </div>
-      </Panel>
-      <Panel title="Record">
-        <div className="space-y-3 text-[13px]">
-          <IconLabel icon={BookOpenCheck}>Week</IconLabel>
-          <IconLabel icon={ClipboardCheck}>Work</IconLabel>
-          <IconLabel icon={Target}>Coverage</IconLabel>
-          <IconLabel icon={FileText}>Course map</IconLabel>
-        </div>
-      </Panel>
-    </div>
-  );
-}

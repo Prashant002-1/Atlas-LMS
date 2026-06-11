@@ -9,10 +9,10 @@ export const hist310Summer2026: FixtureCourse = {
   status: "published",
   instructorKey: "chen-wei",
   syllabusMd:
-    "# HIST-310: The Atlantic World, 1492-1804 — Summer 2026\n\n" +
+    "# HIST-310: The Atlantic World, 1492-1804, Summer 2026\n\n" +
     "**Instructor:** Prof. Wei Chen | chenwei@demo.edu | Office: Aldrich Hall 302\n\n" +
     "## Course Description\n" +
-    "Between 1492 and 1804 the Atlantic Ocean transformed from a barrier into a highway — carrying peoples, commodities, diseases, and ideas in all directions. This course reads that transformation through primary sources: ship logs, plantation records, slave narratives, pamphlets, and constitutions. We do not merely describe what happened; we ask whose experience, whose archive, and whose silence.\n\n" +
+    "Between 1492 and 1804 the Atlantic Ocean transformed from a barrier into a highway, carrying peoples, commodities, diseases, and ideas in all directions. This course reads that transformation through primary sources: ship logs, plantation records, slave narratives, pamphlets, and constitutions. We do not merely describe what happened; we ask whose experience, whose archive, and whose silence.\n\n" +
     "## Learning Objectives\n" +
     "1. Analyze primary sources critically for context, audience, and argument (LO1)\n" +
     "2. Trace the development of Atlantic slavery from origins to abolition movements (LO2)\n" +
@@ -85,7 +85,7 @@ export const hist310Summer2026: FixtureCourse = {
       key: "week-03",
       name: "Conquest and Its Justifications",
       summaryMd:
-        "The Spanish conquest of Mesoamerica was military, epidemiological, and legal all at once. We read the Requerimiento — the document read aloud to peoples who did not speak Spanish before attack — as a window into how empires justify themselves. Bernal Diaz's soldier's-eye memoir offers a corrective to both triumphant and purely victimological accounts.",
+        "The Spanish conquest of Mesoamerica was military, epidemiological, and legal all at once. We read the Requerimiento, the document read aloud to peoples who did not speak Spanish before attack, as a window into how empires justify themselves. Bernal Diaz's soldier's-eye memoir offers a corrective to both triumphant and purely victimological accounts.",
       objectiveCodes: ["LO1", "LO3"],
       week: 3,
       published: true,
@@ -196,7 +196,7 @@ export const hist310Summer2026: FixtureCourse = {
       key: "response-1",
       name: "Response Paper 1: Columbus and the Encounter",
       descriptionMd:
-        "Write 300-500 words responding to Columbus's 1493 letter. What does Columbus say he saw? What does his language reveal about his expectations and assumptions? Identify one specific passage that you find particularly striking and explain why. Response papers are graded for engagement with the text, not for formal argument — be curious, be specific.",
+        "Write 300-500 words responding to Columbus's 1493 letter. What does Columbus say he saw? What does his language reveal about his expectations and assumptions? Identify one specific passage that you find particularly striking and explain why. Response papers are graded for engagement with the text, not for formal argument, be curious, be specific.",
       objectiveCodes: ["LO1"],
       pointsPossible: 25,
       dueWeek: 2,
@@ -226,7 +226,7 @@ export const hist310Summer2026: FixtureCourse = {
       key: "response-3",
       name: "Response Paper 3: Equiano",
       descriptionMd:
-        "Respond to the assigned chapters from Olaudah Equiano's narrative. Focus on the Middle Passage account: how does Equiano describe the experience of captivity and transport? What rhetorical choices does he make and for what audience? Note that scholars have debated whether Equiano was born in Africa or Carolina — does this debate matter for reading the text? 300-500 words.",
+        "Respond to the assigned chapters from Olaudah Equiano's narrative. Focus on the Middle Passage account: how does Equiano describe the experience of captivity and transport? What rhetorical choices does he make and for what audience? Note that scholars have debated whether Equiano was born in Africa or Carolina, does this debate matter for reading the text? 300-500 words.",
       objectiveCodes: ["LO1"],
       pointsPossible: 25,
       dueWeek: 5,
@@ -246,7 +246,7 @@ export const hist310Summer2026: FixtureCourse = {
       key: "midterm-essay",
       name: "Midterm Essay: Take-Home",
       descriptionMd:
-        "Take-home essay released Monday of week 8, due Friday 11:59 pm. The prompt: 'Using at least three primary sources from the first half of the course, analyze how one group — European colonizers, enslaved Africans, or Indigenous peoples — constructed meaning in the Atlantic world.' Your essay should make an original argument (not a summary), engage at least two secondary sources, and be 1500-2000 words. Footnotes are required; use Chicago author-date format.",
+        "Take-home essay released Monday of week 8, due Friday 11:59 pm. The prompt: 'Using at least three primary sources from the first half of the course, analyze how one group, European colonizers, enslaved Africans, or Indigenous peoples, constructed meaning in the Atlantic world.' Your essay should make an original argument (not a summary), engage at least two secondary sources, and be 1500-2000 words. Footnotes are required; use Chicago author-date format.",
       objectiveCodes: ["LO1", "LO3", "LO4"],
       pointsPossible: 100,
       dueWeek: 8,
@@ -276,7 +276,7 @@ export const hist310Summer2026: FixtureCourse = {
       key: "final-paper",
       name: "Final Research Paper",
       descriptionMd:
-        "An original research paper of 3000-4000 words on a topic of your choice within the Atlantic world, 1492-1804. Your paper must make a clear historical argument, use at least four primary sources, engage at least six secondary sources, and include a bibliography in Chicago format. Topics must be approved by week 10 (brief email to the professor). The strongest papers find a specific story — a person, a place, a document, a moment — and use it to illuminate something larger about the Atlantic world. Final papers are due Friday of week 14.",
+        "An original research paper of 3000-4000 words on a topic of your choice within the Atlantic world, 1492-1804. Your paper must make a clear historical argument, use at least four primary sources, engage at least six secondary sources, and include a bibliography in Chicago format. Topics must be approved by week 10 (brief email to the professor). The strongest papers find a specific story, a person, a place, a document, a moment, and use it to illuminate something larger about the Atlantic world. Final papers are due Friday of week 14.",
       objectiveCodes: ["LO1", "LO2", "LO3", "LO4"],
       pointsPossible: 150,
       dueWeek: 14,
@@ -289,21 +289,21 @@ export const hist310Summer2026: FixtureCourse = {
       slug: "how-to-read-primary-sources",
       title: "How to Read a Primary Source",
       bodyMd:
-        "## What Is a Primary Source?\nA primary source is any document, object, image, or record produced at the time of the events you are studying. Letters, diaries, legal codes, ship manifests, parish records, paintings, maps — all can serve as primary sources. A secondary source is a historian's interpretation of primary sources.\n\n## The Five Questions\nBefore you begin writing about a primary source, answer these five questions: (1) Who created this document, and in what capacity? (2) When and where was it created? (3) For what audience? (4) What does it claim or do? (5) What does it not say — what is absent, suppressed, or impossible to express in this form?\n\n## Contextualization\nNo document speaks for itself. A slave manifest lists human beings as cargo; reading it as a transportation record misses everything. Reading it as evidence of a system of commodification requires historical context you must supply. This is the historian's essential labor.\n\n## The Archive's Silence\nMost people who lived through the Atlantic world left no documents. The archive is overwhelmingly the record of power: colonial administrators, slave owners, merchant houses. Recovering other experiences requires reading against the grain — finding traces of enslaved or Indigenous life in documents produced by their oppressors. This takes interpretive care and honesty about what we can and cannot know.",
+        "## What Is a Primary Source?\nA primary source is any document, object, image, or record produced at the time of the events you are studying. Letters, diaries, legal codes, ship manifests, parish records, paintings, maps, all can serve as primary sources. A secondary source is a historian's interpretation of primary sources.\n\n## The Five Questions\nBefore you begin writing about a primary source, answer these five questions: (1) Who created this document, and in what capacity? (2) When and where was it created? (3) For what audience? (4) What does it claim or do? (5) What does it not say, what is absent, suppressed, or impossible to express in this form?\n\n## Contextualization\nNo document speaks for itself. A slave manifest lists human beings as cargo; reading it as a transportation record misses everything. Reading it as evidence of a system of commodification requires historical context you must supply. This is the historian's essential labor.\n\n## The Archive's Silence\nMost people who lived through the Atlantic world left no documents. The archive is overwhelmingly the record of power: colonial administrators, slave owners, merchant houses. Recovering other experiences requires reading against the grain, finding traces of enslaved or Indigenous life in documents produced by their oppressors. This takes interpretive care and honesty about what we can and cannot know.",
       objectiveCodes: ["LO1"],
     },
     {
       slug: "primary-sources-list",
       title: "Primary Source Documents by Week",
       bodyMd:
-        "## Weeks 1-2\n- Columbus, Letter to Luis de Santangel (1493)\n- Bartolome de las Casas, Brief Account of the Destruction of the Indies (selections)\n- Taino oral traditions (reconstructed from later sources)\n\n## Weeks 3-4\n- The Requerimiento (1513)\n- Bernal Diaz, True History of the Conquest of New Spain (selections)\n- Virginia Slave Codes, 1662-1705 (selections)\n\n## Weeks 5-6\n- Olaudah Equiano, Interesting Narrative (Chapters 1-3)\n- Slave Voyages Database (slavesvoyages.org) — we will use this in class\n- Thomas Thistlewood, plantation diary excerpts (be prepared for graphic content)\n\n## Weeks 7-8\n- James Ramsay, Essay on the Treatment and Conversion of African Slaves (selections)\n- Mercantile correspondence, Royal African Company (selections)\n\n## Weeks 9-12\n- Thomas Jefferson, Notes on the State of Virginia (Query XIV)\n- Toussaint Louverture, 1801 Constitution of Saint-Domingue\n- Jean-Baptiste Belley, speech to the National Convention (1794)\n\n## Weeks 13-14\n- William Wilberforce, parliamentary speeches (selections)\n- Anonymous Haitian revolutionary songs (translated)\n- Jean-Jacques Dessalines, Haitian Declaration of Independence (1804)",
+        "## Weeks 1-2\n- Columbus, Letter to Luis de Santangel (1493)\n- Bartolome de las Casas, Brief Account of the Destruction of the Indies (selections)\n- Taino oral traditions (reconstructed from later sources)\n\n## Weeks 3-4\n- The Requerimiento (1513)\n- Bernal Diaz, True History of the Conquest of New Spain (selections)\n- Virginia Slave Codes, 1662-1705 (selections)\n\n## Weeks 5-6\n- Olaudah Equiano, Interesting Narrative (Chapters 1-3)\n- Slave Voyages Database (slavesvoyages.org), we will use this in class\n- Thomas Thistlewood, plantation diary excerpts (be prepared for graphic content)\n\n## Weeks 7-8\n- James Ramsay, Essay on the Treatment and Conversion of African Slaves (selections)\n- Mercantile correspondence, Royal African Company (selections)\n\n## Weeks 9-12\n- Thomas Jefferson, Notes on the State of Virginia (Query XIV)\n- Toussaint Louverture, 1801 Constitution of Saint-Domingue\n- Jean-Baptiste Belley, speech to the National Convention (1794)\n\n## Weeks 13-14\n- William Wilberforce, parliamentary speeches (selections)\n- Anonymous Haitian revolutionary songs (translated)\n- Jean-Jacques Dessalines, Haitian Declaration of Independence (1804)",
       objectiveCodes: ["LO1", "LO2"],
     },
     {
       slug: "secondary-reading-list",
       title: "Secondary Reading List and Annotation Guide",
       bodyMd:
-        "## Core Texts\nThe following books are foundational for this course and are on reserve at the library:\n- C.L.R. James, *The Black Jacobins* (1938/1963) — the classic account of the Haitian Revolution\n- Laurent Dubois, *Avengers of the New World* (2004) — accessible modern narrative of Haiti\n- Edmund Morgan, *American Slavery, American Freedom* (1975) — on the Chesapeake paradox\n- Ira Berlin, *Many Thousands Gone* (1998) — generational history of American slavery\n- Marcus Rediker, *The Slave Ship* (2007) — the Middle Passage in detail\n\n## How to Read Secondary Sources\nWhen you read a secondary source for this course, take three kinds of notes: (1) What is the author's central argument? State it in one sentence. (2) What evidence does the author use? Is it convincing? (3) What does this interpretation leave out or struggle to explain?\n\n## Using Secondary Sources in Papers\nSecondary sources provide context and interpretive frameworks; primary sources provide evidence for your argument. Do not use secondary sources as a substitute for engaging the primary material directly. Your papers should demonstrate independent analysis, not a synthesis of what historians have said.",
+        "## Core Texts\nThe following books are foundational for this course and are on reserve at the library:\n- C.L.R. James, *The Black Jacobins* (1938/1963), the classic account of the Haitian Revolution\n- Laurent Dubois, *Avengers of the New World* (2004), accessible modern narrative of Haiti\n- Edmund Morgan, *American Slavery, American Freedom* (1975), on the Chesapeake paradox\n- Ira Berlin, *Many Thousands Gone* (1998), generational history of American slavery\n- Marcus Rediker, *The Slave Ship* (2007), the Middle Passage in detail\n\n## How to Read Secondary Sources\nWhen you read a secondary source for this course, take three kinds of notes: (1) What is the author's central argument? State it in one sentence. (2) What evidence does the author use? Is it convincing? (3) What does this interpretation leave out or struggle to explain?\n\n## Using Secondary Sources in Papers\nSecondary sources provide context and interpretive frameworks; primary sources provide evidence for your argument. Do not use secondary sources as a substitute for engaging the primary material directly. Your papers should demonstrate independent analysis, not a synthesis of what historians have said.",
       objectiveCodes: ["LO3", "LO4"],
     },
     {
@@ -317,21 +317,21 @@ export const hist310Summer2026: FixtureCourse = {
 
   announcements: [
     {
-      title: "Welcome to HIST-310 — A Message from The Archivist",
+      title: "Welcome to HIST-310, A Message from The Archivist",
       messageMd:
-        "Greetings, and welcome to what I trust will be a semester of genuine historical encounter. I am Prof. Chen, and I will be your guide through the Atlantic world as it was — not as mythology has rendered it. Our first week asks you to resist the gravitational pull of 1492 as a beginning and instead to see it as a collision of worlds already in motion. Come to Tuesday's seminar having read the Columbus letter carefully. Mark one passage that surprises you.",
+        "Greetings, and welcome to what I trust will be a semester of genuine historical encounter. I am Prof. Chen, and I will be your guide through the Atlantic world as it was, not as mythology has rendered it. Our first week asks you to resist the gravitational pull of 1492 as a beginning and instead to see it as a collision of worlds already in motion. Come to Tuesday's seminar having read the Columbus letter carefully. Mark one passage that surprises you.",
       dayOffset: 0,
     },
     {
       title: "Response Paper 1: A Clarification",
       messageMd:
-        "Several students have asked whether response papers require footnotes. They do not — they are informal analytical responses, not formal essays. However, you must quote from the text directly (with page or paragraph reference) at least once. Unanchored claims about 'what Columbus says' without textual evidence will lose points. Length is 300-500 words; I grade for quality of engagement, not quantity of words.",
+        "Several students have asked whether response papers require footnotes. They do not, they are informal analytical responses, not formal essays. However, you must quote from the text directly (with page or paragraph reference) at least once. Unanchored claims about 'what Columbus says' without textual evidence will lose points. Length is 300-500 words; I grade for quality of engagement, not quantity of words.",
       dayOffset: 7,
     },
     {
       title: "Primary Source Analysis 1: Tips and Clarifications",
       messageMd:
-        "PSA 1 is due Friday of week 4. A few tips from reviewing early drafts in office hours: (1) analysis means explaining what a document does, not merely summarizing what it says; (2) 'context' means the specific historical circumstances in which the document was produced, not a general paragraph about the era; (3) the question of the archive's silence is not optional — every document about slavery was produced by someone with interests in its production. Engage that honestly.",
+        "PSA 1 is due Friday of week 4. A few tips from reviewing early drafts in office hours: (1) analysis means explaining what a document does, not merely summarizing what it says; (2) 'context' means the specific historical circumstances in which the document was produced, not a general paragraph about the era; (3) the question of the archive's silence is not optional, every document about slavery was produced by someone with interests in its production. Engage that honestly.",
       dayOffset: 21,
     },
     {
@@ -363,7 +363,7 @@ export const hist310Summer2026: FixtureCourse = {
   ],
 
   submissions: [
-    // Response 1 (due week 2) — all graded
+    // Response 1 (due week 2), all graded
     { assignmentKey: "response-1", studentKey: "maya", state: "graded", dayOffsetFromDue: -1, score: 23, grade: "A-", body: "Columbus names the islands before he describes them, performing possession through language. The phrase 'I have taken possession' recurs like a refrain, each repetition enacting the colonial claim it announces." },
     { assignmentKey: "response-1", studentKey: "liam", state: "graded", dayOffsetFromDue: 0, score: 20, grade: "B" },
     { assignmentKey: "response-1", studentKey: "priya", state: "graded", dayOffsetFromDue: -2, score: 24, grade: "A" },
@@ -375,7 +375,7 @@ export const hist310Summer2026: FixtureCourse = {
     { assignmentKey: "response-1", studentKey: "noah", state: "graded", dayOffsetFromDue: -2, score: 25, grade: "A" },
     { assignmentKey: "response-1", studentKey: "isabel", state: "graded", dayOffsetFromDue: -1, score: 21, grade: "B+" },
 
-    // Response 2 (due week 3) — all graded
+    // Response 2 (due week 3), all graded
     { assignmentKey: "response-2", studentKey: "maya", state: "graded", dayOffsetFromDue: -1, score: 23, grade: "A-", body: "The Requerimiento's real audience was not the indigenous peoples present but the Crown officials back in Spain; it was a legal performance designed to produce a documentary record, not communication." },
     { assignmentKey: "response-2", studentKey: "liam", state: "graded", dayOffsetFromDue: 0, score: 19, grade: "B-" },
     { assignmentKey: "response-2", studentKey: "priya", state: "graded", dayOffsetFromDue: -1, score: 23, grade: "A-" },
@@ -387,7 +387,7 @@ export const hist310Summer2026: FixtureCourse = {
     { assignmentKey: "response-2", studentKey: "noah", state: "graded", dayOffsetFromDue: -2, score: 25, grade: "A" },
     { assignmentKey: "response-2", studentKey: "isabel", state: "graded", dayOffsetFromDue: 0, score: 20, grade: "B" },
 
-    // PSA-1 (due week 4) — all graded
+    // PSA-1 (due week 4), all graded
     { assignmentKey: "psa-1", studentKey: "maya", state: "graded", dayOffsetFromDue: -1, score: 70, grade: "A-", body: "I analyzed a 1680 Virginia slave code provision specifying that baptism does not alter the status of enslaved persons. The document performs the separation of spiritual and civil personhood required to sustain hereditary racial slavery." },
     { assignmentKey: "psa-1", studentKey: "liam", state: "graded", dayOffsetFromDue: 0, score: 62, grade: "B-" },
     { assignmentKey: "psa-1", studentKey: "priya", state: "graded", dayOffsetFromDue: -2, score: 72, grade: "A-" },
@@ -399,7 +399,7 @@ export const hist310Summer2026: FixtureCourse = {
     { assignmentKey: "psa-1", studentKey: "noah", state: "graded", dayOffsetFromDue: -3, score: 75, grade: "A" },
     { assignmentKey: "psa-1", studentKey: "isabel", state: "graded", dayOffsetFromDue: 0, score: 63, grade: "B" },
 
-    // Response 3 (due week 5) — all graded
+    // Response 3 (due week 5), all graded
     { assignmentKey: "response-3", studentKey: "maya", state: "graded", dayOffsetFromDue: -1, score: 23, grade: "A-" },
     { assignmentKey: "response-3", studentKey: "liam", state: "graded", dayOffsetFromDue: 0, score: 20, grade: "B" },
     { assignmentKey: "response-3", studentKey: "priya", state: "graded", dayOffsetFromDue: -1, score: 24, grade: "A" },
@@ -411,7 +411,7 @@ export const hist310Summer2026: FixtureCourse = {
     { assignmentKey: "response-3", studentKey: "noah", state: "graded", dayOffsetFromDue: -2, score: 25, grade: "A" },
     { assignmentKey: "response-3", studentKey: "isabel", state: "graded", dayOffsetFromDue: 0, score: 21, grade: "B+" },
 
-    // Response 4 (dueWeek 6) — fully graded (week 6 is past by June 9 = week 7)
+    // Response 4 (dueWeek 6), fully graded (week 6 is past by June 9 = week 7)
     { assignmentKey: "response-4", studentKey: "maya", state: "graded", dayOffsetFromDue: -1, score: 23, grade: "A-", body: "I think the framing of 'agents vs victims' is itself a trap set by liberal historiography: it asks enslaved people to justify their humanity through resistance rather than acknowledging that humanity required no justification." },
     { assignmentKey: "response-4", studentKey: "liam", state: "graded", dayOffsetFromDue: 0, score: 19, grade: "B-" },
     { assignmentKey: "response-4", studentKey: "priya", state: "graded", dayOffsetFromDue: -1, score: 24, grade: "A" },

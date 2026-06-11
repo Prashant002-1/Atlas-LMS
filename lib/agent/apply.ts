@@ -16,7 +16,7 @@ import {
 import { parseStoredBlock, type Block } from "@/lib/agent/blocks";
 
 /**
- * Apply — the one door between a draft and the live course.
+ * Apply, the one door between a draft and the live course.
  *
  * A proposal's blocks were validated when the agent emitted them; applying
  * re-validates each row, writes the corresponding course records inside one
@@ -188,7 +188,7 @@ async function applyBlock(
       title: block.title,
       messageMd: block.messageMd,
       postedAt: new Date(),
-      published: true, // applying a note IS posting it — the review was the approval
+      published: true, // applying a note IS posting it, the review was the approval
     });
     return null;
   }
@@ -222,7 +222,7 @@ async function applyBlock(
     const body = block.criteria
       .map(
         (c) =>
-          `## ${c.name} (${Math.round(c.weight * 100)}%)\n${c.levels.map((l) => `- **${l.label}** — ${l.description}`).join("\n")}`
+          `## ${c.name} (${Math.round(c.weight * 100)}%)\n${c.levels.map((l) => `- **${l.label}**, ${l.description}`).join("\n")}`
       )
       .join("\n\n");
     const [created] = await tx

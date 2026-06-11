@@ -13,7 +13,7 @@ export class ForbiddenError extends Error {}
 
 /**
  * Resolve the signed-in user + tenant. Throws if unauthenticated or org-less.
- * This is the single chokepoint every server action / API route / tool goes through —
+ * This is the single chokepoint every server action / API route / tool goes through,
  * there is no "global, unscoped" read path in Atlas (unlike the prototype).
  */
 export async function requireTenant(): Promise<Tenant> {

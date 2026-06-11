@@ -1,5 +1,5 @@
 /**
- * Shared record-view types — the shapes course records take on screen.
+ * Shared record-view types, the shapes course records take on screen.
  * (Formerly defined next to the demo fixture; the fixture is gone, the product
  * renders only real rows.)
  */

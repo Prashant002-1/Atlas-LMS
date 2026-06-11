@@ -9,7 +9,7 @@ export const cs152Summer2026: FixtureCourse = {
   status: "published",
   instructorKey: "kwame",
   syllabusMd:
-    "# CS-152: Data Structures — Summer 2026\n\n" +
+    "# CS-152: Data Structures, Summer 2026\n\n" +
     "**Instructor:** Prof. Kwame Asante | kasante@demo.edu | Office: Turing Hall 115\n\n" +
     "## Course Description\n" +
     "Every program you will ever write rests on data structures. This course builds your intuition for choosing, analyzing, and implementing them. We proceed from first principles: you will implement every structure from scratch before using a library version. The emphasis is on correctness, efficiency, and the ability to reason about both.\n\n" +
@@ -181,7 +181,7 @@ export const cs152Summer2026: FixtureCourse = {
       key: "week-14",
       name: "Review, Synthesis, and Where to Go Next",
       summaryMd:
-        "We tie the course together: every data structure we built was a tradeoff between time, space, and complexity of reasoning. The final exam is cumulative. We discuss where this course leads: algorithms (CS-250), operating systems, compilers, databases — all build directly on what you now know.",
+        "We tie the course together: every data structure we built was a tradeoff between time, space, and complexity of reasoning. The final exam is cumulative. We discuss where this course leads: algorithms (CS-250), operating systems, compilers, databases, all build directly on what you now know.",
       objectiveCodes: ["LO1", "LO2", "LO3", "LO4"],
       week: 14,
       published: false,
@@ -341,13 +341,13 @@ export const cs152Summer2026: FixtureCourse = {
     {
       title: "Office Hours Schedule Update",
       messageMd:
-        "My regular office hours are Mon/Wed 1-2:30 pm, Turing Hall 115. TA office hours have been posted to the course calendar. For PA2 questions specifically, the TAs are better positioned to help than I am — please use their hours first.",
+        "My regular office hours are Mon/Wed 1-2:30 pm, Turing Hall 115. TA office hours have been posted to the course calendar. For PA2 questions specifically, the TAs are better positioned to help than I am, please use their hours first.",
       dayOffset: 10,
     },
     {
       title: "Midterm Logistics",
       messageMd:
-        "The midterm is Wednesday of week 8 in our usual classroom. Bring your cheat sheet (one page, hand-written, any content), a pencil, and your ID. Laptops and phones are not permitted. The exam will have a tracing question on a BST — make sure you can draw an AVL rotation by hand. Past exams are on the course pages.",
+        "The midterm is Wednesday of week 8 in our usual classroom. Bring your cheat sheet (one page, hand-written, any content), a pencil, and your ID. Laptops and phones are not permitted. The exam will have a tracing question on a BST, make sure you can draw an AVL rotation by hand. Past exams are on the course pages.",
       dayOffset: 42,
     },
     {
@@ -374,7 +374,7 @@ export const cs152Summer2026: FixtureCourse = {
   ],
 
   submissions: [
-    // PA1 (due week 2) — all graded
+    // PA1 (due week 2), all graded
     { assignmentKey: "pa1", studentKey: "maya", state: "graded", dayOffsetFromDue: -1, score: 68, grade: "B", body: "Implemented append with doubling and shrink on quarter-full. Amortized analysis argues each element is moved at most twice on average." },
     { assignmentKey: "pa1", studentKey: "liam", state: "graded", dayOffsetFromDue: -2, score: 74, grade: "A-" },
     { assignmentKey: "pa1", studentKey: "derek", state: "graded", dayOffsetFromDue: 1, score: 58, grade: "C+" },
@@ -387,7 +387,7 @@ export const cs152Summer2026: FixtureCourse = {
     { assignmentKey: "pa1", studentKey: "isabel", state: "graded", dayOffsetFromDue: -1, score: 64, grade: "B-" },
     { assignmentKey: "pa1", studentKey: "sam", state: "graded", dayOffsetFromDue: 0, score: 67, grade: "B" },
 
-    // PA2 (due week 3) — all graded
+    // PA2 (due week 3), all graded
     { assignmentKey: "pa2", studentKey: "maya", state: "graded", dayOffsetFromDue: -1, score: 71, grade: "B+", body: "Used sentinel nodes as specified. Pop operations check the sentinel condition to detect empty list." },
     { assignmentKey: "pa2", studentKey: "liam", state: "graded", dayOffsetFromDue: -2, score: 75, grade: "A" },
     { assignmentKey: "pa2", studentKey: "derek", state: "graded", dayOffsetFromDue: 0, score: 57, grade: "C+" },
@@ -400,7 +400,7 @@ export const cs152Summer2026: FixtureCourse = {
     { assignmentKey: "pa2", studentKey: "isabel", state: "graded", dayOffsetFromDue: 0, score: 63, grade: "B-" },
     { assignmentKey: "pa2", studentKey: "sam", state: "graded", dayOffsetFromDue: -1, score: 66, grade: "B" },
 
-    // Quiz-1 (due week 3) — all graded
+    // Quiz-1 (due week 3), all graded
     { assignmentKey: "quiz-1", studentKey: "maya", state: "graded", dayOffsetFromDue: 0, score: 17, grade: "B+" },
     { assignmentKey: "quiz-1", studentKey: "liam", state: "graded", dayOffsetFromDue: 0, score: 20, grade: "A" },
     { assignmentKey: "quiz-1", studentKey: "derek", state: "graded", dayOffsetFromDue: 0, score: 13, grade: "C" },
@@ -413,7 +413,7 @@ export const cs152Summer2026: FixtureCourse = {
     { assignmentKey: "quiz-1", studentKey: "isabel", state: "graded", dayOffsetFromDue: 0, score: 15, grade: "B-" },
     { assignmentKey: "quiz-1", studentKey: "sam", state: "graded", dayOffsetFromDue: 0, score: 16, grade: "B" },
 
-    // PA3 (due week 4) — all graded
+    // PA3 (due week 4), all graded
     { assignmentKey: "pa3", studentKey: "maya", state: "graded", dayOffsetFromDue: -1, score: 70, grade: "B+" },
     { assignmentKey: "pa3", studentKey: "liam", state: "graded", dayOffsetFromDue: -2, score: 79, grade: "A" },
     { assignmentKey: "pa3", studentKey: "derek", state: "graded", dayOffsetFromDue: 0, score: 56, grade: "C" },
@@ -426,7 +426,7 @@ export const cs152Summer2026: FixtureCourse = {
     { assignmentKey: "pa3", studentKey: "isabel", state: "graded", dayOffsetFromDue: 0, score: 63, grade: "B-" },
     { assignmentKey: "pa3", studentKey: "sam", state: "graded", dayOffsetFromDue: 0, score: 67, grade: "B" },
 
-    // Quiz-2 (due week 5) — all graded
+    // Quiz-2 (due week 5), all graded
     { assignmentKey: "quiz-2", studentKey: "maya", state: "graded", dayOffsetFromDue: 0, score: 15, grade: "B-" },
     { assignmentKey: "quiz-2", studentKey: "liam", state: "graded", dayOffsetFromDue: 0, score: 19, grade: "A" },
     { assignmentKey: "quiz-2", studentKey: "derek", state: "graded", dayOffsetFromDue: 0, score: 12, grade: "C" },
@@ -439,8 +439,8 @@ export const cs152Summer2026: FixtureCourse = {
     { assignmentKey: "quiz-2", studentKey: "isabel", state: "graded", dayOffsetFromDue: 0, score: 14, grade: "B-" },
     { assignmentKey: "quiz-2", studentKey: "sam", state: "graded", dayOffsetFromDue: 0, score: 15, grade: "B-" },
 
-    // PA4 (dueWeek 6) — fully graded (week 6 is past by June 9 = week 7);
-    // Maya is MISSING — genuinely overdue, visible in Torres's grade book
+    // PA4 (dueWeek 6), fully graded (week 6 is past by June 9 = week 7);
+    // Maya is MISSING, genuinely overdue, visible in Torres's grade book
     { assignmentKey: "pa4", studentKey: "maya", state: "missing" },
     { assignmentKey: "pa4", studentKey: "liam", state: "graded", dayOffsetFromDue: -1, score: 91, grade: "A", body: "Implemented delete with in-order successor for two-child case. Height function is O(n) recursive." },
     { assignmentKey: "pa4", studentKey: "derek", state: "graded", dayOffsetFromDue: 0, score: 65, grade: "C+" },

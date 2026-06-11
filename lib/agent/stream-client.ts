@@ -5,7 +5,7 @@ import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 /**
  * Minimal client for Atlas agent streams. The API routes speak the AI SDK's
  * UIMessage SSE protocol; this turns a fetch Response into an async iterable of
- * progressively-built UIMessages — no chat framework, just the stream.
+ * progressively-built UIMessages, no chat framework, just the stream.
  */
 
 function sseToChunkStream(body: ReadableStream<Uint8Array>): ReadableStream<UIMessageChunk> {
@@ -43,7 +43,7 @@ function sseToChunkStream(body: ReadableStream<Uint8Array>): ReadableStream<UIMe
 }
 
 export type AgentRunHandle = {
-  /** Async iterable of message snapshots — each yield is the latest full message. */
+  /** Async iterable of message snapshots, each yield is the latest full message. */
   messages: AsyncIterable<UIMessage>;
   abort: () => void;
 };

@@ -14,7 +14,7 @@ const CUE_KINDS: ReadonlySet<string> = new Set(["explain", "practice", "question
 const TARGET_TYPES: ReadonlySet<string> = new Set(["assignment", "module", "page", "course"]);
 
 /**
- * The student cue surface. A cue is a button press anchored to a course record —
+ * The student cue surface. A cue is a button press anchored to a course record,
  * Explain this work, Practice this, one quick question. Whether the cue exists,
  * how deep it goes, and what voice it speaks in are the professor's policy.
  */
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
     anchor: { type: targetType, id: targetType === "course" ? null : targetId },
   });
 
-  /* Objective codes on the target — recorded for the (opt-in) struggle signal. */
+  /* Objective codes on the target, recorded for the (opt-in) struggle signal. */
   let objectiveCodes: string[] = [];
   if (targetId && targetType !== "course" && targetType !== "page") {
     const rows = await db

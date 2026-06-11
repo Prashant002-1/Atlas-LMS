@@ -9,7 +9,7 @@ export const stat405Summer2026: FixtureCourse = {
   status: "published",
   instructorKey: "torres",
   syllabusMd:
-    "# STAT-405: Bayesian Inference — Summer 2026\n\n" +
+    "# STAT-405: Bayesian Inference, Summer 2026\n\n" +
     "**Instructor:** Prof. Alan Torres | instructor@demo.edu | Office: Marsh Hall 214\n\n" +
     "## Course Description\n" +
     "Bayesian statistics is not merely an alternative to frequentist methods; it is a coherent epistemological framework for updating beliefs in light of evidence. This course develops that framework from first principles. We begin with Bayes theorem, build through conjugate families and MCMC, and arrive at hierarchical models suitable for real research problems.\n\n" +
@@ -63,7 +63,7 @@ export const stat405Summer2026: FixtureCourse = {
       key: "week-01",
       name: "The Bayesian Framework",
       summaryMd:
-        "We begin with the question: what is probability? The frequentist and Bayesian answers are genuinely different, and those differences have consequences for how we analyze data. This week establishes the Bayesian framework — prior, likelihood, posterior — and works through several simple examples that can be solved analytically.",
+        "We begin with the question: what is probability? The frequentist and Bayesian answers are genuinely different, and those differences have consequences for how we analyze data. This week establishes the Bayesian framework, prior, likelihood, posterior, and works through several simple examples that can be solved analytically.",
       objectiveCodes: ["LO1", "LO2"],
       week: 1,
       published: true,
@@ -90,7 +90,7 @@ export const stat405Summer2026: FixtureCourse = {
       key: "week-04",
       name: "Computational Methods: Introduction to Stan",
       summaryMd:
-        "Most posteriors do not have analytic solutions. Stan implements Hamiltonian Monte Carlo (HMC) sampling, which is dramatically more efficient than Gibbs sampling for many models. We install and run our first Stan programs this week, learning the data, parameters, and model blocks. Diagnosing sampler health — divergences, R-hat, ESS — is as important as running the sampler.",
+        "Most posteriors do not have analytic solutions. Stan implements Hamiltonian Monte Carlo (HMC) sampling, which is dramatically more efficient than Gibbs sampling for many models. We install and run our first Stan programs this week, learning the data, parameters, and model blocks. Diagnosing sampler health, divergences, R-hat, ESS, is as important as running the sampler.",
       objectiveCodes: ["LO3"],
       week: 4,
       published: true,
@@ -162,7 +162,7 @@ export const stat405Summer2026: FixtureCourse = {
       key: "week-12",
       name: "Project Workshop",
       summaryMd:
-        "Students present their project models (in progress) for peer feedback. The focus is on: Is the model appropriate for the data generating process? Are the priors defensible? Have posterior predictive checks been conducted? This is a substantive workshop — come prepared to give and receive technical criticism.",
+        "Students present their project models (in progress) for peer feedback. The focus is on: Is the model appropriate for the data generating process? Are the priors defensible? Have posterior predictive checks been conducted? This is a substantive workshop, come prepared to give and receive technical criticism.",
       objectiveCodes: ["LO1", "LO2", "LO3", "LO4"],
       week: 12,
       published: false,
@@ -202,7 +202,7 @@ export const stat405Summer2026: FixtureCourse = {
       key: "ps405-2",
       name: "Problem Set 2: Prior Specification",
       descriptionMd:
-        "Three problems requiring you to specify and justify priors for given scientific contexts (a clinical trial, a survey, and a time series). For each context: (1) specify at least two reasonable priors; (2) compare them via prior predictive simulation in R; (3) argue for one of them on scientific grounds. No single answer is correct — the quality of your justification is graded.",
+        "Three problems requiring you to specify and justify priors for given scientific contexts (a clinical trial, a survey, and a time series). For each context: (1) specify at least two reasonable priors; (2) compare them via prior predictive simulation in R; (3) argue for one of them on scientific grounds. No single answer is correct, the quality of your justification is graded.",
       objectiveCodes: ["LO1"],
       pointsPossible: 80,
       dueWeek: 3,
@@ -265,14 +265,14 @@ export const stat405Summer2026: FixtureCourse = {
       slug: "stan-setup",
       title: "Stan and RStan Setup",
       bodyMd:
-        "## Installation\nThis course uses Stan via the RStan interface. Install RStan from CRAN: `install.packages('rstan')`. On macOS, you may need to install Xcode Command Line Tools first. On Windows, install Rtools. Detailed instructions for each platform are at mc-stan.org/rstan. Verify your installation by running a small test model before the first homework is due.\n\n## CmdStanR Alternative\nCmdStanR is more up-to-date than RStan and recommended if you are comfortable with the slightly different interface. Install with: `install.packages('cmdstanr', repos = c('https://mc-stan.org/r-packages/', getOption('repos')))`. All course materials provide both interfaces.\n\n## Cluster Computing\nFor longer-running models (especially hierarchical models in PS5 and the final project), the university's computing cluster is available. Instructions for submitting Stan jobs to the cluster are on the course pages. Start early — cluster jobs can be slow to schedule.",
+        "## Installation\nThis course uses Stan via the RStan interface. Install RStan from CRAN: `install.packages('rstan')`. On macOS, you may need to install Xcode Command Line Tools first. On Windows, install Rtools. Detailed instructions for each platform are at mc-stan.org/rstan. Verify your installation by running a small test model before the first homework is due.\n\n## CmdStanR Alternative\nCmdStanR is more up-to-date than RStan and recommended if you are comfortable with the slightly different interface. Install with: `install.packages('cmdstanr', repos = c('https://mc-stan.org/r-packages/', getOption('repos')))`. All course materials provide both interfaces.\n\n## Cluster Computing\nFor longer-running models (especially hierarchical models in PS5 and the final project), the university's computing cluster is available. Instructions for submitting Stan jobs to the cluster are on the course pages. Start early, cluster jobs can be slow to schedule.",
       objectiveCodes: ["LO3"],
     },
     {
       slug: "recommended-reading",
       title: "Recommended Texts and References",
       bodyMd:
-        "## Primary Text\nGelman, Carlin, Stern, Dunson, Vehtari, and Rubin, *Bayesian Data Analysis* (3rd ed.) — the standard reference. The PDF is legally available free from Gelman's website.\n\n## Supplementary\n- McElreath, *Statistical Rethinking* (2nd ed.) — the most accessible introduction to Bayesian modeling; highly recommended as a companion text\n- Kruschke, *Doing Bayesian Data Analysis* — accessible introduction for those with less mathematical background\n- Stan documentation (mc-stan.org) — essential reference for the Stan language\n\n## Online Resources\n- Andrew Gelman's blog (statmodeling.stat.columbia.edu) — current discussion of Bayesian methodology\n- Michael Betancourt's case studies (betanalpha.github.io) — rigorous technical treatments of HMC and Stan diagnostics",
+        "## Primary Text\nGelman, Carlin, Stern, Dunson, Vehtari, and Rubin, *Bayesian Data Analysis* (3rd ed.), the standard reference. The PDF is legally available free from Gelman's website.\n\n## Supplementary\n- McElreath, *Statistical Rethinking* (2nd ed.), the most accessible introduction to Bayesian modeling; highly recommended as a companion text\n- Kruschke, *Doing Bayesian Data Analysis*, accessible introduction for those with less mathematical background\n- Stan documentation (mc-stan.org), essential reference for the Stan language\n\n## Online Resources\n- Andrew Gelman's blog (statmodeling.stat.columbia.edu), current discussion of Bayesian methodology\n- Michael Betancourt's case studies (betanalpha.github.io), rigorous technical treatments of HMC and Stan diagnostics",
       objectiveCodes: ["LO1", "LO2", "LO3", "LO4"],
     },
   ],
@@ -281,7 +281,7 @@ export const stat405Summer2026: FixtureCourse = {
     {
       title: "Welcome to STAT-405",
       messageMd:
-        "Welcome to Bayesian Inference. This is a small, intensive seminar; I expect everyone to engage deeply with the material and with each other's work. We will use Stan heavily starting in week 4 — please have your R and Stan installation working before then. Office hours this semester are by appointment; send me an email with at least two proposed times.",
+        "Welcome to Bayesian Inference. This is a small, intensive seminar; I expect everyone to engage deeply with the material and with each other's work. We will use Stan heavily starting in week 4, please have your R and Stan installation working before then. Office hours this semester are by appointment; send me an email with at least two proposed times.",
       dayOffset: 0,
     },
     {
@@ -293,7 +293,7 @@ export const stat405Summer2026: FixtureCourse = {
     {
       title: "Stan Installation: Common Issues",
       messageMd:
-        "Several students are having compiler issues with RStan on Windows. The most common fix is updating Rtools to version 4.3 and running `pkgbuild::has_build_tools(debug = TRUE)` to verify. If you are still stuck, come to office hours before PS3 is due — you cannot complete the assignment without a working Stan installation. CmdStanR is often easier on Windows; instructions are on the Stan setup page.",
+        "Several students are having compiler issues with RStan on Windows. The most common fix is updating Rtools to version 4.3 and running `pkgbuild::has_build_tools(debug = TRUE)` to verify. If you are still stuck, come to office hours before PS3 is due, you cannot complete the assignment without a working Stan installation. CmdStanR is often easier on Windows; instructions are on the Stan setup page.",
       dayOffset: 28,
     },
     {
@@ -317,7 +317,7 @@ export const stat405Summer2026: FixtureCourse = {
   ],
 
   submissions: [
-    // PS405-1 (due week 2) — all graded
+    // PS405-1 (due week 2), all graded
     { assignmentKey: "ps405-1", studentKey: "chen", state: "graded", dayOffsetFromDue: -2, score: 79, grade: "A" },
     { assignmentKey: "ps405-1", studentKey: "rachel", state: "graded", dayOffsetFromDue: -1, score: 72, grade: "B+" },
     { assignmentKey: "ps405-1", studentKey: "priya", state: "graded", dayOffsetFromDue: -1, score: 74, grade: "A-" },
@@ -327,7 +327,7 @@ export const stat405Summer2026: FixtureCourse = {
     { assignmentKey: "ps405-1", studentKey: "noah", state: "graded", dayOffsetFromDue: 1, score: 62, grade: "B-" },
     { assignmentKey: "ps405-1", studentKey: "isabel", state: "graded", dayOffsetFromDue: 0, score: 70, grade: "B+" },
 
-    // PS405-2 (due week 3) — all graded
+    // PS405-2 (due week 3), all graded
     { assignmentKey: "ps405-2", studentKey: "chen", state: "graded", dayOffsetFromDue: -2, score: 78, grade: "A" },
     { assignmentKey: "ps405-2", studentKey: "rachel", state: "graded", dayOffsetFromDue: -1, score: 70, grade: "B+" },
     { assignmentKey: "ps405-2", studentKey: "priya", state: "graded", dayOffsetFromDue: -1, score: 73, grade: "A-" },
@@ -337,7 +337,7 @@ export const stat405Summer2026: FixtureCourse = {
     { assignmentKey: "ps405-2", studentKey: "noah", state: "graded", dayOffsetFromDue: 1, score: 61, grade: "B-" },
     { assignmentKey: "ps405-2", studentKey: "isabel", state: "graded", dayOffsetFromDue: 0, score: 68, grade: "B" },
 
-    // PS405-3 (due week 4) — all graded
+    // PS405-3 (due week 4), all graded
     { assignmentKey: "ps405-3", studentKey: "chen", state: "graded", dayOffsetFromDue: -3, score: 80, grade: "A" },
     { assignmentKey: "ps405-3", studentKey: "rachel", state: "graded", dayOffsetFromDue: -1, score: 72, grade: "B+" },
     { assignmentKey: "ps405-3", studentKey: "priya", state: "graded", dayOffsetFromDue: -1, score: 75, grade: "A-" },
@@ -347,7 +347,7 @@ export const stat405Summer2026: FixtureCourse = {
     { assignmentKey: "ps405-3", studentKey: "noah", state: "graded", dayOffsetFromDue: 0, score: 60, grade: "B-" },
     { assignmentKey: "ps405-3", studentKey: "isabel", state: "graded", dayOffsetFromDue: -1, score: 69, grade: "B+" },
 
-    // PS405-4 (due week 5) — all graded
+    // PS405-4 (due week 5), all graded
     { assignmentKey: "ps405-4", studentKey: "chen", state: "graded", dayOffsetFromDue: -2, score: 98, grade: "A+" },
     { assignmentKey: "ps405-4", studentKey: "rachel", state: "graded", dayOffsetFromDue: -1, score: 88, grade: "B+" },
     { assignmentKey: "ps405-4", studentKey: "priya", state: "graded", dayOffsetFromDue: -1, score: 91, grade: "A-" },
@@ -357,7 +357,7 @@ export const stat405Summer2026: FixtureCourse = {
     { assignmentKey: "ps405-4", studentKey: "noah", state: "graded", dayOffsetFromDue: 1, score: 75, grade: "B-" },
     { assignmentKey: "ps405-4", studentKey: "isabel", state: "graded", dayOffsetFromDue: 0, score: 86, grade: "B+" },
 
-    // Week 6 — no PS due week 6; nothing to submit
+    // Week 6, no PS due week 6; nothing to submit
   ],
 
   policy: {

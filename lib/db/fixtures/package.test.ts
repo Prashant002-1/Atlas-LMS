@@ -121,16 +121,7 @@ test("the demo window falls inside the current term, with live work on both side
   assert.ok(mayaStates.includes("missing"), "Maya needs one missing item");
   assert.ok(mayaStates.includes("submitted"), "Maya needs submitted-ungraded work");
   assert.ok(mayaStates.includes("graded"), "Maya needs graded work");
-});
-
-test("archived terms are fully graded", () => {
-  const archived = demoPackage.courses.filter((c) => c.status === "archived");
-  assert.ok(archived.length >= 2, "the package needs archived history");
-  for (const course of archived) {
-    for (const s of course.submissions) {
-      assert.equal(s.state, "graded", `${course.code} (${course.termSlug}): archived submissions must be graded`);
-    }
-  }
+  assert.equal(demoPackage.terms.length, 1, "the demo package runs one term");
 });
 
 test("policies vary and the persona course exists", () => {

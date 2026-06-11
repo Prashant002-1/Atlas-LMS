@@ -16,7 +16,7 @@ import {
 } from "@/lib/db/schema";
 
 /**
- * Context assembly — the layer the whole product stands on.
+ * Context assembly, the layer the whole product stands on.
  *
  * A context pack is a deterministic, budgeted rendering of the course record:
  * same course state → same pack, section order fixed (stable prompt-cache
@@ -38,7 +38,7 @@ export type ContextPack = {
   policy: CourseAiPolicy | null;
 };
 
-/** chars/3.8 — a serviceable estimate for mixed prose + JSON. */
+/** chars/3.8, a serviceable estimate for mixed prose + JSON. */
 export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 3.8);
 }
@@ -46,7 +46,7 @@ export function estimateTokens(text: string): number {
 const clip = (s: string | null | undefined, max: number) =>
   !s ? "" : s.length <= max ? s : `${s.slice(0, max)}…`;
 
-const fmtDate = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : "—");
+const fmtDate = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : "-");
 
 type PackScope = {
   orgId: string;
@@ -54,7 +54,7 @@ type PackScope = {
   /** Student packs carry the student's own work state; instructor packs carry class state. */
   audience: "instructor" | "student";
   userId: string;
-  /** Optional anchor — the record a cue is pressed on gets fuller treatment. */
+  /** Optional anchor, the record a cue is pressed on gets fuller treatment. */
   anchor?: { type: "assignment" | "module" | "page"; id: string } | null;
 };
 
@@ -178,8 +178,8 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
   push(
     "course",
     [
-      `COURSE ${course.code} — ${course.name} [id:${course.id}]`,
-      `Term: ${term?.name ?? course.term ?? "—"}${term?.current ? " (current)" : ""} · Status: ${course.status}`,
+      `COURSE ${course.code}, ${course.name} [id:${course.id}]`,
+      `Term: ${term?.name ?? course.term ?? "-"}${term?.current ? " (current)" : ""} · Status: ${course.status}`,
       course.description ? clip(course.description, 600) : "",
       course.syllabusMd ? `SYLLABUS\n${clip(course.syllabusMd, 2400)}` : "",
     ]
@@ -193,7 +193,7 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
       "OBJECTIVES (code · bloom · assessed weight · description)",
       ...objectiveRows.map(
         (o) =>
-          `${o.code} · ${o.bloomLevel ?? "—"} · ${o.assessmentWeight != null ? Math.round(o.assessmentWeight * 100) + "%" : "—"} · ${clip(o.description, 240)} [id:${o.id}]`
+          `${o.code} · ${o.bloomLevel ?? "-"} · ${o.assessmentWeight != null ? Math.round(o.assessmentWeight * 100) + "%" : "-"} · ${clip(o.description, 240)} [id:${o.id}]`
       ),
     ].join("\n")
   );
@@ -204,7 +204,7 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
       "MODULES (position · objectives · state)",
       ...visibleModules.map(
         (m) =>
-          `${m.position ?? "—"}. ${m.name} · [${codesForItem(m.id) || "unaligned"}] · ${m.published ? "live" : "draft"} [id:${m.id}]\n   ${clip(m.summaryMd, 320)}`
+          `${m.position ?? "-"}. ${m.name} · [${codesForItem(m.id) || "unaligned"}] · ${m.published ? "live" : "draft"} [id:${m.id}]\n   ${clip(m.summaryMd, 320)}`
       ),
     ].join("\n")
   );
@@ -215,7 +215,7 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
       "WORK (due · points · objectives · state)",
       ...visibleAssignments.map(
         (a) =>
-          `${a.name} · due ${fmtDate(a.dueAt)} · ${a.pointsPossible ?? "—"}pts · [${codesForItem(a.id) || "unaligned"}] · ${a.published ? "live" : "draft"} [id:${a.id}]\n   ${clip(a.descriptionMd, 280)}`
+          `${a.name} · due ${fmtDate(a.dueAt)} · ${a.pointsPossible ?? "-"}pts · [${codesForItem(a.id) || "unaligned"}] · ${a.published ? "live" : "draft"} [id:${a.id}]\n   ${clip(a.descriptionMd, 280)}`
       ),
     ].join("\n")
   );
@@ -233,19 +233,19 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
     ["RECENT NOTES", ...announcementRows.map((n) => `${fmtDate(n.postedAt)} · ${n.title}: ${clip(n.messageMd, 240)} [id:${n.id}]`)].join("\n")
   );
 
-  /* Anchor detail — the record the user is acting on, in full. */
+  /* Anchor detail, the record the user is acting on, in full. */
   if (scope.anchor?.type === "assignment") {
     const a = assignmentRows.find((row) => row.id === scope.anchor?.id);
     if (a) {
       push(
         "anchor",
-        `FOCUS WORK — ${a.name} [id:${a.id}]\nDue ${fmtDate(a.dueAt)} · ${a.pointsPossible ?? "—"}pts · objectives [${codesForItem(a.id) || "unaligned"}]\n${clip(a.descriptionMd, 4000)}`
+        `FOCUS WORK, ${a.name} [id:${a.id}]\nDue ${fmtDate(a.dueAt)} · ${a.pointsPossible ?? "-"}pts · objectives [${codesForItem(a.id) || "unaligned"}]\n${clip(a.descriptionMd, 4000)}`
       );
     }
   } else if (scope.anchor?.type === "module") {
     const m = moduleRows.find((row) => row.id === scope.anchor?.id);
     if (m) {
-      push("anchor", `FOCUS MODULE — ${m.name} [id:${m.id}]\n${clip(m.summaryMd, 4000)}`);
+      push("anchor", `FOCUS MODULE, ${m.name} [id:${m.id}]\n${clip(m.summaryMd, 4000)}`);
     }
   }
 
@@ -267,7 +267,7 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
       [
         "MY WORK STATE",
         ...myWork.map((w) => {
-          const state = w.missing ? "missing" : w.gradedAt ? `graded ${w.score ?? "—"}` : w.submittedAt ? "submitted" : "open";
+          const state = w.missing ? "missing" : w.gradedAt ? `graded ${w.score ?? "-"}` : w.submittedAt ? "submitted" : "open";
           return `${nameById.get(w.assignmentId) ?? w.assignmentId}: ${state}`;
         }),
       ].join("\n")

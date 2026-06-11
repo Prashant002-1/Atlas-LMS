@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { orgProviderKeys } from "@/lib/db/schema";
 
 /**
- * BYOK — bring your own key, per organization.
+ * BYOK, bring your own key, per organization.
  *
  * Demo posture: each org (school/team) attaches its own OpenRouter or OpenAI key
  * in Course settings; the platform env key is the fallback. Keys are AES-256-GCM
@@ -52,7 +52,7 @@ const DEFAULT_OPENAI_MODEL = "gpt-4.1";
 
 /**
  * Resolution order: the org's stored key (OpenRouter preferred, then OpenAI),
- * then the platform env key. Returns null when nothing is configured — callers
+ * then the platform env key. Returns null when nothing is configured, callers
  * surface a clean "connect a model key" state instead of a broken run.
  */
 export async function resolveModelForOrg(orgId: string): Promise<ResolvedProvider | null> {
@@ -69,7 +69,7 @@ export async function resolveModelForOrg(orgId: string): Promise<ResolvedProvide
       const modelId = stored.chatModel ?? DEFAULT_OPENAI_MODEL;
       return { model: createOpenAI({ apiKey })(modelId), source: "org", provider: "openai", modelId };
     } catch {
-      // fall through to env — a corrupt row must not take the product down
+      // fall through to env, a corrupt row must not take the product down
     }
   }
 

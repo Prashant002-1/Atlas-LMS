@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * The block registry — Atlas's generative-UI contract.
+ * The block registry, Atlas's generative-UI contract.
  *
  * The agent never draws UI. It emits typed blocks; the client renders each block
  * through a fixed component registry; the server validates every block against
@@ -75,7 +75,7 @@ export const practiceSetBlockSchema = z.object({
   type: z.literal("practice_set"),
   title: z.string().min(3).max(200),
   objectiveCodes,
-  base: z.string().min(10).max(1200).describe("The shared scenario/dataset the questions stand on — concrete, from course material."),
+  base: z.string().min(10).max(1200).describe("The shared scenario/dataset the questions stand on, concrete, from course material."),
   questions: z.array(practiceQuestionSchema).min(1).max(12),
 });
 
@@ -107,7 +107,7 @@ export const explanationBlockSchema = z.object({
     .array(
       z.object({
         sourceType: z.enum(["module", "page", "assignment", "syllabus"]),
-        sourceId: z.string().describe("The id of the course record cited — must come from the context pack."),
+        sourceId: z.string().describe("The id of the course record cited, must come from the context pack."),
         label: z.string().min(1).max(200),
       })
     )

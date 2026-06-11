@@ -1,11 +1,11 @@
 /**
- * Atlas LMS — database schema (source of truth).
+ * Atlas LMS, database schema (source of truth).
  *
  * Organized in four layers:
- *   1. Tenancy & auth        — organizations, users, Auth.js tables
- *   2. Academic core         — courses, modules, assignments, … (read-write, org-scoped)
- *   3. Alignment Graph (NEW) — objectives, program outcomes, content alignments
- *   4. AI runtime            — change proposals, chat sessions, per-user memory, planner
+ *   1. Tenancy & auth       , organizations, users, Auth.js tables
+ *   2. Academic core        , courses, modules, assignments, … (read-write, org-scoped)
+ *   3. Alignment Graph (NEW), objectives, program outcomes, content alignments
+ *   4. AI runtime           , change proposals, chat sessions, per-user memory, planner
  *
  * Every domain row carries `orgId`. Every agent tool scopes its queries by tenant.
  * Embeddings are 1536-dim so pgvector HNSW indexing works (the prototype's 2048 could not be indexed).
@@ -424,7 +424,7 @@ export const submissions = pgTable(
 );
 
 /**
- * Practice sets — professor-approved practice as a first-class record (not a PDF,
+ * Practice sets, professor-approved practice as a first-class record (not a PDF,
  * not a chat transcript). Drafted by the agent or by hand, applied through Review,
  * studied interactively by students. Aligned via content_alignments (itemType "quiz").
  */
@@ -568,7 +568,7 @@ export const contentAlignments = pgTable(
 /* ─────────────────────── 4. AI runtime ─────────────────────── */
 
 /**
- * Course AI policy — the professor's control object for everything students can
+ * Course AI policy, the professor's control object for everything students can
  * ask of Atlas inside the course. The professor outlines; students dive deeper,
  * exactly as far as the professor allows. This row IS the product doctrine
  * ("the professor decides the extent of the explanations") made concrete.
@@ -604,7 +604,7 @@ export const courseAiPolicies = pgTable(
 );
 
 /**
- * Agent sessions — one per (user, surface, anchor). The professor's command bar
+ * Agent sessions, one per (user, surface, anchor). The professor's command bar
  * resumes one session per course; a student cue anchored to an assignment gets
  * its own thread. Turns live in `agent_turns`; compaction state lives here.
  */
@@ -652,7 +652,7 @@ export const agentTurns = pgTable(
       .references(() => agentSessions.id, { onDelete: "cascade" }),
     turnIndex: integer("turn_index").notNull(),
     role: agentTurnRoleEnum("role").notNull(),
-    // UIMessage parts (text, tool calls, tool results) — renderable and replayable.
+    // UIMessage parts (text, tool calls, tool results), renderable and replayable.
     parts: jsonb("parts").notNull(),
     tokenEstimate: integer("token_estimate").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -661,10 +661,10 @@ export const agentTurns = pgTable(
 );
 
 /**
- * Proposal blocks — the generative-UI contract, persisted. The agent emits typed
+ * Proposal blocks, the generative-UI contract, persisted. The agent emits typed
  * blocks (validated against the registry in lib/agent/blocks.ts); each block is a
  * row the professor can apply or dismiss independently. Reopening a proposal
- * re-renders blocks from these rows — no re-generation.
+ * re-renders blocks from these rows, no re-generation.
  */
 export const proposalBlocks = pgTable(
   "proposal_blocks",
@@ -690,7 +690,7 @@ export const proposalBlocks = pgTable(
 );
 
 /**
- * Cue events — every student cue press, with the course/objective context it ran
+ * Cue events, every student cue press, with the course/objective context it ran
  * against. Powers the per-student daily limit and (opt-in only) the aggregated
  * struggle signal to the professor. Aggregates only; never a per-student feed.
  */
@@ -722,7 +722,7 @@ export const cueEvents = pgTable(
 );
 
 /**
- * BYOK — org-level provider keys, AES-256-GCM encrypted with the app secret.
+ * BYOK, org-level provider keys, AES-256-GCM encrypted with the app secret.
  * Resolution order at runtime: org key → environment fallback. Keys never reach
  * the client; the settings UI shows only a masked tail.
  */

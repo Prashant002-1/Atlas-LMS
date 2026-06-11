@@ -5,9 +5,6 @@ import { cs152Summer2026 } from "./courses/cs-152-summer-2026";
 import { bio110Summer2026 } from "./courses/bio-110-summer-2026";
 import { writ105Summer2026 } from "./courses/writ-105-summer-2026";
 import { stat405Summer2026 } from "./courses/stat-405-summer-2026";
-import { stat201Fall2025 } from "./courses/stat-201-fall-2025";
-import { hist209Fall2025 } from "./courses/hist-209-fall-2025";
-import { cs250Spring2026 } from "./courses/cs-250-spring-2026";
 
 export const demoPackage: FixturePackage = {
   org: {
@@ -18,18 +15,6 @@ export const demoPackage: FixturePackage = {
   password: "atlas1234",
 
   terms: [
-    {
-      slug: "fall-2025",
-      name: "Fall 2025",
-      startsAt: "2025-09-01",
-      endsAt: "2025-12-19",
-    },
-    {
-      slug: "spring-2026",
-      name: "Spring 2026",
-      startsAt: "2026-01-20",
-      endsAt: "2026-04-24",
-    },
     {
       slug: "summer-2026",
       name: "Summer 2026",
@@ -174,17 +159,14 @@ export const demoPackage: FixturePackage = {
   ],
 
   courses: [
-    // Summer 2026 (current) — 6 courses
+    // Summer 2026 (current), 6 courses
     stat201Summer2026,
     hist310Summer2026,
     cs152Summer2026,
     bio110Summer2026,
     writ105Summer2026,
     stat405Summer2026,
-    // Fall 2025 (archived) — 2 courses
-    stat201Fall2025,
-    hist209Fall2025,
-    // Spring 2026 (archived) — 1 course
-    cs250Spring2026,
+    // Fall 2025 (archived), 2 courses
+    // Spring 2026 (archived), 1 course
   ],
 };

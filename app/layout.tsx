@@ -4,7 +4,7 @@ import "./globals.css";
 
 /*
  * Fonts ship with the repo (public/fonts, latin subsets) so builds are
- * hermetic — no Google Fonts fetch at build time, identical output in CI,
+ * hermetic, no Google Fonts fetch at build time, identical output in CI,
  * Docker, and offline dev.
  */
 const spectral = localFont({

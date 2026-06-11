@@ -1,4 +1,4 @@
-# Atlas LMS — Vision & Thesis
+# Atlas LMS, Vision & Thesis
 
 ## One-liner
 Atlas is an LMS where course intent is the source of truth. Objectives, materials, assignments, submissions, study activity, and evidence live in one course record, so professors can shape a course with confidence and students can study what actually matters.
@@ -10,7 +10,7 @@ Atlas is an LMS where course intent is the source of truth. Objectives, material
 Learning management systems were built around storage and submission, not intent. Two costs are hiding in plain sight:
 
 ### 1. Course creation is so hard that universities pay people to do it
-Nearly every institution staffs an **instructional-design (ID) center** — specialists who help faculty turn their expertise into Canvas modules, syllabi, aligned assessments, and accessible content. This is a structural tax: the tool is so unfriendly that operating it is a job. Professors still lose **days to weeks per course** on mechanics — building module trees, formatting syllabi, wiring assignment groups, copying last term's course forward.
+Nearly every institution staffs an **instructional-design (ID) center**, specialists who help faculty turn their expertise into Canvas modules, syllabi, aligned assessments, and accessible content. This is a structural tax: the tool is so unfriendly that operating it is a job. Professors still lose **days to weeks per course** on mechanics, building module trees, formatting syllabi, wiring assignment groups, copying last term's course forward.
 
 ### 2. Learning has already left the building
 Students study across notes, slides, readings, group chats, and outside tools while the LMS stays disconnected from the syllabus. A student can study for hours and still not know whether they covered what the professor will actually assess. Exams become surprises, and the course record does not explain why.
@@ -24,7 +24,7 @@ The incumbents cannot fix this by adding a button. Their data model has no durab
 Rebuild the LMS around a new primitive: the **Alignment Graph**.
 
 - **Learning objectives** are first-class (course- and module-level), optionally mapped to **program/accreditation outcomes**.
-- **Every artifact** — module, assignment, quiz, page, reading — is tagged to the objectives it serves.
+- **Every artifact**, module, assignment, quiz, page, reading, is tagged to the objectives it serves.
 - **Every student action** - a submission, practice response, study session, or coverage check - can be measured against those objectives.
 
 Once intent is modeled, Atlas becomes useful on both sides:
@@ -62,13 +62,13 @@ Atlas turns the same record into a study path: what matters now, which material 
 
 These are not v1, but they show the surface area once the course record is structured correctly:
 
-- **Accreditation & outcomes reporting** — ABET/regional-accreditor evidence is months of manual work; Atlas emits it from the Alignment Graph automatically. Institutional budget unlock.
-- **Grading load** — rubric-grounded grading support with professor approval.
-- **Grounded TA** — answers student questions from actual course material with citations and escalation paths.
-- **Academic integrity, reframed** — make outside help visible, constrained, and auditable instead of pretending it does not exist.
-- **Accessibility & compliance** — ADA/WCAG checks at authoring time, not retrofitted under legal pressure.
-- **Advisor support** — explicit institution-defined criteria can surface students who need attention before the midterm.
-- **Course freshness** — detect dead links and stale content during term rollover.
+- **Accreditation & outcomes reporting**, ABET/regional-accreditor evidence is months of manual work; Atlas emits it from the Alignment Graph automatically. Institutional budget unlock.
+- **Grading load**, rubric-grounded grading support with professor approval.
+- **Grounded TA**, answers student questions from actual course material with citations and escalation paths.
+- **Academic integrity, reframed**, make outside help visible, constrained, and auditable instead of pretending it does not exist.
+- **Accessibility & compliance**, ADA/WCAG checks at authoring time, not retrofitted under legal pressure.
+- **Advisor support**, explicit institution-defined criteria can surface students who need attention before the midterm.
+- **Course freshness**, detect dead links and stale content during term rollover.
 
 ---
 

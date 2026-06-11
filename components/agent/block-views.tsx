@@ -13,7 +13,7 @@ import type {
 } from "@/lib/agent/blocks";
 
 /**
- * The component registry — every block type the agent can emit has exactly one
+ * The component registry, every block type the agent can emit has exactly one
  * renderer. Server pages (Review) and the streaming client both render through
  * this map, so a drafted block looks identical in flight and at rest.
  */
@@ -238,7 +238,7 @@ export function AnswerBlockView({ block }: { block: AnswerBlock }) {
       <div className="whitespace-pre-wrap text-[14px] leading-6 text-[var(--color-ink)]">{block.bodyMd}</div>
       {block.escalate ? (
         <p className="mt-3 rounded-[6px] border border-[rgba(154,106,34,0.28)] bg-[rgba(154,106,34,0.07)] px-3 py-2 text-[13px] leading-5 text-[var(--color-warn)]">
-          This one belongs with your professor — the course record does not answer it.
+          This one belongs with your professor, the course record does not answer it.
         </p>
       ) : null}
       <Citations citations={block.citations} />

@@ -1,7 +1,7 @@
 import { BrandMark, ButtonLink } from "@/components/atlas/primitives";
 
 /**
- * Atlas accounts come from the institution (or the seeded demo package) — there
+ * Atlas accounts come from the institution (or the seeded demo package), there
  * is no self-serve registration yet. This page says so instead of pretending.
  */
 export default function SignUpPage() {

@@ -6,7 +6,7 @@ import { estimateTokens } from "@/lib/agent/context";
 import { fallbackModel } from "@/lib/ai/provider";
 
 /**
- * Sessions — persistent, anchored, compacted.
+ * Sessions, persistent, anchored, compacted.
  *
  * One session per (user, course, surface, anchor). The professor's command bar
  * resumes a single course-anchored session; each student cue thread anchors to

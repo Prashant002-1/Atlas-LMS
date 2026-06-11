@@ -21,7 +21,7 @@ export function structuredModel() {
   return openrouter(STRUCTURED_MODEL);
 }
 
-/** A genuinely different, cheaper/more-available model — not an alias of primary. */
+/** A genuinely different, cheaper/more-available model, not an alias of primary. */
 export function fallbackModel() {
   return openrouter(FALLBACK_MODEL);
 }

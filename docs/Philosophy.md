@@ -1,4 +1,4 @@
-# Atlas — Operating Philosophy
+# Atlas: Operating Philosophy
 
 **Atlas is the professor's course record, not software that manages the professor.**
 

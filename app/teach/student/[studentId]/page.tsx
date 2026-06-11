@@ -1,8 +1,7 @@
-import { ClipboardCheck, FileText, Target, UsersRound } from "lucide-react";
+import { UsersRound } from "lucide-react";
 import { redirect } from "next/navigation";
 import { BackLink, CodeList, IconLabel, Panel, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { EmptyRecord, RecordFact } from "@/components/atlas/record";
-import { ProductShell } from "@/components/atlas/product-shell";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import {
@@ -38,15 +37,8 @@ export default async function InstructorStudentPage({ params }: { params: Promis
   const workspace = await loadInstructorStudentWorkspace(session.user, studentId);
 
   return (
-    <ProductShell
-      active="teach"
-      persona="Instructor"
-      title={workspace.course.name}
-      subtitle={`${workspace.course.code} / ${workspace.course.term}`}
-      actor={session.user}
-      rail={workspace.problem ? undefined : <StudentRail workspace={workspace} />}
-    >
-      <BackLink href="/teach#students">Students</BackLink>
+    <>
+      <BackLink href="/teach/students">Students</BackLink>
       {workspace.problem || !workspace.student ? (
         <Panel title={workspace.problem?.title ?? "Student unavailable"}>
           <p className="text-[14px] leading-6 text-[var(--color-muted)]">
@@ -59,7 +51,7 @@ export default async function InstructorStudentPage({ params }: { params: Promis
           <StudentWorkList work={workspace.work} />
         </>
       )}
-    </ProductShell>
+    </>
   );
 }
 
@@ -135,30 +127,6 @@ function StudentWorkRow({ item }: { item: InstructorStudentWorkItem }) {
   );
 }
 
-function StudentRail({ workspace }: { workspace: InstructorStudentWorkspace }) {
-  const student = workspace.student;
-
-  return (
-    <div className="space-y-5">
-      <Panel title="Student">
-        <div className="space-y-3 text-[13px]">
-          <RecordFact label="Standing" value={student?.standing ?? "-"} />
-          <RecordFact label="Submitted" value={student?.submitted ?? 0} />
-          <RecordFact label="Graded" value={student?.graded ?? 0} />
-          <RecordFact label="Open" value={student?.open ?? 0} />
-        </div>
-      </Panel>
-      <Panel title="Record">
-        <div className="space-y-3 text-[13px]">
-          <IconLabel icon={UsersRound}>Roster</IconLabel>
-          <IconLabel icon={ClipboardCheck}>Work</IconLabel>
-          <IconLabel icon={Target}>Objectives</IconLabel>
-          <IconLabel icon={FileText}>Course map</IconLabel>
-        </div>
-      </Panel>
-    </div>
-  );
-}
 
 function workMeta(item: InstructorStudentWorkItem) {
   if (item.gradedAt) return `Graded ${formatShortDate(item.gradedAt)}`;

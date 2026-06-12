@@ -10,7 +10,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test lib/workspace/*.test.ts lib/db/fixtures/*.test.ts",
+    "test": "tsx --test lib/workspace/*.test.ts lib/db/fixtures/*.test.ts lib/agent/*.test.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build",
     "smoke": "tsx scripts/smoke.ts",
     "db:generate": "drizzle-kit generate",
@@ -21,7 +21,10 @@
     "postinstall": "node scripts/decode-fonts.mjs"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.0",
+    "@ai-sdk/google": "^2.0.0",
     "@ai-sdk/openai": "^2.0.40",
+    "@ai-sdk/openai-compatible": "^2.0.0",
     "@auth/drizzle-adapter": "^1.10.0",
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "ai": "^6.0.97",

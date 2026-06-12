@@ -24,7 +24,19 @@ import {
   uniqueIndex,
   index,
   vector,
+  customType,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+
+/**
+ * Postgres full-text search vector. Used for cheap, deterministic session recall
+ * (lib/agent/session-search.ts) with a GIN index, no model call in the path.
+ */
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return "tsvector";
+  },
+});
 
 /* ───────────────────────── enums ───────────────────────── */
 
@@ -71,7 +83,13 @@ export const agentTurnRoleEnum = pgEnum("agent_turn_role", ["user", "assistant",
 export const cueKindEnum = pgEnum("cue_kind", ["explain", "practice", "question"]);
 export const cueTargetEnum = pgEnum("cue_target", ["assignment", "module", "page", "course"]);
 export const explanationDepthEnum = pgEnum("explanation_depth", ["hint", "guided", "full"]);
-export const providerKindEnum = pgEnum("provider_kind", ["openrouter", "openai"]);
+export const providerKindEnum = pgEnum("provider_kind", [
+  "openrouter",
+  "openai",
+  "anthropic",
+  "google",
+  "openai_compatible",
+]);
 
 /* ──────────────────── 1. tenancy & auth ─────────────────── */
 
@@ -655,9 +673,18 @@ export const agentTurns = pgTable(
     // UIMessage parts (text, tool calls, tool results), renderable and replayable.
     parts: jsonb("parts").notNull(),
     tokenEstimate: integer("token_estimate").notNull().default(0),
+    // Generated full-text index over the message's string values. Powers keyword
+    // session recall (bounded windows + bookends, no LLM). Immutable expression so
+    // it can be a STORED generated column; GIN-indexed below.
+    fts: tsvector("fts").generatedAlwaysAs(
+      sql`jsonb_to_tsvector('english'::regconfig, parts, '["string"]'::jsonb)`
+    ),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [uniqueIndex("agent_turns_session_turn_idx").on(t.sessionId, t.turnIndex)]
+  (t) => [
+    uniqueIndex("agent_turns_session_turn_idx").on(t.sessionId, t.turnIndex),
+    index("agent_turns_fts_idx").using("gin", t.fts),
+  ]
 );
 
 /**
@@ -738,6 +765,8 @@ export const orgProviderKeys = pgTable(
     iv: text("iv").notNull(),
     keyTail: text("key_tail").notNull(), // last 4 chars, for display
     chatModel: text("chat_model"),
+    // For the openai_compatible / opencode-gateway provider: the endpoint base URL.
+    baseUrl: text("base_url"),
     createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

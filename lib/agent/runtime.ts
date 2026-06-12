@@ -17,6 +17,7 @@ import {
 } from "@/lib/agent/blocks";
 import type { ContextPack } from "@/lib/agent/context";
 import type { CourseAiPolicy } from "@/lib/db/schema";
+import { searchSession, loadTurnWindow } from "@/lib/agent/session-search";
 
 /**
  * The agent runtime, two surfaces, one doctrine.
@@ -48,6 +49,7 @@ Authoring standards:
 - Tie every module/assignment/practice block to existing objective codes from the pack. If the right objective doesn't exist, propose it first with proposeObjective.
 - Write in the professor's register: specific, concrete, no filler. Draft content the professor could publish unchanged.
 - Match the course's actual material, reuse its datasets, examples, and terminology from the pack.
+- To recall something from earlier in this session (a prior decision, a number, a name), use recallSession instead of guessing; it returns the actual earlier turns.
 - Finish with one short text line summarizing what you drafted (the blocks carry the content; do not repeat them in prose).
 
 COURSE RECORD:
@@ -219,6 +221,36 @@ export function createCommandTools(state: CommandRunState) {
           .limit(1);
         return p ?? { error: "Record not found in this course." };
       },
+    }),
+
+    recallSession: tool({
+      description:
+        "Search THIS session's earlier turns by keyword. Returns matching snippets with their nearby turns and the conversation's opening/closing turns. Use to recall what was discussed or decided earlier instead of guessing. Keyword search over stored messages, no summaries.",
+      inputSchema: z.object({
+        query: z.string().min(2).max(200).describe("Keywords to find in earlier turns, e.g. 'midterm rubric weight'."),
+        window: z
+          .number()
+          .int()
+          .min(0)
+          .max(10)
+          .optional()
+          .describe("Turns of context to include on each side of each hit (default 5)."),
+      }),
+      execute: async ({ query, window }) =>
+        searchSession(state.orgId, state.sessionId, query, window != null ? { window } : {}),
+    }),
+
+    readHistoryWindow: tool({
+      description:
+        "Read a contiguous block of this session's turns around a given turn index, to expand context after recallSession.",
+      inputSchema: z.object({
+        centerTurn: z.number().int().min(1),
+        before: z.number().int().min(0).max(30).optional(),
+        after: z.number().int().min(0).max(30).optional(),
+      }),
+      execute: async ({ centerTurn, before, after }) => ({
+        turns: await loadTurnWindow(state.orgId, state.sessionId, centerTurn, before ?? 8, after ?? 8),
+      }),
     }),
   };
 }

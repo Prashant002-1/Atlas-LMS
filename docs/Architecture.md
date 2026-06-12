@@ -6,8 +6,9 @@
 |---|---|---|
 | Framework | Next.js 16 (App Router) + React 19 | Ported from prototype |
 | AI runtime | Vercel AI SDK v6 (`streamText`, typed tools, multi-step) | Ported |
-| Models | Provider-abstracted; paid-capable defaults via env | **Fixed:** prototype shipped `:free` models with no SLA |
+| Models | Provider registry: openrouter, openai, anthropic, google, openai_compatible (opencode gateway) | Swap via env or BYOK; see ADR-006 |
 | DB | PostgreSQL 16 + pgvector | Atlas is the **source of truth** (read-write), not a Canvas mirror |
+| Retrieval | Session recall = keyword FTS (no LLM); semantic course-content = Gemini embeddings | Two separate paths; see ADR-005, ADR-007 |
 | ORM / migrations | **Drizzle ORM** | **Fixed:** prototype created tables lazily at request time |
 | Auth | **Auth.js (NextAuth v5)** + Drizzle adapter | **Fixed:** prototype had no auth at all |
 | Tenancy | Shared DB, `org_id` on every domain row, app-layer scoping | RLS is a planned hardening step |
@@ -100,4 +101,10 @@ Agent write tools append typed blocks to one pending `change_proposal` per run. 
 
 **ADR-004, 1536-dim embeddings.** The prototype used a 2048-dim model that _cannot_ be indexed by pgvector (ivfflat/hnsw cap at 2000 dims) and mismatched its own 1536 columns. We standardize on 1536 so content/memory vectors are HNSW-indexable from day one.
 
-> These four are the biggest reversible-but-load-bearing choices. Flag early if you'd steer differently.
+**ADR-005, keyword FTS for session recall (not embeddings).** Recall over session history is a Postgres full-text path: a generated `tsvector` (`agent_turns.fts`) with a GIN index, matched by `websearch_to_tsquery`. A search returns a bounded view, the matching turns plus a ±N window and the conversation's opening/closing bookends, assembled in code and handed back as raw turns; the agent scrolls (`readHistoryWindow`) when it needs more. There is **no model call in the retrieval path**. This deliberately avoids the expensive shape (match → load whole session → format transcript → summarize with an LLM). Embeddings are explicitly _not_ used here: recall wants exact, cheap, deterministic, inspectable lookups. _Trade-off:_ keyword recall can miss pure paraphrase; acceptable, and far leaner than a vector index over chat. (Inspired by Hermes' SQLite-FTS5 `session_search`; realized on Postgres because Atlas is single-source-of-truth and adding a second datastore would not be lean.)
+
+**ADR-006, a provider registry (chat/generation).** Models resolve through one registry (`lib/ai/provider.ts`) over openrouter, openai, anthropic, google, and an `openai_compatible` slot (configurable base URL, the intended path for opencode behind an OpenAI-compatible gateway, plus LiteLLM/vLLM/etc.). Selection is env-driven (`ATLAS_CHAT_PROVIDER`) with per-org BYOK overrides (`org_provider_keys`, now carrying `base_url`). opencode's native session API is agent-loop shaped (not an OpenAI-style completion) so it is **not** a drop-in `LanguageModel`; a thin, experimental native client lives in `lib/ai/opencode.ts` and stays off the default `streamText` path so Atlas keeps its own typed-block tools. _Trade-off:_ more provider packages; isolated behind one module.
+
+**ADR-007, embeddings are for course content only.** Embeddings are reserved for semantic lookup over large content (the syllabus, long pages/files), never for session recall (see ADR-005). Default model is Google `gemini-embedding-002`, output truncated (MRL) to 1536 dims to fit the existing pgvector columns (ADR-004) and L2-normalized for stable cosine distance; short content is left in the deterministic context pack rather than embedded. _Trade-off:_ a managed embedding dependency, scoped to where semantics actually earn their cost.
+
+> These are the biggest reversible-but-load-bearing choices. Flag early if you'd steer differently.

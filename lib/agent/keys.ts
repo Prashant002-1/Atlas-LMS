@@ -1,18 +1,28 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { eq, and } from "drizzle-orm";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { createOpenAI } from "@ai-sdk/openai";
 import type { LanguageModel } from "ai";
 import { db } from "@/lib/db";
 import { orgProviderKeys } from "@/lib/db/schema";
+import {
+  CHAT_PROVIDERS,
+  createChatModel,
+  defaultChatProvider,
+  defaultModelIdFor,
+  envApiKeyFor,
+  envBaseUrlFor,
+  hasEnvCredentials,
+  type ChatProviderKind,
+} from "@/lib/ai/provider";
 
 /**
  * BYOK, bring your own key, per organization.
  *
- * Demo posture: each org (school/team) attaches its own OpenRouter or OpenAI key
- * in Course settings; the platform env key is the fallback. Keys are AES-256-GCM
- * encrypted at rest with a key derived from AUTH_SECRET, never sent to the
- * client (only a masked tail), and resolved server-side per request.
+ * Each org attaches its own provider key (OpenRouter, OpenAI, Anthropic, Google,
+ * or an OpenAI-compatible/opencode endpoint) in Course settings; the platform env
+ * is the fallback. Keys are AES-256-GCM encrypted at rest with a key derived from
+ * AUTH_SECRET, never sent to the client (only a masked tail), and resolved
+ * server-side per request. All provider wiring lives in lib/ai/provider.ts; this
+ * file only decides WHICH key/model to hand it.
  */
 
 const ALGO = "aes-256-gcm";
@@ -43,50 +53,52 @@ export function decryptSecret(ciphertext: string, iv: string): string {
 export type ResolvedProvider = {
   model: LanguageModel;
   source: "org" | "env";
-  provider: "openrouter" | "openai";
+  provider: ChatProviderKind;
   modelId: string;
 };
 
-const DEFAULT_OPENROUTER_MODEL = process.env.ATLAS_CHAT_MODEL ?? "openai/gpt-4.1";
-const DEFAULT_OPENAI_MODEL = "gpt-4.1";
+/** Preference order: the env-default provider first, then the rest in registry order. */
+function providerOrder(): ChatProviderKind[] {
+  const preferred = defaultChatProvider();
+  return [preferred, ...CHAT_PROVIDERS.filter((p) => p !== preferred)];
+}
 
 /**
- * Resolution order: the org's stored key (OpenRouter preferred, then OpenAI),
- * then the platform env key. Returns null when nothing is configured, callers
- * surface a clean "connect a model key" state instead of a broken run.
+ * Resolution order: the org's stored key (preferred provider first), then the
+ * platform env key. Returns null when nothing is configured, callers surface a
+ * clean "connect a model key" state instead of a broken run.
  */
 export async function resolveModelForOrg(orgId: string): Promise<ResolvedProvider | null> {
   const rows = await db.select().from(orgProviderKeys).where(eq(orgProviderKeys.orgId, orgId));
-  const stored = rows.find((r) => r.provider === "openrouter") ?? rows.find((r) => r.provider === "openai");
+  const order = providerOrder();
+
+  const stored = rows
+    .filter((r) => (CHAT_PROVIDERS as readonly string[]).includes(r.provider))
+    .sort((a, b) => order.indexOf(a.provider as ChatProviderKind) - order.indexOf(b.provider as ChatProviderKind))[0];
 
   if (stored) {
     try {
+      const provider = stored.provider as ChatProviderKind;
       const apiKey = decryptSecret(stored.ciphertext, stored.iv);
-      if (stored.provider === "openrouter") {
-        const modelId = stored.chatModel ?? DEFAULT_OPENROUTER_MODEL;
-        return { model: createOpenRouter({ apiKey })(modelId), source: "org", provider: "openrouter", modelId };
+      const baseURL = stored.baseUrl ?? envBaseUrlFor(provider);
+      // openai_compatible/opencode needs a base URL; without one, fall through to env.
+      if (provider !== "openai_compatible" || baseURL) {
+        const modelId = stored.chatModel ?? defaultModelIdFor(provider, "chat");
+        return { model: createChatModel({ provider, modelId, apiKey, baseURL }), source: "org", provider, modelId };
       }
-      const modelId = stored.chatModel ?? DEFAULT_OPENAI_MODEL;
-      return { model: createOpenAI({ apiKey })(modelId), source: "org", provider: "openai", modelId };
     } catch {
-      // fall through to env, a corrupt row must not take the product down
+      // A corrupt row must not take the product down; fall through to env.
     }
   }
 
-  if (process.env.OPENROUTER_API_KEY) {
+  for (const provider of order) {
+    if (!hasEnvCredentials(provider)) continue;
+    const modelId = defaultModelIdFor(provider, "chat");
     return {
-      model: createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY })(DEFAULT_OPENROUTER_MODEL),
+      model: createChatModel({ provider, modelId, apiKey: envApiKeyFor(provider), baseURL: envBaseUrlFor(provider) }),
       source: "env",
-      provider: "openrouter",
-      modelId: DEFAULT_OPENROUTER_MODEL,
-    };
-  }
-  if (process.env.OPENAI_API_KEY) {
-    return {
-      model: createOpenAI({ apiKey: process.env.OPENAI_API_KEY })(DEFAULT_OPENAI_MODEL),
-      source: "env",
-      provider: "openai",
-      modelId: DEFAULT_OPENAI_MODEL,
+      provider,
+      modelId,
     };
   }
   return null;
@@ -95,9 +107,10 @@ export async function resolveModelForOrg(orgId: string): Promise<ResolvedProvide
 export async function saveOrgProviderKey(args: {
   orgId: string;
   userId: string;
-  provider: "openrouter" | "openai";
+  provider: ChatProviderKind;
   apiKey: string;
   chatModel?: string | null;
+  baseUrl?: string | null;
 }): Promise<void> {
   const { ciphertext, iv } = encryptSecret(args.apiKey);
   const keyTail = args.apiKey.slice(-4);
@@ -110,15 +123,24 @@ export async function saveOrgProviderKey(args: {
       iv,
       keyTail,
       chatModel: args.chatModel ?? null,
+      baseUrl: args.baseUrl ?? null,
       createdById: args.userId,
     })
     .onConflictDoUpdate({
       target: [orgProviderKeys.orgId, orgProviderKeys.provider],
-      set: { ciphertext, iv, keyTail, chatModel: args.chatModel ?? null, createdById: args.userId, updatedAt: new Date() },
+      set: {
+        ciphertext,
+        iv,
+        keyTail,
+        chatModel: args.chatModel ?? null,
+        baseUrl: args.baseUrl ?? null,
+        createdById: args.userId,
+        updatedAt: new Date(),
+      },
     });
 }
 
-export async function deleteOrgProviderKey(orgId: string, provider: "openrouter" | "openai"): Promise<void> {
+export async function deleteOrgProviderKey(orgId: string, provider: ChatProviderKind): Promise<void> {
   await db.delete(orgProviderKeys).where(and(eq(orgProviderKeys.orgId, orgId), eq(orgProviderKeys.provider, provider)));
 }
 
@@ -128,6 +150,7 @@ export async function listOrgProviderKeys(orgId: string) {
       provider: orgProviderKeys.provider,
       keyTail: orgProviderKeys.keyTail,
       chatModel: orgProviderKeys.chatModel,
+      baseUrl: orgProviderKeys.baseUrl,
       updatedAt: orgProviderKeys.updatedAt,
     })
     .from(orgProviderKeys)

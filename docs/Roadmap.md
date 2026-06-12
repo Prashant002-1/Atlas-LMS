@@ -44,6 +44,7 @@ Remaining before an institutional pilot:
 - Current: student Atlas requests persist to the active course chat record, return a compact study package, reappear as recent study context, and follow into linked material/work records.
 - Next: render the planning views (`todayDesk`, `weekMap`, `assignmentFocus`) from the validated course-view contract.
 - `studySession` view: grounded tutor (RAG over course content embeddings, Socratic prompting, citations)
+- Retrieval discipline (shipped): session recall is keyword FTS over `agent_turns` (bounded windows + bookends, no LLM, see ADR-005); embeddings (Gemini `gemini-embedding-002`) are reserved for course-content semantics only (ADR-007). Models resolve through a provider registry (ADR-006).
 - objective alignment stays internal: it grounds the agent, it is not a meter
 - Per-user memory + planner, scoped
 

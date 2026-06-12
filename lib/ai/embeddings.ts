@@ -1,4 +1,5 @@
 import { embed, embedMany } from "ai";
+import type { ProviderOptions } from "@ai-sdk/provider-utils";
 import { embeddingModel, embeddingProviderKind, EMBEDDING_DIMS } from "@/lib/ai/provider";
 
 export { EMBEDDING_DIMS };
@@ -23,7 +24,7 @@ export function shouldEmbed(text: string | null | undefined): boolean {
 
 type Task = "document" | "query";
 
-function providerOptions(task: Task) {
+function providerOptions(task: Task): ProviderOptions | undefined {
   const kind = embeddingProviderKind();
   if (kind === "google") {
     return {

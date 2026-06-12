@@ -158,7 +158,7 @@ export function embeddingModelId(): string {
   return process.env.ATLAS_EMBEDDING_MODEL ?? (embeddingProviderKind() === "openai" ? "text-embedding-3-small" : "gemini-embedding-002");
 }
 
-export function embeddingModel(): EmbeddingModel<string> {
+export function embeddingModel(): EmbeddingModel {
   const provider = embeddingProviderKind();
   const modelId = embeddingModelId();
   if (provider === "openai") {

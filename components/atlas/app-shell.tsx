@@ -12,7 +12,6 @@ import {
   LayoutDashboard,
   LogOut,
   PanelLeftClose,
-  PanelLeftOpen,
   Send,
   Settings,
   Sparkles,
@@ -26,8 +25,9 @@ import { MotionPage } from "@/components/atlas/motion";
 /**
  * The app frame: a collapsible sidebar and a content column. The sidebar
  * carries the wordmark, the navigation, an optional course switcher, and a
- * quiet sign out. When collapsed it expands on hover as an overlay, the
- * Notion/Linear pattern: the rail stays 60px in flow, the panel floats.
+ * quiet sign out. The collapse toggle lives beside the logo at the top.
+ * When collapsed, the logo itself becomes the toggle: clicking it opens
+ * the sidebar. No hover-float.
  */
 
 const ICONS = {
@@ -96,35 +96,48 @@ export function AppShell({
   const isActive = (item: NavItem) =>
     item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-  // Label visibility: shown when expanded, hidden (not invisible) when
-  // collapsed so it takes no flex space and justify-center centers the icon.
-  const labelCls = collapsed
-    ? "hidden group-hover:block"
-    : "block";
-
   return (
     <div className="atlas-app-bg flex min-h-screen text-[var(--color-ink)]">
-      {/* The rail: stays at 60px in flow when collapsed. The inner panel
-          floats to full width on hover, overlaying content without pushing. */}
       <aside
-        className={`group sticky top-0 z-20 h-screen shrink-0 ${collapsed ? "w-[60px] overflow-visible" : "w-[218px]"}`}
+        className={`sticky top-0 z-20 h-screen shrink-0 ${
+          ready ? "transition-[width] duration-[220ms] ease-out" : ""
+        } ${collapsed ? "w-[60px]" : "w-[218px]"}`}
       >
-        <div
-          className={`absolute inset-y-0 left-0 z-30 flex flex-col border-r border-[var(--color-border)] bg-[var(--color-surface-sidebar)] ${
-            ready ? "transition-[width,box-shadow,border-color] duration-[220ms] ease-out" : ""
-          } ${collapsed ? "w-[60px] group-hover:w-[218px] group-hover:border-[var(--color-border-strong)] group-hover:shadow-[var(--shadow-floating)]" : "w-[218px]"}`}
-        >
-          {/* Brand */}
-          <div className={`flex h-14 items-center border-b border-[var(--color-border)] ${collapsed ? "justify-center px-0 group-hover:px-4 group-hover:justify-start" : "px-4"}`}>
-            <Link href="/" aria-label="Atlas" className="flex items-center gap-2.5 rounded-[6px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
+        <div className="flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-surface-sidebar)]">
+          {/* Brand header */}
+          {collapsed ? (
+            /* Collapsed: just the logo mark, clickable to expand. */
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label="Expand sidebar"
+              title="Expand"
+              className="flex h-14 w-full items-center justify-center border-b border-[var(--color-border)] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
+            >
               <AtlasMark />
-              <span className={`atlas-serif text-[17px] font-medium ${labelCls}`}>Atlas</span>
-            </Link>
-          </div>
+            </button>
+          ) : (
+            /* Expanded: logo + wordmark on the left, toggle on the right */
+            <div className="flex h-14 items-center justify-between border-b border-[var(--color-border)] px-4">
+              <Link href="/" aria-label="Atlas" className="flex items-center gap-2.5 rounded-[6px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
+                <AtlasMark />
+                <span className="atlas-serif text-[17px] font-medium">Atlas</span>
+              </Link>
+              <button
+                type="button"
+                onClick={toggle}
+                aria-label="Collapse sidebar"
+                title="Collapse"
+                className="inline-flex size-8 items-center justify-center rounded-[6px] text-[var(--color-faint)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+              >
+                <PanelLeftClose size={15} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+          )}
 
-          {/* Course switcher: hidden in the rail, appears on hover */}
-          {courses && courses.length > 1 ? (
-            <div className={`border-b border-[var(--color-border)] px-3 py-2.5 ${collapsed ? "hidden group-hover:block" : "block"}`}>
+          {/* Course switcher: only when expanded */}
+          {!collapsed && courses && courses.length > 1 ? (
+            <div className="border-b border-[var(--color-border)] px-3 py-2.5">
               <CourseSwitcher courses={courses} activeCourseId={activeCourseId} scopePath={scopePath ?? pathname} />
             </div>
           ) : null}
@@ -141,35 +154,25 @@ export function AppShell({
                   aria-current={active ? "page" : undefined}
                   title={collapsed ? item.label : undefined}
                   className={`relative flex min-h-9 items-center gap-2.5 rounded-[7px] px-2.5 text-[13.5px] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] ${
-                    collapsed ? "justify-center group-hover:justify-start" : ""
+                    collapsed ? "justify-center" : ""
                   } ${
                     active
                       ? "bg-[var(--color-indigo-soft)] text-[var(--color-ink)]"
                       : "text-[var(--color-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"
                   }`}
                 >
-                  {/* Active accent bar */}
                   {active ? (
                     <span className="absolute left-0 top-1/2 h-5 w-[2.5px] -translate-y-1/2 rounded-full bg-[var(--color-indigo)]" aria-hidden />
                   ) : null}
                   <Icon size={16} strokeWidth={2} aria-hidden className="shrink-0" />
-                  <span className={`truncate ${labelCls}`}>{item.label}</span>
+                  {!collapsed ? <span className="truncate">{item.label}</span> : null}
                 </Link>
               );
             })}
           </nav>
 
-          {/* Footer controls */}
-          <div className={`flex items-center gap-1 border-t border-[var(--color-border)] p-2 ${collapsed ? "flex-col group-hover:flex-row group-hover:justify-between" : "justify-between"}`}>
-            <button
-              type="button"
-              onClick={toggle}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              title={collapsed ? "Expand" : "Collapse"}
-              className="inline-flex size-9 items-center justify-center rounded-[7px] text-[var(--color-faint)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
-            >
-              {collapsed ? <PanelLeftOpen size={16} strokeWidth={2} aria-hidden /> : <PanelLeftClose size={16} strokeWidth={2} aria-hidden />}
-            </button>
+          {/* Footer: just sign out */}
+          <div className={`flex items-center border-t border-[var(--color-border)] p-2 ${collapsed ? "justify-center" : "justify-end"}`}>
             <form action={signOutOfAtlas}>
               <button
                 type="submit"

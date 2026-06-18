@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Atlas Command</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --color-bg: oklch(0.89 0.012 260);
+  --color-surface: oklch(0.99 0.003 255);
+  --color-surface-muted: oklch(0.955 0.008 255);
+  --color-surface-sidebar: oklch(0.965 0.006 258);
+  --color-ink: oklch(0.2 0.022 265);
+  --color-muted: oklch(0.48 0.022 262);
+  --color-faint: oklch(0.62 0.02 260);
+  --color-border: oklch(0.85 0.01 258);
+  --color-border-strong: oklch(0.79 0.014 258);
+  --color-indigo: oklch(0.33 0.066 263);
+  --color-indigo-soft: oklch(0.92 0.016 262);
+  --color-accent: oklch(0.56 0.072 214);
+  --color-accent-strong: oklch(0.49 0.066 213);
+  --color-good: oklch(0.55 0.084 153);
+  --color-warn: oklch(0.56 0.09 76);
+  --color-danger: oklch(0.52 0.13 35);
+  --shadow-panel: 0 1px 2px 0 rgba(15,20,28,.04), 0 1px 4px 0 rgba(15,20,28,.04);
+  --shadow-elevated: 0 2px 4px 0 rgba(15,20,28,.05), 0 4px 12px 0 rgba(15,20,28,.06);
+  --shadow-floating: 0 8px 28px -4px rgba(15,20,28,.12), 0 2px 8px -2px rgba(15,20,28,.08);
+  --font-serif: "Spectral", Georgia, serif;
+  --font-sans: "Hanken Grotesk", ui-sans-serif, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ease: cubic-bezier(0.16,1,0.3,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--color-bg);color:var(--color-ink);font-family:var(--font-sans);
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;
+}
+.serif{font-family:var(--font-serif)}
+.mono{font-family:var(--font-mono)}
+.eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-faint)}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+::selection{background:color-mix(in oklch,var(--color-accent) 18%,transparent)}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--color-border-strong);border-radius:6px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-rows:auto 1fr;height:100vh;overflow:hidden}
+.topbar{
+  display:flex;align-items:center;gap:18px;height:56px;padding:0 18px;
+  background:var(--color-surface);border-bottom:1px solid var(--color-border);z-index:10;
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .name{font-family:var(--font-serif);font-size:18px;font-weight:600;line-height:1}
+.brand .sub{font-size:11px;color:var(--color-muted);margin-top:2px}
+.switcher{
+  display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:8px;
+  border:1px solid var(--color-border);background:var(--color-surface);font-weight:500;font-size:13px;
+}
+.switcher:hover{border-color:var(--color-border-strong)}
+.switcher .dot{width:7px;height:7px;border-radius:50%;background:var(--color-accent)}
+.modepill{margin-left:2px;display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border-radius:999px;background:var(--color-indigo-soft);color:var(--color-indigo);font-size:12px;font-weight:600}
+.spacer{flex:1}
+.chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:7px;border:1px solid var(--color-border);background:var(--color-surface-muted);font-size:12px;color:var(--color-muted)}
+.chip .k{width:6px;height:6px;border-radius:50%;background:var(--color-good)}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--color-indigo);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600}
+
+.cols{display:grid;grid-template-columns:264px minmax(0,1fr) 332px;height:100%;overflow:hidden}
+
+/* ---------- left: sessions ---------- */
+.rail{background:var(--color-surface-sidebar);border-right:1px solid var(--color-border);display:flex;flex-direction:column;overflow:hidden}
+.rail-top{padding:14px 14px 10px}
+.newbtn{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;height:38px;padding:0 12px;border-radius:9px;
+  background:var(--color-ink);color:#fff;font-weight:600;font-size:13px;transition:background .2s var(--ease)
+}
+.newbtn:hover{background:var(--color-accent-strong)}
+.newbtn kbd{font-family:var(--font-mono);font-size:10px;background:rgba(255,255,255,.16);padding:2px 6px;border-radius:4px}
+.search{margin-top:10px;display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-faint);font-size:12.5px}
+.sesslist{flex:1;overflow-y:auto;padding:6px 8px 14px}
+.grouplbl{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-faint);padding:12px 8px 6px}
+.sess{position:relative;width:100%;text-align:left;padding:9px 10px 9px 13px;border-radius:9px;transition:background .18s var(--ease);display:block}
+.sess:hover{background:var(--color-surface-muted)}
+.sess.active{background:var(--color-surface);box-shadow:var(--shadow-panel)}
+.sess.active::before{content:"";position:absolute;left:3px;top:10px;bottom:10px;width:2.5px;border-radius:2px;background:var(--color-accent)}
+.sess .row1{display:flex;align-items:center;gap:7px}
+.sess .stat{width:7px;height:7px;border-radius:50%;flex:none}
+.stat.run{background:var(--color-accent);box-shadow:0 0 0 0 color-mix(in oklch,var(--color-accent) 60%,transparent);animation:pulse 1.6s infinite}
+.stat.done{background:var(--color-good)}
+.stat.idle{background:var(--color-faint)}
+.sess .ttl{font-size:13px;font-weight:500;color:var(--color-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sess .row2{display:flex;align-items:center;gap:6px;margin-top:3px;padding-left:14px;font-size:11.5px;color:var(--color-muted)}
+.sess .surf{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-faint)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in oklch,var(--color-accent) 55%,transparent)}70%{box-shadow:0 0 0 6px transparent}100%{box-shadow:0 0 0 0 transparent}}
+
+/* ---------- center: stream ---------- */
+.main{display:flex;flex-direction:column;overflow:hidden;background:linear-gradient(180deg,color-mix(in oklch,var(--color-surface) 50%,var(--color-bg)) 0,var(--color-bg) 220px),var(--color-bg)}
+.sesshead{display:flex;align-items:center;gap:14px;padding:16px 26px 14px;border-bottom:1px solid var(--color-border)}
+.sesshead h1{font-family:var(--font-serif);font-size:20px;font-weight:600;letter-spacing:-.01em}
+.sesshead .meta{font-size:12.5px;color:var(--color-muted);margin-top:3px}
+.runstate{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--color-border)}
+.runstate.working{color:var(--color-accent-strong);background:color-mix(in oklch,var(--color-accent) 9%,transparent);border-color:color-mix(in oklch,var(--color-accent) 30%,var(--color-border))}
+.runstate.idle{color:var(--color-muted);background:var(--color-surface)}
+.runstate .d{width:7px;height:7px;border-radius:50%;background:currentColor}
+.runstate.working .d{animation:pulse 1.6s infinite}
+.replay{margin-left:6px;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:8px;border:1px solid var(--color-border-strong);background:var(--color-surface);font-size:12.5px;font-weight:600;transition:.18s var(--ease)}
+.replay:hover{border-color:var(--color-ink)}
+
+.stream{flex:1;overflow-y:auto;padding:24px 26px 8px;scroll-behavior:smooth}
+.streamwrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.turn-user{display:flex;justify-content:flex-end}
+.turn-user .bubble{max-width:80%;background:var(--color-indigo-soft);color:var(--color-ink);padding:10px 14px;border-radius:12px 12px 4px 12px;font-size:14px;line-height:1.55}
+.agent{display:flex;flex-direction:column;gap:11px}
+.agent .who{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-muted)}
+.agent .who .mk{width:18px;height:18px;border-radius:50%;border:1.6px solid var(--color-indigo);position:relative;flex:none}
+.agent .who .mk::after{content:"";position:absolute;inset:0;margin:auto;width:3px;height:3px;border-radius:50%;background:var(--color-accent)}
+
+/* thinking drawer */
+.think{border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface);overflow:hidden}
+.think summary{list-style:none;display:flex;align-items:center;gap:9px;padding:9px 13px;font-size:12.5px;color:var(--color-muted);cursor:pointer}
+.think summary::-webkit-details-marker{display:none}
+.think summary .car{margin-left:auto;transition:transform .2s var(--ease);color:var(--color-faint);font-size:11px}
+.think[open] summary .car{transform:rotate(90deg)}
+.think .body{padding:2px 13px 11px 34px;display:flex;flex-direction:column;gap:7px;border-top:1px solid var(--color-border)}
+.tstep{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--color-muted);line-height:1.5}
+.tstep .ic{font-family:var(--font-mono);font-size:11px;color:var(--color-good);margin-top:1px;flex:none}
+.tstep .ic.run{color:var(--color-accent)}
+.tdot{display:inline-flex;gap:8px;align-items:center;font-size:12.5px;color:var(--color-muted)}
+.tdot .b{width:6px;height:6px;border-radius:50%;background:var(--color-accent);animation:pulse 1.4s infinite}
+
+/* action receipt cards */
+.act{display:flex;align-items:center;gap:10px;padding:9px 13px;border:1px solid var(--color-border);border-radius:9px;background:var(--color-surface);font-size:13px;box-shadow:var(--shadow-panel)}
+.act .ai{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:var(--color-surface-muted);color:var(--color-muted);flex:none}
+.act .at{flex:1;min-width:0}
+.act .at b{font-weight:600}
+.act .at .sub{color:var(--color-muted);font-size:12px}
+.act .ck{font-family:var(--font-mono);font-size:11px;color:var(--color-good)}
+
+/* block card (mirrors block-views BlockFrame) */
+.block{border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface);box-shadow:var(--shadow-panel);opacity:0;transform:translateY(6px);animation:rise .45s var(--ease) forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+.block header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:10px 15px;border-bottom:1px solid var(--color-border)}
+.block header .l{display:flex;align-items:baseline;gap:11px;min-width:0}
+.block header .kind{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-faint);flex:none}
+.block header h4{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.block header .m{font-family:var(--font-mono);font-size:12px;color:var(--color-muted);flex:none}
+.block .bd{padding:13px 15px;font-size:13.5px;line-height:1.6;color:var(--color-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.cd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--color-border);background:var(--color-surface-muted);color:var(--color-muted);padding:2px 7px;border-radius:4px}
+.qbase{border:1px solid var(--color-border);background:var(--color-surface-muted);border-radius:6px;padding:9px 11px;margin-bottom:10px}
+.q{border-top:1px solid var(--color-border);padding-top:10px;margin-top:10px}
+.q:first-child{border-top:none;padding-top:0;margin-top:0}
+.q .opts{padding-left:18px;margin-top:5px;color:var(--color-muted);font-size:12.5px;display:flex;flex-direction:column;gap:3px}
+.blockfoot{display:flex;align-items:center;gap:10px;padding:9px 15px;border-top:1px solid var(--color-border);background:var(--color-surface-muted);border-radius:0 0 8px 8px}
+.mini{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:7px;font-size:12px;font-weight:600;border:1px solid var(--color-border-strong);background:var(--color-surface);transition:.15s var(--ease)}
+.mini:hover{border-color:var(--color-ink)}
+.mini.go{background:var(--color-ink);color:#fff;border-color:var(--color-ink)}
+.mini.go:hover{background:var(--color-accent-strong);border-color:var(--color-accent-strong)}
+.narr{font-size:13.5px;line-height:1.6;color:var(--color-ink)}
+.review-note{font-size:12.5px;color:var(--color-muted)}
+.review-note a{color:var(--color-accent-strong);font-weight:600;text-decoration:none}
+
+/* composer */
+.composer{padding:12px 26px 16px;border-top:1px solid var(--color-border);background:color-mix(in oklch,var(--color-bg) 70%,var(--color-surface))}
+.composer .wrap{max-width:760px;margin:0 auto}
+.cbar{display:flex;gap:9px;align-items:flex-end;background:var(--color-surface);border:1px solid var(--color-border-strong);border-radius:13px;padding:9px 9px 9px 14px;box-shadow:var(--shadow-panel)}
+.cbar textarea{flex:1;border:none;outline:none;resize:none;background:none;font:inherit;font-size:14px;line-height:1.5;max-height:120px;color:var(--color-ink)}
+.cbar textarea::placeholder{color:var(--color-faint)}
+.send{width:38px;height:38px;border-radius:9px;background:var(--color-ink);color:#fff;display:grid;place-items:center;flex:none;transition:.18s var(--ease)}
+.send:hover{background:var(--color-accent-strong)}
+.cmeta{display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap}
+.qa{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:999px;border:1px solid var(--color-border);background:var(--color-surface);font-size:12px;color:var(--color-muted);transition:.15s var(--ease)}
+.qa:hover{border-color:var(--color-border-strong);color:var(--color-ink)}
+.cnote{margin-left:auto;font-size:11.5px;color:var(--color-faint)}
+
+/* ---------- right: artifacts + activity ---------- */
+.aside{background:var(--color-surface-sidebar);border-left:1px solid var(--color-border);display:flex;flex-direction:column;overflow:hidden}
+.aside-sec{padding:15px 15px 6px}
+.aside-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.aside-head h3{font-size:13px;font-weight:600}
+.aside-head .ct{font-family:var(--font-mono);font-size:11px;color:var(--color-muted)}
+.artifacts{flex:none;max-height:46%;overflow-y:auto;padding:0 15px 12px}
+.art{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:9px;border:1px solid var(--color-border);background:var(--color-surface);margin-bottom:8px;box-shadow:var(--shadow-panel);transition:.18s var(--ease)}
+.art:hover{box-shadow:var(--shadow-elevated);transform:translateY(-1px)}
+.art .ic{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;flex:none;background:var(--color-surface-muted)}
+.art .t{flex:1;min-width:0}
+.art .t .k{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-faint)}
+.art .t .n{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{font-size:10.5px;font-weight:600;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:5px;flex:none;align-self:center}
+.tag.drafted{color:var(--color-accent-strong);background:color-mix(in oklch,var(--color-accent) 11%,transparent)}
+.tag.applied{color:var(--color-good);background:color-mix(in oklch,var(--color-good) 12%,transparent)}
+.tag.dismissed{color:var(--color-faint);background:var(--color-surface-muted)}
+.divider{height:1px;background:var(--color-border);margin:2px 0}
+.timeline{flex:1;overflow-y:auto;padding:0 15px 18px}
+.ev{position:relative;padding:0 0 14px 22px}
+.ev::before{content:"";position:absolute;left:4px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--color-surface);border:2px solid var(--color-border-strong)}
+.ev.applied::before{border-color:var(--color-good);background:var(--color-good)}
+.ev.draft::before{border-color:var(--color-accent)}
+.ev::after{content:"";position:absolute;left:7.5px;top:12px;bottom:-2px;width:1.5px;background:var(--color-border)}
+.ev:last-child::after{display:none}
+.ev .x{font-size:12.5px;color:var(--color-ink);line-height:1.45}
+.ev .x b{font-weight:600}
+.ev .ts{font-family:var(--font-mono);font-size:10.5px;color:var(--color-faint);margin-top:2px}
+.prov{margin:6px 15px 14px;padding:9px 11px;border-radius:8px;border:1px dashed var(--color-border-strong);background:var(--color-surface);font-size:11.5px;color:var(--color-muted);line-height:1.45}
+
+.empty{color:var(--color-faint);font-size:12.5px;text-align:center;padding:20px 8px;line-height:1.5}
+@media (max-width:1180px){.cols{grid-template-columns:230px minmax(0,1fr) 300px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="17" fill="none" stroke="var(--color-indigo)" stroke-width="2.4"/>
+        <g stroke="var(--color-ink)" stroke-width="2.2" stroke-linecap="round">
+          <line x1="32" y1="11" x2="32" y2="19"/><line x1="32" y1="45" x2="32" y2="53"/>
+          <line x1="11" y1="32" x2="19" y2="32"/><line x1="45" y1="32" x2="53" y2="32"/>
+        </g>
+        <circle cx="32" cy="32" r="3.1" fill="var(--color-accent)"/>
+      </svg>
+      <div><div class="name">Atlas</div></div>
+    </div>
+    <button class="switcher"><span class="dot"></span> CS&nbsp;250 · Data Structures <span style="color:var(--color-faint)">▾</span></button>
+    <span class="modepill">⌘ Command</span>
+    <div class="spacer"></div>
+    <span class="chip"><span class="k"></span> Opus 4.8 · your key</span>
+    <div class="avatar">PS</div>
+  </div>
+
+  <div class="cols">
+    <!-- LEFT: SESSIONS -->
+    <div class="rail">
+      <div class="rail-top">
+        <button class="newbtn" onclick="resetActive()">+ New session <kbd>⌘N</kbd></button>
+        <div class="search">⌕ Search sessions</div>
+      </div>
+      <div class="sesslist" id="sesslist"></div>
+    </div>
+
+    <!-- CENTER: STREAM -->
+    <div class="main">
+      <div class="sesshead">
+        <div style="flex:1;min-width:0">
+          <h1 id="sh-title">Practice + midterm note for Week 7</h1>
+          <div class="meta" id="sh-meta">CS 250 · Data Structures · Command session · 4 turns</div>
+        </div>
+        <span class="runstate idle" id="runstate"><span class="d"></span> Idle</span>
+        <button class="replay" onclick="playActive()">▶ Replay run</button>
+      </div>
+      <div class="stream" id="stream"><div class="streamwrap" id="streamwrap"></div></div>
+      <div class="composer">
+        <div class="wrap">
+          <div class="cbar">
+            <textarea rows="1" placeholder="Tell Atlas what to draft — it works from the course record and lands in Review"></textarea>
+            <button class="send" title="Send">↑</button>
+          </div>
+          <div class="cmeta">
+            <button class="qa">＋ Import syllabus</button>
+            <button class="qa">◷ Draft this week</button>
+            <button class="qa">✎ Write a note</button>
+            <span class="cnote">Atlas proposes · you apply · nothing goes live without your review</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: ARTIFACTS + ACTIVITY -->
+    <div class="aside">
+      <div class="aside-sec">
+        <div class="aside-head"><h3>Artifacts</h3><span class="ct" id="art-ct">this session</span></div>
+      </div>
+      <div class="artifacts" id="artifacts"></div>
+      <div class="divider"></div>
+      <div class="aside-sec">
+        <div class="aside-head"><h3>Activity</h3><span class="ct">audit trail</span></div>
+      </div>
+      <div class="timeline" id="timeline"></div>
+      <div class="prov" id="prov">Every draft records who ran it and when. Applied content is stamped <b>“drafted by Atlas, reviewed by you.”</b></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ------- mock data ------- */
+const ICON = {objective:"◎",module:"▤",assignment:"✦",practice_set:"⋔",rubric:"▦",page:"❏",announcement:"◔"};
+const sessions = [
+  {
+    id:"s1", active:true, status:"idle", title:"Practice + midterm note for Week 7",
+    meta:"CS 250 · Data Structures · Command session · 4 turns", when:"now", surf:"Command",
+    turns:[
+      {role:"user", text:"Draft a practice set on hashing for this week, and a short note reminding the class the midterm is week 9."},
+      {role:"agent", think:[
+          {t:"Read the course record — CS 250, Summer 2026, week 7 of 14", run:false},
+          {t:"Found Module: “Week 7 · Hashing & Hash Tables” (live), objectives LO3, LO4", run:false},
+          {t:"Reused the course’s running example: the student-records dataset from Week 6", run:false},
+          {t:"Checked the term calendar — midterm falls in week 9 (Jul 21)", run:false},
+        ],
+        acts:[
+          {ic:"▤", t:"Inspected module", sub:"Week 7 · Hashing & Hash Tables"},
+          {ic:"⌕", t:"Recalled this session", sub:"“dataset we used for chaining”"},
+        ],
+        blocks:[
+          {type:"practice_set", title:"Hashing: collisions & load factor", meta:"4 questions",
+           base:"The student-records table from Week 6 (10k rows), hashed on student_id with chaining.",
+           qs:[
+             {p:"A table of size 16 holds 20 keys with chaining. What is the load factor, and what does it imply for lookup?", opts:["α = 0.8","α = 1.25, expect ~1 probe past the head","α = 20","Undefined"]},
+             {p:"Which collision strategy degrades fastest as α → 1 under clustering?", opts:["Separate chaining","Linear probing","Double hashing"]},
+           ], codes:["LO3","LO4"]},
+          {type:"announcement", title:"Midterm is Week 9 (Tue Jul 21)", meta:"",
+           body:"Quick heads-up: the midterm is two weeks out, Tuesday July 21 in class. It covers Weeks 1–8 — recursion through hashing. A review sheet and one practice set will go up this Friday."},
+        ],
+        narr:"Drafted a 4-question hashing set on our Week 6 dataset (aligned LO3, LO4) and a midterm reminder note. Both are in Review."
+      }
+    ],
+    artifacts:[
+      {type:"practice_set", name:"Hashing: collisions & load factor", tag:"drafted"},
+      {type:"announcement", name:"Midterm is Week 9 (Tue Jul 21)", tag:"drafted"},
+    ],
+    timeline:[
+      {cls:"draft", x:"<b>Drafted</b> practice set · Hashing", ts:"now"},
+      {cls:"draft", x:"<b>Drafted</b> note · Midterm is Week 9", ts:"now"},
+    ]
+  },
+  {
+    id:"s2", active:false, status:"done", title:"Add the missing graphs week", surf:"Command", when:"2:10 PM",
+    meta:"CS 250 · Data Structures · Command session · 6 turns",
+    turns:[
+      {role:"user", text:"We never added a week on graphs. Add one after trees, with an assignment."},
+      {role:"agent", think:[
+          {t:"Scanned the module sequence — trees end at Week 11, no graphs week present", run:false},
+          {t:"Proposed objective LO6 (model & traverse graphs) — did not exist yet", run:false},
+        ],
+        acts:[{ic:"◎",t:"Proposed objective",sub:"LO6 · Model and traverse graphs"}],
+        blocks:[
+          {type:"objective", title:"LO6", meta:"analyze · 12%", body:"Model problems as graphs and choose an appropriate traversal (BFS/DFS) with justification."},
+          {type:"module", title:"Week 12 · Graphs & Traversal", meta:"week 12", body:"Representations (adjacency list vs matrix), BFS and DFS, and when each traversal is the right tool. Builds on the trees unit.", codes:["LO6"]},
+          {type:"assignment", title:"Routes & Reachability", meta:"100pts · week 12", body:"Implement BFS/DFS over a city adjacency list and answer three reachability questions. Submit code + a short writeup.", codes:["LO6"]},
+        ],
+        narr:"Added objective LO6, a Week 12 module on graphs, and a 100-point assignment. All applied to the course."
+      }
+    ],
+    artifacts:[
+      {type:"objective", name:"LO6 · Model & traverse graphs", tag:"applied"},
+      {type:"module", name:"Week 12 · Graphs & Traversal", tag:"applied"},
+      {type:"assignment", name:"Routes & Reachability", tag:"applied"},
+    ],
+    timeline:[
+      {cls:"applied", x:"<b>Applied</b> module · Week 12 · Graphs", ts:"2:17 PM"},
+      {cls:"applied", x:"<b>Applied</b> assignment · Routes & Reachability", ts:"2:17 PM"},
+      {cls:"applied", x:"<b>Applied</b> objective · LO6", ts:"2:16 PM"},
+      {cls:"draft", x:"<b>Drafted</b> 3 blocks", ts:"2:14 PM"},
+    ]
+  },
+  {
+    id:"s3", active:false, status:"done", title:"Rubric for the final project", surf:"Command", when:"Yesterday",
+    meta:"CS 250 · Data Structures · Command session · 3 turns",
+    turns:[
+      {role:"user", text:"Draft a grading rubric for the final project."},
+      {role:"agent", think:[{t:"Read the final project assignment and its objectives (LO2, LO5, LO6)", run:false}],
+        acts:[{ic:"✦",t:"Inspected assignment",sub:"Final Project"}],
+        blocks:[{type:"rubric", title:"Final Project rubric", meta:"", body:"Correctness 40% · Design & data-structure choice 30% · Analysis 20% · Writeup 10%, each with 4 levels from Exemplary to Beginning."}],
+        narr:"Drafted a 4-criterion rubric aligned to the final project. In Review."
+      }
+    ],
+    artifacts:[{type:"rubric", name:"Final Project rubric", tag:"applied"}],
+    timeline:[{cls:"applied", x:"<b>Applied</b> rubric · Final Project", ts:"Yesterday 4:02 PM"}]
+  }
+];
+
+/* ------- render helpers ------- */
+const $ = (id)=>document.getElementById(id);
+let current = "s1";
+
+function renderRail(){
+  const groups = {"Today":["s1","s2"], "Earlier":["s3"]};
+  let html="";
+  for(const g in groups){
+    html += `<div class="grouplbl">${g}</div>`;
+    for(const id of groups[g]){
+      const s = sessions.find(x=>x.id===id);
+      const st = s.status==="working"?"run":(s.status==="done"?"done":"idle");
+      html += `<button class="sess ${id===current?'active':''}" onclick="selectSession('${id}')">
+        <div class="row1"><span class="stat ${st}"></span><span class="ttl">${s.title}</span></div>
+        <div class="row2"><span class="surf">${s.surf}</span> · <span>${s.when}</span></div>
+      </button>`;
+    }
+  }
+  $("sesslist").innerHTML = html;
+}
+
+function blockHTML(b){
+  let inner="";
+  if(b.type==="practice_set"){
+    inner = `<div class="qbase"><div class="eyebrow">Base</div><div style="margin-top:4px;font-size:13px">${b.base}</div></div>`+
+      b.qs.map((q,i)=>`<div class="q"><div><span class="mono" style="color:var(--color-faint);margin-right:6px;font-size:12px">${i+1}.</span>${q.p}</div>`+
+      (q.opts?`<div class="opts">${q.opts.map((o,j)=>`<div><span class="mono" style="font-size:11px;margin-right:6px">${String.fromCharCode(97+j)})</span>${o}</div>`).join("")}</div>`:"")+`</div>`).join("");
+    if(b.codes) inner+=`<div class="chips">${b.codes.map(c=>`<span class="cd">${c}</span>`).join("")}</div>`;
+  } else {
+    inner = `<div>${b.body||""}</div>`;
+    if(b.codes) inner+=`<div class="chips">${b.codes.map(c=>`<span class="cd">${c}</span>`).join("")}</div>`;
+  }
+  const kindLabel = {objective:"Objective",module:"Module",assignment:"Work",page:"Page",announcement:"Note",practice_set:"Practice",rubric:"Rubric"}[b.type]||b.type;
+  return `<article class="block">
+    <header><div class="l"><span class="kind">${kindLabel}</span><h4>${b.title}</h4></div>${b.meta?`<span class="m">${b.meta}</span>`:""}</header>
+    <div class="bd">${inner}</div>
+    <div class="blockfoot"><button class="mini go">Open in Review</button><button class="mini">Edit</button><span style="margin-left:auto;font-size:11.5px;color:var(--color-faint)">drafted · not live</span></div>
+  </article>`;
+}
+
+function agentTurnHTML(t, opts={}){
+  const thinkOpen = opts.open ? "open":"";
+  const steps = t.think.map(s=>`<div class="tstep"><span class="ic">✓</span><span>${s.t}</span></div>`).join("");
+  const acts = (t.acts||[]).map(a=>`<div class="act"><div class="ai">${a.ic}</div><div class="at"><b>${a.t}</b> <span class="sub">· ${a.sub}</span></div><span class="ck">done</span></div>`).join("");
+  const blocks = t.blocks.map(blockHTML).join("");
+  return `<div class="agent">
+    <div class="who"><span class="mk"></span> Atlas worked from the course record</div>
+    <details class="think" ${thinkOpen}><summary>◔ Show Atlas’s thinking <span style="color:var(--color-faint)">· ${t.think.length} steps</span><span class="car">▸</span></summary><div class="body">${steps}</div></details>
+    ${acts}
+    ${blocks}
+    <div class="narr">${t.narr}</div>
+    <div class="review-note">Waiting in <a href="#">Review</a> — nothing is live until you apply it.</div>
+  </div>`;
+}
+
+function renderArtifacts(list){
+  $("art-ct").textContent = list.length+" total";
+  if(!list.length){ $("artifacts").innerHTML = `<div class="empty">No artifacts yet.<br>What Atlas drafts will appear here.</div>`; return; }
+  $("artifacts").innerHTML = list.map(a=>`<div class="art"><div class="ic">${ICON[a.type]||"◦"}</div>
+    <div class="t"><div class="k">${a.type.replace("_"," ")}</div><div class="n">${a.name}</div></div>
+    <span class="tag ${a.tag}">${a.tag}</span></div>`).join("");
+}
+function renderTimeline(list){
+  if(!list.length){ $("timeline").innerHTML=`<div class="empty">Activity will log here as Atlas works.</div>`; return;}
+  $("timeline").innerHTML = list.map(e=>`<div class="ev ${e.cls}"><div class="x">${e.x}</div><div class="ts">${e.ts}</div></div>`).join("");
+}
+
+function selectSession(id){
+  current = id;
+  const s = sessions.find(x=>x.id===id);
+  $("sh-title").textContent = s.title;
+  $("sh-meta").textContent = s.meta;
+  setRunState(s.status==="working");
+  renderRail();
+  // render full (static) for past sessions
+  $("streamwrap").innerHTML = s.turns.map(t=> t.role==="user"
+    ? `<div class="turn-user"><div class="bubble">${t.text}</div></div>`
+    : agentTurnHTML(t)).join("");
+  renderArtifacts(s.artifacts);
+  renderTimeline(s.timeline);
+}
+
+function setRunState(working){
+  const el=$("runstate");
+  el.className="runstate "+(working?"working":"idle");
+  el.innerHTML = working?'<span class="d"></span> Working…':'<span class="d"></span> Idle';
+}
+
+function resetActive(){ selectSession("s1"); window.scrollTo(0,0); }
+
+/* ------- animated replay of the active session ------- */
+let timers=[];
+function clearTimers(){ timers.forEach(clearTimeout); timers=[]; }
+function at(ms,fn){ timers.push(setTimeout(fn,ms)); }
+
+function playActive(){
+  clearTimers();
+  const s = sessions.find(x=>x.id==="s1");
+  current="s1"; renderRail();
+  $("sh-title").textContent=s.title; $("sh-meta").textContent=s.meta;
+  const wrap=$("streamwrap"); wrap.innerHTML="";
+  renderArtifacts([]); renderTimeline([]);
+  const t=s.turns[1];
+
+  // 1. user message
+  setRunState(true);
+  // mark rail session as running
+  const railStat=()=>{document.querySelector('.sess.active .stat')?.classList.remove('idle','done');document.querySelector('.sess.active .stat')?.classList.add('run');};
+  railStat();
+  wrap.insertAdjacentHTML("beforeend", `<div class="turn-user"><div class="bubble">${s.turns[0].text}</div></div>`);
+
+  // 2. agent shell + live thinking
+  at(500,()=>{
+    wrap.insertAdjacentHTML("beforeend",`<div class="agent" id="liveagent">
+      <div class="who"><span class="mk"></span> Atlas is working from the course record</div>
+      <div class="think" open id="livethink"><div style="padding:9px 13px" class="tdot"><span class="b"></span> <span id="thinklabel">Reading the course record…</span></div><div class="body" id="thinkbody" style="border-top:1px solid var(--color-border)"></div></div>
+    </div>`);
+    scroll();
+  });
+
+  // 3. thinking steps stream in
+  t.think.forEach((step,i)=>{
+    at(900 + i*620,()=>{
+      $("thinkbody").insertAdjacentHTML("beforeend",`<div class="tstep"><span class="ic">✓</span><span>${step.t}</span></div>`);
+      $("thinklabel").textContent = i<t.think.length-1?"Thinking…":"Aligning to objectives LO3, LO4";
+      scroll();
+    });
+  });
+
+  let cursor = 900 + t.think.length*620 + 300;
+
+  // 4. action receipts
+  (t.acts||[]).forEach((a)=>{
+    at(cursor,()=>{ $("liveagent").insertAdjacentHTML("beforeend",`<div class="act"><div class="ai">${a.ic}</div><div class="at"><b>${a.t}</b> <span class="sub">· ${a.sub}</span></div><span class="ck">done</span></div>`); scroll(); });
+    cursor += 700;
+  });
+
+  // collapse the thinking drawer once work starts producing
+  at(cursor,()=>{ const d=$("livethink"); if(d){ d.removeAttribute("open"); d.outerHTML = `<details class="think"><summary>◔ Show Atlas’s thinking <span style="color:var(--color-faint)">· ${t.think.length} steps</span><span class="car">▸</span></summary><div class="body">${t.think.map(s=>`<div class="tstep"><span class="ic">✓</span><span>${s.t}</span></div>`).join("")}</div></details>`; } });
+  cursor += 500;
+
+  // 5. blocks rise in + artifacts + timeline log
+  t.blocks.forEach((b)=>{
+    at(cursor,()=>{
+      $("liveagent").insertAdjacentHTML("beforeend", blockHTML(b));
+      const arts = s.artifacts.filter((_,idx)=> idx <= t.blocks.indexOf(b));
+      renderArtifacts(arts.map(a=>({...a,tag:"drafted"})));
+      renderTimeline(prependLog(b));
+      scroll();
+    });
+    cursor += 1150;
+  });
+
+  // 6. narration + done
+  at(cursor,()=>{
+    $("liveagent").insertAdjacentHTML("beforeend",`<div class="narr">${t.narr}</div><div class="review-note">Waiting in <a href="#">Review</a> — nothing is live until you apply it.</div>`);
+    setRunState(false);
+    document.querySelector('.sess.active .stat')?.classList.remove('run');
+    document.querySelector('.sess.active .stat')?.classList.add('done');
+    scroll();
+  });
+}
+
+let _log=[];
+function prependLog(b){
+  const label = {practice_set:"practice set · Hashing", announcement:"note · Midterm is Week 9"}[b.type] || b.type;
+  _log = [{cls:"draft", x:`<b>Drafted</b> ${label}`, ts:"just now"}, ..._log];
+  return _log;
+}
+function scroll(){ const s=$("stream"); s.scrollTop = s.scrollHeight; }
+
+/* init */
+renderRail();
+selectSession("s1");
+// auto-play once shortly after load
+setTimeout(()=>{ _log=[]; playActive(); }, 700);
+</script>
+</body>
+</html>

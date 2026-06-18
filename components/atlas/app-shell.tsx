@@ -121,7 +121,7 @@ export function AppShell({
                   <AtlasMark />
                 </span>
                 <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 ease-out group-hover/brand:opacity-100">
-                  <PanelLeftOpen size={18} strokeWidth={1.8} aria-hidden />
+                  <PanelLeftOpen size={15} strokeWidth={2} aria-hidden />
                 </span>
               </span>
             </button>

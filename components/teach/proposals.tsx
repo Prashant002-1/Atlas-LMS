@@ -11,7 +11,7 @@ export function ProposalCard({ proposal, compact = false }: { proposal: Instruct
   const open = proposal.status === "pending";
 
   return (
-    <article className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
+    <article className="atlas-card-hover rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[14px] font-semibold leading-5">{proposal.title}</p>

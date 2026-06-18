@@ -149,7 +149,7 @@ function AssignmentEditForm({
             type="text"
             defaultValue={assignment.title}
             required
-            className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)]"
+            className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
@@ -157,7 +157,7 @@ function AssignmentEditForm({
           <textarea
             name="description"
             defaultValue={assignment.detail ?? ""}
-            className="min-h-32 resize-none rounded-[8px] border border-[var(--color-border)] bg-white px-3 py-3 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)]"
+            className="min-h-32 resize-none rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px]">
@@ -167,7 +167,7 @@ function AssignmentEditForm({
               name="dueDate"
               type="date"
               defaultValue={dateInputValue(assignment.dueAt)}
-              className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)]"
+              className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </label>
           <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
@@ -178,7 +178,7 @@ function AssignmentEditForm({
               min={0.01}
               step="0.01"
               defaultValue={assignment.points ?? ""}
-              className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)]"
+              className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </label>
         </div>
@@ -288,7 +288,7 @@ function GradeForm({ assignment, submission }: { assignment: InstructorAssignmen
             step="0.01"
             defaultValue={typeof submission.score === "number" ? String(submission.score) : ""}
             required
-            className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)]"
+            className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
@@ -297,7 +297,7 @@ function GradeForm({ assignment, submission }: { assignment: InstructorAssignmen
             name="grade"
             type="text"
             defaultValue={submission.grade ?? ""}
-            className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)]"
+            className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <ActionButton className="w-full sm:w-auto">{label === "Grade" ? "Record grade" : "Save grade"}</ActionButton>

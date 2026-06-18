@@ -3,6 +3,7 @@ import { loadInstructorWorkspace } from "@/lib/instructor/workspace";
 import { PageHeader } from "@/components/teach/page-header";
 import { ProposalCard } from "@/components/teach/proposals";
 import { EmptyRecord } from "@/components/atlas/record";
+import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 /**
  * Review: every draft Atlas has produced, waiting on a decision. Apply writes
@@ -29,25 +30,29 @@ export default async function TeachReviewPage() {
       <PageHeader title="Review" course={`${workspace.course.code} / ${workspace.course.term}`} />
 
       {open.length > 0 ? (
-        <div className="space-y-4">
+        <StaggerGrid className="space-y-3" stagger={0.06}>
           {open.map((proposal) => (
-            <ProposalCard key={proposal.id} proposal={proposal} />
+            <MotionItem key={proposal.id}>
+              <ProposalCard proposal={proposal} />
+            </MotionItem>
           ))}
-        </div>
+        </StaggerGrid>
       ) : (
-        <div className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 shadow-[var(--shadow-panel)]">
+        <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-5 shadow-[var(--shadow-panel)]">
           <EmptyRecord title="Clear" detail="Nothing is waiting. Drafts from Atlas land here." />
         </div>
       )}
 
       {decided.length > 0 ? (
         <section className="mt-8">
-          <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--color-faint)]">Recent decisions</h2>
-          <div className="mt-2 space-y-3">
+          <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Recent decisions</h2>
+          <StaggerGrid className="mt-2.5 space-y-3" stagger={0.05} delay={0.1}>
             {decided.map((proposal) => (
-              <ProposalCard key={proposal.id} proposal={proposal} compact />
+              <MotionItem key={proposal.id}>
+                <ProposalCard proposal={proposal} compact />
+              </MotionItem>
             ))}
-          </div>
+          </StaggerGrid>
         </section>
       ) : null}
     </>

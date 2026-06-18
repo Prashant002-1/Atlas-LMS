@@ -115,7 +115,7 @@ function WeekEditForm({
             type="text"
             defaultValue={module.title}
             required
-            className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)]"
+            className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
@@ -123,7 +123,7 @@ function WeekEditForm({
           <textarea
             name="summary"
             defaultValue={module.summary ?? ""}
-            className="min-h-28 resize-none rounded-[8px] border border-[var(--color-border)] bg-white px-3 py-3 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)]"
+            className="min-h-28 resize-none rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <div>

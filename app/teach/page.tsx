@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { loadInstructorWorkspace } from "@/lib/instructor/workspace";
 import { PageHeader } from "@/components/teach/page-header";
 import { EmptyRecord } from "@/components/atlas/record";
+import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 /**
  * The teaching overview: a glance, not a control room. Four numbers, the next
@@ -60,42 +61,51 @@ export default async function TeachOverviewPage() {
     <>
       <PageHeader title="Overview" course={`${workspace.course.code} / ${workspace.course.term}`} />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="To grade" value={toGrade} href="/teach/work" />
-        <Stat label="In review" value={inReview} href="/teach/review" />
-        <Stat label="Drafts" value={drafts} href="/teach/weeks" />
-        <Stat label="Students" value={workspace.students.length} href="/teach/students" />
-      </div>
+      <StaggerGrid className="grid grid-cols-2 gap-3 lg:grid-cols-4" stagger={0.06}>
+        <MotionItem>
+          <Stat label="To grade" value={toGrade} href="/teach/work" />
+        </MotionItem>
+        <MotionItem>
+          <Stat label="In review" value={inReview} href="/teach/review" />
+        </MotionItem>
+        <MotionItem>
+          <Stat label="Drafts" value={drafts} href="/teach/weeks" />
+        </MotionItem>
+        <MotionItem>
+          <Stat label="Students" value={workspace.students.length} href="/teach/students" />
+        </MotionItem>
+      </StaggerGrid>
 
-      <section className="mt-7">
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--color-faint)]">Next</h2>
-        <div className="mt-2 divide-y divide-[var(--color-border)] rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+      <section className="mt-8">
+        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Next</h2>
+        <StaggerGrid className="mt-2.5 space-y-2" stagger={0.05} delay={0.1}>
           {actions.length > 0 ? (
             actions.slice(0, 3).map((action) => (
-              <Link
-                key={action.href + action.label}
-                href={action.href}
-                className="flex items-center justify-between gap-3 px-4 py-3.5 transition hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-[14px] font-medium">{action.label}</span>
-                  <span className="mt-0.5 block text-[12.5px] text-[var(--color-muted)]">{action.detail}</span>
-                </span>
-                <span aria-hidden className="text-[var(--color-faint)]">&rarr;</span>
-              </Link>
+              <MotionItem key={action.href + action.label}>
+                <Link
+                  href={action.href}
+                  className="atlas-card-hover group flex items-center justify-between gap-3 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 shadow-[var(--shadow-panel)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-[14px] font-medium">{action.label}</span>
+                    <span className="mt-0.5 block text-[12.5px] text-[var(--color-muted)]">{action.detail}</span>
+                  </span>
+                  <span aria-hidden className="text-[var(--color-faint)] transition-transform duration-200 ease-out group-hover:translate-x-1 group-hover:text-[var(--color-accent-strong)]">&rarr;</span>
+                </Link>
+              </MotionItem>
             ))
           ) : (
-            <div className="px-4 py-4">
+            <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 shadow-[var(--shadow-panel)]">
               <EmptyRecord title="Clear" detail="Nothing needs you right now." />
             </div>
           )}
-        </div>
+        </StaggerGrid>
       </section>
 
       {latestNote ? (
-        <section className="mt-7">
-          <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--color-faint)]">Latest note</h2>
-          <div className="mt-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 shadow-[var(--shadow-panel)]">
+        <section className="mt-8">
+          <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Latest note</h2>
+          <div className="mt-2.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 shadow-[var(--shadow-panel)]">
             <p className="text-[14px] font-medium">{latestNote.title}</p>
             {latestNote.message ? (
               <p className="mt-1 line-clamp-2 text-[13px] leading-5 text-[var(--color-muted)]">{latestNote.message}</p>
@@ -107,13 +117,21 @@ export default async function TeachOverviewPage() {
   );
 }
 
-function Stat({ label, value, href }: { label: string; value: number; href: string }) {
+function Stat({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: number;
+  href: string;
+}) {
   return (
     <Link
       href={href}
-      className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-[var(--shadow-panel)] transition hover:border-[var(--color-border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+      className="atlas-card-hover block w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 shadow-[var(--shadow-panel)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
     >
-      <p className="atlas-mono text-[24px] font-medium leading-8">{value}</p>
+      <p className="atlas-mono text-[26px] font-medium leading-8 text-[var(--color-ink)]">{value}</p>
       <p className="mt-0.5 text-[12.5px] text-[var(--color-muted)]">{label}</p>
     </Link>
   );

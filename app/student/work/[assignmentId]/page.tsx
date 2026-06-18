@@ -116,7 +116,7 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
               rows={6}
               defaultValue={assignment.response ?? ""}
               placeholder="Write your response here."
-              className="w-full resize-y rounded-[8px] border border-[var(--color-border)] bg-white px-3 py-2.5 text-[14px] leading-6 transition focus:border-[var(--color-accent-strong)]"
+              className="w-full resize-y rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[14px] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
             <div>
               <ActionButton>{canRevise ? "Update response" : "Submit response"}</ActionButton>

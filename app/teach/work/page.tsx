@@ -5,6 +5,7 @@ import { createAssignmentRecord, publishAssignment } from "@/lib/instructor/acti
 import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton, CodeList, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { EmptyRecord, ObjectiveChecklist } from "@/components/atlas/record";
+import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 /** Graded work: one row per item, grading state up front, direct add below. */
 export default async function TeachWorkPage() {
@@ -26,24 +27,25 @@ export default async function TeachWorkPage() {
     <>
       <PageHeader title="Work" course={`${workspace.course.code} / ${workspace.course.term}`} />
 
-      <div className="divide-y divide-[var(--color-border)] rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-        {workspace.assignments.length > 0 ? (
-          workspace.assignments.map((assignment) => (
-            <WorkRow
-              key={assignment.id ?? assignment.title}
-              assignment={assignment}
-              progress={assignment.id ? progressById.get(assignment.id) : undefined}
-            />
-          ))
-        ) : (
-          <div className="px-4 py-4">
-            <EmptyRecord title="No work yet" detail="Draft it with Atlas or add it below." />
-          </div>
-        )}
-      </div>
+      {workspace.assignments.length > 0 ? (
+        <StaggerGrid className="space-y-2.5" stagger={0.04}>
+          {workspace.assignments.map((assignment) => (
+            <MotionItem key={assignment.id ?? assignment.title}>
+              <WorkRow
+                assignment={assignment}
+                progress={assignment.id ? progressById.get(assignment.id) : undefined}
+              />
+            </MotionItem>
+          ))}
+        </StaggerGrid>
+      ) : (
+        <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-6 shadow-[var(--shadow-panel)]">
+          <EmptyRecord title="No work yet" detail="Draft it with Atlas or add it below." />
+        </div>
+      )}
 
-      <details className="mt-6 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-[var(--shadow-panel)]">
-        <summary className="cursor-pointer text-[14px] font-semibold">Add work</summary>
+      <details className="mt-5 rounded-[10px] border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-4 shadow-[var(--shadow-panel)]">
+        <summary className="cursor-pointer text-[14px] font-semibold transition hover:text-[var(--color-accent-strong)]">Add work</summary>
         <form action={createAssignmentRecord} className="mt-4 grid max-w-xl gap-3">
           <label className="grid gap-1.5 text-[12px] font-medium">
             Title
@@ -52,7 +54,7 @@ export default async function TeachWorkPage() {
               type="text"
               required
               placeholder="Problem Set 6: Regression diagnostics"
-              className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] transition focus:border-[var(--color-accent-strong)]"
+              className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </label>
           <label className="grid gap-1.5 text-[12px] font-medium">
@@ -61,17 +63,17 @@ export default async function TeachWorkPage() {
               name="description"
               rows={3}
               placeholder="The task, the deliverable, and what good work looks like."
-              className="resize-none rounded-[8px] border border-[var(--color-border)] bg-white px-3 py-2.5 text-[14px] leading-6 transition focus:border-[var(--color-accent-strong)]"
+              className="resize-none rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[14px] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="grid gap-1.5 text-[12px] font-medium">
               Due
-              <input name="dueDate" type="date" className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] transition focus:border-[var(--color-accent-strong)]" />
+              <input name="dueDate" type="date" className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
             </label>
             <label className="grid gap-1.5 text-[12px] font-medium">
               Points
-              <input name="points" type="number" min={1} defaultValue={100} className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] transition focus:border-[var(--color-accent-strong)]" />
+              <input name="points" type="number" min={1} defaultValue={100} className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
             </label>
           </div>
           <ObjectiveChecklist objectives={workspace.objectives} selectedCodes={[]} />
@@ -95,9 +97,10 @@ function WorkRow({
   progress?: InstructorWorkspace["workProgress"][number];
 }) {
   const waiting = progress ? Math.max(0, progress.submitted - progress.graded) : 0;
+  const approved = assignment.status === "approved";
 
   return (
-    <article className="flex items-center gap-4 px-4 py-3">
+    <article className="atlas-card-hover group flex items-center gap-4 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
       <div className="min-w-0 flex-1">
         <p className="truncate text-[14px] font-medium leading-6">
           {assignment.id ? <TextLink href={`/teach/work/${assignment.id}`}>{assignment.title}</TextLink> : assignment.title}
@@ -111,7 +114,7 @@ function WorkRow({
         <CodeList codes={assignment.objectiveCodes} />
       </div>
       {waiting > 0 ? <StatusBadge tone="warn">{waiting} to grade</StatusBadge> : null}
-      {assignment.status === "approved" ? (
+      {approved ? (
         <StatusBadge tone="good">Live</StatusBadge>
       ) : (
         <form action={publishAssignment}>

@@ -57,7 +57,7 @@ export function ObjectiveChecklist({
         {objectives.map((objective) => (
           <label
             key={objective.code}
-            className="flex min-h-10 items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[12px] text-[var(--color-muted)]"
+            className="flex min-h-10 items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[12px] text-[var(--color-muted)]"
           >
             <input
               type="checkbox"

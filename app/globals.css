@@ -1,28 +1,54 @@
 @import "tailwindcss";
 
+/*
+ * Motion vocabulary: one easing curve, short durations. Overriding the
+ * Tailwind transition defaults upgrades every `transition` utility in the
+ * app to the atlas curve with no per-component edits. "Calm instrument":
+ * smooth decelerate, fast onset into a long gentle settle.
+ */
+@theme {
+  --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  --default-transition-duration: 220ms;
+}
+
 :root {
-  /* Observatory palette. Cool neutral ground, indigo for structure,
-     one cyan for current state and progress, green for confirmed. */
-  --color-bg: oklch(0.93 0.008 260);
+  /* Observatory palette. Cool neutral ground with real depth: the canvas
+     is a full shade darker than surfaces so white cards elevate and float.
+     Indigo for structure, one cyan for current state and progress, green
+     for confirmed. Amber and red reserved for real signals. */
+  --color-bg: oklch(0.89 0.012 260);
   --color-surface: oklch(0.99 0.003 255);
-  --color-surface-muted: oklch(0.96 0.006 255);
+  --color-surface-muted: oklch(0.955 0.008 255);
+  --color-surface-sidebar: oklch(0.965 0.006 258);
   --color-ink: oklch(0.2 0.022 265);
   --color-muted: oklch(0.48 0.022 262);
-  --color-faint: oklch(0.65 0.02 260);
-  --color-border: oklch(0.87 0.008 258);
-  --color-border-strong: oklch(0.82 0.01 258);
+  --color-faint: oklch(0.62 0.02 260);
+  --color-border: oklch(0.85 0.01 258);
+  --color-border-strong: oklch(0.79 0.014 258);
   --color-indigo: oklch(0.33 0.066 263);
-  --color-indigo-soft: oklch(0.93 0.014 262);
+  --color-indigo-soft: oklch(0.92 0.016 262);
   --color-accent: oklch(0.56 0.072 214);
   --color-accent-strong: oklch(0.49 0.066 213);
   --color-good: oklch(0.55 0.084 153);
   --color-warn: oklch(0.56 0.09 76);
   --color-danger: oklch(0.52 0.13 35);
-  --shadow-panel: 0 1px 2px rgba(15, 20, 28, 0.06);
+
+  /* Multi-layer shadow system. Soft, spread, low-opacity — the depth
+     comes from layering, not from sharp single shadows. */
+  --shadow-panel: 0 1px 2px 0 rgba(15, 20, 28, 0.04), 0 1px 4px 0 rgba(15, 20, 28, 0.04);
+  --shadow-elevated: 0 2px 4px 0 rgba(15, 20, 28, 0.05), 0 4px 12px 0 rgba(15, 20, 28, 0.06);
+  --shadow-floating: 0 8px 28px -4px rgba(15, 20, 28, 0.12), 0 2px 8px -2px rgba(15, 20, 28, 0.08);
 
   --font-serif: var(--font-spectral), Georgia, Cambria, "Times New Roman", serif;
   --font-sans: var(--font-hanken), ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  /* Motion. Smooth decelerate for entrances/hovers; symmetric for two-way. */
+  --ease-atlas: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-atlas-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
+  --dur-slow: 340ms;
 }
 
 * {
@@ -70,13 +96,14 @@ select {
   font-family: var(--font-mono);
 }
 
-/* App canvas. Plain by design: the product does not paint decorative or
-   implied-data backgrounds. Course records carry the screen. */
+/* App canvas. The darker ground gives surfaces real elevation. A subtle
+   top-down gradient lifts the viewport entry, settling into the full
+   canvas tone. Course records carry the screen, not decoration. */
 .atlas-app-bg {
   position: relative;
   isolation: isolate;
   background:
-    linear-gradient(180deg, color-mix(in oklch, var(--color-surface) 60%, var(--color-bg)) 0, var(--color-bg) 220px),
+    linear-gradient(180deg, color-mix(in oklch, var(--color-surface) 50%, var(--color-bg)) 0, var(--color-bg) 280px),
     var(--color-bg);
 }
 
@@ -135,6 +162,22 @@ select {
   border: 1px solid color-mix(in oklch, var(--color-accent) 72%, var(--color-ink));
   border-radius: 1px;
   background: var(--color-surface);
+}
+
+/* Premium card hover: a 1px lift into the elevated shadow. No shadow
+   bloom, no scale. Just enough to feel alive when the cursor lands. */
+.atlas-card-hover {
+  transition: transform var(--dur-base) var(--ease-atlas), box-shadow var(--dur-base) var(--ease-atlas), border-color var(--dur-base) var(--ease-atlas);
+}
+.atlas-card-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-elevated);
+  border-color: var(--color-border-strong);
+}
+
+/* Interactive row hover: a whisper of fill, not a flood. */
+.atlas-row-hover {
+  transition: background-color var(--dur-base) var(--ease-atlas), color var(--dur-base) var(--ease-atlas);
 }
 
 @media (prefers-reduced-motion: reduce) {

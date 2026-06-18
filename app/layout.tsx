@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { MotionConfig } from "framer-motion";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -44,7 +45,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${spectral.variable} ${hanken.variable} ${plexMono.variable}`}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {/* Honour prefers-reduced-motion for every motion component below. */}
+        <MotionConfig reducedMotion="user">{children}</MotionConfig>
+      </body>
     </html>
   );
 }

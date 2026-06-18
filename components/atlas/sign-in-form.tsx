@@ -25,7 +25,7 @@ export function SignInForm({ defaultRole = "instructor" }: { defaultRole?: "inst
               required
               autoComplete="email"
               defaultValue={suggestedEmail}
-              className={`min-h-11 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] ${focusStyle}`}
+              className={`min-h-11 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)] ${focusStyle}`}
             />
           </label>
           <label className="grid gap-2 text-[13px] font-medium text-[var(--color-ink)]">
@@ -35,7 +35,7 @@ export function SignInForm({ defaultRole = "instructor" }: { defaultRole?: "inst
               type="password"
               required
               autoComplete="current-password"
-              className={`min-h-11 rounded-[8px] border border-[var(--color-border)] bg-white px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] ${focusStyle}`}
+              className={`min-h-11 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)] ${focusStyle}`}
             />
           </label>
 

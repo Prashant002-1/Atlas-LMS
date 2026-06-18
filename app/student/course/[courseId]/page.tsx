@@ -37,7 +37,7 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
       />
 
       {workspace.currentWeek ? (
-        <section className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
+        <section className="atlas-card-hover rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
           <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">This week</p>
           <p className="mt-1 text-[15px] font-semibold leading-6">
             <TextLink href={`/student/material/${workspace.currentWeek.id}`}>{workspace.currentWeek.title}</TextLink>
@@ -49,7 +49,7 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
       ) : null}
 
       {latestNote ? (
-        <section className="mt-4 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
+        <section className="mt-3 atlas-card-hover rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
           <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">From your professor</p>
           <p className="mt-1 text-[14px] font-medium">{latestNote.title}</p>
           {latestNote.message ? <p className="mt-1 line-clamp-2 text-[13px] leading-5 text-[var(--color-muted)]">{latestNote.message}</p> : null}
@@ -57,8 +57,8 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
       ) : null}
 
       <section className="mt-7">
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--color-faint)]">Work</h2>
-        <div className="mt-2 divide-y divide-[var(--color-border)] rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Work</h2>
+        <div className="mt-2.5 divide-y divide-[var(--color-border)] rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
           {open.length + done.length > 0 ? (
             [...open, ...done].map((assignment) => <WorkRow key={assignment.id} assignment={assignment} />)
           ) : (
@@ -70,14 +70,14 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
       </section>
 
       <section className="mt-7">
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--color-faint)]">Material</h2>
-        <div className="mt-2 divide-y divide-[var(--color-border)] rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Material</h2>
+        <div className="mt-2.5 divide-y divide-[var(--color-border)] rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
           {workspace.materials.length > 0 ? (
             workspace.materials.map((material) => (
               <Link
                 key={material.id}
                 href={`/student/material/${material.id}`}
-                className="flex items-center gap-4 px-4 py-2.5 transition hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
+                className="atlas-row-hover flex items-center gap-4 px-4 py-2.5 hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
               >
                 <span className="atlas-mono w-6 shrink-0 text-[12.5px] text-[var(--color-faint)]">{material.week}</span>
                 <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{material.title}</span>
@@ -91,7 +91,7 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
         </div>
       </section>
 
-      <section className="mt-7 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
+      <section className="mt-7 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
         <CuePanel
           target={{ courseId: workspace.course.id, targetType: "course", targetId: null }}
           availability={workspace.cuePolicy}

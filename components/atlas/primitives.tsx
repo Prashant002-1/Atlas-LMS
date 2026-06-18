@@ -72,7 +72,7 @@ export function ButtonLink({
   return (
     <Link
       href={href}
-      className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-[8px] border px-4 text-[14px] font-medium transition ${focusStyle} ${styles[variant]}`}
+      className={`atlas-card-hover inline-flex min-h-10 items-center justify-center gap-2 rounded-[8px] border px-4 text-[14px] font-medium ${focusStyle} ${styles[variant]}`}
     >
       <span>{children}</span>
       {icon ? <ArrowRight size={16} strokeWidth={2} aria-hidden="true" /> : null}
@@ -125,7 +125,7 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={`rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)] ${className}`}>
+    <section className={`rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)] ${className}`}>
       {title || action ? (
         <header className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] px-5 py-4">
           <div>
@@ -154,7 +154,7 @@ export function CommandBand({
   children?: ReactNode;
 }) {
   return (
-    <section className="rounded-[8px] border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_90%,var(--color-accent)_10%)] px-5 py-4 shadow-[var(--shadow-panel)]">
+    <section className="rounded-[10px] border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_90%,var(--color-accent)_10%)] px-5 py-4 shadow-[var(--shadow-panel)]">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.55fr)] lg:items-center">
         <div className="min-w-0">
           <p className="text-[12px] font-medium text-[var(--color-accent-strong)]">{eyebrow}</p>
@@ -228,7 +228,7 @@ export function ActionButton({
       type={type}
       aria-label={ariaLabel}
       title={title}
-      className={`inline-flex min-h-9 items-center justify-center rounded-[8px] border px-3 text-[13px] font-medium transition ${focusStyle} ${styles[variant]} ${className}`}
+      className={`atlas-card-hover inline-flex min-h-9 items-center justify-center rounded-[8px] border px-3 text-[13px] font-medium ${focusStyle} ${styles[variant]} ${className}`}
     >
       {children}
     </button>
@@ -245,7 +245,10 @@ export function ProgressBar({ value, label }: { value: number; label?: string })
         <span>{safeValue}%</span>
       </div>
       <div className="mt-2 h-2 rounded-[4px] bg-[var(--color-surface-muted)]">
-        <div className="h-full rounded-[4px] bg-[var(--color-accent)]" style={{ width: `${safeValue}%` }} />
+        <div
+          className="h-full rounded-[4px] bg-[var(--color-accent)] transition-[width] duration-[500ms] ease-out"
+          style={{ width: `${safeValue}%` }}
+        />
       </div>
     </div>
   );
@@ -261,7 +264,7 @@ export function Metric({
   detail: string;
 }) {
   return (
-    <div className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <div className="atlas-card-hover rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
       <p className="text-[12px] font-medium text-[var(--color-muted)]">{label}</p>
       <p className="mt-3 text-[28px] font-semibold leading-none text-[var(--color-ink)]">{value}</p>
       <p className="mt-2 text-[13px] leading-5 text-[var(--color-muted)]">{detail}</p>

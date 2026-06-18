@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LogOut,
   PanelLeftClose,
+  PanelLeftOpen,
   Send,
   Settings,
   Sparkles,
@@ -106,15 +107,23 @@ export function AppShell({
         <div className="flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-surface-sidebar)]">
           {/* Brand header */}
           {collapsed ? (
-            /* Collapsed: just the logo mark, clickable to expand. */
+            /* Collapsed: the logo mark. On hover it crossfades into the
+               expand icon. Clicking toggles the sidebar open. */
             <button
               type="button"
               onClick={toggle}
               aria-label="Expand sidebar"
               title="Expand"
-              className="flex h-14 w-full items-center justify-center border-b border-[var(--color-border)] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
+              className="group/brand flex h-14 w-full items-center justify-center border-b border-[var(--color-border)] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
             >
-              <AtlasMark />
+              <span className="relative flex size-[20px] items-center justify-center">
+                <span className="absolute inset-0 flex items-center justify-center opacity-100 transition-opacity duration-200 ease-out group-hover/brand:opacity-0">
+                  <AtlasMark />
+                </span>
+                <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 ease-out group-hover/brand:opacity-100">
+                  <PanelLeftOpen size={18} strokeWidth={1.8} aria-hidden />
+                </span>
+              </span>
             </button>
           ) : (
             /* Expanded: logo + wordmark on the left, toggle on the right */

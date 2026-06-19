@@ -1,14 +1,14 @@
 import { auth } from "@/lib/auth";
 import { loadInstructorWorkspace } from "@/lib/instructor/workspace";
-import { resumeOrCreateSession, loadActiveTurns, turnsToUIMessages } from "@/lib/agent/session";
+import { resumeOrCreateSession, loadActiveTurns, turnsToUIMessages, loadSessionDrafts } from "@/lib/agent/session";
 import { CommandConsole } from "@/components/agent/command-console";
 import { PageHeader } from "@/components/teach/page-header";
 
 /**
- * Atlas, in conversation. The session is per course and persistent: it
+ * Atlas Command. The session is per course and persistent: it
  * resumes where you left off, compacts quietly as it grows, and every draft
- * it produces waits in Review. The console shows the run as it happens and
- * tracks every draft this session in a ledger beside the stream.
+ * it produces waits in Review. The console is the page: session rail, working
+ * stream, artifacts, and activity.
  */
 export default async function TeachAtlasPage() {
   const session = await auth();
@@ -34,11 +34,14 @@ export default async function TeachAtlasPage() {
   });
   const turns = await loadActiveTurns(agentSession);
   const initialMessages = turnsToUIMessages(turns);
+  const initialDrafts = await loadSessionDrafts(session.user.orgId, agentSession.id);
 
   return (
-    <>
-      <PageHeader title="Atlas" course={`${workspace.course.code} / ${workspace.course.term}`} />
-      <CommandConsole courseId={workspace.course.id} initialMessages={initialMessages} />
-    </>
+    <CommandConsole
+      courseId={workspace.course.id}
+      courseLabel={`${workspace.course.code} / ${workspace.course.name}`}
+      initialMessages={initialMessages}
+      initialDrafts={initialDrafts}
+    />
   );
 }

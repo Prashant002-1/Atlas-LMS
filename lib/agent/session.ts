@@ -1,7 +1,8 @@
 import { generateText, type ModelMessage, type UIMessage } from "ai";
 import { and, asc, eq, gt, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { agentSessions, agentTurns, type AgentSession } from "@/lib/db/schema";
+import { agentSessions, agentTurns, changeProposals, proposalBlocks, type AgentSession } from "@/lib/db/schema";
+import { parseStoredBlock, type Block } from "@/lib/agent/blocks";
 import { estimateTokens } from "@/lib/agent/context";
 import { fallbackModel } from "@/lib/ai/provider";
 
@@ -175,4 +176,39 @@ export function turnsToUIMessages(turns: TurnRecord[]): UIMessage[] {
       role: t.role === "user" ? ("user" as const) : ("assistant" as const),
       parts: Array.isArray(t.parts) ? (t.parts as UIMessage["parts"]) : [{ type: "text" as const, text: String(t.parts ?? "") }],
     }));
+}
+
+export type SessionDraft = {
+  proposalId: string;
+  blocks: Block[];
+};
+
+/** Load durable draft blocks produced by a command session for history hydration. */
+export async function loadSessionDrafts(orgId: string, sessionId: string): Promise<SessionDraft[]> {
+  const rows = await db
+    .select({
+      proposalId: changeProposals.id,
+      blockType: proposalBlocks.blockType,
+      data: proposalBlocks.data,
+    })
+    .from(changeProposals)
+    .innerJoin(
+      proposalBlocks,
+      and(eq(proposalBlocks.orgId, orgId), eq(proposalBlocks.proposalId, changeProposals.id))
+    )
+    .where(and(eq(changeProposals.orgId, orgId), eq(changeProposals.sessionId, sessionId)))
+    .orderBy(asc(changeProposals.createdAt), asc(proposalBlocks.position));
+
+  const drafts: SessionDraft[] = [];
+  for (const row of rows) {
+    const block = parseStoredBlock(row.blockType, row.data);
+    if (!block) continue;
+    const existing = drafts.find((draft) => draft.proposalId === row.proposalId);
+    if (existing) {
+      existing.blocks.push(block);
+    } else {
+      drafts.push({ proposalId: row.proposalId, blocks: [block] });
+    }
+  }
+  return drafts;
 }

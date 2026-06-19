@@ -1,13 +1,14 @@
 import { auth } from "@/lib/auth";
 import { loadInstructorWorkspace } from "@/lib/instructor/workspace";
 import { resumeOrCreateSession, loadActiveTurns, turnsToUIMessages } from "@/lib/agent/session";
-import { AtlasAssistant } from "@/components/agent/assistant";
+import { CommandConsole } from "@/components/agent/command-console";
 import { PageHeader } from "@/components/teach/page-header";
 
 /**
  * Atlas, in conversation. The session is per course and persistent: it
  * resumes where you left off, compacts quietly as it grows, and every draft
- * it produces waits in Review.
+ * it produces waits in Review. The console shows the run as it happens and
+ * tracks every draft this session in a ledger beside the stream.
  */
 export default async function TeachAtlasPage() {
   const session = await auth();
@@ -37,7 +38,7 @@ export default async function TeachAtlasPage() {
   return (
     <>
       <PageHeader title="Atlas" course={`${workspace.course.code} / ${workspace.course.term}`} />
-      <AtlasAssistant courseId={workspace.course.id} initialMessages={initialMessages} />
+      <CommandConsole courseId={workspace.course.id} initialMessages={initialMessages} />
     </>
   );
 }

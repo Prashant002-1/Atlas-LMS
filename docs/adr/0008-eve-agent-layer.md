@@ -13,6 +13,9 @@ contract (`lib/agent/blocks.ts`), anchored sessions + turns + rolling compaction
 draft to live apply (`lib/agent/apply.ts`), and per-org BYOK model resolution (`lib/agent/keys.ts`,
 `lib/ai/provider.ts`).
 
+As of `eve@0.11.7`, Eve peers on `ai@7.0.0-beta.178`; Atlas currently uses `ai@6.0.97`. The runtime
+cutover is therefore also an AI SDK major/beta migration, not a package-only swap.
+
 This works, but the session/runtime plumbing is hand-rolled: durability is best-effort, there is no
 crash-safe resume, no parked work for human checkpoints, no first-class run history, schedules, or
 observability. We want those without rebuilding them ourselves.
@@ -86,13 +89,17 @@ connections, Agent Runs observability, and an evals harness.
 - The session/runtime code we maintain shrinks; durability, observability, schedules, and HITL come
   from the framework.
 - Eve is in beta; pin the version and watch `vercel/eve` for breaking changes before building deep.
+- The first runtime spike must happen on an isolated branch because it has to prove the AI SDK 6 -> 7
+  beta migration before touching the production command/cue routes.
 - ADR-0005 must be amended (session state location). ADR-0006 stands: the provider registry now
   feeds the BYOK model adapter that Eve consumes.
 
 ## Rollout (phased)
 
-- **Phase 0 — spike** (`feat/eve-agent-layer`): cue surface as a custom channel, one `emit` tool,
-  dynamic instructions from the pack, next-auth `AuthFn`, tenant-aware model adapter on one provider.
-- **Phase 1 — command surface:** port `propose*` block tools (`defineTool`/`defineDynamic` +
+- **Phase 0 — dependency spike**: install Eve and migrate a minimal throwaway route from AI SDK 6 to
+  AI SDK 7 beta, proving stream compatibility, provider resolution, and build output.
+- **Phase 1 — cue surface:** cue surface as a custom channel, one `emit` tool, dynamic instructions
+  from the pack, next-auth `AuthFn`, tenant-aware model adapter on one provider.
+- **Phase 2 — command surface:** port `propose*` block tools (`defineTool`/`defineDynamic` +
   `defineState`); keep `apply.ts`; add the `turn.completed` Postgres mirror; re-expose recall.
-- **Phase 2 — harden:** disable harness defaults, Agent Runs/OTel, hosting decision, amend ADRs.
+- **Phase 3 — harden:** disable harness defaults, Agent Runs/OTel, hosting decision, amend ADRs.

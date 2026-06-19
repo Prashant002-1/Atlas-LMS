@@ -1,8 +1,16 @@
 import { auth } from "@/lib/auth";
 import { loadInstructorWorkspace } from "@/lib/instructor/workspace";
-import { resumeOrCreateSession, loadActiveTurns, turnsToUIMessages, loadSessionDrafts } from "@/lib/agent/session";
+import {
+  createCommandSession,
+  listCommandSessions,
+  loadCommandSession,
+  loadActiveTurns,
+  turnsToUIMessages,
+  loadSessionDrafts,
+} from "@/lib/agent/session";
 import { CommandConsole } from "@/components/agent/command-console";
 import { PageHeader } from "@/components/teach/page-header";
+import { redirect } from "next/navigation";
 
 /**
  * Atlas Command. The session is per course and persistent: it
@@ -10,7 +18,17 @@ import { PageHeader } from "@/components/teach/page-header";
  * it produces waits in Review. The console is the page: session rail, working
  * stream, artifacts, and activity.
  */
-export default async function TeachAtlasPage() {
+type AtlasSearchParams = {
+  session?: string | string[];
+  new?: string | string[];
+};
+
+function firstParam(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+export default async function TeachAtlasPage({ searchParams }: { searchParams?: Promise<AtlasSearchParams> }) {
   const session = await auth();
   const workspace = await loadInstructorWorkspace(session?.user);
 
@@ -25,13 +43,31 @@ export default async function TeachAtlasPage() {
     );
   }
 
-  const agentSession = await resumeOrCreateSession({
+  const params = (await searchParams) ?? {};
+  const requestedSessionId = firstParam(params.session);
+  const commandScope = {
     orgId: session.user.orgId,
     userId: session.user.id,
     courseId: workspace.course.id,
-    surface: "command",
-    anchor: { type: "course", id: null },
-  });
+  };
+
+  if (firstParam(params.new)) {
+    const created = await createCommandSession(commandScope);
+    redirect(`/teach/atlas?session=${created.id}`);
+  }
+
+  let sessions = await listCommandSessions(commandScope);
+  let agentSession = requestedSessionId ? await loadCommandSession(commandScope, requestedSessionId) : null;
+  if (!agentSession) {
+    const fallbackSession = sessions[0] ? await loadCommandSession(commandScope, sessions[0].id) : null;
+    agentSession = fallbackSession ?? (await createCommandSession(commandScope));
+    redirect(`/teach/atlas?session=${agentSession.id}`);
+  }
+
+  if (!sessions.some((item) => item.id === agentSession.id)) {
+    sessions = await listCommandSessions(commandScope);
+  }
+
   const turns = await loadActiveTurns(agentSession);
   const initialMessages = turnsToUIMessages(turns);
   const initialDrafts = await loadSessionDrafts(session.user.orgId, agentSession.id);
@@ -40,6 +76,8 @@ export default async function TeachAtlasPage() {
     <CommandConsole
       courseId={workspace.course.id}
       courseLabel={`${workspace.course.code} / ${workspace.course.name}`}
+      sessionId={agentSession.id}
+      sessions={sessions}
       initialMessages={initialMessages}
       initialDrafts={initialDrafts}
     />

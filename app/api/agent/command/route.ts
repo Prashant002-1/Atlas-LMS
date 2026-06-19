@@ -4,7 +4,15 @@ import { db } from "@/lib/db";
 import { changeProposals, enrollments } from "@/lib/db/schema";
 import { requireTenant, isInstructorLike, UnauthorizedError, ForbiddenError } from "@/lib/auth/session";
 import { buildContextPack } from "@/lib/agent/context";
-import { resumeOrCreateSession, loadActiveTurns, appendTurn, turnsToModelMessages, compactIfNeeded } from "@/lib/agent/session";
+import {
+  loadCommandSession,
+  resumeLatestCommandSession,
+  titleCommandSessionFromIntent,
+  loadActiveTurns,
+  appendTurn,
+  turnsToModelMessages,
+  compactIfNeeded,
+} from "@/lib/agent/session";
 import { commandSystemPrompt, createCommandTools, type CommandRunState } from "@/lib/agent/runtime";
 import { resolveModelForOrg } from "@/lib/agent/keys";
 
@@ -29,6 +37,7 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => null);
   const courseId = typeof body?.courseId === "string" ? body.courseId : null;
+  const sessionId = typeof body?.sessionId === "string" ? body.sessionId : null;
   const intent = typeof body?.intent === "string" ? body.intent.trim() : "";
   if (!courseId) return Response.json({ error: "courseId is required." }, { status: 400 });
   if (intent.length < 4) return Response.json({ error: "Say what you want drafted." }, { status: 400 });
@@ -62,15 +71,18 @@ export async function POST(req: Request) {
   const pack = await buildContextPack({ orgId: tenant.orgId, courseId, audience: "instructor", userId: tenant.userId });
   if (!pack.content) return Response.json({ error: "Course not found." }, { status: 404 });
 
-  const session = await resumeOrCreateSession({
+  const sessionScope = {
     orgId: tenant.orgId,
     userId: tenant.userId,
     courseId,
-    surface: "command",
-    anchor: { type: "course", id: null },
-  });
+  };
+  const session = sessionId
+    ? await loadCommandSession(sessionScope, sessionId)
+    : await resumeLatestCommandSession(sessionScope);
+  if (!session) return Response.json({ error: "Command session not found." }, { status: 404 });
 
   const history = turnsToModelMessages(await loadActiveTurns(session));
+  await titleCommandSessionFromIntent(session, intent);
   await appendTurn(session, "user", [{ type: "text", text: intent }]);
 
   const state: CommandRunState = {

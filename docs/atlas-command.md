@@ -1,10 +1,10 @@
 # Atlas Command — the central agent surface
 
 Atlas Command is the professor's home for working with the course's agent: the Codex / Claude Code
-of an LMS, with the developer vocabulary abstracted away for educators. It replaces the single
-"talking screen" (`components/agent/assistant.tsx`) with a three-region command center that shows
-the agent thinking, streams its output, tracks every artifact it generates, and keeps a full
-activity/audit trail. Interactive prototype: `docs/prototypes/atlas-command.html`.
+of an LMS, with the developer vocabulary abstracted away for educators. The mounted implementation
+is `components/agent/command-console.tsx`: a three-region command center that shows the agent
+thinking, streams its output, tracks every artifact it generates, and keeps a full activity/audit
+trail. Interactive prototype: `docs/prototypes/atlas-command.html`.
 
 ## Why this shape (research-backed)
 
@@ -24,8 +24,9 @@ that outlive the tab; completion as a fired notification, not a polled state.
 ## Layout: three regions
 
 1. **Left rail — Sessions.** New session (⌘N), search, sessions grouped by recency. Each row: status
-   dot (running / done / idle), auto-titled from the opening intent, surface tag (Command / Cue),
-   relative time. Sessions are per (user, course, surface, anchor), matching `lib/agent/session.ts`.
+   dot (running / done / idle), auto-titled from the opening intent, surface tag, turn/proposal
+   counts, and relative time. Command sessions are durable course-scoped records selected by
+   `?session=...`; cue sessions remain one per anchored course record, matching `lib/agent/session.ts`.
 2. **Center — the working stream.** Session header (title, course, run state, ▶ Replay). The stream
    shows, per turn: the user intent; a **collapsible "Show Atlas's thinking" drawer** (status-iconed
    steps, collapsed once work starts); **action receipts** ("Inspected module · Week 7"); **block
@@ -44,8 +45,9 @@ the professor lives under Students.
 
 ## Mapping to Eve events (ADR-0008)
 
-The stream renders Eve's NDJSON session events; blocks reuse `components/agent/block-views.tsx`
-unchanged.
+The current stream is the Vercel AI SDK transport already in the app. Its UI state maps directly to
+Eve's durable session/event model, so the Eve cutover should be a transport adapter rather than a
+new surface. Blocks reuse `components/agent/block-views.tsx` unchanged.
 
 | Eve event | UI |
 | --- | --- |
@@ -59,17 +61,19 @@ unchanged.
 | `turn.completed` / `session.waiting` | run state -> Idle; mirror turn to Postgres for recall |
 | `compaction.requested/completed` | quiet "earlier turns summarized" marker |
 
-Durable `sessionId` streams and reconnects (`?startIndex`); the `continuationToken` sends the next
-turn. Closing the tab never loses the run.
+The page already uses durable `sessionId` URLs and resumes history from Postgres. The remaining Eve
+work is to stream/reconnect runtime events (`?startIndex`) and continue turns through Eve's
+continuation token once the Eve package is installed.
 
 ## Build order
 
-1. Shell: `components/agent/command/` — `command-center.tsx` (the 3-region layout), `session-rail.tsx`,
-   `working-stream.tsx`, `thinking-drawer.tsx`, `action-receipt.tsx`, `artifact-ledger.tsx`,
-   `activity-timeline.tsx`. Reuse `block-views.tsx` and `components/atlas/primitives.tsx`.
-2. Wire to Eve's stream via `eve/client` (replacing `lib/agent/stream-client.ts`), behind a flag so
-   the current assistant keeps working during the cutover.
-3. Mount at `/teach/command` (Command) and reuse the shell for the student cue.
+1. Done: mount the command center at `/teach/atlas` with left sessions, working stream, artifact
+   ledger, and activity rail.
+2. Done: back the left rail with real command sessions and pass `sessionId` through
+   `/api/agent/command`.
+3. Next: wire to Eve's stream via `eve/client` (replacing `lib/agent/stream-client.ts` behind a
+   flag) so the UI receives Eve runtime events while keeping the current proposal tools.
+4. Later: reuse the shell for the student cue surface after command runtime behavior is stable.
 
 Design language is unchanged: the Observatory palette, Spectral serif headers, Hanken Grotesk body,
 IBM Plex Mono labels, layered shadows, the 1px card lift.

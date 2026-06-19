@@ -3,7 +3,22 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, CircleStop, FileText, Eye, Search, Clock, Check, Plus, PenLine } from "lucide-react";
+import {
+  ArrowUpRight,
+  BookOpenCheck,
+  ChevronDown,
+  CircleStop,
+  FileText,
+  Eye,
+  Search,
+  Clock,
+  Check,
+  Plus,
+  PenLine,
+  RotateCcw,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import type { UIMessage } from "ai";
 import { runAgentStream, runEveAgentStream, toolParts, textOf } from "@/lib/agent/stream-client";
 import type { CommandSessionSummary, SessionDraft } from "@/lib/agent/session";
@@ -191,6 +206,24 @@ function sessionDetail(session: CommandSessionSummary): string {
   return parts.join(" · ");
 }
 
+function courseParts(courseLabel: string): { code: string; name: string } {
+  const [code, ...nameParts] = courseLabel.split(" / ");
+  return { code: code?.trim() || "Course", name: nameParts.join(" / ").trim() };
+}
+
+function assistantWorkSteps(entry: AssistantEntry): string[] {
+  const steps = entry.actions.map((action) => {
+    const meta = ACTION_META[action.toolName];
+    const label = meta?.label ?? action.toolName;
+    return action.summary ? `${label} · ${action.summary}` : label;
+  });
+  const draftedCount = entry.blocks.filter((item) => item.block).length;
+  if (draftedCount > 0) steps.push(`${draftedCount} ${draftedCount === 1 ? "artifact" : "artifacts"} prepared for Review`);
+  if (entry.text.trim()) steps.push("Narration prepared");
+  if (!entry.done && steps.length === 0) steps.push("Reading the course record");
+  return steps;
+}
+
 export function CommandConsole({
   courseId,
   courseLabel,
@@ -212,6 +245,7 @@ export function CommandConsole({
   const [entries, setEntries] = useState<Entry[]>(() => entriesFromHistory(initialMessages, initialDrafts));
   const [intent, setIntent] = useState("");
   const [syllabus, setSyllabus] = useState("");
+  const [sessionQuery, setSessionQuery] = useState("");
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<(() => void) | null>(null);
@@ -248,6 +282,7 @@ export function CommandConsole({
   }, [entries]);
 
   const activeSession = useMemo(() => sessions.find((session) => session.id === sessionId), [sessionId, sessions]);
+  const course = useMemo(() => courseParts(courseLabel), [courseLabel]);
 
   const sessionTitle = useMemo(() => {
     const firstUser = entries.find((entry): entry is UserEntry => entry.kind === "user");
@@ -257,19 +292,28 @@ export function CommandConsole({
 
   const turnCount = entries.filter((entry) => entry.kind === "user").length;
   const runtimeQuery = runtime === "eve" ? "&runtime=eve" : "";
+  const lastUserIntent = useMemo(() => {
+    for (let index = entries.length - 1; index >= 0; index -= 1) {
+      const entry = entries[index];
+      if (entry.kind === "user") return entry.text;
+    }
+    return "";
+  }, [entries]);
 
   const sessionGroups = useMemo(() => {
     const adjusted = sessions.map((session) =>
       session.id === sessionId ? { ...session, title: sessionTitle, userTurnCount: turnCount } : session
     );
-    return adjusted.reduce<Array<{ label: "Today" | "Earlier"; sessions: CommandSessionSummary[] }>>((groups, session) => {
+    const query = sessionQuery.trim().toLowerCase();
+    const filtered = query ? adjusted.filter((session) => session.title.toLowerCase().includes(query)) : adjusted;
+    return filtered.reduce<Array<{ label: "Today" | "Earlier"; sessions: CommandSessionSummary[] }>>((groups, session) => {
       const label = sessionGroupLabel(session.updatedAt);
       const existing = groups.find((group) => group.label === label);
       if (existing) existing.sessions.push(session);
       else groups.push({ label, sessions: [session] });
       return groups;
     }, []);
-  }, [sessionId, sessionTitle, sessions, turnCount]);
+  }, [sessionId, sessionQuery, sessionTitle, sessions, turnCount]);
 
   async function run(text: string) {
     const trimmed = text.trim();
@@ -344,8 +388,46 @@ export function CommandConsole({
     );
   }
 
+  function replayLastRun() {
+    if (!lastUserIntent || running) return;
+    void run(lastUserIntent);
+  }
+
   return (
-    <div className="grid h-full min-h-[720px] w-full overflow-x-hidden overflow-y-auto bg-[var(--color-bg)] shadow-[var(--shadow-panel)] lg:min-h-0 lg:grid-cols-[230px_minmax(0,1fr)_300px] lg:overflow-hidden 2xl:grid-cols-[264px_minmax(0,1fr)_332px]">
+    <div className="grid h-full min-h-[720px] w-full grid-rows-[auto_minmax(0,1fr)] overflow-x-hidden overflow-y-auto bg-[var(--color-bg)] shadow-[var(--shadow-panel)] lg:min-h-0 lg:overflow-hidden">
+      <header className="flex min-h-14 items-center gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4">
+        <Link
+          href={`/teach/atlas?session=${sessionId}${runtimeQuery}`}
+          className="flex shrink-0 items-center gap-2 rounded-[6px] text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+        >
+          <span className="grid size-8 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)]">
+            <Sparkles size={15} strokeWidth={2} aria-hidden />
+          </span>
+          <span className="atlas-serif text-[18px] font-semibold leading-none">Atlas</span>
+        </Link>
+        <span className="hidden h-8 min-w-0 max-w-[320px] items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] font-medium md:inline-flex">
+          <span className="size-1.5 rounded-full bg-[var(--color-accent)]" aria-hidden />
+          <span className="truncate">{course.code}</span>
+          {course.name ? <span className="truncate text-[var(--color-muted)]">· {course.name}</span> : null}
+          <ChevronDown size={13} strokeWidth={2} className="shrink-0 text-[var(--color-faint)]" aria-hidden />
+        </span>
+        <span className="inline-flex min-h-7 items-center gap-1.5 rounded-full bg-[var(--color-indigo-soft)] px-3 text-[12px] font-semibold text-[var(--color-indigo)]">
+          <BookOpenCheck size={13} strokeWidth={2} aria-hidden /> Command
+        </span>
+        <div className="min-w-0 flex-1" />
+        <span className="hidden min-h-8 items-center gap-1.5 rounded-[7px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[12px] text-[var(--color-muted)] sm:inline-flex">
+          <ShieldCheck size={13} strokeWidth={2} className="text-[var(--color-good)]" aria-hidden />
+          {runtime === "eve" ? "Eve runtime" : "Atlas runtime"}
+        </span>
+        <Link
+          href="/teach/review"
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-[7px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[12px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]"
+        >
+          Review queue <span className="atlas-mono text-[11px]">{ledger.length}</span>
+        </Link>
+      </header>
+
+      <div className="grid min-h-0 w-full lg:grid-cols-[230px_minmax(0,1fr)_300px] 2xl:grid-cols-[264px_minmax(0,1fr)_332px]">
       <aside className="min-w-0 border-b border-[var(--color-border)] bg-[var(--color-surface-sidebar)] lg:border-b-0 lg:border-r">
         <div className="border-b border-[var(--color-border)] p-3">
           <Link
@@ -360,12 +442,21 @@ export function CommandConsole({
             </span>
             <span className="atlas-mono rounded-[4px] bg-white/15 px-1.5 py-0.5 text-[10px]">N</span>
           </Link>
-          <div className="mt-2 flex h-9 items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[12.5px] text-[var(--color-faint)]">
+          <label className="mt-2 flex h-9 items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[12.5px] text-[var(--color-faint)] focus-within:border-[var(--color-border-strong)]">
             <Search size={13} strokeWidth={2} aria-hidden />
-            <span>Course sessions</span>
-          </div>
+            <span className="sr-only">Search sessions</span>
+            <input
+              value={sessionQuery}
+              onChange={(event) => setSessionQuery(event.target.value)}
+              placeholder="Search sessions"
+              className="min-w-0 flex-1 bg-transparent text-[12.5px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-faint)]"
+            />
+          </label>
         </div>
         <div className="max-h-[calc(100vh-122px)] overflow-y-auto p-2">
+          {sessionGroups.length === 0 ? (
+            <p className="px-3 py-8 text-center text-[12.5px] leading-5 text-[var(--color-faint)]">No matching sessions.</p>
+          ) : null}
           {sessionGroups.map((group) => (
             <div key={group.label}>
               <p className="atlas-mono px-2 py-2 text-[10px] uppercase tracking-[0.08em] text-[var(--color-faint)]">
@@ -434,12 +525,14 @@ export function CommandConsole({
             <span className={`h-1.5 w-1.5 rounded-full bg-current ${running ? "animate-pulse" : ""}`} aria-hidden />
             {running ? "Working" : "Idle"}
           </span>
-          <Link
-            href="/teach/review"
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-[12.5px] font-semibold transition hover:border-[var(--color-ink)]"
+          <button
+            type="button"
+            onClick={replayLastRun}
+            disabled={!lastUserIntent || running}
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-[12.5px] font-semibold transition hover:border-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-45"
           >
-            Review <ArrowUpRight size={14} strokeWidth={2} aria-hidden />
-          </Link>
+            <RotateCcw size={14} strokeWidth={2} aria-hidden /> Replay
+          </button>
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
@@ -479,6 +572,35 @@ export function CommandConsole({
                     </span>
                     Atlas worked from the course record
                   </p>
+
+                  <details className="group rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+                    <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-[12.5px] text-[var(--color-muted)] [&::-webkit-details-marker]:hidden">
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" aria-hidden />
+                      Show Atlas work
+                      <span className="atlas-mono text-[10.5px] text-[var(--color-faint)]">
+                        {assistantWorkSteps(entry).length} {assistantWorkSteps(entry).length === 1 ? "step" : "steps"}
+                      </span>
+                      <ChevronDown
+                        size={13}
+                        strokeWidth={2}
+                        className="ml-auto text-[var(--color-faint)] transition group-open:rotate-180"
+                        aria-hidden
+                      />
+                    </summary>
+                    <div className="space-y-2 border-t border-[var(--color-border)] px-3 py-2.5">
+                      {assistantWorkSteps(entry).map((step, stepIndex) => (
+                        <p key={`${step}-${stepIndex}`} className="flex gap-2 text-[12.5px] leading-5 text-[var(--color-muted)]">
+                          <Check
+                            size={13}
+                            strokeWidth={2}
+                            className={entry.done ? "mt-0.5 shrink-0 text-[var(--color-good)]" : "mt-0.5 shrink-0 text-[var(--color-accent)]"}
+                            aria-hidden
+                          />
+                          <span>{step}</span>
+                        </p>
+                      ))}
+                    </div>
+                  </details>
 
                   {!entry.done && entry.actions.length === 0 && entry.blocks.length === 0 && !entry.text ? (
                     <div className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
@@ -721,6 +843,7 @@ export function CommandConsole({
           </div>
         </section>
       </aside>
+    </div>
     </div>
   );
 }

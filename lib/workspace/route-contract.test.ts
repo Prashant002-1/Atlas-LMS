@@ -16,6 +16,7 @@ const requiredRoutes = [
   "/",
   "/api/health",
   "/api/agent/command",
+  "/api/agent/eve-command",
   "/api/agent/cue",
   "/sign-in",
   "/sign-up",
@@ -84,6 +85,13 @@ test("the agent runtime exists and observes the doctrine", () => {
   assertSourceIncludes("agent/agent.ts", "defineAgent");
   assertSourceIncludes("agent/agent.ts", "atlasModel");
   assertSourceIncludes("agent/instructions.md", "Propose, never perform");
+  assertSourceIncludes("agent/channels/eve.ts", "atlasBridgeAuth");
+  assertSourceIncludes("agent/channels/eve.ts", "jwtHmac");
+  assertSourceIncludes("app/api/agent/eve-command/route.ts", "updateCommandSessionEveCursor");
+  assertSourceIncludes("app/api/agent/eve-command/route.ts", "persistEveRun");
+  assertSourceIncludes("lib/agent/stream-client.ts", "runEveAgentStream");
+  assertSourceIncludes("components/agent/command-console.tsx", "runEveAgentStream");
+  assertSourceIncludes("app/teach/atlas/page.tsx", "ATLAS_COMMAND_RUNTIME");
   for (const disabledTool of [
     "bash",
     "glob",
@@ -96,6 +104,17 @@ test("the agent runtime exists and observes the doctrine", () => {
     "write_file",
   ]) {
     assertSourceIncludes(`agent/tools/${disabledTool}.ts`, "disableTool");
+  }
+  for (const proposalTool of [
+    "proposeObjective",
+    "proposeModule",
+    "proposeAssignment",
+    "proposePage",
+    "proposeAnnouncement",
+    "proposePracticeSet",
+    "proposeRubric",
+  ]) {
+    assertSourceIncludes(`agent/tools/${proposalTool}.ts`, "defineTool");
   }
 
   // Context packs are built from the course record, deterministically.
@@ -147,6 +166,7 @@ test("the professor command surface streams blocks and lands proposals in Review
   assertSourceIncludes("components/agent/command-console.tsx", "Activity");
   assertSourceIncludes("components/agent/command-console.tsx", "/teach/atlas?session=");
   assertSourceIncludes("components/agent/command-console.tsx", "sessionId");
+  assertSourceIncludes("components/agent/command-console.tsx", "runtime=eve");
   assertSourceIncludes("app/teach/atlas/page.tsx", "CommandConsole");
   assertSourceIncludes("app/teach/atlas/page.tsx", "listCommandSessions");
   assertSourceIncludes("app/teach/atlas/page.tsx", "createCommandSession");

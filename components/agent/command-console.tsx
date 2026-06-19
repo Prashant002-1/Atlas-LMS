@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, CircleStop, FileText, Eye, Search, Clock, Check, Plus, PenLine } from "lucide-react";
 import type { UIMessage } from "ai";
-import { runAgentStream, toolParts, textOf } from "@/lib/agent/stream-client";
+import { runAgentStream, runEveAgentStream, toolParts, textOf } from "@/lib/agent/stream-client";
 import type { CommandSessionSummary, SessionDraft } from "@/lib/agent/session";
 import { blockSchema, type Block } from "@/lib/agent/blocks";
 import { BlockView } from "@/components/agent/block-views";
@@ -198,6 +198,7 @@ export function CommandConsole({
   sessions,
   initialMessages,
   initialDrafts = [],
+  runtime = "atlas",
 }: {
   courseId: string;
   courseLabel: string;
@@ -205,6 +206,7 @@ export function CommandConsole({
   sessions: CommandSessionSummary[];
   initialMessages: UIMessage[];
   initialDrafts?: SessionDraft[];
+  runtime?: "atlas" | "eve";
 }) {
   const router = useRouter();
   const [entries, setEntries] = useState<Entry[]>(() => entriesFromHistory(initialMessages, initialDrafts));
@@ -254,6 +256,7 @@ export function CommandConsole({
   }, [activeSession?.title, entries]);
 
   const turnCount = entries.filter((entry) => entry.kind === "user").length;
+  const runtimeQuery = runtime === "eve" ? "&runtime=eve" : "";
 
   const sessionGroups = useMemo(() => {
     const adjusted = sessions.map((session) =>
@@ -283,7 +286,10 @@ export function CommandConsole({
     queueMicrotask(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
 
     try {
-      const handle = await runAgentStream("/api/agent/command", { courseId, sessionId, intent: trimmed });
+      const handle =
+        runtime === "eve"
+          ? await runEveAgentStream("/api/agent/eve-command", { courseId, sessionId, intent: trimmed })
+          : await runAgentStream("/api/agent/command", { courseId, sessionId, intent: trimmed });
       abortRef.current = handle.abort;
 
       for await (const message of handle.messages) {
@@ -343,7 +349,7 @@ export function CommandConsole({
       <aside className="min-w-0 border-b border-[var(--color-border)] bg-[var(--color-surface-sidebar)] lg:border-b-0 lg:border-r">
         <div className="border-b border-[var(--color-border)] p-3">
           <Link
-            href="/teach/atlas?new=1"
+            href={`/teach/atlas?new=1${runtimeQuery}`}
             aria-disabled={running}
             className={`flex min-h-10 w-full items-center justify-between gap-3 rounded-[8px] bg-[var(--color-ink)] px-3 text-left text-[13px] font-semibold text-white transition hover:bg-[var(--color-accent-strong)] ${
               running ? "pointer-events-none opacity-60" : ""
@@ -371,7 +377,7 @@ export function CommandConsole({
                   return (
                     <Link
                       key={session.id}
-                      href={`/teach/atlas?session=${session.id}`}
+                      href={`/teach/atlas?session=${session.id}${runtimeQuery}`}
                       aria-current={active ? "page" : undefined}
                       className={`relative block w-full rounded-[8px] px-3 py-2.5 text-left transition hover:bg-[var(--color-surface-muted)] ${
                         active ? "bg-[var(--color-surface)] shadow-[var(--shadow-panel)]" : ""
@@ -415,6 +421,7 @@ export function CommandConsole({
             <h2 className="truncate font-serif text-[17px] font-semibold leading-tight 2xl:text-[20px]">{sessionTitle}</h2>
             <p className="mt-1 text-[12.5px] text-[var(--color-muted)]">
               {courseLabel} · Command session · {turnCount} {turnCount === 1 ? "turn" : "turns"}
+              {runtime === "eve" ? " · Eve runtime" : ""}
             </p>
           </div>
           <span

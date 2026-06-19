@@ -63,9 +63,13 @@ new surface. Blocks reuse `components/agent/block-views.tsx` unchanged.
 
 The page already uses durable `sessionId` URLs and resumes history from Postgres. Eve is now mounted
 in the app (`withEve`, `agent/agent.ts`, `agent/instructions.md`, disabled default harness tools).
-The remaining product work is to stream/reconnect runtime events (`?startIndex`) and continue turns
-through Eve's continuation token, then move the existing proposal tools into Eve channels without
-changing the command center layout.
+The command center can run through Eve with `?runtime=eve` or `ATLAS_COMMAND_RUNTIME=eve`: Atlas
+authenticates the proxy, sends the course context, streams Eve NDJSON events, renders the same block
+cards, and persists Eve-emitted proposal blocks into Review.
+
+The default route remains the Atlas command route because it resolves org BYOK keys per request.
+Before Eve becomes the default, the tenant-aware Eve model adapter and Eve-native inspect/recall
+tools need to land.
 
 ## Build order
 
@@ -74,9 +78,10 @@ changing the command center layout.
 2. Done: back the left rail with real command sessions and pass `sessionId` through
    `/api/agent/command`.
 3. Done: mount Eve/AI SDK 7 beta in the app and keep its default compute harness locked down.
-4. Next: wire to Eve's stream via `eve/client` (replacing `lib/agent/stream-client.ts` behind a
-   flag) so the UI receives Eve runtime events while keeping the current proposal tools.
-5. Later: reuse the shell for the student cue surface after command runtime behavior is stable.
+4. Done: add selectable Eve command runtime, proposal tools, event reducer, durable cursor, and
+   Review persistence for Eve-emitted blocks.
+5. Next: add the tenant-aware Eve model adapter, then make Eve the default command runtime.
+6. Later: reuse the shell for the student cue surface after command runtime behavior is stable.
 
 Design language is unchanged: the Observatory palette, Spectral serif headers, Hanken Grotesk body,
 IBM Plex Mono labels, layered shadows, the 1px card lift.

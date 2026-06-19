@@ -21,6 +21,7 @@ import { redirect } from "next/navigation";
 type AtlasSearchParams = {
   session?: string | string[];
   new?: string | string[];
+  runtime?: string | string[];
 };
 
 function firstParam(value: string | string[] | undefined): string | null {
@@ -45,6 +46,8 @@ export default async function TeachAtlasPage({ searchParams }: { searchParams?: 
 
   const params = (await searchParams) ?? {};
   const requestedSessionId = firstParam(params.session);
+  const runtime = firstParam(params.runtime) === "eve" || process.env.ATLAS_COMMAND_RUNTIME === "eve" ? "eve" : "atlas";
+  const runtimeQuery = runtime === "eve" ? "&runtime=eve" : "";
   const commandScope = {
     orgId: session.user.orgId,
     userId: session.user.id,
@@ -53,7 +56,7 @@ export default async function TeachAtlasPage({ searchParams }: { searchParams?: 
 
   if (firstParam(params.new)) {
     const created = await createCommandSession(commandScope);
-    redirect(`/teach/atlas?session=${created.id}`);
+    redirect(`/teach/atlas?session=${created.id}${runtimeQuery}`);
   }
 
   let sessions = await listCommandSessions(commandScope);
@@ -61,7 +64,7 @@ export default async function TeachAtlasPage({ searchParams }: { searchParams?: 
   if (!agentSession) {
     const fallbackSession = sessions[0] ? await loadCommandSession(commandScope, sessions[0].id) : null;
     agentSession = fallbackSession ?? (await createCommandSession(commandScope));
-    redirect(`/teach/atlas?session=${agentSession.id}`);
+    redirect(`/teach/atlas?session=${agentSession.id}${runtimeQuery}`);
   }
 
   if (!sessions.some((item) => item.id === agentSession.id)) {
@@ -80,6 +83,7 @@ export default async function TeachAtlasPage({ searchParams }: { searchParams?: 
       sessions={sessions}
       initialMessages={initialMessages}
       initialDrafts={initialDrafts}
+      runtime={runtime}
     />
   );
 }

@@ -14,8 +14,9 @@ draft to live apply (`lib/agent/apply.ts`), and per-org BYOK model resolution (`
 `lib/ai/provider.ts`).
 
 As of `eve@0.11.7`, Eve peers on `ai@7.0.0-beta.178`; Atlas has moved to that AI SDK beta and mounts
-Eve through `withEve(nextConfig)`. The production command/cue behavior still runs through the Atlas
-Next route handlers until their channels are ported.
+Eve through `withEve(nextConfig)`. The production command behavior has an Eve runtime path available
+with `?runtime=eve` or `ATLAS_COMMAND_RUNTIME=eve`; the BYOK-safe Atlas route remains the default
+until the tenant model adapter is complete.
 
 This works, but the session/runtime plumbing is hand-rolled: durability is best-effort, there is no
 crash-safe resume, no parked work for human checkpoints, no first-class run history, schedules, or
@@ -29,9 +30,9 @@ AI SDK models, AI SDK spans). Adopting it is a runtime + authoring change, not a
 
 Adopt Eve as the runtime for the whole agent layer. Author the agent as files under `agent/`
 (`instructions.md`, `agent.ts`, `tools/`, `instructions/`, `channels/`, `lib/`), let Eve own the
-durable session loop, and keep Atlas's invariants intact on top of it. The first landed step is the
-runtime mount plus an Atlas agent root; the command/cue ports follow as product work, not a second
-prototype.
+durable session loop, and keep Atlas's invariants intact on top of it. The first landed steps are the
+runtime mount, an Atlas agent root, a secured Eve HTTP channel, and an Eve command proxy that persists
+Eve-emitted blocks back into Review.
 
 ### Stays (Atlas's edge, framework-agnostic)
 - `lib/agent/blocks.ts` — the zod block contract becomes tool `inputSchema`/`outputSchema` and the
@@ -93,17 +94,21 @@ connections, Agent Runs observability, and an evals harness.
 - The session/runtime code we maintain shrinks; durability, observability, schedules, and HITL come
   from the framework.
 - Eve is in beta; pin the version and watch `vercel/eve` for breaking changes before building deep.
-- The first runtime mount has landed on the PR branch and proves the AI SDK 6 -> 7 beta migration
-  without replacing the production command/cue routes yet.
+- The first runtime mount and selectable Eve command path have landed on the PR branch. Eve can now
+  emit Atlas proposal blocks that the app persists into Review. The default remains the Atlas route
+  until tenant BYOK is resolved in Eve.
 - ADR-0005 must be amended (session state location). ADR-0006 stands: the provider registry now
   feeds the BYOK model adapter that Eve consumes.
 
 ## Rollout (phased)
 
 - **Phase 0 — dependency/runtime mount:** installed Eve, moved Atlas to AI SDK 7 beta, wrapped Next
-  with `withEve`, added the Atlas Eve agent root, and disabled the unsafe default harness tools.
-- **Phase 1 — cue surface:** cue surface as a custom channel, one `emit` tool, dynamic instructions
+  with `withEve`, added the Atlas Eve agent root, disabled the unsafe default harness tools, and
+  secured the Eve HTTP channel with Atlas bridge JWT auth.
+- **Phase 1 — command surface bridge:** selectable Eve command runtime, Eve proposal tools, Atlas
+  proxy route, durable Eve cursor on `agent_sessions`, and Review persistence for Eve-emitted blocks.
+- **Phase 2 — cue surface:** cue surface as a custom channel, one `emit` tool, dynamic instructions
   from the pack, next-auth `AuthFn`, tenant-aware model adapter on one provider.
-- **Phase 2 — command surface:** port `propose*` block tools (`defineTool`/`defineDynamic` +
-  `defineState`); keep `apply.ts`; add the `turn.completed` Postgres mirror; re-expose recall.
-- **Phase 3 — harden:** disable harness defaults, Agent Runs/OTel, hosting decision, amend ADRs.
+- **Phase 3 — command hardening:** tenant-aware model adapter, Eve-native inspect/recall tools,
+  `turn.completed` Postgres mirror, and default the command center to Eve.
+- **Phase 4 — harden:** Agent Runs/OTel, hosting decision, amend ADRs.

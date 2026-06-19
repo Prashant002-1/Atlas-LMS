@@ -63,7 +63,8 @@ new surface. Blocks reuse `components/agent/block-views.tsx` unchanged.
 
 The page already uses durable `sessionId` URLs and resumes history from Postgres. The remaining Eve
 work is to stream/reconnect runtime events (`?startIndex`) and continue turns through Eve's
-continuation token once the Eve package is installed.
+continuation token. That cutover also requires proving the Eve dependency stack first:
+`eve@0.11.7` peers on AI SDK 7 beta, while Atlas is currently on AI SDK 6.
 
 ## Build order
 
@@ -71,9 +72,10 @@ continuation token once the Eve package is installed.
    ledger, and activity rail.
 2. Done: back the left rail with real command sessions and pass `sessionId` through
    `/api/agent/command`.
-3. Next: wire to Eve's stream via `eve/client` (replacing `lib/agent/stream-client.ts` behind a
+3. Next: run an isolated Eve/AI SDK 7 beta dependency spike.
+4. Then: wire to Eve's stream via `eve/client` (replacing `lib/agent/stream-client.ts` behind a
    flag) so the UI receives Eve runtime events while keeping the current proposal tools.
-4. Later: reuse the shell for the student cue surface after command runtime behavior is stable.
+5. Later: reuse the shell for the student cue surface after command runtime behavior is stable.
 
 Design language is unchanged: the Observatory palette, Spectral serif headers, Hanken Grotesk body,
 IBM Plex Mono labels, layered shadows, the 1px card lift.

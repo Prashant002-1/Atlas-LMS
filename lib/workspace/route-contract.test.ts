@@ -120,15 +120,22 @@ test("the professor command surface streams blocks and lands proposals in Review
   assertSourceIncludes("components/agent/command-console.tsx", "runAgentStream");
   assertSourceIncludes("components/agent/command-console.tsx", "Nothing is live until you apply it");
   assertSourceIncludes("components/agent/command-console.tsx", "ACTION_META");
-  assertSourceIncludes("components/agent/command-console.tsx", "Sessions");
+  assertSourceIncludes("components/agent/command-console.tsx", "Course sessions");
   assertSourceIncludes("components/agent/command-console.tsx", "Artifacts");
   assertSourceIncludes("components/agent/command-console.tsx", "Activity");
-  assertSourceIncludes("components/agent/command-console.tsx", "This session");
+  assertSourceIncludes("components/agent/command-console.tsx", "/teach/atlas?session=");
+  assertSourceIncludes("components/agent/command-console.tsx", "sessionId");
   assertSourceIncludes("app/teach/atlas/page.tsx", "CommandConsole");
+  assertSourceIncludes("app/teach/atlas/page.tsx", "listCommandSessions");
+  assertSourceIncludes("app/teach/atlas/page.tsx", "createCommandSession");
+  assertSourceIncludes("app/api/agent/command/route.ts", "loadCommandSession");
+  assertSourceIncludes("app/api/agent/command/route.ts", "titleCommandSessionFromIntent");
   // The conversation resumes: history hydrates from the persisted session.
   assertSourceIncludes("app/teach/atlas/page.tsx", "turnsToUIMessages");
   assertSourceIncludes("app/teach/atlas/page.tsx", "loadSessionDrafts");
   assertSourceIncludes("lib/agent/session.ts", "changeProposals.sessionId");
+  assertSourceIncludes("lib/agent/session.ts", "export async function listCommandSessions");
+  assertSourceIncludes("lib/agent/session.ts", "export async function loadCommandSession");
   // Reducing overhead is the point: a pasted syllabus becomes drafted records.
   assertSourceIncludes("components/agent/command-console.tsx", "Import syllabus");
 

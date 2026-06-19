@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowUpRight, CircleStop, FileText, Eye, Search, Clock, Check, Plus, PenLine } from "lucide-react";
 import type { UIMessage } from "ai";
 import { runAgentStream, toolParts, textOf } from "@/lib/agent/stream-client";
-import type { SessionDraft } from "@/lib/agent/session";
+import type { CommandSessionSummary, SessionDraft } from "@/lib/agent/session";
 import { blockSchema, type Block } from "@/lib/agent/blocks";
 import { BlockView } from "@/components/agent/block-views";
 
@@ -145,15 +145,19 @@ function draftedBlock(block: Block): DraftedBlock {
 
 function entriesFromHistory(messages: UIMessage[], drafts: SessionDraft[] = []): Entry[] {
   let draftIndex = 0;
-  return messages.map((message): Entry =>
-    message.role === "user"
-      ? { kind: "user", text: textOf(message) }
-      : withHydratedDraft(processAssistant(message, true), drafts[draftIndex++])
-  );
+  return messages.map((message): Entry => {
+    if (message.role === "user") return { kind: "user", text: textOf(message) };
+    const entry = processAssistant(message, true);
+    if (entry.blocks.some((b) => b.block)) return entry;
+    const draft = drafts[draftIndex];
+    if (!draft) return entry;
+    draftIndex += 1;
+    return withHydratedDraft(entry, draft);
+  });
 }
 
 function withHydratedDraft(entry: AssistantEntry, draft: SessionDraft | undefined): AssistantEntry {
-  if (!draft || entry.blocks.some((b) => b.block)) return entry;
+  if (!draft || !Array.isArray(draft.blocks) || draft.blocks.length === 0 || entry.blocks.some((b) => b.block)) return entry;
   const blocks = draft.blocks.map(draftedBlock);
   const actions = blocks.map((b) => ({ toolName: b.toolName, summary: b.block ? blockTitle(b.block) : "" }));
   return { ...entry, blocks, actions };
@@ -165,14 +169,40 @@ const SUGGESTIONS = [
   "Add a week on a topic the course is missing",
 ];
 
+function sessionGroupLabel(updatedAt: string): "Today" | "Earlier" {
+  const updated = new Date(updatedAt);
+  const now = new Date();
+  return updated.toDateString() === now.toDateString() ? "Today" : "Earlier";
+}
+
+function sessionWhen(updatedAt: string): string {
+  const updated = new Date(updatedAt);
+  const now = new Date();
+  if (updated.toDateString() === now.toDateString()) {
+    return updated.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+  return updated.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function sessionDetail(session: CommandSessionSummary): string {
+  const parts = [`${session.userTurnCount} ${session.userTurnCount === 1 ? "turn" : "turns"}`];
+  if (session.draftCount > 0) parts.push(`${session.draftCount} ${session.draftCount === 1 ? "draft" : "drafts"}`);
+  if (session.decidedCount > 0) parts.push(`${session.decidedCount} decided`);
+  return parts.join(" · ");
+}
+
 export function CommandConsole({
   courseId,
   courseLabel,
+  sessionId,
+  sessions,
   initialMessages,
   initialDrafts = [],
 }: {
   courseId: string;
   courseLabel: string;
+  sessionId: string;
+  sessions: CommandSessionSummary[];
   initialMessages: UIMessage[];
   initialDrafts?: SessionDraft[];
 }) {
@@ -215,13 +245,28 @@ export function CommandConsole({
     return items;
   }, [entries]);
 
+  const activeSession = useMemo(() => sessions.find((session) => session.id === sessionId), [sessionId, sessions]);
+
   const sessionTitle = useMemo(() => {
     const firstUser = entries.find((entry): entry is UserEntry => entry.kind === "user");
-    if (!firstUser) return "Course command session";
+    if (!firstUser) return activeSession?.title ?? "Course command session";
     return firstUser.text.length > 54 ? `${firstUser.text.slice(0, 54)}...` : firstUser.text;
-  }, [entries]);
+  }, [activeSession?.title, entries]);
 
   const turnCount = entries.filter((entry) => entry.kind === "user").length;
+
+  const sessionGroups = useMemo(() => {
+    const adjusted = sessions.map((session) =>
+      session.id === sessionId ? { ...session, title: sessionTitle, userTurnCount: turnCount } : session
+    );
+    return adjusted.reduce<Array<{ label: "Today" | "Earlier"; sessions: CommandSessionSummary[] }>>((groups, session) => {
+      const label = sessionGroupLabel(session.updatedAt);
+      const existing = groups.find((group) => group.label === label);
+      if (existing) existing.sessions.push(session);
+      else groups.push({ label, sessions: [session] });
+      return groups;
+    }, []);
+  }, [sessionId, sessionTitle, sessions, turnCount]);
 
   async function run(text: string) {
     const trimmed = text.trim();
@@ -237,15 +282,13 @@ export function CommandConsole({
     ]);
     queueMicrotask(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
 
-    let drafted = false;
     try {
-      const handle = await runAgentStream("/api/agent/command", { courseId, intent: trimmed });
+      const handle = await runAgentStream("/api/agent/command", { courseId, sessionId, intent: trimmed });
       abortRef.current = handle.abort;
 
       for await (const message of handle.messages) {
         if (activeRunRef.current !== runId) return;
         const next = processAssistant(message, false);
-        if (next.blocks.length > 0) drafted = true;
         setEntries((prev) => [...prev.slice(0, -1), next]);
       }
       if (activeRunRef.current !== runId) return;
@@ -255,7 +298,7 @@ export function CommandConsole({
       });
       setIntent("");
       setSyllabus("");
-      if (drafted) router.refresh();
+      router.refresh();
     } catch (err) {
       if (activeRunRef.current === runId) {
         setError(err instanceof Error ? err.message : "The run failed.");
@@ -299,42 +342,70 @@ export function CommandConsole({
     <div className="grid h-full min-h-[720px] w-full overflow-x-hidden overflow-y-auto bg-[var(--color-bg)] shadow-[var(--shadow-panel)] lg:min-h-0 lg:grid-cols-[230px_minmax(0,1fr)_300px] lg:overflow-hidden 2xl:grid-cols-[264px_minmax(0,1fr)_332px]">
       <aside className="min-w-0 border-b border-[var(--color-border)] bg-[var(--color-surface-sidebar)] lg:border-b-0 lg:border-r">
         <div className="border-b border-[var(--color-border)] p-3">
-          <button
-            type="button"
-            onClick={() => document.getElementById("atlas-command")?.focus()}
-            className="flex min-h-10 w-full items-center justify-between gap-3 rounded-[8px] bg-[var(--color-ink)] px-3 text-left text-[13px] font-semibold text-white transition hover:bg-[var(--color-accent-strong)]"
+          <Link
+            href="/teach/atlas?new=1"
+            aria-disabled={running}
+            className={`flex min-h-10 w-full items-center justify-between gap-3 rounded-[8px] bg-[var(--color-ink)] px-3 text-left text-[13px] font-semibold text-white transition hover:bg-[var(--color-accent-strong)] ${
+              running ? "pointer-events-none opacity-60" : ""
+            }`}
           >
             <span className="inline-flex items-center gap-2">
               <Plus size={14} strokeWidth={2} aria-hidden /> New session
             </span>
             <span className="atlas-mono rounded-[4px] bg-white/15 px-1.5 py-0.5 text-[10px]">N</span>
-          </button>
+          </Link>
           <div className="mt-2 flex h-9 items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[12.5px] text-[var(--color-faint)]">
             <Search size={13} strokeWidth={2} aria-hidden />
-            <span>This session</span>
+            <span>Course sessions</span>
           </div>
         </div>
-        <div className="p-2">
-          <p className="atlas-mono px-2 py-2 text-[10px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Sessions</p>
-          <button
-            type="button"
-            onClick={() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })}
-            className="relative w-full rounded-[8px] bg-[var(--color-surface)] px-3 py-2.5 text-left shadow-[var(--shadow-panel)]"
-          >
-            <span className="absolute bottom-2.5 left-1 top-2.5 w-[2px] rounded-full bg-[var(--color-accent)]" aria-hidden />
-            <span className="flex items-center gap-2 pl-2">
-              <span
-                className={`h-2 w-2 rounded-full ${running ? "animate-pulse bg-[var(--color-accent)]" : "bg-[var(--color-good)]"}`}
-                aria-hidden
-              />
-              <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{sessionTitle}</span>
-            </span>
-            <span className="mt-1 flex items-center gap-1.5 pl-6 text-[11px] text-[var(--color-muted)]">
-              <span className="atlas-mono uppercase">Command</span>
-              <span aria-hidden>·</span>
-              <span>{turnCount} {turnCount === 1 ? "turn" : "turns"}</span>
-            </span>
-          </button>
+        <div className="max-h-[calc(100vh-122px)] overflow-y-auto p-2">
+          {sessionGroups.map((group) => (
+            <div key={group.label}>
+              <p className="atlas-mono px-2 py-2 text-[10px] uppercase tracking-[0.08em] text-[var(--color-faint)]">
+                {group.label}
+              </p>
+              <div className="space-y-1">
+                {group.sessions.map((session) => {
+                  const active = session.id === sessionId;
+                  return (
+                    <Link
+                      key={session.id}
+                      href={`/teach/atlas?session=${session.id}`}
+                      aria-current={active ? "page" : undefined}
+                      className={`relative block w-full rounded-[8px] px-3 py-2.5 text-left transition hover:bg-[var(--color-surface-muted)] ${
+                        active ? "bg-[var(--color-surface)] shadow-[var(--shadow-panel)]" : ""
+                      }`}
+                    >
+                      {active ? (
+                        <span className="absolute bottom-2.5 left-1 top-2.5 w-[2px] rounded-full bg-[var(--color-accent)]" aria-hidden />
+                      ) : null}
+                      <span className="flex items-center gap-2 pl-2">
+                        <span
+                          className={`h-2 w-2 rounded-full ${
+                            active && running
+                              ? "animate-pulse bg-[var(--color-accent)]"
+                              : session.draftCount > 0
+                                ? "bg-[var(--color-good)]"
+                                : "bg-[var(--color-faint)]"
+                          }`}
+                          aria-hidden
+                        />
+                        <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{session.title}</span>
+                      </span>
+                      <span className="mt-1 flex min-w-0 items-center gap-1.5 pl-6 text-[11px] text-[var(--color-muted)]">
+                        <span className="atlas-mono shrink-0 uppercase">Command</span>
+                        <span aria-hidden>·</span>
+                        <span className="truncate">{sessionDetail(session)}</span>
+                        <span aria-hidden>·</span>
+                        <span className="shrink-0">{sessionWhen(session.updatedAt)}</span>
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </aside>
 

@@ -76,6 +76,28 @@ test("every route is gated: middleware guards the surface, pages check sessions"
 });
 
 test("the agent runtime exists and observes the doctrine", () => {
+  // Eve is mounted as the durable runtime shell while Atlas keeps its record doctrine.
+  assertSourceIncludes("package.json", '"eve"');
+  assertSourceIncludes("package.json", '"ai": "^7.0.0-beta.178"');
+  assertSourceIncludes("next.config.mjs", "withEve");
+  assertSourceIncludes("middleware.ts", '"/eve"');
+  assertSourceIncludes("agent/agent.ts", "defineAgent");
+  assertSourceIncludes("agent/agent.ts", "atlasModel");
+  assertSourceIncludes("agent/instructions.md", "Propose, never perform");
+  for (const disabledTool of [
+    "bash",
+    "glob",
+    "grep",
+    "load_skill",
+    "read_file",
+    "todo",
+    "web_fetch",
+    "web_search",
+    "write_file",
+  ]) {
+    assertSourceIncludes(`agent/tools/${disabledTool}.ts`, "disableTool");
+  }
+
   // Context packs are built from the course record, deterministically.
   assertSourceIncludes("lib/agent/context.ts", "export async function buildContextPack");
   assertSourceIncludes("lib/agent/context.ts", "policy");

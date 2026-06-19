@@ -61,10 +61,11 @@ new surface. Blocks reuse `components/agent/block-views.tsx` unchanged.
 | `turn.completed` / `session.waiting` | run state -> Idle; mirror turn to Postgres for recall |
 | `compaction.requested/completed` | quiet "earlier turns summarized" marker |
 
-The page already uses durable `sessionId` URLs and resumes history from Postgres. The remaining Eve
-work is to stream/reconnect runtime events (`?startIndex`) and continue turns through Eve's
-continuation token. That cutover also requires proving the Eve dependency stack first:
-`eve@0.11.7` peers on AI SDK 7 beta, while Atlas is currently on AI SDK 6.
+The page already uses durable `sessionId` URLs and resumes history from Postgres. Eve is now mounted
+in the app (`withEve`, `agent/agent.ts`, `agent/instructions.md`, disabled default harness tools).
+The remaining product work is to stream/reconnect runtime events (`?startIndex`) and continue turns
+through Eve's continuation token, then move the existing proposal tools into Eve channels without
+changing the command center layout.
 
 ## Build order
 
@@ -72,8 +73,8 @@ continuation token. That cutover also requires proving the Eve dependency stack 
    ledger, and activity rail.
 2. Done: back the left rail with real command sessions and pass `sessionId` through
    `/api/agent/command`.
-3. Next: run an isolated Eve/AI SDK 7 beta dependency spike.
-4. Then: wire to Eve's stream via `eve/client` (replacing `lib/agent/stream-client.ts` behind a
+3. Done: mount Eve/AI SDK 7 beta in the app and keep its default compute harness locked down.
+4. Next: wire to Eve's stream via `eve/client` (replacing `lib/agent/stream-client.ts` behind a
    flag) so the UI receives Eve runtime events while keeping the current proposal tools.
 5. Later: reuse the shell for the student cue surface after command runtime behavior is stable.
 

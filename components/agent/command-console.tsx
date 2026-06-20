@@ -442,7 +442,8 @@ export function CommandConsole({
             </span>
             <span className="atlas-mono rounded-[4px] bg-white/15 px-1.5 py-0.5 text-[10px]">N</span>
           </Link>
-          <label className="mt-2 flex h-9 items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[12.5px] text-[var(--color-faint)] focus-within:border-[var(--color-border-strong)]">
+          <p className="atlas-mono mt-3 text-[10px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Course sessions</p>
+          <label className="mt-1.5 flex h-9 items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[12.5px] text-[var(--color-faint)] focus-within:border-[var(--color-border-strong)]">
             <Search size={13} strokeWidth={2} aria-hidden />
             <span className="sr-only">Search sessions</span>
             <input

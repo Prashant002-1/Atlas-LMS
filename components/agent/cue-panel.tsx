@@ -38,6 +38,13 @@ const CUE_TOOL_TYPES: Record<string, string> = {
   emitAnswer: "answer",
 };
 
+function parseCueBlock(toolName: string, payload: unknown): Block | null {
+  const type = CUE_TOOL_TYPES[toolName];
+  if (!type || !payload || typeof payload !== "object") return null;
+  const parsed = blockSchema.safeParse({ ...(payload as object), type });
+  return parsed.success ? parsed.data : null;
+}
+
 export function CuePanel({ target, availability }: { target: CueTarget; availability: CueAvailability }) {
   const [state, setState] = useState<CueState>({ phase: "idle" });
   const [question, setQuestion] = useState("");
@@ -65,9 +72,8 @@ export function CuePanel({ target, availability }: { target: CueTarget; availabi
       for await (const message of handle.messages) {
         text = textOf(message);
         const part = toolParts(message).find((p) => CUE_TOOL_TYPES[p.toolName]);
-        if (part?.input && typeof part.input === "object") {
-          const parsed = blockSchema.safeParse({ ...(part.input as object), type: CUE_TOOL_TYPES[part.toolName] });
-          if (parsed.success) block = parsed.data;
+        if (part) {
+          block = parseCueBlock(part.toolName, part.input) ?? parseCueBlock(part.toolName, part.output) ?? block;
         }
         setState({ phase: "done", kind, block, text });
       }

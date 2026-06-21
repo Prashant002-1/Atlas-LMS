@@ -399,8 +399,8 @@ export function CommandConsole({
   }
 
   return (
-    <div className="grid h-full min-h-[720px] w-full grid-rows-[auto_minmax(0,1fr)] overflow-x-hidden overflow-y-auto bg-[var(--color-bg)] shadow-[var(--shadow-panel)] lg:min-h-0 lg:overflow-hidden">
-      <header className="flex min-h-14 items-center gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4">
+    <div className="grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)] overflow-x-hidden overflow-y-auto bg-[var(--color-bg)] shadow-[var(--shadow-panel)] lg:overflow-hidden">
+      <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4">
         <Link
           href={`/teach/atlas?session=${sessionId}${runtimeQuery}`}
           aria-label="Atlas"
@@ -419,8 +419,8 @@ export function CommandConsole({
         </Link>
       </header>
 
-      <div className="grid min-h-0 w-full lg:grid-cols-[230px_minmax(0,1fr)_300px] 2xl:grid-cols-[264px_minmax(0,1fr)_332px]">
-      <aside className="min-w-0 border-b border-[var(--color-border)] bg-[var(--color-surface-sidebar)] lg:border-b-0 lg:border-r">
+      <div className="grid min-h-0 w-full overflow-y-auto lg:grid-cols-[230px_minmax(0,1fr)_300px] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden 2xl:grid-cols-[264px_minmax(0,1fr)_332px]">
+      <aside className="order-2 min-w-0 border-b border-[var(--color-border)] bg-[var(--color-surface-sidebar)] lg:order-none lg:min-h-0 lg:border-b-0 lg:border-r">
         <div className="border-b border-[var(--color-border)] p-3">
           <Link
             href={`/teach/atlas?new=1${runtimeQuery}`}
@@ -497,8 +497,8 @@ export function CommandConsole({
         </div>
       </aside>
 
-      <section className="flex min-h-0 min-w-0 flex-col">
-        <header className="flex items-center gap-3 border-b border-[var(--color-border)] px-5 py-4">
+      <section className="order-1 flex min-h-[calc(100vh-56px)] min-w-0 flex-col overflow-hidden lg:order-none lg:h-full lg:min-h-0">
+        <header className="flex shrink-0 items-center gap-3 border-b border-[var(--color-border)] px-5 py-4">
           <div className="min-w-0 flex-1">
             <h2 className="truncate font-serif text-[17px] font-semibold leading-tight 2xl:text-[20px]">{sessionTitle}</h2>
             <p className="mt-1 text-[12.5px] text-[var(--color-muted)]">
@@ -703,12 +703,12 @@ export function CommandConsole({
         </div>
 
         {error ? (
-          <p className="mx-5 mb-3 rounded-[6px] border border-[rgba(140,60,40,0.25)] bg-[rgba(140,60,40,0.06)] px-3 py-2 text-[13px] text-[var(--color-danger)]">
+          <p className="mx-5 mb-3 shrink-0 rounded-[6px] border border-[rgba(140,60,40,0.25)] bg-[rgba(140,60,40,0.06)] px-3 py-2 text-[13px] text-[var(--color-danger)]">
             {error}
           </p>
         ) : null}
 
-        <div className="border-t border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-bg)_72%,var(--color-surface))] px-5 py-3">
+        <div className="sticky bottom-0 z-10 shrink-0 border-t border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-bg)_72%,var(--color-surface))] px-5 py-3">
           <form
             className="mx-auto max-w-[780px]"
             onSubmit={(event) => {
@@ -727,13 +727,13 @@ export function CommandConsole({
                 placeholder="Tell Atlas what to draft - it works from the course record and lands in Review"
                 disabled={running}
                 autoComplete="off"
-                className="min-h-11 w-full rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3.5 text-[14px] placeholder:text-[var(--color-faint)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] disabled:opacity-60"
+                className="min-h-11 min-w-0 flex-1 rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3.5 text-[14px] placeholder:text-[var(--color-faint)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] disabled:opacity-60"
               />
               {running ? (
                 <button
                   type="button"
                   onClick={stopRun}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 text-[14px] font-medium transition hover:border-[var(--color-ink)]"
+                  className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 text-[14px] font-medium transition hover:border-[var(--color-ink)]"
                 >
                   <CircleStop size={15} strokeWidth={2} aria-hidden /> Stop
                 </button>
@@ -741,7 +741,7 @@ export function CommandConsole({
                 <button
                   type="submit"
                   disabled={intent.trim().length < 4}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-4 text-[14px] font-medium text-white transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-4 text-[14px] font-medium text-white transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Send <ArrowUpRight size={15} strokeWidth={2} aria-hidden />
                 </button>
@@ -751,7 +751,7 @@ export function CommandConsole({
         </div>
       </section>
 
-      <aside className="flex min-h-0 min-w-0 flex-col border-t border-[var(--color-border)] bg-[var(--color-surface-sidebar)] lg:border-l lg:border-t-0">
+      <aside className="order-3 flex min-h-0 min-w-0 flex-col border-t border-[var(--color-border)] bg-[var(--color-surface-sidebar)] lg:order-none lg:h-full lg:border-l lg:border-t-0">
         <section className="min-h-0 border-b border-[var(--color-border)]">
           <header className="flex items-baseline justify-between gap-3 px-4 py-3">
             <h2 className="text-[13px] font-semibold text-[var(--color-ink)]">Artifacts</h2>

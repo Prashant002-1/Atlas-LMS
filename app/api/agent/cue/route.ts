@@ -150,7 +150,8 @@ export async function POST(req: Request) {
     system: cueSystemPrompt(pack, kind, policy),
     messages,
     tools: createCueTools(kind),
-    stopWhen: stepCountIs(3),
+    toolChoice: "required",
+    stopWhen: stepCountIs(1),
     onFinish: async ({ content }) => {
       await appendTurn(session, "assistant", content);
       await compactIfNeeded(session);

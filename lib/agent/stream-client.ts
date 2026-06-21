@@ -201,14 +201,23 @@ export type ToolPart = {
   toolName: string;
   state: string;
   input: unknown;
+  output: unknown;
+  errorText?: string;
 };
 
 export function toolParts(message: UIMessage): ToolPart[] {
   const parts: ToolPart[] = [];
   for (const part of message.parts) {
+    if (part.type === "dynamic-tool") {
+      const p = part as unknown as { toolName?: string; state?: string; input?: unknown; output?: unknown; errorText?: string };
+      if (typeof p.toolName === "string") {
+        parts.push({ toolName: p.toolName, state: p.state ?? "", input: p.input, output: p.output, errorText: p.errorText });
+      }
+      continue;
+    }
     if (typeof part.type !== "string" || !part.type.startsWith("tool-")) continue;
-    const p = part as unknown as { type: string; state?: string; input?: unknown };
-    parts.push({ toolName: part.type.slice(5), state: p.state ?? "", input: p.input });
+    const p = part as unknown as { type: string; state?: string; input?: unknown; output?: unknown; errorText?: string };
+    parts.push({ toolName: part.type.slice(5), state: p.state ?? "", input: p.input, output: p.output, errorText: p.errorText });
   }
   return parts;
 }

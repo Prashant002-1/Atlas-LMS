@@ -10,6 +10,7 @@ import {
 } from "@/lib/agent/session";
 import { CommandConsole } from "@/components/agent/command-console";
 import { PageHeader } from "@/components/teach/page-header";
+import { resolveScope } from "@/lib/workspace/scope";
 import { redirect } from "next/navigation";
 
 /**
@@ -75,10 +76,21 @@ export default async function TeachAtlasPage({ searchParams }: { searchParams?: 
   const initialMessages = turnsToUIMessages(turns);
   const initialDrafts = await loadSessionDrafts(session.user.orgId, agentSession.id);
 
+  // The professor's teaching courses, for the in-console course switcher. Each
+  // course is its own context; switching reloads Atlas scoped to that course.
+  const scope = await resolveScope({
+    orgId: session.user.orgId,
+    userId: session.user.id,
+    role: session.user.role,
+    teachingOnly: true,
+  });
+  const courses = scope.courses.map((c) => ({ id: c.id, code: c.code, name: c.name }));
+
   return (
     <CommandConsole
       courseId={workspace.course.id}
       courseLabel={`${workspace.course.code} / ${workspace.course.name}`}
+      courses={courses}
       sessionId={agentSession.id}
       sessions={sessions}
       initialMessages={initialMessages}

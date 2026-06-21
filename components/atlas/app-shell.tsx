@@ -15,13 +15,14 @@ import {
   PanelLeftOpen,
   Send,
   Settings,
-  Sparkles,
+  Telescope,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
 import { signOutOfAtlas } from "@/lib/auth/actions";
 import { setCourseScope } from "@/lib/workspace/scope-actions";
 import { MotionPage } from "@/components/atlas/motion";
+import { AtlasMark } from "@/components/atlas/primitives";
 
 /**
  * The app frame: a collapsible sidebar and a content column. The sidebar
@@ -33,7 +34,7 @@ import { MotionPage } from "@/components/atlas/motion";
 
 const ICONS = {
   dashboard: LayoutDashboard,
-  atlas: Sparkles,
+  atlas: Telescope,
   review: ClipboardCheck,
   weeks: Layers3,
   work: Send,
@@ -116,7 +117,7 @@ export function AppShell({
                 title="Atlas"
                 className="flex h-14 w-full items-center justify-center border-b border-[var(--color-border)] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
               >
-                <AtlasMark />
+                <AtlasMark size={22} />
               </Link>
             ) : (
               /* Collapsed: the logo mark. On hover it crossfades into the
@@ -130,7 +131,7 @@ export function AppShell({
               >
                 <span className="relative flex size-[20px] items-center justify-center">
                   <span className="absolute inset-0 flex items-center justify-center opacity-100 transition-opacity duration-200 ease-out group-hover/brand:opacity-0">
-                    <AtlasMark />
+                    <AtlasMark size={20} />
                   </span>
                   <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 ease-out group-hover/brand:opacity-100">
                     <PanelLeftOpen size={15} strokeWidth={2} aria-hidden />
@@ -142,7 +143,7 @@ export function AppShell({
             /* Expanded: logo + wordmark on the left, toggle on the right */
             <div className="flex h-14 items-center justify-between border-b border-[var(--color-border)] px-4">
               <Link href="/" aria-label="Atlas" className="flex items-center gap-2.5 rounded-[6px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
-                <AtlasMark />
+                <AtlasMark size={24} />
                 <span className="atlas-serif text-[17px] font-medium">Atlas</span>
               </Link>
               <button
@@ -253,20 +254,5 @@ function CourseSwitcher({
         ))}
       </select>
     </form>
-  );
-}
-
-function AtlasMark() {
-  return (
-    <svg width={26} height={26} viewBox="0 0 64 64" aria-hidden className="flex-none">
-      <circle cx="32" cy="32" r="17" fill="none" stroke="var(--color-indigo)" strokeWidth="2.4" />
-      <g stroke="var(--color-ink)" strokeWidth="2.2" strokeLinecap="round">
-        <line x1="32" y1="11" x2="32" y2="19" />
-        <line x1="32" y1="45" x2="32" y2="53" />
-        <line x1="11" y1="32" x2="19" y2="32" />
-        <line x1="45" y1="32" x2="53" y2="32" />
-      </g>
-      <circle cx="32" cy="32" r="3.1" fill="var(--color-accent)" />
-    </svg>
   );
 }

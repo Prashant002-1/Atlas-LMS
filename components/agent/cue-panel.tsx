@@ -5,6 +5,7 @@ import { CircleStop, Lightbulb, MessageCircleQuestion, PenLine } from "lucide-re
 import { runAgentStream, toolParts, textOf } from "@/lib/agent/stream-client";
 import { blockSchema, type Block } from "@/lib/agent/blocks";
 import { BlockView } from "@/components/agent/block-views";
+import { Markdown } from "@/components/agent/markdown";
 
 /**
  * Student cues, buttons, not chat. Each cue is anchored to the record on the
@@ -168,7 +169,7 @@ export function CuePanel({ target, availability }: { target: CueTarget; availabi
             {state.block ? (
               <BlockView block={state.block} />
             ) : state.text ? (
-              <div className="whitespace-pre-wrap text-[14px] leading-6 text-[var(--color-ink)]">{state.text}</div>
+              <Markdown>{state.text}</Markdown>
             ) : (
               <p className="text-[13px] text-[var(--color-muted)]">Nothing came back. Try again.</p>
             )}

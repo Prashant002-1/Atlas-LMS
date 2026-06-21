@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowUpRight,
-  BookOpenCheck,
   ChevronDown,
   CircleStop,
   FileText,
@@ -16,14 +15,15 @@ import {
   Plus,
   PenLine,
   RotateCcw,
-  ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 import type { UIMessage } from "ai";
 import { runAgentStream, runEveAgentStream, toolParts, textOf } from "@/lib/agent/stream-client";
 import type { CommandSessionSummary, SessionDraft } from "@/lib/agent/session";
 import { blockSchema, type Block } from "@/lib/agent/blocks";
 import { BlockView } from "@/components/agent/block-views";
+import { Markdown } from "@/components/agent/markdown";
+import { AtlasMark } from "@/components/atlas/primitives";
+import { setCourseScope } from "@/lib/workspace/scope-actions";
 
 /**
  * The professor's command console: a streaming working session with the
@@ -227,6 +227,7 @@ function assistantWorkSteps(entry: AssistantEntry): string[] {
 export function CommandConsole({
   courseId,
   courseLabel,
+  courses,
   sessionId,
   sessions,
   initialMessages,
@@ -235,6 +236,7 @@ export function CommandConsole({
 }: {
   courseId: string;
   courseLabel: string;
+  courses: { id: string; code: string; name: string }[];
   sessionId: string;
   sessions: CommandSessionSummary[];
   initialMessages: UIMessage[];
@@ -292,6 +294,9 @@ export function CommandConsole({
 
   const turnCount = entries.filter((entry) => entry.kind === "user").length;
   const runtimeQuery = runtime === "eve" ? "&runtime=eve" : "";
+  // Switching course is a clean context boundary: drop the session param so the
+  // new course opens its own latest session, never the previous course's.
+  const switchReturnTo = runtime === "eve" ? "/teach/atlas?runtime=eve" : "/teach/atlas";
   const lastUserIntent = useMemo(() => {
     for (let index = entries.length - 1; index >= 0; index -= 1) {
       const entry = entries[index];
@@ -398,27 +403,14 @@ export function CommandConsole({
       <header className="flex min-h-14 items-center gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4">
         <Link
           href={`/teach/atlas?session=${sessionId}${runtimeQuery}`}
+          aria-label="Atlas"
           className="flex shrink-0 items-center gap-2 rounded-[6px] text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
         >
-          <span className="grid size-8 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)]">
-            <Sparkles size={15} strokeWidth={2} aria-hidden />
-          </span>
+          <AtlasMark size={24} />
           <span className="atlas-serif text-[18px] font-semibold leading-none">Atlas</span>
         </Link>
-        <span className="hidden h-8 min-w-0 max-w-[320px] items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] font-medium md:inline-flex">
-          <span className="size-1.5 rounded-full bg-[var(--color-accent)]" aria-hidden />
-          <span className="truncate">{course.code}</span>
-          {course.name ? <span className="truncate text-[var(--color-muted)]">· {course.name}</span> : null}
-          <ChevronDown size={13} strokeWidth={2} className="shrink-0 text-[var(--color-faint)]" aria-hidden />
-        </span>
-        <span className="inline-flex min-h-7 items-center gap-1.5 rounded-full bg-[var(--color-indigo-soft)] px-3 text-[12px] font-semibold text-[var(--color-indigo)]">
-          <BookOpenCheck size={13} strokeWidth={2} aria-hidden /> Command
-        </span>
+        <CourseSwitcher courses={courses} activeCourseId={courseId} courseLabel={courseLabel} returnTo={switchReturnTo} />
         <div className="min-w-0 flex-1" />
-        <span className="hidden min-h-8 items-center gap-1.5 rounded-[7px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[12px] text-[var(--color-muted)] sm:inline-flex">
-          <ShieldCheck size={13} strokeWidth={2} className="text-[var(--color-good)]" aria-hidden />
-          {runtime === "eve" ? "Eve runtime" : "Atlas runtime"}
-        </span>
         <Link
           href="/teach/review"
           className="inline-flex min-h-8 items-center gap-1.5 rounded-[7px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[12px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]"
@@ -492,8 +484,6 @@ export function CommandConsole({
                         <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{session.title}</span>
                       </span>
                       <span className="mt-1 flex min-w-0 items-center gap-1.5 pl-6 text-[11px] text-[var(--color-muted)]">
-                        <span className="atlas-mono shrink-0 uppercase">Command</span>
-                        <span aria-hidden>·</span>
                         <span className="truncate">{sessionDetail(session)}</span>
                         <span aria-hidden>·</span>
                         <span className="shrink-0">{sessionWhen(session.updatedAt)}</span>
@@ -512,8 +502,7 @@ export function CommandConsole({
           <div className="min-w-0 flex-1">
             <h2 className="truncate font-serif text-[17px] font-semibold leading-tight 2xl:text-[20px]">{sessionTitle}</h2>
             <p className="mt-1 text-[12.5px] text-[var(--color-muted)]">
-              {courseLabel} · Command session · {turnCount} {turnCount === 1 ? "turn" : "turns"}
-              {runtime === "eve" ? " · Eve runtime" : ""}
+              {courseLabel} · {turnCount} {turnCount === 1 ? "turn" : "turns"}
             </p>
           </div>
           <span
@@ -539,21 +528,70 @@ export function CommandConsole({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
           <div className="mx-auto flex max-w-[780px] flex-col gap-4">
             {entries.length === 0 ? (
-              <div className="rounded-[8px] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-5">
-                <p className="text-[14px] leading-6 text-[var(--color-muted)]">
-                  Tell Atlas what to draft. Every block waits in Review until you apply it.
+              <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-6 shadow-[var(--shadow-panel)]">
+                <h3 className="atlas-serif text-[18px] font-medium leading-tight text-[var(--color-ink)]">
+                  {course.code} — new session
+                </h3>
+                <p className="mt-1.5 text-[13px] leading-5 text-[var(--color-muted)]">
+                  Start from the syllabus, this week, or a note — or type anything below.
                 </p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {SUGGESTIONS.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => void run(s)}
-                      className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-[12.5px] text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]"
-                    >
-                      {s}
-                    </button>
-                  ))}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void run("Draft a practice set for this week's material, aligned to the current module and objectives.")}
+                    disabled={running}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-[13px] font-medium transition hover:border-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Clock size={14} strokeWidth={2} aria-hidden /> Draft this week
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void run("Write a concise course note for students based on the current course context.")}
+                    disabled={running}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-[13px] font-medium transition hover:border-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <PenLine size={14} strokeWidth={2} aria-hidden /> Write a note
+                  </button>
+                </div>
+                <details className="group mt-2">
+                  <summary className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-ink)] transition hover:border-[var(--color-ink)] [&::-webkit-details-marker]:hidden">
+                    <Plus size={14} strokeWidth={2} aria-hidden /> Import syllabus
+                  </summary>
+                  <div className="mt-2 grid gap-2">
+                    <textarea
+                      value={syllabus}
+                      onChange={(event) => setSyllabus(event.target.value)}
+                      rows={5}
+                      disabled={running}
+                      placeholder="Paste your syllabus. Atlas drafts the objectives, weeks, and work from it, for your review."
+                      className="w-full resize-y rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[13.5px] leading-6 placeholder:text-[var(--color-faint)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] disabled:opacity-60"
+                    />
+                    <div>
+                      <button
+                        type="button"
+                        onClick={importSyllabus}
+                        disabled={running || syllabus.trim().length < 40}
+                        className="inline-flex min-h-10 items-center rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 text-[13.5px] font-medium transition hover:border-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Draft from syllabus
+                      </button>
+                    </div>
+                  </div>
+                </details>
+                <div className="mt-4 border-t border-[var(--color-border)] pt-3">
+                  <p className="atlas-mono text-[10px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Try</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {SUGGESTIONS.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => void run(s)}
+                        className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-[12.5px] text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : null}
@@ -646,7 +684,7 @@ export function CommandConsole({
                     )
                   )}
 
-                  {entry.text ? <p className="whitespace-pre-wrap text-[14px] leading-6">{entry.text}</p> : null}
+                  {entry.text ? <Markdown streaming={!entry.done}>{entry.text}</Markdown> : null}
 
                   {entry.done && entry.blocks.some((b) => b.block) ? (
                     <p className="text-[13px] text-[var(--color-muted)]">
@@ -654,7 +692,7 @@ export function CommandConsole({
                       <Link href="/teach/review" className="font-medium text-[var(--color-accent-strong)]">
                         Review
                       </Link>
-                      . Nothing is live until you apply it.
+                      .
                     </p>
                   ) : null}
                 </div>
@@ -710,53 +748,6 @@ export function CommandConsole({
               )}
             </div>
           </form>
-
-          <div className="mx-auto mt-2.5 flex max-w-[780px] flex-wrap items-center gap-2">
-            <details>
-              <summary className="inline-flex min-h-7 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[12px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]">
-                <Plus size={13} strokeWidth={2} aria-hidden /> Import syllabus
-              </summary>
-              <div className="mt-2 grid w-[min(720px,calc(100vw-2rem))] gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-elevated)]">
-                <textarea
-                  value={syllabus}
-                  onChange={(event) => setSyllabus(event.target.value)}
-                  rows={5}
-                  disabled={running}
-                  placeholder="Paste your syllabus. Atlas drafts the objectives, weeks, and work from it, for your review."
-                  className="w-full resize-y rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[13.5px] leading-6 placeholder:text-[var(--color-faint)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] disabled:opacity-60"
-                />
-                <div>
-                  <button
-                    type="button"
-                    onClick={importSyllabus}
-                    disabled={running || syllabus.trim().length < 40}
-                    className="inline-flex min-h-10 items-center rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 text-[13.5px] font-medium transition hover:border-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Draft from syllabus
-                  </button>
-                </div>
-              </div>
-            </details>
-            <button
-              type="button"
-              onClick={() => void run("Draft a practice set for this week's material, aligned to the current module and objectives.")}
-              disabled={running}
-              className="inline-flex min-h-7 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[12px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Clock size={13} strokeWidth={2} aria-hidden /> Draft this week
-            </button>
-            <button
-              type="button"
-              onClick={() => void run("Write a concise course note for students based on the current course context.")}
-              disabled={running}
-              className="inline-flex min-h-7 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[12px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <PenLine size={13} strokeWidth={2} aria-hidden /> Write a note
-            </button>
-            <span className="ml-auto text-[11.5px] text-[var(--color-faint)]">
-              Atlas proposes · you apply · nothing goes live without your review
-            </span>
-          </div>
         </div>
       </section>
 
@@ -839,12 +830,72 @@ export function CommandConsole({
               </ol>
             )}
           </div>
-          <div className="mx-4 mb-4 rounded-[8px] border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-2 text-[11.5px] leading-5 text-[var(--color-muted)]">
-            Drafted by Atlas, reviewed by you.
-          </div>
         </section>
       </aside>
     </div>
     </div>
+  );
+}
+
+/**
+ * Course scope, in the command bar. Each course is its own context — its own
+ * sessions, record, and history. Switching here sets the course-scope cookie
+ * and reloads Atlas in that course; nothing from the previous course carries
+ * over. The native select sits invisibly over a styled pill so the control
+ * looks at home in the bar while staying fully accessible.
+ */
+function CourseSwitcher({
+  courses,
+  activeCourseId,
+  courseLabel,
+  returnTo,
+}: {
+  courses: { id: string; code: string; name: string }[];
+  activeCourseId: string;
+  courseLabel: string;
+  returnTo: string;
+}) {
+  const { code, name } = courseParts(courseLabel);
+  const pill = (
+    <>
+      <span className="size-1.5 shrink-0 rounded-full bg-[var(--color-accent)]" aria-hidden />
+      <span className="truncate">{code}</span>
+      {name ? <span className="truncate text-[var(--color-muted)]">· {name}</span> : null}
+    </>
+  );
+
+  if (!courses || courses.length <= 1) {
+    return (
+      <span className="hidden h-8 min-w-0 max-w-[320px] items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] font-medium md:inline-flex">
+        {pill}
+      </span>
+    );
+  }
+
+  return (
+    <form action={setCourseScope} className="relative hidden h-8 min-w-0 max-w-[320px] md:block">
+      <input type="hidden" name="returnTo" value={returnTo} />
+      <span className="pointer-events-none flex h-8 min-w-0 items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] pl-3 pr-8 text-[13px] font-medium">
+        {pill}
+        <ChevronDown size={13} strokeWidth={2} className="absolute right-2.5 text-[var(--color-faint)]" aria-hidden />
+      </span>
+      <label htmlFor="command-course" className="sr-only">
+        Switch course
+      </label>
+      <select
+        id="command-course"
+        name="course"
+        defaultValue={activeCourseId}
+        onChange={(event) => event.currentTarget.form?.requestSubmit()}
+        className="absolute inset-0 h-full w-full cursor-pointer rounded-[8px] opacity-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+        aria-label="Switch course"
+      >
+        {courses.map((course) => (
+          <option key={course.id} value={course.id}>
+            {course.code} · {course.name}
+          </option>
+        ))}
+      </select>
+    </form>
   );
 }

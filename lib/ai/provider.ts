@@ -1,4 +1,3 @@
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -48,11 +47,16 @@ const BUILTIN_CHAT_MODEL: Record<ChatProviderKind, string> = {
   google: "gemini-2.5-pro",
   openai_compatible: "gpt-4.1",
 };
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
 export function createChatModel(spec: ChatModelSpec): LanguageModel {
   switch (spec.provider) {
     case "openrouter":
-      return createOpenRouter({ apiKey: spec.apiKey ?? process.env.OPENROUTER_API_KEY })(spec.modelId);
+      return createOpenAICompatible({
+        name: "openrouter",
+        baseURL: OPENROUTER_BASE_URL,
+        apiKey: spec.apiKey ?? process.env.OPENROUTER_API_KEY,
+      })(spec.modelId);
     case "openai":
       return createOpenAI({ apiKey: spec.apiKey ?? process.env.OPENAI_API_KEY })(spec.modelId);
     case "anthropic":

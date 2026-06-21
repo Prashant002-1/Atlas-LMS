@@ -11,6 +11,7 @@ import type {
   PracticeSetBlock,
   RubricBlock,
 } from "@/lib/agent/blocks";
+import { Markdown } from "@/components/agent/markdown";
 
 /**
  * The component registry, every block type the agent can emit has exactly one
@@ -60,7 +61,7 @@ function CodeChips({ codes }: { codes?: string[] }) {
 }
 
 function Prose({ text }: { text: string }) {
-  return <div className="whitespace-pre-wrap text-[14px] leading-6 text-[var(--color-ink)]">{text}</div>;
+  return <Markdown>{text}</Markdown>;
 }
 
 export function ObjectiveBlockView({ block }: { block: ObjectiveBlock }) {
@@ -220,7 +221,9 @@ export function ExplanationBlockView({ block }: { block: ExplanationBlock }) {
   return (
     <div>
       <p className="atlas-serif text-[16px] font-medium leading-6 text-[var(--color-ink)]">{block.headline}</p>
-      <div className="mt-2 whitespace-pre-wrap text-[14px] leading-6 text-[var(--color-ink)]">{block.bodyMd}</div>
+      <div className="mt-2">
+        <Markdown>{block.bodyMd}</Markdown>
+      </div>
       {block.checkQuestion ? (
         <p className="mt-3 rounded-[6px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-[13px] leading-5 text-[var(--color-ink)]">
           <span className="atlas-mono mr-2 text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Check yourself</span>
@@ -235,7 +238,7 @@ export function ExplanationBlockView({ block }: { block: ExplanationBlock }) {
 export function AnswerBlockView({ block }: { block: AnswerBlock }) {
   return (
     <div>
-      <div className="whitespace-pre-wrap text-[14px] leading-6 text-[var(--color-ink)]">{block.bodyMd}</div>
+      <Markdown>{block.bodyMd}</Markdown>
       {block.escalate ? (
         <p className="mt-3 rounded-[6px] border border-[rgba(154,106,34,0.28)] bg-[rgba(154,106,34,0.07)] px-3 py-2 text-[13px] leading-5 text-[var(--color-warn)]">
           This one belongs with your professor, the course record does not answer it.

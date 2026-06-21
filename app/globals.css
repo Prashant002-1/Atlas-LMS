@@ -190,3 +190,95 @@ select {
     animation-iteration-count: 1 !important;
   }
 }
+
+/*
+ * Rendered Markdown. Everything the agent writes — command narration, block
+ * bodies, cue answers — flows through the <Markdown> component into this scope.
+ * Reading prose: Hanken body, Spectral headings, Plex Mono for code. Tuned to
+ * the 14px stream so a drafted page or a streamed reply reads as typeset text,
+ * never raw `#`/`**`/`-`.
+ */
+.atlas-prose {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+.atlas-prose > :first-child { margin-top: 0; }
+.atlas-prose > :last-child { margin-bottom: 0; }
+.atlas-prose p { margin: 0.65em 0; }
+.atlas-prose h1,
+.atlas-prose h2,
+.atlas-prose h3,
+.atlas-prose h4 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-ink);
+  margin: 1.1em 0 0.45em;
+}
+.atlas-prose h1 { font-size: 1.34em; }
+.atlas-prose h2 { font-size: 1.18em; }
+.atlas-prose h3 { font-size: 1.05em; }
+.atlas-prose h4 { font-size: 0.95em; }
+.atlas-prose strong { font-weight: 600; color: var(--color-ink); }
+.atlas-prose em { font-style: italic; }
+.atlas-prose a {
+  color: var(--color-accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+.atlas-prose a:hover { color: var(--color-ink); }
+.atlas-prose ul,
+.atlas-prose ol { margin: 0.55em 0; padding-left: 1.35em; }
+.atlas-prose ul { list-style: disc; }
+.atlas-prose ol { list-style: decimal; }
+.atlas-prose li { margin: 0.28em 0; }
+.atlas-prose li::marker { color: var(--color-faint); }
+.atlas-prose li > ul,
+.atlas-prose li > ol { margin: 0.2em 0; }
+.atlas-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 0.08em 0.36em;
+}
+.atlas-prose pre {
+  margin: 0.7em 0;
+  padding: 0.8em 0.95em;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.atlas-prose pre code {
+  font-size: 12.5px;
+  line-height: 1.55;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.atlas-prose blockquote {
+  margin: 0.7em 0;
+  padding: 0.1em 0 0.1em 0.9em;
+  border-left: 2px solid var(--color-accent);
+  color: var(--color-muted);
+}
+.atlas-prose hr { margin: 1.1em 0; border: 0; border-top: 1px solid var(--color-border); }
+.atlas-prose table {
+  width: auto;
+  margin: 0.7em 0;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.atlas-prose th,
+.atlas-prose td {
+  border: 1px solid var(--color-border);
+  padding: 0.4em 0.65em;
+  text-align: left;
+}
+.atlas-prose th { background: var(--color-surface-muted); font-weight: 600; }
+.atlas-prose img { max-width: 100%; border-radius: 6px; }

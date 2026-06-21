@@ -16,6 +16,7 @@ const requiredRoutes = [
   "/",
   "/api/health",
   "/api/agent/command",
+  "/api/agent/eve-command",
   "/api/agent/cue",
   "/sign-in",
   "/sign-up",
@@ -76,6 +77,46 @@ test("every route is gated: middleware guards the surface, pages check sessions"
 });
 
 test("the agent runtime exists and observes the doctrine", () => {
+  // Eve is mounted as the durable runtime shell while Atlas keeps its record doctrine.
+  assertSourceIncludes("package.json", '"eve"');
+  assertSourceIncludes("package.json", '"ai": "^7.0.0-beta.178"');
+  assertSourceIncludes("next.config.mjs", "withEve");
+  assertSourceIncludes("middleware.ts", '"/eve"');
+  assertSourceIncludes("agent/agent.ts", "defineAgent");
+  assertSourceIncludes("agent/agent.ts", "atlasModel");
+  assertSourceIncludes("agent/instructions.md", "Propose, never perform");
+  assertSourceIncludes("agent/channels/eve.ts", "atlasBridgeAuth");
+  assertSourceIncludes("agent/channels/eve.ts", "jwtHmac");
+  assertSourceIncludes("app/api/agent/eve-command/route.ts", "updateCommandSessionEveCursor");
+  assertSourceIncludes("app/api/agent/eve-command/route.ts", "persistEveRun");
+  assertSourceIncludes("lib/agent/stream-client.ts", "runEveAgentStream");
+  assertSourceIncludes("components/agent/command-console.tsx", "runEveAgentStream");
+  assertSourceIncludes("app/teach/atlas/page.tsx", "ATLAS_COMMAND_RUNTIME");
+  for (const disabledTool of [
+    "bash",
+    "glob",
+    "grep",
+    "load_skill",
+    "read_file",
+    "todo",
+    "web_fetch",
+    "web_search",
+    "write_file",
+  ]) {
+    assertSourceIncludes(`agent/tools/${disabledTool}.ts`, "disableTool");
+  }
+  for (const proposalTool of [
+    "proposeObjective",
+    "proposeModule",
+    "proposeAssignment",
+    "proposePage",
+    "proposeAnnouncement",
+    "proposePracticeSet",
+    "proposeRubric",
+  ]) {
+    assertSourceIncludes(`agent/tools/${proposalTool}.ts`, "defineTool");
+  }
+
   // Context packs are built from the course record, deterministically.
   assertSourceIncludes("lib/agent/context.ts", "export async function buildContextPack");
   assertSourceIncludes("lib/agent/context.ts", "policy");
@@ -117,13 +158,28 @@ test("the professor command surface streams blocks and lands proposals in Review
   assertSourceIncludes("app/api/agent/command/route.ts", "buildContextPack");
   assertSourceIncludes("app/api/agent/command/route.ts", "toUIMessageStreamResponse");
 
-  assertSourceIncludes("components/agent/assistant.tsx", "runAgentStream");
-  assertSourceIncludes("components/agent/assistant.tsx", "Nothing is live until you apply it");
-  assertSourceIncludes("app/teach/atlas/page.tsx", "AtlasAssistant");
+  assertSourceIncludes("components/agent/command-console.tsx", "runAgentStream");
+  assertSourceIncludes("components/agent/command-console.tsx", "Nothing is live until you apply it");
+  assertSourceIncludes("components/agent/command-console.tsx", "ACTION_META");
+  assertSourceIncludes("components/agent/command-console.tsx", "Course sessions");
+  assertSourceIncludes("components/agent/command-console.tsx", "Artifacts");
+  assertSourceIncludes("components/agent/command-console.tsx", "Activity");
+  assertSourceIncludes("components/agent/command-console.tsx", "/teach/atlas?session=");
+  assertSourceIncludes("components/agent/command-console.tsx", "sessionId");
+  assertSourceIncludes("components/agent/command-console.tsx", "runtime=eve");
+  assertSourceIncludes("app/teach/atlas/page.tsx", "CommandConsole");
+  assertSourceIncludes("app/teach/atlas/page.tsx", "listCommandSessions");
+  assertSourceIncludes("app/teach/atlas/page.tsx", "createCommandSession");
+  assertSourceIncludes("app/api/agent/command/route.ts", "loadCommandSession");
+  assertSourceIncludes("app/api/agent/command/route.ts", "titleCommandSessionFromIntent");
   // The conversation resumes: history hydrates from the persisted session.
   assertSourceIncludes("app/teach/atlas/page.tsx", "turnsToUIMessages");
+  assertSourceIncludes("app/teach/atlas/page.tsx", "loadSessionDrafts");
+  assertSourceIncludes("lib/agent/session.ts", "changeProposals.sessionId");
+  assertSourceIncludes("lib/agent/session.ts", "export async function listCommandSessions");
+  assertSourceIncludes("lib/agent/session.ts", "export async function loadCommandSession");
   // Reducing overhead is the point: a pasted syllabus becomes drafted records.
-  assertSourceIncludes("components/agent/assistant.tsx", "Import a syllabus");
+  assertSourceIncludes("components/agent/command-console.tsx", "Import syllabus");
 
   // Review renders the typed blocks and owns apply/dismiss.
   assertSourceIncludes("components/teach/proposals.tsx", "BlockView");

@@ -17,7 +17,7 @@ const focusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
     <Link href="/" aria-label="Atlas" className={`group inline-flex items-center gap-3 rounded-[6px] ${focusStyle}`}>
-      <AtlasMark compact={compact} />
+      <AtlasMark size={compact ? 26 : 32} />
       {!compact ? (
         <span className="leading-none">
           <span className="atlas-serif block text-[18px] font-medium text-[var(--color-ink)]">Atlas</span>
@@ -28,24 +28,27 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function AtlasMark({ compact }: { compact: boolean }) {
-  const size = compact ? 28 : 34;
+/**
+ * The Atlas mark. A typographic "A" read as a charted peak: two strokes to an
+ * apex, a horizon line that runs past the right leg, and a single fixed point
+ * (the navigator's star) crowning it. Quiet, instrument-like, tied to the
+ * Spectral headers — the one mark for favicon, sidebar, console, and wordmark.
+ * Colors come from the palette so it adapts to whatever surface it sits on.
+ */
+export function AtlasMark({ size = 28, className }: { size?: number; className?: string }) {
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 64 64"
       aria-hidden="true"
-      className="flex-none"
+      className={`flex-none ${className ?? ""}`}
     >
-      <circle cx="32" cy="32" r="17" fill="none" stroke="var(--color-indigo)" strokeWidth="2.4" />
-      <g stroke="var(--color-ink)" strokeWidth="2.2" strokeLinecap="round">
-        <line x1="32" y1="11" x2="32" y2="19" />
-        <line x1="32" y1="45" x2="32" y2="53" />
-        <line x1="11" y1="32" x2="19" y2="32" />
-        <line x1="45" y1="32" x2="53" y2="32" />
+      <g fill="none" stroke="var(--color-ink)" strokeWidth={5.2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 51 L32 11 L48 51" />
+        <path d="M21.5 38 L51 38" strokeWidth={3} />
       </g>
-      <circle cx="32" cy="32" r="3.1" fill="var(--color-accent)" />
+      <circle cx="32" cy="11" r="3.2" fill="var(--color-accent)" />
     </svg>
   );
 }

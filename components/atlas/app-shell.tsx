@@ -15,13 +15,14 @@ import {
   PanelLeftOpen,
   Send,
   Settings,
-  Sparkles,
+  Telescope,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
 import { signOutOfAtlas } from "@/lib/auth/actions";
 import { setCourseScope } from "@/lib/workspace/scope-actions";
 import { MotionPage } from "@/components/atlas/motion";
+import { AtlasMark } from "@/components/atlas/primitives";
 
 /**
  * The app frame: a collapsible sidebar and a content column. The sidebar
@@ -33,7 +34,7 @@ import { MotionPage } from "@/components/atlas/motion";
 
 const ICONS = {
   dashboard: LayoutDashboard,
-  atlas: Sparkles,
+  atlas: Telescope,
   review: ClipboardCheck,
   weeks: Layers3,
   work: Send,
@@ -72,6 +73,7 @@ export function AppShell({
   scopePath?: string;
 }) {
   const pathname = usePathname();
+  const immersive = pathname === "/teach/atlas";
   // null until hydrated: the server renders expanded, the stored preference
   // applies on the first client frame, and only then do transitions turn on.
   const [stored, setStored] = useState<boolean | null>(null);
@@ -85,6 +87,7 @@ export function AppShell({
 
   const ready = stored !== null;
   const collapsed = stored ?? false;
+  const shellCollapsed = immersive || collapsed;
 
   function toggle() {
     setStored((value) => {
@@ -102,34 +105,45 @@ export function AppShell({
       <aside
         className={`sticky top-0 z-20 h-screen shrink-0 ${
           ready ? "transition-[width] duration-[220ms] ease-out" : ""
-        } ${collapsed ? "w-[60px]" : "w-[218px]"}`}
+        } ${shellCollapsed ? "w-[60px]" : "w-[218px]"}`}
       >
         <div className="flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-surface-sidebar)]">
           {/* Brand header */}
-          {collapsed ? (
-            /* Collapsed: the logo mark. On hover it crossfades into the
-               expand icon. Clicking toggles the sidebar open. */
-            <button
-              type="button"
-              onClick={toggle}
-              aria-label="Expand sidebar"
-              title="Expand"
-              className="group/brand flex h-14 w-full items-center justify-center border-b border-[var(--color-border)] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
-            >
-              <span className="relative flex size-[20px] items-center justify-center">
-                <span className="absolute inset-0 flex items-center justify-center opacity-100 transition-opacity duration-200 ease-out group-hover/brand:opacity-0">
-                  <AtlasMark />
+          {shellCollapsed ? (
+            immersive ? (
+              <Link
+                href="/teach"
+                aria-label="Atlas"
+                title="Atlas"
+                className="flex h-14 w-full items-center justify-center border-b border-[var(--color-border)] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
+              >
+                <AtlasMark size={22} />
+              </Link>
+            ) : (
+              /* Collapsed: the logo mark. On hover it crossfades into the
+                 expand icon. Clicking toggles the sidebar open. */
+              <button
+                type="button"
+                onClick={toggle}
+                aria-label="Expand sidebar"
+                title="Expand"
+                className="group/brand flex h-14 w-full items-center justify-center border-b border-[var(--color-border)] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
+              >
+                <span className="relative flex size-[20px] items-center justify-center">
+                  <span className="absolute inset-0 flex items-center justify-center opacity-100 transition-opacity duration-200 ease-out group-hover/brand:opacity-0">
+                    <AtlasMark size={20} />
+                  </span>
+                  <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 ease-out group-hover/brand:opacity-100">
+                    <PanelLeftOpen size={15} strokeWidth={2} aria-hidden />
+                  </span>
                 </span>
-                <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 ease-out group-hover/brand:opacity-100">
-                  <PanelLeftOpen size={15} strokeWidth={2} aria-hidden />
-                </span>
-              </span>
-            </button>
+              </button>
+            )
           ) : (
             /* Expanded: logo + wordmark on the left, toggle on the right */
             <div className="flex h-14 items-center justify-between border-b border-[var(--color-border)] px-4">
               <Link href="/" aria-label="Atlas" className="flex items-center gap-2.5 rounded-[6px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
-                <AtlasMark />
+                <AtlasMark size={24} />
                 <span className="atlas-serif text-[17px] font-medium">Atlas</span>
               </Link>
               <button
@@ -145,7 +159,7 @@ export function AppShell({
           )}
 
           {/* Course switcher: only when expanded */}
-          {!collapsed && courses && courses.length > 1 ? (
+          {!shellCollapsed && courses && courses.length > 1 ? (
             <div className="border-b border-[var(--color-border)] px-3 py-2.5">
               <CourseSwitcher courses={courses} activeCourseId={activeCourseId} scopePath={scopePath ?? pathname} />
             </div>
@@ -161,9 +175,9 @@ export function AppShell({
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  title={collapsed ? item.label : undefined}
+                  title={shellCollapsed ? item.label : undefined}
                   className={`relative flex min-h-9 items-center gap-2.5 rounded-[7px] px-2.5 text-[13.5px] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] ${
-                    collapsed ? "justify-center" : ""
+                    shellCollapsed ? "justify-center" : ""
                   } ${
                     active
                       ? "bg-[var(--color-indigo-soft)] text-[var(--color-ink)]"
@@ -174,14 +188,14 @@ export function AppShell({
                     <span className="absolute left-0 top-1/2 h-5 w-[2.5px] -translate-y-1/2 rounded-full bg-[var(--color-indigo)]" aria-hidden />
                   ) : null}
                   <Icon size={16} strokeWidth={2} aria-hidden className="shrink-0" />
-                  {!collapsed ? <span className="truncate">{item.label}</span> : null}
+                  {!shellCollapsed ? <span className="truncate">{item.label}</span> : null}
                 </Link>
               );
             })}
           </nav>
 
           {/* Footer: just sign out */}
-          <div className={`flex items-center border-t border-[var(--color-border)] p-2 ${collapsed ? "justify-center" : "justify-end"}`}>
+          <div className={`flex items-center border-t border-[var(--color-border)] p-2 ${shellCollapsed ? "justify-center" : "justify-end"}`}>
             <form action={signOutOfAtlas}>
               <button
                 type="submit"
@@ -196,9 +210,9 @@ export function AppShell({
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1">
-        <div className="mx-auto max-w-[1060px] px-6 py-7 md:px-9">
-          <MotionPage>{children}</MotionPage>
+      <main className={`min-w-0 flex-1 ${immersive ? "overflow-hidden" : ""}`}>
+        <div className={immersive ? "h-screen min-w-0 px-0 py-0" : "mx-auto max-w-[1060px] px-6 py-7 md:px-9"}>
+          <MotionPage className={immersive ? "h-full min-w-0" : undefined}>{children}</MotionPage>
         </div>
       </main>
     </div>
@@ -240,20 +254,5 @@ function CourseSwitcher({
         ))}
       </select>
     </form>
-  );
-}
-
-function AtlasMark() {
-  return (
-    <svg width={26} height={26} viewBox="0 0 64 64" aria-hidden className="flex-none">
-      <circle cx="32" cy="32" r="17" fill="none" stroke="var(--color-indigo)" strokeWidth="2.4" />
-      <g stroke="var(--color-ink)" strokeWidth="2.2" strokeLinecap="round">
-        <line x1="32" y1="11" x2="32" y2="19" />
-        <line x1="32" y1="45" x2="32" y2="53" />
-        <line x1="11" y1="32" x2="19" y2="32" />
-        <line x1="45" y1="32" x2="53" y2="32" />
-      </g>
-      <circle cx="32" cy="32" r="3.1" fill="var(--color-accent)" />
-    </svg>
   );
 }

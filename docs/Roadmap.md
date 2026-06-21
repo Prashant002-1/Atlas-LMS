@@ -29,7 +29,7 @@ Remaining before an institutional pilot:
 
 ## Phase 1.5, Agentic core ✅ (this PR)
 - `lib/agent/` runtime: deterministic context packs, anchored sessions with rolling compaction, typed block registry (zod, versioned), per-surface prompts and tools.
-- Professor command surface (`/api/agent/command` + CommandComposer): one intent → one proposal of typed blocks, streamed as real components, applied/dismissed in Review through `lib/agent/apply.ts`.
+- Professor command surface (`/teach/atlas`, `/api/agent/command`, `CommandConsole`): durable course-scoped sessions, one intent → reviewable typed proposal blocks, streamed as real components, applied/dismissed in Review through `lib/agent/apply.ts`.
 - Student cue surface (`/api/agent/cue` + CuePanel): Explain / Practice / Ask buttons anchored to records, no chat wall. Gated by the course AI policy.
 - `course_ai_policies`: professor-owned control object (cues, depth, citations, persona, standing instructions, daily limit, opt-in class signal) with `/teach/atlas` as the control panel.
 - Terms as first-class records + header semester/course pickers (cookie-pinned scope).

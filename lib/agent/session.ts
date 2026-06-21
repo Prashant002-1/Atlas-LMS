@@ -1,18 +1,19 @@
 import { generateText, type ModelMessage, type UIMessage } from "ai";
-import { and, asc, eq, gt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { agentSessions, agentTurns, type AgentSession } from "@/lib/db/schema";
+import { agentSessions, agentTurns, changeProposals, proposalBlocks, type AgentSession } from "@/lib/db/schema";
+import { parseStoredBlock, type Block } from "@/lib/agent/blocks";
 import { estimateTokens } from "@/lib/agent/context";
 import { fallbackModel } from "@/lib/ai/provider";
 
 /**
  * Sessions, persistent, anchored, compacted.
  *
- * One session per (user, course, surface, anchor). The professor's command bar
- * resumes a single course-anchored session; each student cue thread anchors to
- * the record it was pressed on. History past the compaction threshold rolls into
- * a summary; recent turns travel verbatim. Identifiers (record ids, codes) are
- * preserved verbatim through compaction so grounding never drifts.
+ * Cue sessions are one per (user, course, surface, anchor). The professor's
+ * command surface supports multiple durable course-scoped sessions, selected by
+ * id in the UI. History past the compaction threshold rolls into a summary;
+ * recent turns travel verbatim. Identifiers (record ids, codes) are preserved
+ * verbatim through compaction so grounding never drifts.
  */
 
 export type SessionAnchor = {
@@ -28,10 +29,44 @@ export type SessionScope = {
   anchor: SessionAnchor;
 };
 
+export type CommandSessionScope = Pick<SessionScope, "orgId" | "userId" | "courseId">;
+
+export type CommandSessionSummary = {
+  id: string;
+  title: string;
+  userTurnCount: number;
+  draftCount: number;
+  decidedCount: number;
+  eveSessionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 /** Verbatim-history budget; beyond this the older turns roll into the summary. */
 const COMPACT_THRESHOLD_TOKENS = 12_000;
 /** How many recent turns always stay verbatim. */
 const KEEP_RECENT_TURNS = 6;
+
+function commandSessionFilter(scope: CommandSessionScope) {
+  return and(
+    eq(agentSessions.orgId, scope.orgId),
+    eq(agentSessions.userId, scope.userId),
+    eq(agentSessions.courseId, scope.courseId),
+    eq(agentSessions.surface, "command"),
+    eq(agentSessions.anchorType, "course"),
+    sql`${agentSessions.anchorId} IS NULL`
+  );
+}
+
+function titleFromIntent(intent: string): string {
+  const compact = intent.replace(/\s+/g, " ").trim();
+  if (!compact) return "Course command session";
+  return compact.length > 64 ? `${compact.slice(0, 61)}...` : compact;
+}
+
+function sessionTitle(session: Pick<AgentSession, "title">): string {
+  return session.title?.trim() || "Course command session";
+}
 
 export async function resumeOrCreateSession(scope: SessionScope): Promise<AgentSession> {
   const anchorId = scope.anchor.id;
@@ -64,6 +99,124 @@ export async function resumeOrCreateSession(scope: SessionScope): Promise<AgentS
     })
     .returning();
   return created;
+}
+
+export async function createCommandSession(scope: CommandSessionScope): Promise<AgentSession> {
+  const [created] = await db
+    .insert(agentSessions)
+    .values({
+      orgId: scope.orgId,
+      userId: scope.userId,
+      courseId: scope.courseId,
+      surface: "command",
+      anchorType: "course",
+      anchorId: null,
+      title: "Course command session",
+    })
+    .returning();
+  return created;
+}
+
+export async function loadCommandSession(scope: CommandSessionScope, sessionId: string): Promise<AgentSession | null> {
+  const [session] = await db
+    .select()
+    .from(agentSessions)
+    .where(and(commandSessionFilter(scope), eq(agentSessions.id, sessionId)))
+    .limit(1);
+  return session ?? null;
+}
+
+export async function resumeLatestCommandSession(scope: CommandSessionScope): Promise<AgentSession> {
+  const [found] = await db
+    .select()
+    .from(agentSessions)
+    .where(commandSessionFilter(scope))
+    .orderBy(desc(agentSessions.updatedAt), desc(agentSessions.createdAt))
+    .limit(1);
+  return found ?? createCommandSession(scope);
+}
+
+export async function titleCommandSessionFromIntent(session: AgentSession, intent: string): Promise<void> {
+  if (session.title?.trim() && session.title !== "Course command session") return;
+  if (session.totalTurns > 0) return;
+  const title = titleFromIntent(intent);
+  await db.update(agentSessions).set({ title, updatedAt: new Date() }).where(eq(agentSessions.id, session.id));
+  session.title = title;
+}
+
+export async function listCommandSessions(scope: CommandSessionScope): Promise<CommandSessionSummary[]> {
+  const rows = await db
+    .select({
+      id: agentSessions.id,
+      title: agentSessions.title,
+      eveSessionId: agentSessions.eveSessionId,
+      createdAt: agentSessions.createdAt,
+      updatedAt: agentSessions.updatedAt,
+    })
+    .from(agentSessions)
+    .where(commandSessionFilter(scope))
+    .orderBy(desc(agentSessions.updatedAt), desc(agentSessions.createdAt))
+    .limit(50);
+
+  const ids = rows.map((row) => row.id);
+  const userTurns = new Map<string, number>();
+  const drafts = new Map<string, { draftCount: number; decidedCount: number }>();
+
+  if (ids.length > 0) {
+    const turnRows = await db
+      .select({ sessionId: agentTurns.sessionId })
+      .from(agentTurns)
+      .where(and(eq(agentTurns.orgId, scope.orgId), eq(agentTurns.role, "user"), inArray(agentTurns.sessionId, ids)));
+    for (const row of turnRows) {
+      userTurns.set(row.sessionId, (userTurns.get(row.sessionId) ?? 0) + 1);
+    }
+
+    const proposalRows = await db
+      .select({ sessionId: changeProposals.sessionId, status: changeProposals.status })
+      .from(changeProposals)
+      .where(and(eq(changeProposals.orgId, scope.orgId), inArray(changeProposals.sessionId, ids)));
+    for (const row of proposalRows) {
+      if (!row.sessionId) continue;
+      const current = drafts.get(row.sessionId) ?? { draftCount: 0, decidedCount: 0 };
+      if (row.status === "pending") current.draftCount += 1;
+      else current.decidedCount += 1;
+      drafts.set(row.sessionId, current);
+    }
+  }
+
+  return rows.map((row) => {
+    const counts = drafts.get(row.id) ?? { draftCount: 0, decidedCount: 0 };
+    return {
+      id: row.id,
+      title: sessionTitle(row),
+      userTurnCount: userTurns.get(row.id) ?? 0,
+      draftCount: counts.draftCount,
+      decidedCount: counts.decidedCount,
+      eveSessionId: row.eveSessionId,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  });
+}
+
+export async function updateCommandSessionEveCursor(
+  session: AgentSession,
+  cursor: {
+    eveSessionId?: string | null;
+    eveContinuationToken?: string | null;
+    eveStreamIndex?: number;
+  }
+): Promise<void> {
+  const values = {
+    ...(cursor.eveSessionId !== undefined ? { eveSessionId: cursor.eveSessionId } : {}),
+    ...(cursor.eveContinuationToken !== undefined ? { eveContinuationToken: cursor.eveContinuationToken } : {}),
+    ...(cursor.eveStreamIndex !== undefined ? { eveStreamIndex: cursor.eveStreamIndex } : {}),
+    updatedAt: new Date(),
+  };
+  await db.update(agentSessions).set(values).where(eq(agentSessions.id, session.id));
+  if (cursor.eveSessionId !== undefined) session.eveSessionId = cursor.eveSessionId;
+  if (cursor.eveContinuationToken !== undefined) session.eveContinuationToken = cursor.eveContinuationToken;
+  if (cursor.eveStreamIndex !== undefined) session.eveStreamIndex = cursor.eveStreamIndex;
 }
 
 export type TurnRecord = {
@@ -175,4 +328,39 @@ export function turnsToUIMessages(turns: TurnRecord[]): UIMessage[] {
       role: t.role === "user" ? ("user" as const) : ("assistant" as const),
       parts: Array.isArray(t.parts) ? (t.parts as UIMessage["parts"]) : [{ type: "text" as const, text: String(t.parts ?? "") }],
     }));
+}
+
+export type SessionDraft = {
+  proposalId: string;
+  blocks: Block[];
+};
+
+/** Load durable draft blocks produced by a command session for history hydration. */
+export async function loadSessionDrafts(orgId: string, sessionId: string): Promise<SessionDraft[]> {
+  const rows = await db
+    .select({
+      proposalId: changeProposals.id,
+      blockType: proposalBlocks.blockType,
+      data: proposalBlocks.data,
+    })
+    .from(changeProposals)
+    .innerJoin(
+      proposalBlocks,
+      and(eq(proposalBlocks.orgId, orgId), eq(proposalBlocks.proposalId, changeProposals.id))
+    )
+    .where(and(eq(changeProposals.orgId, orgId), eq(changeProposals.sessionId, sessionId)))
+    .orderBy(asc(changeProposals.createdAt), asc(proposalBlocks.position));
+
+  const drafts: SessionDraft[] = [];
+  for (const row of rows) {
+    const block = parseStoredBlock(row.blockType, row.data);
+    if (!block) continue;
+    const existing = drafts.find((draft) => draft.proposalId === row.proposalId);
+    if (existing) {
+      existing.blocks.push(block);
+    } else {
+      drafts.push({ proposalId: row.proposalId, blocks: [block] });
+    }
+  }
+  return drafts;
 }

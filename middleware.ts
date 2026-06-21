@@ -10,7 +10,7 @@ import type { NextRequest } from "next/server";
  */
 
 const PUBLIC_PATHS = new Set(["/sign-in", "/sign-up"]);
-const PUBLIC_PREFIXES = ["/api/auth", "/api/health"];
+const PUBLIC_PREFIXES = ["/api/auth", "/api/health", "/eve", "/_eve_internal/eve"];
 
 function hasSessionCookie(req: NextRequest): boolean {
   return Boolean(

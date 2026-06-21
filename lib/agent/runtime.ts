@@ -262,8 +262,8 @@ export function createCueTools(cue: CueKind): ToolSet {
     return {
       emitExplanation: tool({
         description: "Deliver the explanation for this cue. Call exactly once.",
-        inputSchema: explanationBlockSchema,
-        execute: async () => ({ ok: true }),
+        inputSchema: explanationBlockSchema.omit({ type: true }),
+        execute: async (block) => ({ ...block, type: "explanation" }),
       }),
     };
   }
@@ -271,16 +271,16 @@ export function createCueTools(cue: CueKind): ToolSet {
     return {
       emitPractice: tool({
         description: "Deliver the practice set for this cue. Call exactly once.",
-        inputSchema: practiceSetBlockSchema,
-        execute: async () => ({ ok: true }),
+        inputSchema: practiceSetBlockSchema.omit({ type: true }),
+        execute: async (block) => ({ ...block, type: "practice_set" }),
       }),
     };
   }
   return {
     emitAnswer: tool({
       description: "Deliver the answer for this cue. Call exactly once.",
-      inputSchema: answerBlockSchema,
-      execute: async () => ({ ok: true }),
+      inputSchema: answerBlockSchema.omit({ type: true }),
+      execute: async (block) => ({ ...block, type: "answer" }),
     }),
   };
 }

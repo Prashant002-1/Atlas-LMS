@@ -40,6 +40,9 @@ export const metadata: Metadata = {
   title: "Atlas LMS, course record for teaching and study",
   description:
     "Atlas keeps course design, practice, and study grounded in one course record.",
+  icons: {
+    icon: "/brand/atlas-mark.svg",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -11,7 +11,7 @@ The tokens in `app/globals.css` are the source of truth. This note describes the
 
 ## Mark
 
-A reticle: a ring, four cardinal ticks, a centered fix. The single cyan dot marks the point in focus. It scales by shedding detail, never by redrawing: full mark, then app icon, then a ring-and-fix favicon. Asset at `public/brand/atlas-mark.svg`, favicon `app/icon.svg`, component `BrandMark` in `components/atlas/primitives.tsx`.
+A course aperture: measured top ticks, converging paths, and a single point of orientation. The same asset is used for the sidebar mark, wordmark lockup, command surfaces, and browser icon. Asset at `public/brand/atlas-mark.svg`; rendered by `BrandMark` and `AtlasMark` in `components/atlas/primitives.tsx`.
 
 ## Surfaces
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ComponentType, ReactNode } from "react";
 import type { LucideProps } from "lucide-react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
@@ -28,28 +29,17 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
   );
 }
 
-/**
- * The Atlas mark. A typographic "A" read as a charted peak: two strokes to an
- * apex, a horizon line that runs past the right leg, and a single fixed point
- * (the navigator's star) crowning it. Quiet, instrument-like, tied to the
- * Spectral headers — the one mark for favicon, sidebar, console, and wordmark.
- * Colors come from the palette so it adapts to whatever surface it sits on.
- */
 export function AtlasMark({ size = 28, className }: { size?: number; className?: string }) {
   return (
-    <svg
+    <Image
+      src="/brand/atlas-mark.svg"
       width={size}
       height={size}
-      viewBox="0 0 64 64"
+      alt=""
+      unoptimized
       aria-hidden="true"
       className={`flex-none ${className ?? ""}`}
-    >
-      <g fill="none" stroke="var(--color-ink)" strokeWidth={5.2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 51 L32 11 L48 51" />
-        <path d="M21.5 38 L51 38" strokeWidth={3} />
-      </g>
-      <circle cx="32" cy="11" r="3.2" fill="var(--color-accent)" />
-    </svg>
+    />
   );
 }
 

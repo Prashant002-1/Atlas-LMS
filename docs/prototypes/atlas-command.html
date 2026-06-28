@@ -55,6 +55,7 @@ button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
   background:var(--color-surface);border-bottom:1px solid var(--color-border);z-index:10;
 }
 .brand{display:flex;align-items:center;gap:10px}
+.brand img{width:30px;height:30px;display:block;flex:none}
 .brand .name{font-family:var(--font-serif);font-size:18px;font-weight:600;line-height:1}
 .brand .sub{font-size:11px;color:var(--color-muted);margin-top:2px}
 .switcher{
@@ -116,8 +117,7 @@ button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
 .turn-user .bubble{max-width:80%;background:var(--color-indigo-soft);color:var(--color-ink);padding:10px 14px;border-radius:12px 12px 4px 12px;font-size:14px;line-height:1.55}
 .agent{display:flex;flex-direction:column;gap:11px}
 .agent .who{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-muted)}
-.agent .who .mk{width:18px;height:18px;border-radius:50%;border:1.6px solid var(--color-indigo);position:relative;flex:none}
-.agent .who .mk::after{content:"";position:absolute;inset:0;margin:auto;width:3px;height:3px;border-radius:50%;background:var(--color-accent)}
+.agent .who .mk{width:18px;height:18px;background:url("/brand/atlas-mark.svg") center/contain no-repeat;flex:none}
 
 /* thinking drawer */
 .think{border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface);overflow:hidden}
@@ -216,14 +216,7 @@ button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
   <!-- TOP BAR -->
   <div class="topbar">
     <div class="brand">
-      <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true">
-        <circle cx="32" cy="32" r="17" fill="none" stroke="var(--color-indigo)" stroke-width="2.4"/>
-        <g stroke="var(--color-ink)" stroke-width="2.2" stroke-linecap="round">
-          <line x1="32" y1="11" x2="32" y2="19"/><line x1="32" y1="45" x2="32" y2="53"/>
-          <line x1="11" y1="32" x2="19" y2="32"/><line x1="45" y1="32" x2="53" y2="32"/>
-        </g>
-        <circle cx="32" cy="32" r="3.1" fill="var(--color-accent)"/>
-      </svg>
+      <img src="/brand/atlas-mark.svg" alt="" aria-hidden="true">
       <div><div class="name">Atlas</div></div>
     </div>
     <button class="switcher"><span class="dot"></span> CS&nbsp;250 · Data Structures <span style="color:var(--color-faint)">▾</span></button>

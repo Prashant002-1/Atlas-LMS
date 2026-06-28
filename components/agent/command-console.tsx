@@ -530,10 +530,10 @@ export function CommandConsole({
             {entries.length === 0 ? (
               <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-6 shadow-[var(--shadow-panel)]">
                 <h3 className="atlas-serif text-[18px] font-medium leading-tight text-[var(--color-ink)]">
-                  {course.code} — new session
+                  {course.code} - new session
                 </h3>
                 <p className="mt-1.5 text-[13px] leading-5 text-[var(--color-muted)]">
-                  Start from the syllabus, this week, or a note — or type anything below.
+                  Start from the syllabus, this week, or a note. Nothing is live until you apply it.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
@@ -838,7 +838,7 @@ export function CommandConsole({
 }
 
 /**
- * Course scope, in the command bar. Each course is its own context — its own
+ * Course scope, in the command bar. Each course is its own context: its own
  * sessions, record, and history. Switching here sets the course-scope cookie
  * and reloads Atlas in that course; nothing from the previous course carries
  * over. The native select sits invisibly over a styled pill so the control

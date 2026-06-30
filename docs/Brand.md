@@ -4,7 +4,7 @@ Atlas is a course-record system for teaching and study. The brand is an instrume
 
 ## Idea
 
-An atlas is how you find your position. Course intent is the set of fixed points; alignment is the fix; studying is knowing where you stand. The mark is a quiet course aperture: measured ticks at the top, converging paths, and one precise point of orientation.
+An atlas is how you find your position. Course intent is the set of fixed points; alignment is the fix; studying is knowing where you stand. The mark is a quiet course aperture: measured ticks at the top, converging paths, and one precise point of orientation. It renders as white geometry on a very dark hunter green tile.
 
 ## Personality
 

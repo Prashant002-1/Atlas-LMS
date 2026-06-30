@@ -19,35 +19,35 @@
  *
  * Dark is the default theme. Light is available via [data-theme="light"].
  * The historical --color-* names are kept as aliases so no component changes
- * are needed — only the values behind them move.
+ * are needed - only the values behind them move.
  */
 :root {
   color-scheme: dark;
 
-  /* Surfaces — near-black, faint cool cast. Separated by border, not fill. */
+  /* Surfaces - near-black, faint cool cast. Separated by border, not fill. */
   --canvas: oklch(0.17 0.004 205);
   --surface: oklch(0.205 0.005 205);
   --surface-2: oklch(0.245 0.006 205);
 
-  /* Text — neutral ramp. 1000 primary, 900 secondary, 700 faint. */
+  /* Text - neutral ramp. 1000 primary, 900 secondary, 700 faint. */
   --text-1000: oklch(0.95 0.004 205);
   --text-900: oklch(0.72 0.006 205);
   --text-700: oklch(0.55 0.006 205);
 
-  /* Borders — translucent, layer on any surface. */
+  /* Borders - translucent, layer on any surface. */
   --line: rgba(255, 255, 255, 0.10);
   --line-strong: rgba(255, 255, 255, 0.18);
 
-  /* Accent — Atlas emerald. The one color. */
+  /* Accent - Atlas emerald. The one color. */
   --brand: oklch(0.72 0.15 158);
   --brand-strong: oklch(0.80 0.135 158);
   --brand-soft: oklch(0.28 0.05 162);
 
-  /* Signals — reserved for real meaning. */
+  /* Signals - reserved for real meaning. */
   --amber: oklch(0.82 0.13 82);
   --danger: oklch(0.68 0.19 25);
 
-  /* Elevation — subtle; depth is mostly tone + border. */
+  /* Elevation - subtle; depth is mostly tone + border. */
   --shadow-panel: 0 1px 2px 0 rgba(0, 0, 0, 0.40);
   --shadow-elevated: 0 1px 1px 0 rgba(0, 0, 0, 0.30), 0 4px 8px -4px rgba(0, 0, 0, 0.40), 0 16px 24px -8px rgba(0, 0, 0, 0.50);
   --shadow-floating: 0 1px 1px 0 rgba(0, 0, 0, 0.30), 0 8px 16px -4px rgba(0, 0, 0, 0.40), 0 24px 32px -8px rgba(0, 0, 0, 0.55);
@@ -56,9 +56,9 @@
   --grain-opacity: 0.055;
   --grain-blend: screen;
 
-  --font-serif: var(--font-spectral), Georgia, Cambria, "Times New Roman", serif;
-  --font-sans: var(--font-hanken), ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
+  --font-serif: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
 
   /* Motion. Smooth decelerate for entrances/hovers; symmetric for two-way. */
   --ease-atlas: cubic-bezier(0.16, 1, 0.3, 1);
@@ -67,12 +67,12 @@
   --dur-base: 220ms;
   --dur-slow: 340ms;
 
-  /* Radii — tight. Available as tokens; components keep their literals. */
+  /* Radii - tight. Available as tokens; components keep their literals. */
   --radius-control: 6px;
   --radius-panel: 10px;
   --radius-modal: 14px;
 
-  /* Legacy aliases — consumed everywhere; names preserved. */
+  /* Legacy aliases - consumed everywhere; names preserved. */
   --color-bg: var(--canvas);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-2);
@@ -91,7 +91,7 @@
   --color-danger: var(--danger);
 }
 
-/* Light theme — same token names, lighter values. */
+/* Light theme - same token names, lighter values. */
 [data-theme="light"] {
   color-scheme: light;
 
@@ -138,7 +138,7 @@ body {
 }
 
 /*
- * Matte grain. A fixed, non-interactive film/paper grain over the viewport —
+ * Matte grain. A fixed, non-interactive film/paper grain over the viewport -
  * the one tactile layer. feTurbulence, desaturated, tuned per theme. It never
  * animates, so it's safe under prefers-reduced-motion.
  */
@@ -177,6 +177,7 @@ select {
 /* Serif for titles, statements, and reading. Mono for figures and labels. */
 .atlas-serif {
   font-family: var(--font-serif);
+  letter-spacing: -0.02em;
 }
 
 .atlas-mono {
@@ -299,6 +300,7 @@ select {
 .atlas-prose h3,
 .atlas-prose h4 {
   font-family: var(--font-serif);
+  letter-spacing: -0.02em;
   font-weight: 600;
   line-height: 1.25;
   color: var(--color-ink);

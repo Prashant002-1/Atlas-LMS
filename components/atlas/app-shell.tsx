@@ -5,17 +5,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpenCheck,
+  ChevronsUpDown,
   ClipboardCheck,
   Compass,
   GraduationCap,
   Layers3,
   LayoutDashboard,
   LogOut,
+  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Send,
   Settings,
+  SlidersHorizontal,
+  Sun,
   Telescope,
+  UserRound,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -26,10 +31,10 @@ import { AtlasMark } from "@/components/atlas/primitives";
 
 /**
  * The app frame: a collapsible sidebar and a content column. The sidebar
- * carries the wordmark, the navigation, an optional course switcher, and a
- * quiet sign out. The collapse toggle lives beside the logo at the top.
- * When collapsed, the logo itself becomes the toggle: clicking it opens
- * the sidebar. No hover-float.
+ * carries the wordmark, the navigation, an optional course switcher, and the
+ * account menu (settings, preferences, theme, sign out) pinned at the bottom.
+ * The collapse toggle lives beside the logo at the top. When collapsed, the
+ * logo itself becomes the toggle: clicking it opens the sidebar. No hover-float.
  */
 
 const ICONS = {
@@ -65,12 +70,16 @@ export function AppShell({
   courses,
   activeCourseId,
   scopePath,
+  userName,
+  userEmail,
 }: {
   nav: NavItem[];
   children: ReactNode;
   courses?: ShellCourse[];
   activeCourseId?: string | null;
   scopePath?: string;
+  userName?: string | null;
+  userEmail?: string | null;
 }) {
   const pathname = usePathname();
   const immersive = pathname === "/teach/atlas";
@@ -194,18 +203,9 @@ export function AppShell({
             })}
           </nav>
 
-          {/* Footer: just sign out */}
-          <div className={`flex items-center border-t border-[var(--color-border)] p-2 ${shellCollapsed ? "justify-center" : "justify-end"}`}>
-            <form action={signOutOfAtlas}>
-              <button
-                type="submit"
-                aria-label="Sign out"
-                title="Sign out"
-                className="inline-flex size-9 items-center justify-center rounded-[7px] text-[var(--color-faint)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
-              >
-                <LogOut size={15} strokeWidth={2} aria-hidden />
-              </button>
-            </form>
+          {/* Footer: account menu (settings, preferences, theme, sign out) */}
+          <div className="border-t border-[var(--color-border)] p-2">
+            <AccountMenu collapsed={shellCollapsed} name={userName} email={userEmail} />
           </div>
         </div>
       </aside>
@@ -242,7 +242,7 @@ function CourseSwitcher({
         className="w-full cursor-pointer appearance-none truncate rounded-[7px] border border-[var(--color-border)] bg-[var(--color-surface)] py-1.5 pl-2.5 pr-7 text-[12.5px] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
         style={{
           backgroundImage:
-            "url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23667085' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E\")",
+            "url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23889a9a' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E\")",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "right 9px center",
         }}
@@ -254,5 +254,138 @@ function CourseSwitcher({
         ))}
       </select>
     </form>
+  );
+}
+
+/**
+ * Account menu, pinned to the bottom of the sidebar. The trigger shows the
+ * signed-in identity; the popover holds account settings, preferences, a
+ * light/dark theme switch, and sign out. The theme buttons write data-theme
+ * on the document root and persist to localStorage; the no-flash init script
+ * in the root layout reads it back on load.
+ */
+function AccountMenu({
+  collapsed,
+  name,
+  email,
+}: {
+  collapsed: boolean;
+  name?: string | null;
+  email?: string | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+
+  useEffect(() => {
+    const current = document.documentElement.getAttribute("data-theme");
+    setTheme(current === "light" ? "light" : "dark");
+  }, []);
+
+  function applyTheme(next: "light" | "dark") {
+    document.documentElement.setAttribute("data-theme", next);
+    try {
+      window.localStorage.setItem("atlas-theme", next);
+    } catch {
+      // Storage can be unavailable (private mode); the choice still applies for this session.
+    }
+    setTheme(next);
+  }
+
+  const displayName = name?.trim() || email?.trim() || "Account";
+  const initial = (name?.trim() || email?.trim() || "A").charAt(0).toUpperCase();
+
+  const itemClass =
+    "flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-2 text-[13px] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]";
+
+  const themeButton = (value: "light" | "dark", label: string, Icon: LucideIcon) => (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={theme === value}
+      onClick={() => applyTheme(value)}
+      className={`inline-flex size-7 items-center justify-center rounded-[5px] transition ${
+        theme === value
+          ? "bg-[var(--color-indigo-soft)] text-[var(--color-ink)]"
+          : "text-[var(--color-faint)] hover:text-[var(--color-ink)]"
+      }`}
+    >
+      <Icon size={14} strokeWidth={2} aria-hidden />
+    </button>
+  );
+
+  return (
+    <div className="relative">
+      {open ? <div className="fixed inset-0 z-30" aria-hidden onClick={() => setOpen(false)} /> : null}
+
+      {open ? (
+        <div
+          role="menu"
+          className="absolute bottom-full left-0 z-40 mb-2 w-[230px] rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-[var(--shadow-floating)]"
+        >
+          <div className="flex items-center gap-2.5 px-2.5 py-2">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-indigo-soft)] text-[12px] font-semibold text-[var(--color-accent-strong)]">
+              {initial}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[13px] font-medium text-[var(--color-ink)]">{displayName}</span>
+              {email && name ? <span className="block truncate text-[11px] text-[var(--color-faint)]">{email}</span> : null}
+            </span>
+          </div>
+
+          <div className="my-1 h-px bg-[var(--color-border)]" />
+
+          <button type="button" role="menuitem" className={itemClass} onClick={() => setOpen(false)}>
+            <UserRound size={15} strokeWidth={2} aria-hidden />
+            Account settings
+          </button>
+          <button type="button" role="menuitem" className={itemClass} onClick={() => setOpen(false)}>
+            <SlidersHorizontal size={15} strokeWidth={2} aria-hidden />
+            Preferences
+          </button>
+
+          <div className="flex items-center justify-between px-2.5 py-2">
+            <span className="text-[13px] font-medium text-[var(--color-muted)]">Theme</span>
+            <div className="inline-flex rounded-[7px] border border-[var(--color-border)] p-0.5">
+              {themeButton("light", "Light", Sun)}
+              {themeButton("dark", "Dark", Moon)}
+            </div>
+          </div>
+
+          <div className="my-1 h-px bg-[var(--color-border)]" />
+
+          <form action={signOutOfAtlas}>
+            <button type="submit" role="menuitem" className={itemClass}>
+              <LogOut size={15} strokeWidth={2} aria-hidden />
+              Sign out
+            </button>
+          </form>
+        </div>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Account"
+        title={collapsed ? displayName : undefined}
+        className={`flex w-full items-center gap-2.5 rounded-[8px] border border-transparent px-2 py-1.5 text-left transition hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] ${
+          collapsed ? "justify-center" : ""
+        } ${open ? "bg-[var(--color-surface-muted)]" : ""}`}
+      >
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-indigo-soft)] text-[12px] font-semibold text-[var(--color-accent-strong)]">
+          {initial}
+        </span>
+        {!collapsed ? (
+          <>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-medium text-[var(--color-ink)]">{displayName}</span>
+              {email && name ? <span className="block truncate text-[11px] text-[var(--color-faint)]">{email}</span> : null}
+            </span>
+            <ChevronsUpDown size={14} strokeWidth={2} aria-hidden className="shrink-0 text-[var(--color-faint)]" />
+          </>
+        ) : null}
+      </button>
+    </div>
   );
 }

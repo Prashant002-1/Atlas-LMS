@@ -151,7 +151,7 @@ export function CuePanel({ target, availability }: { target: CueTarget; availabi
           <button
             type="submit"
             disabled={question.trim().length < 4 || state.phase === "running"}
-            className="inline-flex min-h-10 items-center rounded-[7px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-3.5 text-[13px] font-medium text-white transition hover:bg-[var(--color-accent-strong)] hover:border-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex min-h-10 items-center rounded-[7px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-3.5 text-[13px] font-medium text-[var(--color-bg)] transition hover:bg-[var(--color-accent-strong)] hover:border-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             Ask
           </button>
@@ -166,7 +166,7 @@ export function CuePanel({ target, availability }: { target: CueTarget; availabi
           </p>
         ) : null}
         {state.phase === "error" ? (
-          <p className="mt-3 rounded-[6px] border border-[rgba(140,60,40,0.25)] bg-[rgba(140,60,40,0.06)] px-3 py-2 text-[13px] text-[var(--color-danger)]">
+          <p className="mt-3 rounded-[6px] border border-[color-mix(in_oklch,var(--color-danger)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-danger)_10%,transparent)] px-3 py-2 text-[13px] text-[var(--color-danger)]">
             {state.message}
           </p>
         ) : null}

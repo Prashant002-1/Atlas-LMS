@@ -425,14 +425,14 @@ export function CommandConsole({
           <Link
             href={`/teach/atlas?new=1${runtimeQuery}`}
             aria-disabled={running}
-            className={`flex min-h-10 w-full items-center justify-between gap-3 rounded-[8px] bg-[var(--color-ink)] px-3 text-left text-[13px] font-semibold text-white transition hover:bg-[var(--color-accent-strong)] ${
+            className={`flex min-h-10 w-full items-center justify-between gap-3 rounded-[8px] bg-[var(--color-ink)] px-3 text-left text-[13px] font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-accent-strong)] ${
               running ? "pointer-events-none opacity-60" : ""
             }`}
           >
             <span className="inline-flex items-center gap-2">
               <Plus size={14} strokeWidth={2} aria-hidden /> New session
             </span>
-            <span className="atlas-mono rounded-[4px] bg-white/15 px-1.5 py-0.5 text-[10px]">N</span>
+            <span className="atlas-mono rounded-[4px] bg-[color-mix(in_oklch,var(--color-bg)_22%,transparent)] px-1.5 py-0.5 text-[10px]">N</span>
           </Link>
           <p className="atlas-mono mt-3 text-[10px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Course sessions</p>
           <label className="mt-1.5 flex h-9 items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[12.5px] text-[var(--color-faint)] focus-within:border-[var(--color-border-strong)]">
@@ -703,7 +703,7 @@ export function CommandConsole({
         </div>
 
         {error ? (
-          <p className="mx-5 mb-3 shrink-0 rounded-[6px] border border-[rgba(140,60,40,0.25)] bg-[rgba(140,60,40,0.06)] px-3 py-2 text-[13px] text-[var(--color-danger)]">
+          <p className="mx-5 mb-3 shrink-0 rounded-[6px] border border-[color-mix(in_oklch,var(--color-danger)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-danger)_10%,transparent)] px-3 py-2 text-[13px] text-[var(--color-danger)]">
             {error}
           </p>
         ) : null}
@@ -741,7 +741,7 @@ export function CommandConsole({
                 <button
                   type="submit"
                   disabled={intent.trim().length < 4}
-                  className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-4 text-[14px] font-medium text-white transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-4 text-[14px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Send <ArrowUpRight size={15} strokeWidth={2} aria-hidden />
                 </button>

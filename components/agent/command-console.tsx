@@ -6,12 +6,10 @@ import { useRouter } from "next/navigation";
 import {
   ArrowUpRight,
   ChevronDown,
-  CircleStop,
   FileText,
   Eye,
   Search,
   Clock,
-  Check,
   Plus,
   PenLine,
   RotateCcw,
@@ -21,20 +19,24 @@ import { runAgentStream, runEveAgentStream, toolParts, textOf } from "@/lib/agen
 import type { CommandSessionSummary, SessionDraft } from "@/lib/agent/session";
 import { blockSchema, type Block } from "@/lib/agent/blocks";
 import { BlockView } from "@/components/agent/block-views";
-import { Markdown } from "@/components/agent/markdown";
 import { AtlasMark } from "@/components/atlas/primitives";
 import { setCourseScope } from "@/lib/workspace/scope-actions";
-import { Bubble } from "@/components/ui/bubble";
-import { Marker } from "@/components/ui/marker";
-import { Message, MessageAvatar, MessageContent } from "@/components/ui/message";
 import {
-  MessageScroller,
-  MessageScrollerButton,
-  MessageScrollerContent,
-  MessageScrollerProvider,
-  MessageScrollerViewport,
-} from "@/components/ui/message-scroller";
-import { Shimmer } from "@/components/ui/shimmer";
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
+import { Loader } from "@/components/ai-elements/loader";
+import { Message, MessageContent } from "@/components/ai-elements/message";
+import {
+  PromptInput,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputToolbar,
+  PromptInputTools,
+} from "@/components/ai-elements/prompt-input";
+import { Response } from "@/components/ai-elements/response";
+import { Tool, ToolContent, ToolHeader } from "@/components/ai-elements/tool";
 
 /**
  * The professor's command console: a streaming working session with the
@@ -220,19 +222,6 @@ function sessionDetail(session: CommandSessionSummary): string {
 function courseParts(courseLabel: string): { code: string; name: string } {
   const [code, ...nameParts] = courseLabel.split(" / ");
   return { code: code?.trim() || "Course", name: nameParts.join(" / ").trim() };
-}
-
-function assistantWorkSteps(entry: AssistantEntry): string[] {
-  const steps = entry.actions.map((action) => {
-    const meta = ACTION_META[action.toolName];
-    const label = meta?.label ?? action.toolName;
-    return action.summary ? `${label} · ${action.summary}` : label;
-  });
-  const draftedCount = entry.blocks.filter((item) => item.block).length;
-  if (draftedCount > 0) steps.push(`${draftedCount} ${draftedCount === 1 ? "artifact" : "artifacts"} prepared for Review`);
-  if (entry.text.trim()) steps.push("Narration prepared");
-  if (!entry.done && steps.length === 0) steps.push("Reading the course record");
-  return steps;
 }
 
 export function CommandConsole({
@@ -534,10 +523,8 @@ export function CommandConsole({
           </button>
         </header>
 
-        <MessageScrollerProvider>
-          <MessageScroller>
-            <MessageScrollerViewport className="px-5 py-5">
-              <MessageScrollerContent className="mx-auto flex max-w-[780px] flex-col gap-4">
+        <Conversation>
+          <ConversationContent className="mx-auto w-full max-w-[780px]">
             {entries.length === 0 ? (
               <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-6 shadow-[var(--shadow-panel)]">
                 <h3 className="atlas-serif text-[18px] font-medium leading-tight text-[var(--color-ink)]">
@@ -610,73 +597,32 @@ export function CommandConsole({
             {entries.map((entry, index) =>
               entry.kind === "user" ? (
                 <Message key={index} from="user">
-                  <Bubble variant="user">
+                  <MessageContent>
                     {entry.text.length > 700 ? entry.text.slice(0, 700) + "..." : entry.text}
-                  </Bubble>
+                  </MessageContent>
                 </Message>
               ) : (
                 <Message key={index} from="assistant">
-                  <MessageAvatar>
-                    <AtlasMark size={16} />
-                  </MessageAvatar>
                   <MessageContent>
-                    <Marker>Atlas worked from the course record</Marker>
-
-                  <details className="group rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-[12.5px] text-[var(--color-muted)] [&::-webkit-details-marker]:hidden">
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" aria-hidden />
-                      Show Atlas work
-                      <span className="atlas-mono text-[10.5px] text-[var(--color-faint)]">
-                        {assistantWorkSteps(entry).length} {assistantWorkSteps(entry).length === 1 ? "step" : "steps"}
-                      </span>
-                      <ChevronDown
-                        size={13}
-                        strokeWidth={2}
-                        className="ml-auto text-[var(--color-faint)] transition group-open:rotate-180"
-                        aria-hidden
-                      />
-                    </summary>
-                    <div className="space-y-2 border-t border-[var(--color-border)] px-3 py-2.5">
-                      {assistantWorkSteps(entry).map((step, stepIndex) => (
-                        <p key={`${step}-${stepIndex}`} className="flex gap-2 text-[12.5px] leading-5 text-[var(--color-muted)]">
-                          <Check
-                            size={13}
-                            strokeWidth={2}
-                            className={entry.done ? "mt-0.5 shrink-0 text-[var(--color-good)]" : "mt-0.5 shrink-0 text-[var(--color-accent)]"}
-                            aria-hidden
-                          />
-                          <span>{step}</span>
-                        </p>
-                      ))}
-                    </div>
-                  </details>
 
                   {!entry.done && entry.actions.length === 0 && entry.blocks.length === 0 && !entry.text ? (
-                    <Marker icon={<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-accent)]" />}>
-                      <Shimmer>Reading the course record</Shimmer>
-                    </Marker>
+                    <p className="flex items-center gap-2 text-[12.5px] text-[var(--color-muted)]">
+                      <Loader size={14} /> Reading the course record
+                    </p>
                   ) : null}
 
-                  {entry.actions.map((action, i) => {
-                    const meta = ACTION_META[action.toolName];
-                    if (!meta) return null;
-                    const Icon = meta.Icon;
-                    return (
-                      <div
-                        key={`a-${i}`}
-                        className="flex items-center gap-2.5 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 shadow-[var(--shadow-panel)]"
-                      >
-                        <span className="grid h-6 w-6 place-items-center rounded-[6px] bg-[var(--color-surface-muted)] text-[var(--color-muted)]">
-                          <Icon size={14} strokeWidth={2} aria-hidden />
-                        </span>
-                        <span className="min-w-0 flex-1 truncate text-[13px]">
-                          <span className="font-medium">{meta.label}</span>
-                          {action.summary ? <span className="text-[var(--color-muted)]"> · {action.summary}</span> : null}
-                        </span>
-                        {entry.done ? <Check size={14} strokeWidth={2} className="text-[var(--color-good)]" aria-hidden /> : null}
-                      </div>
-                    );
-                  })}
+                  {entry.actions
+                    .filter((action) => !TOOL_TO_BLOCK[action.toolName])
+                    .map((action, i) => {
+                      const meta = ACTION_META[action.toolName];
+                      if (!meta) return null;
+                      return (
+                        <Tool key={`a-${i}`}>
+                          <ToolHeader title={meta.label} state={entry.done ? "output-available" : "input-available"} />
+                          {action.summary ? <ToolContent>{action.summary}</ToolContent> : null}
+                        </Tool>
+                      );
+                    })}
 
                   {entry.blocks.map((b, i) =>
                     b.block ? (
@@ -691,7 +637,7 @@ export function CommandConsole({
                     )
                   )}
 
-                  {entry.text ? <Markdown streaming={!entry.done}>{entry.text}</Markdown> : null}
+                  {entry.text ? <Response streaming={!entry.done}>{entry.text}</Response> : null}
 
                   {entry.done && entry.blocks.some((b) => b.block) ? (
                     <p className="text-[13px] text-[var(--color-muted)]">
@@ -706,11 +652,9 @@ export function CommandConsole({
                 </Message>
               )
             )}
-              </MessageScrollerContent>
-            </MessageScrollerViewport>
-            <MessageScrollerButton />
-          </MessageScroller>
-        </MessageScrollerProvider>
+            </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
 
         {error ? (
           <p className="mx-5 mb-3 shrink-0 rounded-[6px] border border-[color-mix(in_oklch,var(--color-danger)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-danger)_10%,transparent)] px-3 py-2 text-[13px] text-[var(--color-danger)]">
@@ -719,45 +663,35 @@ export function CommandConsole({
         ) : null}
 
         <div className="sticky bottom-0 z-10 shrink-0 border-t border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-bg)_72%,var(--color-surface))] px-5 py-3">
-          <form
+          <PromptInput
             className="mx-auto max-w-[780px]"
-            onSubmit={(event) => {
+            onSubmit={(message, event) => {
               event.preventDefault();
-              void run(intent);
+              if (running) {
+                stopRun();
+                return;
+              }
+              void run(message.text);
             }}
           >
-            <div className="flex items-stretch gap-2">
-              <label htmlFor="atlas-command" className="sr-only">
-                Ask Atlas to draft something
-              </label>
-              <input
-                id="atlas-command"
-                value={intent}
-                onChange={(event) => setIntent(event.target.value)}
-                placeholder="Tell Atlas what to draft - it works from the course record and lands in Review"
-                disabled={running}
-                autoComplete="off"
-                className="min-h-11 min-w-0 flex-1 rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3.5 text-[14px] placeholder:text-[var(--color-faint)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] disabled:opacity-60"
+            <label htmlFor="atlas-command" className="sr-only">
+              Ask Atlas to draft something
+            </label>
+            <PromptInputTextarea
+              id="atlas-command"
+              value={intent}
+              onChange={(event) => setIntent(event.target.value)}
+              placeholder="Tell Atlas what to draft - it works from the course record and lands in Review"
+              disabled={running}
+            />
+            <PromptInputToolbar>
+              <PromptInputTools />
+              <PromptInputSubmit
+                status={running ? "streaming" : error ? "error" : "ready"}
+                disabled={intent.trim().length < 4}
               />
-              {running ? (
-                <button
-                  type="button"
-                  onClick={stopRun}
-                  className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 text-[14px] font-medium transition hover:border-[var(--color-ink)]"
-                >
-                  <CircleStop size={15} strokeWidth={2} aria-hidden /> Stop
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={intent.trim().length < 4}
-                  className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-4 text-[14px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Send <ArrowUpRight size={15} strokeWidth={2} aria-hidden />
-                </button>
-              )}
-            </div>
-          </form>
+            </PromptInputToolbar>
+          </PromptInput>
         </div>
       </section>
 

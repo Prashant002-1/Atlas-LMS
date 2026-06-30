@@ -51,7 +51,7 @@ function CodeChips({ codes }: { codes?: string[] }) {
       {codes.map((code) => (
         <span
           key={code}
-          className="atlas-mono rounded-[4px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-1.5 py-0.5 text-[11px] text-[var(--color-muted)]"
+          className="atlas-mono rounded-[6px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-1.5 py-0.5 text-[11px] text-[var(--color-muted)]"
         >
           {code}
         </span>

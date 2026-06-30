@@ -185,7 +185,7 @@ export function AppShell({
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   title={shellCollapsed ? item.label : undefined}
-                  className={`relative flex min-h-9 items-center gap-2.5 rounded-[7px] px-2.5 text-[13.5px] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] ${
+                  className={`relative flex min-h-9 items-center gap-2.5 rounded-[8px] px-2.5 text-[13.5px] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] ${
                     shellCollapsed ? "justify-center" : ""
                   } ${
                     active
@@ -239,7 +239,7 @@ function CourseSwitcher({
         name="course"
         value={activeCourseId ?? ""}
         onChange={(event) => event.currentTarget.form?.requestSubmit()}
-        className="w-full cursor-pointer appearance-none truncate rounded-[7px] border border-[var(--color-border)] bg-[var(--color-surface)] py-1.5 pl-2.5 pr-7 text-[12.5px] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+        className="w-full cursor-pointer appearance-none truncate rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] py-1.5 pl-2.5 pr-7 text-[12.5px] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
         style={{
           backgroundImage:
             "url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23889a9a' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E\")",
@@ -295,7 +295,7 @@ function AccountMenu({
   const initial = (name?.trim() || email?.trim() || "A").charAt(0).toUpperCase();
 
   const itemClass =
-    "flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-2 text-[13px] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]";
+    "flex w-full items-center gap-2.5 rounded-[8px] px-2.5 py-2 text-[13px] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]";
 
   const themeButton = (value: "light" | "dark", label: string, Icon: LucideIcon) => (
     <button
@@ -303,7 +303,7 @@ function AccountMenu({
       aria-label={label}
       aria-pressed={theme === value}
       onClick={() => applyTheme(value)}
-      className={`inline-flex size-7 items-center justify-center rounded-[5px] transition ${
+      className={`inline-flex size-7 items-center justify-center rounded-[6px] transition ${
         theme === value
           ? "bg-[var(--color-indigo-soft)] text-[var(--color-ink)]"
           : "text-[var(--color-faint)] hover:text-[var(--color-ink)]"
@@ -345,7 +345,7 @@ function AccountMenu({
 
           <div className="flex items-center justify-between px-2.5 py-2">
             <span className="text-[13px] font-medium text-[var(--color-muted)]">Theme</span>
-            <div className="inline-flex rounded-[7px] border border-[var(--color-border)] p-0.5">
+            <div className="inline-flex rounded-[8px] border border-[var(--color-border)] p-0.5">
               {themeButton("light", "Light", Sun)}
               {themeButton("dark", "Dark", Moon)}
             </div>

@@ -371,3 +371,23 @@ select {
 }
 .atlas-prose th { background: var(--color-surface-muted); font-weight: 600; }
 .atlas-prose img { max-width: 100%; border-radius: 6px; }
+
+/* Live-status shimmer for streaming markers (shadcn chat). Static under reduced motion. */
+@keyframes atlas-shimmer {
+  0% { background-position: 150% 0; }
+  100% { background-position: -50% 0; }
+}
+.atlas-shimmer {
+  font-size: 12px;
+  font-weight: 500;
+  background: linear-gradient(90deg, var(--color-faint) 0%, var(--color-ink) 50%, var(--color-faint) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: atlas-shimmer 1.6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-shimmer { animation: none; -webkit-text-fill-color: var(--color-muted); color: var(--color-muted); }
+}

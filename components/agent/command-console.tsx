@@ -24,6 +24,17 @@ import { BlockView } from "@/components/agent/block-views";
 import { Markdown } from "@/components/agent/markdown";
 import { AtlasMark } from "@/components/atlas/primitives";
 import { setCourseScope } from "@/lib/workspace/scope-actions";
+import { Bubble } from "@/components/ui/bubble";
+import { Marker } from "@/components/ui/marker";
+import { Message, MessageAvatar, MessageContent } from "@/components/ui/message";
+import {
+  MessageScroller,
+  MessageScrollerButton,
+  MessageScrollerContent,
+  MessageScrollerProvider,
+  MessageScrollerViewport,
+} from "@/components/ui/message-scroller";
+import { Shimmer } from "@/components/ui/shimmer";
 
 /**
  * The professor's command console: a streaming working session with the
@@ -252,7 +263,6 @@ export function CommandConsole({
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<(() => void) | null>(null);
   const activeRunRef = useRef(0);
-  const endRef = useRef<HTMLDivElement>(null);
 
   const ledger = useMemo(() => {
     const items: Array<{ key: string; type: Block["type"]; title: string }> = [];
@@ -332,7 +342,6 @@ export function CommandConsole({
       { kind: "user", text: trimmed },
       { kind: "assistant", text: "", blocks: [], actions: [], done: false },
     ]);
-    queueMicrotask(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
 
     try {
       const handle =
@@ -413,7 +422,7 @@ export function CommandConsole({
         <div className="min-w-0 flex-1" />
         <Link
           href="/teach/review"
-          className="inline-flex min-h-8 items-center gap-1.5 rounded-[7px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[12px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]"
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[12px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]"
         >
           Review queue <span className="atlas-mono text-[11px]">{ledger.length}</span>
         </Link>
@@ -432,7 +441,7 @@ export function CommandConsole({
             <span className="inline-flex items-center gap-2">
               <Plus size={14} strokeWidth={2} aria-hidden /> New session
             </span>
-            <span className="atlas-mono rounded-[4px] bg-[color-mix(in_oklch,var(--color-bg)_22%,transparent)] px-1.5 py-0.5 text-[10px]">N</span>
+            <span className="atlas-mono rounded-[6px] bg-[color-mix(in_oklch,var(--color-bg)_22%,transparent)] px-1.5 py-0.5 text-[10px]">N</span>
           </Link>
           <p className="atlas-mono mt-3 text-[10px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Course sessions</p>
           <label className="mt-1.5 flex h-9 items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[12.5px] text-[var(--color-faint)] focus-within:border-[var(--color-border-strong)]">
@@ -525,8 +534,10 @@ export function CommandConsole({
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-          <div className="mx-auto flex max-w-[780px] flex-col gap-4">
+        <MessageScrollerProvider>
+          <MessageScroller>
+            <MessageScrollerViewport className="px-5 py-5">
+              <MessageScrollerContent className="mx-auto flex max-w-[780px] flex-col gap-4">
             {entries.length === 0 ? (
               <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-6 shadow-[var(--shadow-panel)]">
                 <h3 className="atlas-serif text-[18px] font-medium leading-tight text-[var(--color-ink)]">
@@ -598,19 +609,18 @@ export function CommandConsole({
 
             {entries.map((entry, index) =>
               entry.kind === "user" ? (
-                <div key={index} className="flex justify-end">
-                  <p className="max-w-[82%] whitespace-pre-wrap rounded-[12px_12px_4px_12px] bg-[var(--color-indigo-soft)] px-3.5 py-2.5 text-[14px] leading-6">
+                <Message key={index} from="user">
+                  <Bubble variant="user">
                     {entry.text.length > 700 ? entry.text.slice(0, 700) + "..." : entry.text}
-                  </p>
-                </div>
+                  </Bubble>
+                </Message>
               ) : (
-                <div key={index} className="space-y-3">
-                  <p className="flex items-center gap-2 text-[12px] text-[var(--color-muted)]">
-                    <span className="grid h-5 w-5 place-items-center rounded-full border border-[var(--color-indigo)] text-[var(--color-accent)]" aria-hidden>
-                      •
-                    </span>
-                    Atlas worked from the course record
-                  </p>
+                <Message key={index} from="assistant">
+                  <MessageAvatar>
+                    <AtlasMark size={16} />
+                  </MessageAvatar>
+                  <MessageContent>
+                    <Marker>Atlas worked from the course record</Marker>
 
                   <details className="group rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
                     <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-[12.5px] text-[var(--color-muted)] [&::-webkit-details-marker]:hidden">
@@ -642,12 +652,9 @@ export function CommandConsole({
                   </details>
 
                   {!entry.done && entry.actions.length === 0 && entry.blocks.length === 0 && !entry.text ? (
-                    <div className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
-                      <p className="atlas-mono flex items-center gap-2 text-[12px] uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-accent)]" aria-hidden />
-                        Reading the course record
-                      </p>
-                    </div>
+                    <Marker icon={<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-accent)]" />}>
+                      <Shimmer>Reading the course record</Shimmer>
+                    </Marker>
                   ) : null}
 
                   {entry.actions.map((action, i) => {
@@ -695,12 +702,15 @@ export function CommandConsole({
                       .
                     </p>
                   ) : null}
-                </div>
+                  </MessageContent>
+                </Message>
               )
             )}
-            <div ref={endRef} />
-          </div>
-        </div>
+              </MessageScrollerContent>
+            </MessageScrollerViewport>
+            <MessageScrollerButton />
+          </MessageScroller>
+        </MessageScrollerProvider>
 
         {error ? (
           <p className="mx-5 mb-3 shrink-0 rounded-[6px] border border-[color-mix(in_oklch,var(--color-danger)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-danger)_10%,transparent)] px-3 py-2 text-[13px] text-[var(--color-danger)]">
@@ -777,7 +787,7 @@ export function CommandConsole({
                       </span>
                       <span className="block truncate text-[13px] font-medium text-[var(--color-ink)]">{item.title}</span>
                     </span>
-                    <span className="atlas-mono shrink-0 rounded-[5px] bg-[color-mix(in_oklch,var(--color-accent)_11%,transparent)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.04em] text-[var(--color-accent-strong)]">
+                    <span className="atlas-mono shrink-0 rounded-[6px] bg-[color-mix(in_oklch,var(--color-accent)_11%,transparent)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.04em] text-[var(--color-accent-strong)]">
                       Drafted
                     </span>
                   </li>

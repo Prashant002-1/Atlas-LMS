@@ -85,7 +85,7 @@ export function TextLink({
   return (
     <Link
       href={href}
-      className={`rounded-[4px] font-medium text-[var(--color-ink)] transition hover:text-[var(--color-accent-strong)] ${focusStyle} ${className}`}
+      className={`rounded-[6px] font-medium text-[var(--color-ink)] transition hover:text-[var(--color-accent-strong)] ${focusStyle} ${className}`}
     >
       {children}
     </Link>
@@ -237,9 +237,9 @@ export function ProgressBar({ value, label }: { value: number; label?: string })
         <span>{label ?? "Progress"}</span>
         <span>{safeValue}%</span>
       </div>
-      <div className="mt-2 h-2 rounded-[4px] bg-[var(--color-surface-muted)]">
+      <div className="mt-2 h-2 rounded-[6px] bg-[var(--color-surface-muted)]">
         <div
-          className="h-full rounded-[4px] bg-[var(--color-accent)] transition-[width] duration-[500ms] ease-out"
+          className="h-full rounded-[6px] bg-[var(--color-accent)] transition-[width] duration-[500ms] ease-out"
           style={{ width: `${safeValue}%` }}
         />
       </div>

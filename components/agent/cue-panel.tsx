@@ -88,7 +88,7 @@ export function CuePanel({ target, availability }: { target: CueTarget; availabi
   }
 
   const cueButton =
-    "inline-flex min-h-9 items-center gap-1.5 rounded-[7px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-ink)] transition hover:border-[var(--color-ink)] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]";
+    "inline-flex min-h-9 items-center gap-1.5 rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-ink)] transition hover:border-[var(--color-ink)] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]";
 
   return (
     <div className="border-t border-[var(--color-border)] pt-4">
@@ -121,7 +121,7 @@ export function CuePanel({ target, availability }: { target: CueTarget; availabi
           <button
             type="button"
             onClick={() => abortRef.current?.()}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-[7px] px-2 text-[13px] text-[var(--color-muted)] transition hover:text-[var(--color-ink)]"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-[8px] px-2 text-[13px] text-[var(--color-muted)] transition hover:text-[var(--color-ink)]"
           >
             <CircleStop size={14} strokeWidth={2} aria-hidden /> Stop
           </button>
@@ -146,12 +146,12 @@ export function CuePanel({ target, availability }: { target: CueTarget; availabi
             placeholder="One quick question about this"
             autoComplete="off"
             maxLength={1200}
-            className="min-h-10 w-full rounded-[7px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-[13px] text-[var(--color-ink)] placeholder:text-[var(--color-faint)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+            className="min-h-10 w-full rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-[13px] text-[var(--color-ink)] placeholder:text-[var(--color-faint)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
           />
           <button
             type="submit"
             disabled={question.trim().length < 4 || state.phase === "running"}
-            className="inline-flex min-h-10 items-center rounded-[7px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-3.5 text-[13px] font-medium text-[var(--color-bg)] transition hover:bg-[var(--color-accent-strong)] hover:border-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex min-h-10 items-center rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-3.5 text-[13px] font-medium text-[var(--color-bg)] transition hover:bg-[var(--color-accent-strong)] hover:border-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             Ask
           </button>

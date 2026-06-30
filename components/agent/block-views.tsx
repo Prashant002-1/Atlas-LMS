@@ -240,7 +240,7 @@ export function AnswerBlockView({ block }: { block: AnswerBlock }) {
     <div>
       <Markdown>{block.bodyMd}</Markdown>
       {block.escalate ? (
-        <p className="mt-3 rounded-[6px] border border-[rgba(154,106,34,0.28)] bg-[rgba(154,106,34,0.07)] px-3 py-2 text-[13px] leading-5 text-[var(--color-warn)]">
+        <p className="mt-3 rounded-[6px] border border-[color-mix(in_oklch,var(--color-warn)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-warn)_12%,transparent)] px-3 py-2 text-[13px] leading-5 text-[var(--color-warn)]">
           This one belongs with your professor, the course record does not answer it.
         </p>
       ) : null}

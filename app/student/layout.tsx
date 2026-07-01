@@ -40,5 +40,9 @@ export default async function StudentLayout({ children }: { children: ReactNode 
     })),
   ];
 
-  return <AppShell nav={nav}>{children}</AppShell>;
+  return (
+    <AppShell nav={nav} userName={session.user.name} userEmail={session.user.email}>
+      {children}
+    </AppShell>
+  );
 }

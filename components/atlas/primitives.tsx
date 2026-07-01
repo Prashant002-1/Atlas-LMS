@@ -8,9 +8,9 @@ type Icon = ComponentType<LucideProps>;
 
 const badgeTone = {
   neutral: "border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-muted)]",
-  accent: "border-[rgba(30,126,140,0.30)] bg-[rgba(30,126,140,0.09)] text-[var(--color-accent-strong)]",
-  good: "border-[rgba(62,122,82,0.28)] bg-[rgba(62,122,82,0.09)] text-[var(--color-good)]",
-  warn: "border-[rgba(154,106,34,0.28)] bg-[rgba(154,106,34,0.09)] text-[var(--color-warn)]",
+  accent: "border-[color-mix(in_oklch,var(--color-accent)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-accent)_12%,transparent)] text-[var(--color-accent-strong)]",
+  good: "border-[color-mix(in_oklch,var(--color-good)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-good)_12%,transparent)] text-[var(--color-good)]",
+  warn: "border-[color-mix(in_oklch,var(--color-warn)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-warn)_12%,transparent)] text-[var(--color-warn)]",
 };
 
 const focusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent-strong)]";
@@ -56,7 +56,7 @@ export function ButtonLink({
 }) {
   const styles = {
     primary:
-      "border-[var(--color-ink)] bg-[var(--color-ink)] text-white hover:bg-[var(--color-accent-strong)] hover:border-[var(--color-accent-strong)]",
+      "border-[var(--color-ink)] bg-[var(--color-ink)] text-[var(--color-bg)] hover:bg-[var(--color-accent-strong)] hover:border-[var(--color-accent-strong)]",
     secondary:
       "border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-ink)] hover:border-[var(--color-ink)]",
     ghost: "border-transparent bg-transparent text-[var(--color-muted)] hover:text-[var(--color-ink)]",
@@ -85,7 +85,7 @@ export function TextLink({
   return (
     <Link
       href={href}
-      className={`rounded-[4px] font-medium text-[var(--color-ink)] transition hover:text-[var(--color-accent-strong)] ${focusStyle} ${className}`}
+      className={`rounded-[6px] font-medium text-[var(--color-ink)] transition hover:text-[var(--color-accent-strong)] ${focusStyle} ${className}`}
     >
       {children}
     </Link>
@@ -207,13 +207,13 @@ export function ActionButton({
 }) {
   const styles = {
     primary:
-      "border-[var(--color-ink)] bg-[var(--color-ink)] text-white hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]",
+      "border-[var(--color-ink)] bg-[var(--color-ink)] text-[var(--color-bg)] hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]",
     secondary:
       "border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-ink)] hover:border-[var(--color-ink)]",
     quiet:
       "border-transparent bg-transparent text-[var(--color-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]",
     danger:
-      "border-[rgba(166,67,47,0.30)] bg-transparent text-[var(--color-danger)] hover:bg-[rgba(166,67,47,0.08)]",
+      "border-[color-mix(in_oklch,var(--color-danger)_38%,transparent)] bg-transparent text-[var(--color-danger)] hover:bg-[color-mix(in_oklch,var(--color-danger)_10%,transparent)]",
   };
 
   return (
@@ -237,9 +237,9 @@ export function ProgressBar({ value, label }: { value: number; label?: string })
         <span>{label ?? "Progress"}</span>
         <span>{safeValue}%</span>
       </div>
-      <div className="mt-2 h-2 rounded-[4px] bg-[var(--color-surface-muted)]">
+      <div className="mt-2 h-2 rounded-[6px] bg-[var(--color-surface-muted)]">
         <div
-          className="h-full rounded-[4px] bg-[var(--color-accent)] transition-[width] duration-[500ms] ease-out"
+          className="h-full rounded-[6px] bg-[var(--color-accent)] transition-[width] duration-[500ms] ease-out"
           style={{ width: `${safeValue}%` }}
         />
       </div>

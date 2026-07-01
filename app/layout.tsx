@@ -4,35 +4,20 @@ import localFont from "next/font/local";
 import "./globals.css";
 
 /*
- * Fonts ship with the repo (public/fonts, latin subsets) so builds are
- * hermetic, no Google Fonts fetch at build time, identical output in CI,
- * Docker, and offline dev.
+ * Fonts ship with the repo as base64 (assets/fonts), decoded to public/fonts
+ * by the postinstall step, so builds are hermetic: no Google Fonts fetch at
+ * build time, identical output in CI, Docker, and offline dev. Geist Sans
+ * sets UI and prose; Geist Mono sets code, data, and tabular figures.
  */
-const spectral = localFont({
-  src: [
-    { path: "../public/fonts/spectral-300.woff2", weight: "300", style: "normal" },
-    { path: "../public/fonts/spectral-300-italic.woff2", weight: "300", style: "italic" },
-    { path: "../public/fonts/spectral-400.woff2", weight: "400", style: "normal" },
-    { path: "../public/fonts/spectral-400-italic.woff2", weight: "400", style: "italic" },
-    { path: "../public/fonts/spectral-500.woff2", weight: "500", style: "normal" },
-    { path: "../public/fonts/spectral-500-italic.woff2", weight: "500", style: "italic" },
-  ],
-  variable: "--font-spectral",
+const geistSans = localFont({
+  src: [{ path: "../public/fonts/geist-sans-variable.woff2", weight: "100 900", style: "normal" }],
+  variable: "--font-geist-sans",
   display: "swap",
 });
 
-const hanken = localFont({
-  src: [{ path: "../public/fonts/hanken-grotesk-variable.woff2", weight: "100 900", style: "normal" }],
-  variable: "--font-hanken",
-  display: "swap",
-});
-
-const plexMono = localFont({
-  src: [
-    { path: "../public/fonts/ibm-plex-mono-400.woff2", weight: "400", style: "normal" },
-    { path: "../public/fonts/ibm-plex-mono-500.woff2", weight: "500", style: "normal" },
-  ],
-  variable: "--font-plex-mono",
+const geistMono = localFont({
+  src: [{ path: "../public/fonts/geist-mono-variable.woff2", weight: "100 900", style: "normal" }],
+  variable: "--font-geist-mono",
   display: "swap",
 });
 
@@ -45,10 +30,19 @@ export const metadata: Metadata = {
   },
 };
 
+/*
+ * Apply the saved theme before first paint so there is no flash. The default
+ * is the dark theme (no attribute); a stored choice sets data-theme on the
+ * document root, which the token sheet keys light/dark off.
+ */
+const themeInit =
+  "(function(){try{var t=localStorage.getItem('atlas-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();";
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${spectral.variable} ${hanken.variable} ${plexMono.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="antialiased">
+        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         {/* Honour prefers-reduced-motion for every motion component below. */}
         <MotionConfig reducedMotion="user">{children}</MotionConfig>
       </body>

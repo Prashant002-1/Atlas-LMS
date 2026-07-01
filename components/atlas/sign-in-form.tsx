@@ -40,7 +40,7 @@ export function SignInForm({ defaultRole = "instructor" }: { defaultRole?: "inst
           </label>
 
           {state.error ? (
-            <p className="rounded-[8px] border border-[rgba(163,58,42,0.22)] bg-[rgba(163,58,42,0.08)] px-3 py-2 text-[13px] text-[var(--color-danger)]">
+            <p className="rounded-[8px] border border-[color-mix(in_oklch,var(--color-danger)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-danger)_10%,transparent)] px-3 py-2 text-[13px] text-[var(--color-danger)]">
               {state.error}
             </p>
           ) : null}
@@ -58,7 +58,7 @@ function SubmitButton({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className={`inline-flex min-h-11 w-full items-center justify-center rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-4 text-[14px] font-medium text-white transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60 ${focusStyle}`}
+      className={`inline-flex min-h-11 w-full items-center justify-center rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-4 text-[14px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60 ${focusStyle}`}
     >
       {pending ? "Opening…" : label}
     </button>

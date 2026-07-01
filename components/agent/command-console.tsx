@@ -6,12 +6,10 @@ import { useRouter } from "next/navigation";
 import {
   ArrowUpRight,
   ChevronDown,
-  CircleStop,
   FileText,
   Eye,
   Search,
   Clock,
-  Check,
   Plus,
   PenLine,
   RotateCcw,
@@ -21,9 +19,23 @@ import { runAgentStream, runEveAgentStream, toolParts, textOf } from "@/lib/agen
 import type { CommandSessionSummary, SessionDraft } from "@/lib/agent/session";
 import { blockSchema, type Block } from "@/lib/agent/blocks";
 import { BlockView } from "@/components/agent/block-views";
-import { Markdown } from "@/components/agent/markdown";
 import { AtlasMark } from "@/components/atlas/primitives";
 import { setCourseScope } from "@/lib/workspace/scope-actions";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
+import { Loader } from "@/components/ai-elements/loader";
+import { Message, MessageContent } from "@/components/ai-elements/message";
+import {
+  PromptInput,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputToolbar,
+} from "@/components/ai-elements/prompt-input";
+import { Response } from "@/components/ai-elements/response";
+import { Tool, ToolContent, ToolHeader } from "@/components/ai-elements/tool";
 
 /**
  * The professor's command console: a streaming working session with the
@@ -211,19 +223,6 @@ function courseParts(courseLabel: string): { code: string; name: string } {
   return { code: code?.trim() || "Course", name: nameParts.join(" / ").trim() };
 }
 
-function assistantWorkSteps(entry: AssistantEntry): string[] {
-  const steps = entry.actions.map((action) => {
-    const meta = ACTION_META[action.toolName];
-    const label = meta?.label ?? action.toolName;
-    return action.summary ? `${label} · ${action.summary}` : label;
-  });
-  const draftedCount = entry.blocks.filter((item) => item.block).length;
-  if (draftedCount > 0) steps.push(`${draftedCount} ${draftedCount === 1 ? "artifact" : "artifacts"} prepared for Review`);
-  if (entry.text.trim()) steps.push("Narration prepared");
-  if (!entry.done && steps.length === 0) steps.push("Reading the course record");
-  return steps;
-}
-
 export function CommandConsole({
   courseId,
   courseLabel,
@@ -252,7 +251,6 @@ export function CommandConsole({
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<(() => void) | null>(null);
   const activeRunRef = useRef(0);
-  const endRef = useRef<HTMLDivElement>(null);
 
   const ledger = useMemo(() => {
     const items: Array<{ key: string; type: Block["type"]; title: string }> = [];
@@ -332,7 +330,6 @@ export function CommandConsole({
       { kind: "user", text: trimmed },
       { kind: "assistant", text: "", blocks: [], actions: [], done: false },
     ]);
-    queueMicrotask(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
 
     try {
       const handle =
@@ -413,7 +410,7 @@ export function CommandConsole({
         <div className="min-w-0 flex-1" />
         <Link
           href="/teach/review"
-          className="inline-flex min-h-8 items-center gap-1.5 rounded-[7px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[12px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]"
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[12px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]"
         >
           Review queue <span className="atlas-mono text-[11px]">{ledger.length}</span>
         </Link>
@@ -425,14 +422,14 @@ export function CommandConsole({
           <Link
             href={`/teach/atlas?new=1${runtimeQuery}`}
             aria-disabled={running}
-            className={`flex min-h-10 w-full items-center justify-between gap-3 rounded-[8px] bg-[var(--color-ink)] px-3 text-left text-[13px] font-semibold text-white transition hover:bg-[var(--color-accent-strong)] ${
+            className={`flex min-h-10 w-full items-center justify-between gap-3 rounded-[8px] bg-[var(--color-ink)] px-3 text-left text-[13px] font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-accent-strong)] ${
               running ? "pointer-events-none opacity-60" : ""
             }`}
           >
             <span className="inline-flex items-center gap-2">
               <Plus size={14} strokeWidth={2} aria-hidden /> New session
             </span>
-            <span className="atlas-mono rounded-[4px] bg-white/15 px-1.5 py-0.5 text-[10px]">N</span>
+            <span className="atlas-mono rounded-[6px] bg-[color-mix(in_oklch,var(--color-bg)_22%,transparent)] px-1.5 py-0.5 text-[10px]">N</span>
           </Link>
           <p className="atlas-mono mt-3 text-[10px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Course sessions</p>
           <label className="mt-1.5 flex h-9 items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[12.5px] text-[var(--color-faint)] focus-within:border-[var(--color-border-strong)]">
@@ -525,8 +522,8 @@ export function CommandConsole({
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-          <div className="mx-auto flex max-w-[780px] flex-col gap-4">
+        <Conversation>
+          <ConversationContent className="mx-auto w-full max-w-[780px]">
             {entries.length === 0 ? (
               <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-6 shadow-[var(--shadow-panel)]">
                 <h3 className="atlas-serif text-[18px] font-medium leading-tight text-[var(--color-ink)]">
@@ -598,78 +595,33 @@ export function CommandConsole({
 
             {entries.map((entry, index) =>
               entry.kind === "user" ? (
-                <div key={index} className="flex justify-end">
-                  <p className="max-w-[82%] whitespace-pre-wrap rounded-[12px_12px_4px_12px] bg-[var(--color-indigo-soft)] px-3.5 py-2.5 text-[14px] leading-6">
+                <Message key={index} from="user">
+                  <MessageContent>
                     {entry.text.length > 700 ? entry.text.slice(0, 700) + "..." : entry.text}
-                  </p>
-                </div>
+                  </MessageContent>
+                </Message>
               ) : (
-                <div key={index} className="space-y-3">
-                  <p className="flex items-center gap-2 text-[12px] text-[var(--color-muted)]">
-                    <span className="grid h-5 w-5 place-items-center rounded-full border border-[var(--color-indigo)] text-[var(--color-accent)]" aria-hidden>
-                      •
-                    </span>
-                    Atlas worked from the course record
-                  </p>
-
-                  <details className="group rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-[12.5px] text-[var(--color-muted)] [&::-webkit-details-marker]:hidden">
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" aria-hidden />
-                      Show Atlas work
-                      <span className="atlas-mono text-[10.5px] text-[var(--color-faint)]">
-                        {assistantWorkSteps(entry).length} {assistantWorkSteps(entry).length === 1 ? "step" : "steps"}
-                      </span>
-                      <ChevronDown
-                        size={13}
-                        strokeWidth={2}
-                        className="ml-auto text-[var(--color-faint)] transition group-open:rotate-180"
-                        aria-hidden
-                      />
-                    </summary>
-                    <div className="space-y-2 border-t border-[var(--color-border)] px-3 py-2.5">
-                      {assistantWorkSteps(entry).map((step, stepIndex) => (
-                        <p key={`${step}-${stepIndex}`} className="flex gap-2 text-[12.5px] leading-5 text-[var(--color-muted)]">
-                          <Check
-                            size={13}
-                            strokeWidth={2}
-                            className={entry.done ? "mt-0.5 shrink-0 text-[var(--color-good)]" : "mt-0.5 shrink-0 text-[var(--color-accent)]"}
-                            aria-hidden
-                          />
-                          <span>{step}</span>
-                        </p>
-                      ))}
-                    </div>
-                  </details>
+                <Message key={index} from="assistant">
+                  <MessageContent>
 
                   {!entry.done && entry.actions.length === 0 && entry.blocks.length === 0 && !entry.text ? (
-                    <div className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
-                      <p className="atlas-mono flex items-center gap-2 text-[12px] uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-accent)]" aria-hidden />
-                        Reading the course record
-                      </p>
-                    </div>
+                    <p className="flex items-center gap-2 text-[12.5px] text-[var(--color-muted)]">
+                      <Loader size={14} /> Reading the course record
+                    </p>
                   ) : null}
 
-                  {entry.actions.map((action, i) => {
-                    const meta = ACTION_META[action.toolName];
-                    if (!meta) return null;
-                    const Icon = meta.Icon;
-                    return (
-                      <div
-                        key={`a-${i}`}
-                        className="flex items-center gap-2.5 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 shadow-[var(--shadow-panel)]"
-                      >
-                        <span className="grid h-6 w-6 place-items-center rounded-[6px] bg-[var(--color-surface-muted)] text-[var(--color-muted)]">
-                          <Icon size={14} strokeWidth={2} aria-hidden />
-                        </span>
-                        <span className="min-w-0 flex-1 truncate text-[13px]">
-                          <span className="font-medium">{meta.label}</span>
-                          {action.summary ? <span className="text-[var(--color-muted)]"> · {action.summary}</span> : null}
-                        </span>
-                        {entry.done ? <Check size={14} strokeWidth={2} className="text-[var(--color-good)]" aria-hidden /> : null}
-                      </div>
-                    );
-                  })}
+                  {entry.actions
+                    .filter((action) => !TOOL_TO_BLOCK[action.toolName])
+                    .map((action, i) => {
+                      const meta = ACTION_META[action.toolName];
+                      if (!meta) return null;
+                      return (
+                        <Tool key={`a-${i}`}>
+                          <ToolHeader title={meta.label} state={entry.done ? "output-available" : "input-available"} />
+                          {action.summary ? <ToolContent>{action.summary}</ToolContent> : null}
+                        </Tool>
+                      );
+                    })}
 
                   {entry.blocks.map((b, i) =>
                     b.block ? (
@@ -684,7 +636,7 @@ export function CommandConsole({
                     )
                   )}
 
-                  {entry.text ? <Markdown streaming={!entry.done}>{entry.text}</Markdown> : null}
+                  {entry.text ? <Response streaming={!entry.done}>{entry.text}</Response> : null}
 
                   {entry.done && entry.blocks.some((b) => b.block) ? (
                     <p className="text-[13px] text-[var(--color-muted)]">
@@ -695,59 +647,49 @@ export function CommandConsole({
                       .
                     </p>
                   ) : null}
-                </div>
+                  </MessageContent>
+                </Message>
               )
             )}
-            <div ref={endRef} />
-          </div>
-        </div>
+            </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
 
         {error ? (
-          <p className="mx-5 mb-3 shrink-0 rounded-[6px] border border-[rgba(140,60,40,0.25)] bg-[rgba(140,60,40,0.06)] px-3 py-2 text-[13px] text-[var(--color-danger)]">
+          <p className="mx-5 mb-3 shrink-0 rounded-[6px] border border-[color-mix(in_oklch,var(--color-danger)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-danger)_10%,transparent)] px-3 py-2 text-[13px] text-[var(--color-danger)]">
             {error}
           </p>
         ) : null}
 
         <div className="sticky bottom-0 z-10 shrink-0 border-t border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-bg)_72%,var(--color-surface))] px-5 py-3">
-          <form
+          <PromptInput
             className="mx-auto max-w-[780px]"
-            onSubmit={(event) => {
+            onSubmit={(message, event) => {
               event.preventDefault();
-              void run(intent);
+              if (running) {
+                stopRun();
+                return;
+              }
+              void run(message.text);
             }}
           >
-            <div className="flex items-stretch gap-2">
-              <label htmlFor="atlas-command" className="sr-only">
-                Ask Atlas to draft something
-              </label>
-              <input
-                id="atlas-command"
-                value={intent}
-                onChange={(event) => setIntent(event.target.value)}
-                placeholder="Tell Atlas what to draft - it works from the course record and lands in Review"
-                disabled={running}
-                autoComplete="off"
-                className="min-h-11 min-w-0 flex-1 rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3.5 text-[14px] placeholder:text-[var(--color-faint)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] disabled:opacity-60"
+            <label htmlFor="atlas-command" className="sr-only">
+              Ask Atlas to draft something
+            </label>
+            <PromptInputTextarea
+              id="atlas-command"
+              value={intent}
+              onChange={(event) => setIntent(event.target.value)}
+              placeholder="Tell Atlas what to draft - it works from the course record and lands in Review"
+              disabled={running}
+            />
+            <PromptInputToolbar>
+              <PromptInputSubmit
+                status={running ? "streaming" : error ? "error" : "ready"}
+                disabled={intent.trim().length < 4}
               />
-              {running ? (
-                <button
-                  type="button"
-                  onClick={stopRun}
-                  className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 text-[14px] font-medium transition hover:border-[var(--color-ink)]"
-                >
-                  <CircleStop size={15} strokeWidth={2} aria-hidden /> Stop
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={intent.trim().length < 4}
-                  className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-4 text-[14px] font-medium text-white transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Send <ArrowUpRight size={15} strokeWidth={2} aria-hidden />
-                </button>
-              )}
-            </div>
-          </form>
+            </PromptInputToolbar>
+          </PromptInput>
         </div>
       </section>
 
@@ -777,7 +719,7 @@ export function CommandConsole({
                       </span>
                       <span className="block truncate text-[13px] font-medium text-[var(--color-ink)]">{item.title}</span>
                     </span>
-                    <span className="atlas-mono shrink-0 rounded-[5px] bg-[color-mix(in_oklch,var(--color-accent)_11%,transparent)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.04em] text-[var(--color-accent-strong)]">
+                    <span className="atlas-mono shrink-0 rounded-[6px] bg-[color-mix(in_oklch,var(--color-accent)_11%,transparent)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.04em] text-[var(--color-accent-strong)]">
                       Drafted
                     </span>
                   </li>

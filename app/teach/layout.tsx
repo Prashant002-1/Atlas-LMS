@@ -40,6 +40,8 @@ export default async function TeachLayout({ children }: { children: ReactNode })
       courses={scope.courses.map((c) => ({ id: c.id, code: c.code, name: c.name }))}
       activeCourseId={scope.course?.id}
       scopePath="/teach"
+      userName={session.user.name}
+      userEmail={session.user.email}
     >
       {children}
     </AppShell>

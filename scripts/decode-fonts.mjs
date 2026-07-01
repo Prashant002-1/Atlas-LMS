@@ -3,7 +3,8 @@
  *
  * Fonts ship as text (assets/fonts/*.woff2.b64) so the repo stays text-only
  * and builds are hermetic — no Google Fonts fetch at build time, identical
- * output in dev, CI, and Docker. Runs automatically via `postinstall`.
+ * output in dev, CI, and Docker. Runs automatically before dev/build and
+ * after install.
  */
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";

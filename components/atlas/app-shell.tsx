@@ -274,12 +274,11 @@ function AccountMenu({
   email?: string | null;
 }) {
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
-
-  useEffect(() => {
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof document === "undefined") return "dark";
     const current = document.documentElement.getAttribute("data-theme");
-    setTheme(current === "light" ? "light" : "dark");
-  }, []);
+    return current === "light" ? "light" : "dark";
+  });
 
   function applyTheme(next: "light" | "dark") {
     document.documentElement.setAttribute("data-theme", next);

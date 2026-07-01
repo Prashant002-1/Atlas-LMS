@@ -5,7 +5,10 @@
   "description": "Course record for teaching and study.",
   "type": "module",
   "scripts": {
+    "fonts": "node scripts/decode-fonts.mjs",
+    "predev": "npm run fonts",
     "dev": "next dev",
+    "prebuild": "npm run fonts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -18,7 +21,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx lib/db/seed.ts",
-    "postinstall": "node scripts/decode-fonts.mjs"
+    "postinstall": "npm run fonts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.0",

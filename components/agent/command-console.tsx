@@ -33,7 +33,6 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputToolbar,
-  PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Response } from "@/components/ai-elements/response";
 import { Tool, ToolContent, ToolHeader } from "@/components/ai-elements/tool";
@@ -685,7 +684,6 @@ export function CommandConsole({
               disabled={running}
             />
             <PromptInputToolbar>
-              <PromptInputTools />
               <PromptInputSubmit
                 status={running ? "streaming" : error ? "error" : "ready"}
                 disabled={intent.trim().length < 4}

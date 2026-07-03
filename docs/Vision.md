@@ -1,76 +1,87 @@
-# Atlas LMS, Vision & Thesis
+# Atlas, Vision & Thesis
+
+> Rewritten 2026-07-03. This supersedes the Alignment Graph framing (preserved in git history). The clearest sign this is an evolution rather than a reversal: the old vision listed, under "adjacent pain," *"Academic integrity, reframed - make outside help visible, constrained, and auditable instead of pretending it does not exist."* That bullet is now the center of the product.
 
 ## One-liner
-Atlas is an LMS where course intent is the source of truth. Objectives, materials, assignments, submissions, study activity, and evidence live in one course record, so professors can shape a course with confidence and students can study what actually matters.
+
+Atlas is an LMS rebuilt around a teacher-governed AI. Professors program the AI their students learn with, students learn inside that environment, and for the first time the learning itself, not just the submission, is visible.
 
 ---
 
 ## The problem
 
-Learning management systems were built around storage and submission, not intent. Two costs are hiding in plain sight:
+Students already do their coursework with AI. In the UK, 88% report using generative AI for assessments, up from 53% a year earlier. At Berkeley, A-grades in writing- and coding-heavy courses rose 13 points after ChatGPT, concentrated in homework, not exams. The submitted artifact no longer proves learning.
 
-### 1. Course creation is so hard that universities pay people to do it
-Nearly every institution staffs an **instructional-design (ID) center**, specialists who help faculty turn their expertise into Canvas modules, syllabi, aligned assessments, and accessible content. This is a structural tax: the tool is so unfriendly that operating it is a job. Professors still lose **days to weeks per course** on mechanics, building module trees, formatting syllabi, wiring assignment groups, copying last term's course forward.
+Teachers carry the cost. Grading a paper takes minutes; adjudicating one suspected AI case takes hours of unpaid detective work, so instructors cut assignments entirely or revert to paper exams. Detection failed publicly. Only a third of institutions have any campus-wide AI policy, and barely a fifth of faculty call theirs effective. Policy without enforcement is theater.
 
-### 2. Learning has already left the building
-Students study across notes, slides, readings, group chats, and outside tools while the LMS stays disconnected from the syllabus. A student can study for hours and still not know whether they covered what the professor will actually assess. Exams become surprises, and the course record does not explain why.
-
-The incumbents cannot fix this by adding a button. Their data model has no durable concept of _intent_ - what the course is for. You cannot ground teaching, studying, assessment, or evidence in objectives that were never modeled.
+Meanwhile the LMS, the system that supposedly holds the learning, records none of this. It records administration: files, deadlines, submission boxes, grades. The actual learning moved into AI conversations that happen where no teacher can see them. Adding an AI service to a file cabinet does not change this. The real shift is making AI-enabled learning the center of the product.
 
 ---
 
 ## The Atlas thesis
 
-Rebuild the LMS around a new primitive: the **Alignment Graph**.
+Atlas is not just an LMS. It is a **context layer for education**. The agent is not a chatbot sitting beside a course; it is the product's core interface, memory, and operating layer. It connects teacher to student through structured learning context: course materials, assignments, rubrics, grades, feedback, performance history, sessions, and the specific goals of the class.
 
-- **Learning objectives** are first-class (course- and module-level), optionally mapped to **program/accreditation outcomes**.
-- **Every artifact**, module, assignment, quiz, page, reading, is tagged to the objectives it serves.
-- **Every student action** - a submission, practice response, study session, or coverage check - can be measured against those objectives.
+**The agent is a manifestation of the professor.** It is reactive on command, not blindly autonomous. It proposes; it does not perform without the teacher's intent. Even where it has autonomy, that autonomy is teacher-shaped: the professor defines the tone, boundaries, rubrics, learning goals, allowed AI behavior, and the role AI plays in the course. Every assignment declares, explicitly, how AI participates: expected, with a defined contract, or banned. No mushy middle.
 
-Once intent is modeled, Atlas becomes useful on both sides:
-
-**For professors**
-> "Create a 14-week Intro to Statistics course aligned to these five outcomes, ABET-style, with weekly modules, two midterms, and a project."
-
-Atlas can draft the syllabus, module tree, assignments, and rubrics as a change proposal the professor reviews and approves. The professor sees the course record, coverage, and gaps directly. Nothing is live until it is accepted.
-
-**For students**
-Atlas turns the same record into a study path: what matters now, which material supports it, what work is open, where the student has evidence, and what is still weak. No guessing from scattered course material.
+Context accrues from use. The professor's ordinary work with the agent, planning an exam, building a practice set, discussing what the class is missing, becomes context that enriches every student session where the professor permits it. There is no upload ceremony. The system gets more useful because it accumulates educational context instead of treating every interaction as a blank chat.
 
 ---
 
-## Wedge (how we get the first 100 users)
+## The new assessment: the session
 
-**One-course import.** We do not ask a university to rip out Canvas. We let one professor import one course, cleanly expose the structure, align it to objectives, and make the course teachable from a better record. Bottom-up adoption starts with one useful course.
+Atlas introduces an assignment type where the assignment itself is a structured work session with the agent, and the learning journey is the deliverable.
 
-## Moat (why this compounds)
+- The teacher defines the rubric, the expected reasoning path, the boundaries of assistance, and what counts as meaningful progress. The agent drafts these from the syllabus and learning outcomes; the teacher edits and approves.
+- The student works the problem inside Atlas. The session opens by stating what doing well looks like; nobody is scored against hidden criteria.
+- The rubric grades the journey: the quality of questions, the follow-ups, the use of course concepts, the recovery from being wrong, and the final artifact. Every score cites evidence quoted from the session.
+- The professor is the court of appeal. Students can request human review; the full transcript is there.
 
-1. **The Alignment Graph** - structure incumbents cannot retrofit cheaply. It grows richer with every course authored, taught, studied, and assessed.
-2. **Reviewable course changes** - drafts, approvals, dismissals, and published records make change safe without hiding the record behind automation.
-3. **Two-sided course evidence** - professor intent -> student work -> outcomes -> better course design. Each course taught makes the next one clearer.
+The consequence is structural: **when the journey is what gets graded, copying an answer earns nothing.** There is no place to cheat, not because AI is restricted, but because delegation is worthless under this rubric. Atlas answers the integrity crisis without detectors and without surveillance theater.
+
+---
+
+## Why students stay
+
+The governed agent is more useful than the open web's. It knows the course, the syllabus, the student's own record, and what the professor is planning next. It can tell a student, mid-problem: this concept cost you points on the last exam, and your professor has flagged it for the next one. ChatGPT cannot. Students choose the walled garden out of self-interest, not compliance.
+
+## Visibility without surveillance
+
+- In a session assignment, the work session IS the submission. Reviewing it is reviewing the work, the same as reading an essay draft.
+- In open studying, the professor sees aggregated signals, who is struggling with what, never a feed of private conversations.
+- Personal-record side notes go to the student they are about, and only where the professor enabled them.
+
+## The teacher's role
+
+The goal is not to replace teachers; there is no serious argument for that. The goal is to return teachers to the primitives of education: attentiveness, guidance, feedback, understanding how each student learns. In large classrooms that attention is impossible to scale by hand. Atlas scales it without taking control away: the professor sees the class think, teaches to what the evidence shows, and delivers feedback in their own voice, grounded in each student's actual journey.
+
+---
+
+## What stays from the first vision
+
+The course record remains the substrate. The agent is only trustworthy because it operates on the actual record of the course: objectives, materials, assessments, and their alignment - which is what lets rubrics be drafted from intent rather than invented. Reviewable, propose-then-approve changes remain the only door between draft and live. Standard LMS workflows (modules, content, grading, reporting) are packaged inside, but they are the ground the product stands on, not the product.
+
+**Wedge, unchanged:** one professor, one course. Nobody rips out Canvas on day one. Bottom-up adoption starts with one assignment that could not exist anywhere else.
+
+## Moat
+
+1. **The learning record.** The interaction and journey evidence that accrues when student AI use happens inside the course boundary. The outside AI vendors cannot see it; the admin-side LMS never captures it.
+2. **Teacher authorship as trust.** Policy objects, rubric authorship, propose-then-approve. Faculty endorse AI only under their control, grounded in their materials, with visibility. That is Atlas's doctrine, not a feature toggle.
+3. **Context compounding.** Every course taught, every exam planned with the agent, every session graded makes the next one richer. Blank-chat products reset to zero.
 
 ## Why now
 
-- Models are finally good enough to help draft, align, and explain from source material when the product gives them a real course record.
-- Students already study outside the LMS; the behavior change happened, but the course record did not come with them.
-- Institutions are actively paying for the pain (ID centers, accreditation consultants), so budget exists today.
-- Incumbents are architecturally frozen around files, modules, and submissions instead of course intent.
+- Student AI use is effectively universal, and the verification collapse is measured, public, and unsolved.
+- Detection is discredited; institutions are reverting to paper and proctoring for lack of software.
+- The doctrine Atlas operationalizes is already converging without a product: explicit per-assessment AI policy (two-lane frameworks, the AI Assessment Scale, and the public argument that schools must declare AI expected or banned with no middle ground).
+- Incumbent LMS AI is retreating into paywalled instructor utilities while faculty senates disable it. The between-teacher-and-student position is unowned.
 
----
+## What Atlas is not
 
-## Beyond the core: adjacent pain we can take
-
-These are not v1, but they show the surface area once the course record is structured correctly:
-
-- **Accreditation & outcomes reporting**, ABET/regional-accreditor evidence is months of manual work; Atlas emits it from the Alignment Graph automatically. Institutional budget unlock.
-- **Grading load**, rubric-grounded grading support with professor approval.
-- **Grounded TA**, answers student questions from actual course material with citations and escalation paths.
-- **Academic integrity, reframed**, make outside help visible, constrained, and auditable instead of pretending it does not exist.
-- **Accessibility & compliance**, ADA/WCAG checks at authoring time, not retrofitted under legal pressure.
-- **Advisor support**, explicit institution-defined criteria can surface students who need attention before the midterm.
-- **Course freshness**, detect dead links and stale content during term rollover.
+Not a detector. Not surveillance. Not a chatbot bolted onto an LMS. Not a replacement for teachers.
 
 ---
 
 ## The pitch in one breath
-Canvas made the course a collection of files, modules, and submission boxes. Atlas makes the course a record of intent, work, evidence, and study, so professors and students can act from the same source of truth.
+
+Canvas records administration. Atlas records learning. The agent is the interface, the course record is its ground, and the session is the new assessment: teachers define how AI participates, students think inside it, and the learning is finally visible.

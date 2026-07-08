@@ -1,6 +1,6 @@
 # v0 Architecture: Runtime and Grading Pipeline
 
-**Date:** 2026-07-04. **Status:** initial overview; recommendations to be ratified in the implementation session. Research current as of 2026-07-04 (sources dated inline).
+**Status:** accepted runtime direction for v0. Phase 0 has removed Eve from active code. Phase 2 will decide whether `WorkflowAgent` is the live durability path or whether a simpler fallback is needed.
 
 ## 0. The shape being built
 
@@ -8,19 +8,19 @@ One loop on five primitives: professor configures a **session assignment** (agen
 
 ## 1. Runtime recommendation
 
-**Recommendation: plain Vercel AI SDK 7 + `WorkflowAgent` (@ai-sdk/workflow) + typed data parts, with our own Postgres persistence.** Not Eve, for now.
+**Recommendation: plain Vercel AI SDK 7 + `WorkflowAgent` (@ai-sdk/workflow) + typed data parts, with our own Postgres persistence.** Not Eve.
 
-**Why not Eve (as of July 2026):** still beta with breaking changes shipping weekly (0.12.0 and 0.13.0 landed breaking changes in the last two weeks of June; docs state APIs "may change before general availability"). `defineAgent.model` remains static; `defineDynamic` covers tools/skills/instructions only, so per-org BYOK still requires either the Gateway `byok` escape hatch (couples us to Gateway routing) or a custom model proxy - ADR-0008 itself named this the biggest risk. The default harness remains computer-use shaped (bash/file/web tools to disable one by one), which is the wrong shape for a typed-blocks session product. Eve's genuine strengths (durability, HITL parking, channels, Agent Runs observability - Vercel built its own Vercel Agent on it, and shipped Agent Runs updates 2026-07-03) are not worth the churn for a three-week demo build. Sources: vercel.com/docs/eve; eve.dev/docs/agent-config; eve release notes 0.12.0/0.13.0 (June 2026); vercel.com/changelog 2026-07-03.
+**Why not Eve:** Eve is the wrong shape for this v0. `defineAgent.model` remains static; `defineDynamic` covers tools/skills/instructions only, so per-org BYOK still requires either the Gateway `byok` escape hatch or a custom model proxy. The default harness is computer-use shaped, which is wrong for a typed-blocks session product. Eve's strengths are real, but not worth bringing back for this build. Sources: vercel.com/docs/eve; eve.dev/docs/agent-config; Eve release notes; Vercel changelog.
 
-**Why the boring path stopped being hand-rolled:** AI SDK 7 shipped 2026-06-25 with `WorkflowAgent` - first-party durable, resumable agent steps ("use workflow" directive), persistent streams via getWritable(), and tool approvals that survive restarts, no Redis required (vercel.com/blog/ai-sdk-7). Typed `data-*` parts and per-tool UI parts (stable pattern since AI SDK 5) carry the artifact panel and side-note cards with explicit streaming states, so the React tree renders progressively without jank (ai-sdk.dev/docs/ai-sdk-ui/streaming-data). Our own tables (sessions, turns, artifact states, rubric, evidence) stay the source of truth - which the grading pipeline requires anyway (section 2).
+**Why the boring path stopped being hand-rolled:** AI SDK 7 includes `WorkflowAgent`, first-party durable, resumable agent steps, persistent streams via getWritable(), and tool approvals that survive restarts. Typed `data-*` parts and per-tool UI parts carry the artifact panel and side-note cards with explicit streaming states, so the React tree renders progressively without jank. Our own tables and typed payloads stay the source of truth, which the grading pipeline requires anyway.
 
 **Accepted tradeoff:** we write our own session/turns schema and approval-gate logic instead of inheriting a framework's. More code up front, but code we can debug at 2am before the demo, on no one else's beta cadence. The code review confirms most of that schema already exists to adapt (agentSessions/agentTurns, changeProposals, apply.ts).
 
-**Fallbacks if WorkflowAgent (one week old) proves too fresh:** Trigger.dev v4.5.0 (2026-07-02) shipped useTriggerChatTransport + chat.agent GA - a useChat conversation as a durable task surviving refresh/redeploy, approvals built in (trigger.dev/changelog/v4-5-0). Inngest's step.ai.wrap() + waitForSignal covers the same ground. Either is a credible drop-in for durability only.
+**Fallbacks if WorkflowAgent slows Phase 2 down:** Trigger.dev chat transport or Inngest step/wait patterns can cover durability only. Use a fallback only if it keeps the session engine moving.
 
 **Skipped for this shape (one line each):** LangGraph.js (trails Python, verbose AI SDK glue); Mastra (good, but an orchestration layer we do not need yet); OpenAI Agents SDK (heading toward sandbox agents - wrong direction); Claude Agent SDK (computer-use harness by default, same wrong shape as Eve).
 
-**Consequences for the repo:** the half-migrated Eve integration on main (eve dep, eve-command route, eve-auth.ts, eve columns on agentSessions, ATLAS_COMMAND_RUNTIME toggle, /eve middleware allowlists) gets removed, not completed. Re-evaluate Eve post-GA if it gains a dynamic model resolver and we want channels/schedules (professor notifications) later. ADR-0008 gets a successor recording this.
+**Consequences for the repo:** the half-migrated Eve integration was removed in Phase 0 and ADR-0009 records the decision. Re-evaluate Eve only with a new ADR if it later fits the product shape.
 
 ## 2. The grading pipeline ("the rubric reads the transcript")
 
@@ -50,9 +50,8 @@ This is the riskiest technical claim in the product: score a ~30-minute learning
 
 **Design implications for the schema:** evidence as (sessionId, turnId, charStart, charEnd); scores versioned with the rubric version that produced them; appeals attach to the same evidence objects; everything renderable in the drill-in view.
 
-## 3. Open questions for the implementation session
+## 3. Phase 2 decisions
 
-1. Confirm WorkflowAgent maturity at build start (it is one week old); Trigger.dev is the tested fallback.
-2. Eve removal scope and the successor ADR.
-3. Model selection per pipeline stage (session agent vs extractor vs judge vs chair) through the existing BYOK registry.
-4. Whether the session agent and the grader share one context-pack builder or get separate ones (lean: shared, with section flags).
+1. Confirm whether `WorkflowAgent` is smooth enough for the session engine; otherwise use the simplest durable fallback.
+2. Choose model selection per pipeline stage through the existing BYOK registry.
+3. Decide whether the session agent and the grader share one context-pack builder or get separate builders. Default: shared builder with section flags.

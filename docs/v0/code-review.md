@@ -1,10 +1,12 @@
 # Code Review: What Survives the Pivot
 
-**Date:** 2026-07-04. **Method:** read-only review of main (~22 file reads: full schema, all of lib/agent and lib/ai core files, middleware, ADR-0008, fixtures shape, directory listings, branch/commit history). Judged against the v0 loop (configure -> session -> evidence -> class insight) and the five primitives (course record, session, rubric, policy/config, journey/evidence).
+**Status:** historical pivot review, updated after Phase 0. Use this to understand why the old command/cue/Eve path was removed, not as a current task list.
+
+**Method:** read-only review of the pre-v0 codebase: schema, agent core, AI provider code, routing, ADR-0008, fixture shape, and branch history. Judged against the v0 loop (configure -> session -> evidence -> class insight) and the five primitives (course record, session, rubric, policy/config, journey/evidence).
 
 ## TL;DR
 
-Roughly **55-65% survives as KEEP or ADAPT - but what survives is plumbing and patterns, not product.** The strongest survivors (context packs, block registry, apply-as-transaction, BYOK, anchored sessions) are aimed at "professor drafts LMS content, student presses a cue button," not "student works a live problem and gets graded on the transcript." **Verdict: v0 is a new grading-pipeline product wearing Atlas's plumbing.** Keep the skeleton, discard essentially all block/route/UI content, build four new primitives on top. Note: main's HEAD is the pivot *docs* (d8009d7); the code is the old product. Docs are ahead of code by design.
+Roughly **55-65% survived as KEEP or ADAPT - but what survived is plumbing and patterns, not the old product.** The strongest survivors are context packs, block registry discipline, apply-as-transaction, BYOK, anchored sessions, proposal rows, and the route shell. **Verdict: v0 is a new grading-pipeline product wearing Atlas's plumbing.** Phase 0 has already discarded the old command/cue/Eve surfaces and old broad catalog.
 
 ## Inventory
 
@@ -36,20 +38,23 @@ Roughly **55-65% survives as KEEP or ADAPT - but what survives is plumbing and p
 
 ## Top gaps (exist in no form)
 
-1. **Session assignment type** - no table, block kind, or route models it; changeProposals.kind enum has no variant for it.
-2. **Artifact panel state** - nothing tracks an evolving structured object alongside a conversation; agentTurns.parts is a flat jsonb blob with no versioned artifact slot.
-3. **Side-note cards** - no schema, block, or context section joins a student's record with the professor's planning sessions; context.ts has no professor-session-history section at all.
-4. **Transcript grading pipeline** - no rubric-as-data, no per-criterion levels, no evidence spans. rubricBlockSchema exists but persists as a Markdown page.
-5. **Journey/evidence objects and views** - no journey, evidence, or drill-in anywhere; courseGradeSnapshots is the nearest analog and carries no evidence payload.
-6. **Class-insight aggregation** - class_state only counts submission statuses; no semantic aggregation over transcripts or criterion-level weakness clustering.
-7. **Per-assignment AI policy** - confirmed absent.
+1. **Live session engine** - the data contract exists, but the student session route and UI are not built yet.
+2. **Artifact panel state** - typed fixture payloads exist; the live stream/write path still needs to produce them.
+3. **Side-note cards** - typed fixture payloads exist; the live trigger path still needs to join student record, professor planning, current topic, and policy.
+4. **Transcript grading pipeline** - evidence spans and journey reports exist in the demo world; the live pipeline still needs to produce them from submitted sessions.
+5. **Professor journey views** - class rollups and reports exist as data; the professor drill-in/grid surfaces still need to render the live loop.
+6. **Per-assignment policy** - current policy remains course-level plus v0 session-assignment config in the typed fixture. Decide in Phase 2 whether to add native rows immediately.
 
-## Landmines
+## Resolved in Phase 0
 
-- **Eve is live on main, not an experiment.** package.json pins eve ^0.11.7 and ai ^7.0.0-beta.178; agentSessions carries eveSessionId/eveContinuationToken/eveStreamIndex columns; an eve-command route and eve-auth.ts exist; feat/eve-agent-layer was already merged forward. There is a dual-runtime split behind ATLAS_COMMAND_RUNTIME=eve. Whatever the runtime decision, removal or completion is a real task, not a footnote.
-- **middleware.ts allowlists /eve paths as public.** Removing Eve must remove these bypasses or they become dead attack surface.
-- **submissions PK is (assignmentId, userId)** - no history/versioning; grading needs a first-class transcript entity to attach to, which does not exist.
-- **agentTurns.fts is a generated STORED column** over the parts jsonb; restructuring turn shape silently degrades FTS recall unless the expression is updated.
-- **compactIfNeeded swallows all errors** - if the new session leans on compaction for long-session grounding, failures are silent.
-- **Known repo debt:** package-lock.json regeneration pending (npm registry blocked in some sandboxes); verify has not been run on recent commits; the last real code commits before the pivot were polish on the surface now being discarded - sunk cost to let go of deliberately.
-- **ADR history:** only ADR-0008 exists as a file; ADR-0001..0007 are referenced by number but absent from docs/adr (their intent survives in PR bodies and Roadmap.md). Decide whether to backfill or renumber before writing the next ADR.
+- Eve dependency, runtime mount, proxy route, bridge auth, runtime env split, session cursor columns, and public `/eve` allowlists were removed.
+- Old command/cue UI and API surfaces were removed.
+- ADR-0009 now supersedes ADR-0008.
+- ADR index documents why ADR-0001 through ADR-0007 are not backfilled.
+- Old multi-course fixture content was removed from the active seed.
+
+## Still relevant
+
+- **submissions PK is (assignmentId, userId)** - current submissions are useful for LMS state, but the live session transcript needs its own durable record path.
+- **agentTurns.fts is a generated STORED column** over the parts jsonb; changing turn shape can degrade FTS recall unless the expression still fits.
+- **compactIfNeeded swallows all errors** - if Phase 2 leans on compaction for long-session grounding, failures should become visible.

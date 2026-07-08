@@ -29,9 +29,9 @@ npm run smoke
 
 ## Current State
 
-Phase 0 of [`docs/v0/implementation-plan.md`](docs/v0/implementation-plan.md) is complete. The old Eve/command/cue product path is removed, `/teach/atlas` is an intentional v0 shell, and the next work is the v0 primitives.
+Phase 0 of [`docs/v0/implementation-plan.md`](docs/v0/implementation-plan.md) is complete, and Phase 1 is mostly complete. The old Eve/command/cue product path is removed, `/teach/atlas` is an intentional v0 shell, and the next work is the Phase 2 session engine.
 
-The current seed data is still the legacy broad demo package. Generate the v0 demo world from [`docs/v0/data-blueprint.md`](docs/v0/data-blueprint.md) in a separate pass.
+The current seed data is the active v0 demo world from [`docs/v0/data-blueprint.md`](docs/v0/data-blueprint.md). The typed fixture carries v0-only objects until Phase 2 decides which live outputs need native persistence.
 
 ## License
 

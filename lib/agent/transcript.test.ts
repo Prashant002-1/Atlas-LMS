@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeSessionTranscript, renderFinalArtifactBody, turnPlainText, verifyQuote } from "./transcript";
+import { normalizeSessionTranscript, renderFinalArtifactBody, splitTextBySpans, turnPlainText, verifyQuote } from "./transcript";
 import { v0DemoWorld } from "../db/fixtures/v0-demo-world";
 import type { PricingArtifact } from "./session-parts";
 
@@ -105,4 +105,36 @@ test("submission body renders the frozen artifact deterministically", () => {
 
   const empty = renderFinalArtifactBody(null, "Maya Patel");
   assert.ok(empty.includes("without a final artifact state"));
+});
+
+test("span splitting reassembles the exact text with the right coverage", () => {
+  const text = "The slope is constant but elasticity changes along the curve.";
+  const segments = splitTextBySpans(text, [
+    { id: "s1", criterionKey: "grounding", charStart: 4, charEnd: 21 }, // "slope is constant"
+    { id: "s2", criterionKey: "framing", charStart: 26, charEnd: 36 }, // "elasticity"
+  ]);
+  assert.equal(segments.map((segment) => segment.text).join(""), text, "segments always reassemble the input");
+  const marked = segments.filter((segment) => segment.spans.length > 0);
+  assert.equal(marked.length, 2);
+  assert.equal(marked[0].text, "slope is constant");
+  assert.equal(marked[1].text, "elasticity");
+});
+
+test("overlapping spans stack instead of corrupting boundaries", () => {
+  const text = "abcdefghij";
+  const segments = splitTextBySpans(text, [
+    { id: "s1", criterionKey: "a", charStart: 0, charEnd: 6 },
+    { id: "s2", criterionKey: "b", charStart: 4, charEnd: 10 },
+  ]);
+  assert.equal(segments.map((segment) => segment.text).join(""), text);
+  const overlap = segments.find((segment) => segment.spans.length === 2);
+  assert.ok(overlap);
+  assert.equal(overlap.text, "ef");
+});
+
+test("out-of-range spans clamp and empty text yields no segments", () => {
+  const segments = splitTextBySpans("short", [{ id: "s", criterionKey: "k", charStart: 2, charEnd: 99 }]);
+  assert.equal(segments.map((segment) => segment.text).join(""), "short");
+  assert.equal(segments.find((segment) => segment.spans.length > 0)?.text, "ort");
+  assert.deepEqual(splitTextBySpans("", [{ id: "s", criterionKey: "k", charStart: 0, charEnd: 3 }]), []);
 });

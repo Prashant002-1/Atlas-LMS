@@ -113,6 +113,55 @@ export function verifyQuote(
   return { verified: true, charStart, charEnd: charStart + quote.length };
 }
 
+/* ── evidence highlighting (drill-in rendering) ─────────────── */
+
+export type SpanRange = {
+  id: string;
+  criterionKey: string;
+  charStart: number;
+  charEnd: number;
+};
+
+export type TextSegment = {
+  text: string;
+  /** Evidence spans covering this segment (empty = plain text). */
+  spans: SpanRange[];
+};
+
+/**
+ * Split a turn's text into contiguous segments by the evidence spans covering
+ * them, boundary-sweep style, so the drill-in can render verified quotes
+ * highlighted IN PLACE in the transcript. Overlapping spans stack (a segment
+ * can carry several criteria); out-of-range offsets are clamped; the
+ * concatenation of segments is always exactly the input text.
+ */
+export function splitTextBySpans(text: string, ranges: SpanRange[]): TextSegment[] {
+  if (text.length === 0) return [];
+  const clamped = ranges
+    .map((range) => ({
+      ...range,
+      charStart: Math.max(0, Math.min(range.charStart, text.length)),
+      charEnd: Math.max(0, Math.min(range.charEnd, text.length)),
+    }))
+    .filter((range) => range.charEnd > range.charStart);
+
+  const boundaries = new Set<number>([0, text.length]);
+  for (const range of clamped) {
+    boundaries.add(range.charStart);
+    boundaries.add(range.charEnd);
+  }
+  const points = [...boundaries].sort((a, b) => a - b);
+
+  const segments: TextSegment[] = [];
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const start = points[i];
+    const end = points[i + 1];
+    const covering = clamped.filter((range) => range.charStart <= start && range.charEnd >= end);
+    segments.push({ text: text.slice(start, end), spans: covering });
+  }
+  return segments;
+}
+
 /** Render the frozen artifact as the plain-text submission body for the gradebook row. */
 export function renderFinalArtifactBody(artifact: PricingArtifact | null, studentName: string): string {
   if (!artifact) {

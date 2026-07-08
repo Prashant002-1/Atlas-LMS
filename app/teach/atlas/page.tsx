@@ -1,36 +1,96 @@
+import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { loadInstructorWorkspace } from "@/lib/instructor/workspace";
+import { loadCockpitIndex } from "@/lib/instructor/cockpit";
 import { PageHeader } from "@/components/teach/page-header";
+import { PlanningHistory } from "@/components/cockpit/planning-history";
+import { JourneyGridSummary } from "@/components/cockpit/journey-grid";
+import { StatusBadge, TextLink } from "@/components/atlas/primitives";
 
 /**
- * v0 shell. The old command surface was removed in Phase 0; the session
- * cockpit mounts here once the new primitives exist.
+ * The session cockpit index: every work session in the course, its class at
+ * a glance, and the professor's planning history (the provenance the student
+ * side-notes trace back to). Replaced the Phase 0 shell in Phase 4.
  */
 export default async function TeachAtlasPage() {
   const session = await auth();
-  const workspace = await loadInstructorWorkspace(session?.user);
+  const view = await loadCockpitIndex(session?.user);
 
-  if (workspace.problem || !workspace.course.id || !session?.user?.orgId) {
+  if (view.problem) {
     return (
       <>
         <PageHeader title="Atlas" />
-        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">
-          {workspace.problem?.detail ?? "No course is in view."}
-        </p>
+        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">{view.problem.detail}</p>
       </>
     );
   }
 
   return (
     <>
-      <PageHeader title="Atlas" course={`${workspace.course.code} / ${workspace.course.name}`} />
-      <section className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
-        <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">v0 shell</p>
-        <h2 className="mt-2 text-[18px] font-semibold">Session cockpit offline</h2>
-        <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[var(--color-muted)]">
-          The old command console has been cleared. The next build step mounts the v0 session assignment, student session, and
-          journey evidence primitives here.
-        </p>
+      <PageHeader
+        title="Atlas"
+        course={`${view.course.code} / ${view.course.name}`}
+        action={
+          view.pendingProposals > 0 ? (
+            <TextLink href="/teach/review" className="text-[13px]">
+              {view.pendingProposals} draft{view.pendingProposals === 1 ? "" : "s"} in Review
+            </TextLink>
+          ) : undefined
+        }
+      />
+
+      <section aria-label="Work sessions">
+        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Work sessions</h2>
+        {view.assignments.length === 0 ? (
+          <div className="mt-2.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
+            <p className="text-[14px] font-semibold">No work sessions yet</p>
+            <p className="mt-1.5 max-w-2xl text-[13.5px] leading-6 text-[var(--color-muted)]">
+              A work session is an assignment taken as a governed conversation with Atlas and graded on the reasoning
+              journey. Creating one from scratch lands with planning sessions; the seeded course ships one configured.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-2.5 space-y-3">
+            {view.assignments.map((assignment) => (
+              <Link
+                key={assignment.id}
+                href={`/teach/atlas/${assignment.id}`}
+                className="block rounded-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+              >
+                <article className="atlas-card-hover rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[15px] font-semibold text-[var(--color-ink)]">{assignment.name}</p>
+                    <div className="flex items-center gap-2">
+                      {assignment.counts.reviewRequested > 0 ? (
+                        <StatusBadge tone="warn">
+                          {assignment.counts.reviewRequested} review request{assignment.counts.reviewRequested === 1 ? "" : "s"}
+                        </StatusBadge>
+                      ) : null}
+                      {assignment.counts.draft > 0 ? (
+                        <StatusBadge tone="accent">{assignment.counts.draft} drafts to review</StatusBadge>
+                      ) : null}
+                    </div>
+                  </div>
+                  <p className="atlas-mono mt-1 text-[11px] uppercase tracking-[0.07em] text-[var(--color-faint)]">
+                    {assignment.durationMinutes} min session
+                    {assignment.dueAt
+                      ? ` · due ${new Date(assignment.dueAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                      : ""}
+                    {" · rubric v"}
+                    {assignment.rubricVersion}
+                    {assignment.personalRecordSideNotes ? " · side notes on" : " · side notes off"}
+                  </p>
+                  <div className="mt-3">
+                    <JourneyGridSummary counts={assignment.counts} />
+                  </div>
+                </article>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-8">
+        <PlanningHistory sessions={view.planningSessions} />
       </section>
     </>
   );

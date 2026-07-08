@@ -87,3 +87,22 @@ test("pricing artifact schema enforces sane bounds", () => {
     false
   );
 });
+
+test("rescaling a criterion weight keeps level proportions and lands the top level exactly", async () => {
+  const criteria = parseRubricCriteria(v0DemoWorld.v0.rubric.criteria);
+  assert.ok(criteria);
+  const framing = criteria.find((c) => c.key === "framing");
+  assert.ok(framing); // Exceeds 20 / Meets 16 / Developing 10 / Missing 0
+
+  const { rescaleCriterionToWeight } = await import("./session-parts");
+  const rescaled = rescaleCriterionToWeight(framing, 25);
+  assert.equal(rescaled.weight, 25);
+  const byLevel = Object.fromEntries(rescaled.levels.map((level) => [level.level, level.score]));
+  assert.equal(byLevel.Exceeds, 25, "top level lands exactly on the new weight");
+  assert.equal(byLevel.Meets, 20, "16/20 stays 80% of full credit");
+  assert.equal(byLevel.Developing, 13, "10/20 rounds to 13 of 25");
+  assert.equal(byLevel.Missing, 0, "zeros stay zero");
+
+  assert.throws(() => rescaleCriterionToWeight(framing, 0));
+  assert.throws(() => rescaleCriterionToWeight(framing, Number.NaN));
+});

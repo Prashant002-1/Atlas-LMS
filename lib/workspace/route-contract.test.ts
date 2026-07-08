@@ -33,6 +33,8 @@ const requiredRoutes = [
   "/teach/student/[studentId]",
   "/teach/week/[moduleId]",
   "/teach/work/[assignmentId]",
+  "/teach/atlas/[assignmentId]",
+  "/teach/atlas/journey/[submissionId]",
 ];
 
 test("required routes exist in the App Router tree", () => {
@@ -96,7 +98,8 @@ test("phase 0 clears the obsolete command, cue, and second-runtime surfaces", ()
   assertSourceExcludes("proxy.ts", '"/eve"');
   assertSourceExcludes(".env.example", "ATLAS_COMMAND_RUNTIME");
   assertSourceExcludes("app/teach/atlas/page.tsx", "CommandConsole");
-  assertSourceIncludes("app/teach/atlas/page.tsx", "v0 shell");
+  // Phase 0 left a shell here; Phase 4 mounts the session cockpit in its place.
+  assertSourceIncludes("app/teach/atlas/page.tsx", "loadCockpitIndex");
 });
 
 test("active source carries no old runtime references", () => {
@@ -207,6 +210,43 @@ test("phase 3 makes the rubric read the transcript", () => {
   assertSourceIncludes("lib/db/seed.ts", "journeyReports");
   assertSourceIncludes("lib/db/seed.ts", "computeClassRollupStats");
   assert.equal(existsSync(path.join(root, "scripts/regrade.ts")), true, "scripts/regrade.ts should exist.");
+});
+
+test("phase 4 closes the loop on the professor side", () => {
+  // The cockpit is a read layer over stored rows; mutations live in actions.
+  assertSourceIncludes("lib/instructor/cockpit.ts", "export async function loadCockpitIndex");
+  assertSourceIncludes("lib/instructor/cockpit.ts", "export async function loadAssignmentCockpit");
+  assertSourceIncludes("lib/instructor/cockpit.ts", "export async function loadJourneyDrillIn");
+  assertSourceExcludes("lib/instructor/cockpit.ts", "recomputeClassRollup");
+  assertSourceExcludes("lib/instructor/cockpit.ts", ".insert(");
+  assertSourceExcludes("lib/instructor/cockpit.ts", ".update(");
+
+  // Finalize is the only session-grade gradebook writer, stamped who/when.
+  assertServerAction("lib/instructor/session-actions.ts", "finalizeJourneyReport");
+  assertSourceIncludes("lib/instructor/session-actions.ts", "finalizedById");
+  assertSourceIncludes("lib/instructor/session-actions.ts", "workflowState");
+  assertSourceIncludes("lib/db/schema.ts", "finalizedById");
+
+  // Regrade reruns drafts only; a published grade stays the record.
+  assertServerAction("lib/instructor/session-actions.ts", "regradeJourneyReport");
+  assertSourceIncludes("lib/instructor/session-actions.ts", 'existing.status === "final"');
+
+  // Class insight renders stored rollups; the practice set rides the
+  // EXISTING approve gate and must round-trip the apply gate's block schema.
+  assertServerAction("lib/instructor/session-actions.ts", "refreshClassRollup");
+  assertServerAction("lib/instructor/session-actions.ts", "proposePracticeSet");
+  assertSourceIncludes("lib/agent/practice-proposal.ts", "parseStoredBlock");
+  assertServerAction("lib/instructor/session-actions.ts", "updateSessionContract");
+  assertServerAction("lib/instructor/session-actions.ts", "updateRubricWeights");
+  assertSourceIncludes("lib/instructor/session-actions.ts", "rescaleCriterionToWeight");
+
+  // The drill-in shows receipts: evidence highlighted in the frozen transcript.
+  assertSourceIncludes("lib/agent/transcript.ts", "export function splitTextBySpans");
+  assertSourceIncludes("app/teach/atlas/journey/[submissionId]/page.tsx", "TranscriptView");
+  assertSourceIncludes("app/teach/atlas/journey/[submissionId]/page.tsx", "ProfessorReportPanel");
+  assertSourceIncludes("app/teach/atlas/[assignmentId]/page.tsx", "JourneyGrid");
+  assertSourceIncludes("app/teach/atlas/[assignmentId]/page.tsx", "ClassInsight");
+  assertSourceIncludes("app/teach/work/[assignmentId]/page.tsx", "Open session cockpit");
 });
 
 test("legacy blocks remain persisted but not rendered by the removed registry UI", () => {

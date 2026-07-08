@@ -655,14 +655,18 @@ for (const stud of studentDefs) {
     ),
   });
 
-  // Session Assignment submission (graded, submitted, or missing)
-  // Let's set the final score based on journey score
+  // Session Assignment submission (graded, submitted, or missing).
+  // A finalized gradebook score IS the journey report's overall score (the
+  // sum of the archetype's rubric level points, see the journey generator
+  // below): Strong E/E/E/E = 100, Steady M/M/M/M = 80, Recoverer
+  // M/M/E/M = 86, Struggling D/D/D/D = 49, Delegator D/D/Missing/D = 34.
+  // Delegation earning next to nothing is the point, not a bug.
   let finalScore = 80;
-  if (stud.archetype === "Strong") finalScore = 95;
-  else if (stud.archetype === "Steady") finalScore = 82;
-  else if (stud.archetype === "Recoverer") finalScore = 88; // Recoverers score high due to Exceeds on Iteration
-  else if (stud.archetype === "Struggling") finalScore = 65;
-  else if (stud.archetype === "Delegator") finalScore = 62;
+  if (stud.archetype === "Strong") finalScore = 100;
+  else if (stud.archetype === "Steady") finalScore = 80;
+  else if (stud.archetype === "Recoverer") finalScore = 86;
+  else if (stud.archetype === "Struggling") finalScore = 49;
+  else if (stud.archetype === "Delegator") finalScore = 34;
 
   let finalGrade = "B";
   if (finalScore >= 90) finalGrade = "A";
@@ -2419,6 +2423,21 @@ for (const report of journeyReports) {
   }
 }
 validationChecks.push(journeysWeightedCheck);
+
+// 16b. gradebook.matches_journeys: a finalized session grade IS its report sum
+const gradebookJourneyCheck: V0ValidationCheck = { id: "gradebook.matches_journeys", status: "pass" };
+for (const sub of submissionsList) {
+  if (sub.assignmentKey !== "session-assignment" || sub.state !== "graded") continue;
+  const report = journeyReports.find((r) => r.userId === idFor(`user:${sub.studentKey}`));
+  if (!report) {
+    gradebookJourneyCheck.status = "fail";
+    gradebookJourneyCheck.detail = `Graded student ${sub.studentKey} has no journey report.`;
+  } else if (report.overallScore !== sub.score) {
+    gradebookJourneyCheck.status = "fail";
+    gradebookJourneyCheck.detail = `Student ${sub.studentKey}: gradebook ${sub.score} does not equal journey overall ${report.overallScore}.`;
+  }
+}
+validationChecks.push(gradebookJourneyCheck);
 
 // 17. rollup.recomputes
 const rollupRecomputesCheck: V0ValidationCheck = { id: "rollup.recomputes", status: "pass" };

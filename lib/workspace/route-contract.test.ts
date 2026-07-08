@@ -178,6 +178,37 @@ test("phase 2 mounts the session engine on the kept substrate", () => {
   assertSourceIncludes("app/student/work/[assignmentId]/page.tsx", "loadSessionAssignmentBundle");
 });
 
+test("phase 3 makes the rubric read the transcript", () => {
+  // Grading rows exist natively: verified spans, draft-first reports, rollups.
+  assertSourceIncludes("lib/db/schema.ts", "export const evidenceSpans");
+  assertSourceIncludes("lib/db/schema.ts", "export const journeyReports");
+  assertSourceIncludes("lib/db/schema.ts", "export const classRollups");
+  assertSourceIncludes("lib/db/schema.ts", 'pgEnum("journey_report_status", ["draft", "final"])');
+
+  // The pipeline: extraction from student turns only, string-match
+  // verification before anything scores or renders, rubric-owned points.
+  assertSourceIncludes("lib/agent/grading.ts", "export function verifyCandidates");
+  assertSourceIncludes("lib/agent/grading.ts", "export function scoreForLevel");
+  assertSourceIncludes("lib/agent/grading.ts", "export async function runGradingForSubmission");
+  assertSourceIncludes("lib/agent/grading.ts", "verifyQuote");
+  assertSourceIncludes("lib/agent/grading.ts", 'turn.role !== "user"');
+
+  // Rollups are deterministic aggregation; narration rides on top.
+  assertSourceIncludes("lib/agent/rollup.ts", "export function computeClassRollupStats");
+  assertSourceIncludes("lib/agent/rollup.ts", "export function buildRollupNarrative");
+
+  // Submit grades immediately; a grading failure never undoes the submission.
+  assertSourceIncludes("lib/student/actions.ts", "runGradingForSubmission");
+  assertServerAction("lib/student/actions.ts", "requestJourneyReview");
+
+  // The student sees the evidence-backed report; the seed lands graded worlds.
+  assertSourceIncludes("app/student/session/[assignmentId]/page.tsx", "JourneyReportPanel");
+  assertSourceIncludes("components/session/journey-report-panel.tsx", "requestJourneyReview");
+  assertSourceIncludes("lib/db/seed.ts", "journeyReports");
+  assertSourceIncludes("lib/db/seed.ts", "computeClassRollupStats");
+  assert.equal(existsSync(path.join(root, "scripts/regrade.ts")), true, "scripts/regrade.ts should exist.");
+});
+
 test("legacy blocks remain persisted but not rendered by the removed registry UI", () => {
   assertSourceIncludes("lib/agent/blocks.ts", "discriminatedUnion");
   assertSourceIncludes("lib/agent/blocks.ts", "BLOCK_SCHEMA_VERSION");

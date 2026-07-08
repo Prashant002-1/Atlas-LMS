@@ -1009,6 +1009,10 @@ export const journeyReports = pgTable(
     // Provenance: which model graded this draft ("openai:gpt-4.1"), or "seed".
     graderLabel: text("grader_label"),
     reviewRequestedAt: timestamp("review_requested_at", { withTimezone: true }),
+    // The publish audit: AI drafts, the educator publishes. Who confirmed the
+    // grade and when; null while the report is a draft.
+    finalizedAt: timestamp("finalized_at", { withTimezone: true }),
+    finalizedById: uuid("finalized_by_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

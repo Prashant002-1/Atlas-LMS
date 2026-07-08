@@ -22,12 +22,35 @@ export function ProposalCard({ proposal, compact = false }: { proposal: Instruct
       {!compact && proposal.blocks.length > 0 ? (
         <div className="mt-4 space-y-3">
           <ul className="divide-y divide-[var(--color-border)] rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)]">
-            {proposal.blocks.map((block, index) => (
-              <li key={index} className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]">
-                <span className="font-medium capitalize">{block.type.replaceAll("_", " ")}</span>
-                <span className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">legacy draft</span>
-              </li>
-            ))}
+            {proposal.blocks.map((block, index) =>
+              block.type === "practice_set" ? (
+                <li key={index} className="px-3 py-2.5 text-[13px]">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium">{block.title}</span>
+                    <span className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">
+                      {block.questions.length} question{block.questions.length === 1 ? "" : "s"}
+                      {block.objectiveCodes.length > 0 ? ` \u00b7 ${block.objectiveCodes.join(" ")}` : ""}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[12px] leading-5 text-[var(--color-muted)]">{block.base}</p>
+                  <ol className="mt-2 space-y-1">
+                    {block.questions.slice(0, 3).map((question, qIndex) => (
+                      <li key={qIndex} className="text-[12px] leading-5 text-[var(--color-muted)]">
+                        {qIndex + 1}. {question.prompt}
+                      </li>
+                    ))}
+                    {block.questions.length > 3 ? (
+                      <li className="text-[11.5px] text-[var(--color-faint)]">and {block.questions.length - 3} more on apply</li>
+                    ) : null}
+                  </ol>
+                </li>
+              ) : (
+                <li key={index} className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]">
+                  <span className="font-medium capitalize">{block.type.replaceAll("_", " ")}</span>
+                  <span className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">legacy draft</span>
+                </li>
+              )
+            )}
           </ul>
         </div>
       ) : null}

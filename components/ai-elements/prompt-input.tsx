@@ -30,6 +30,7 @@ export function PromptInput({
   children: ReactNode;
 }) {
   const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
+    event.preventDefault();
     const text = String(new FormData(event.currentTarget).get("message") ?? "");
     onSubmit({ text, files: [] }, event);
   };

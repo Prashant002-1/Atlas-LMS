@@ -437,6 +437,7 @@ async function seedCourse(db: Db, orgId: string, c: FixtureCourse) {
           workflowState: s.state === "graded" ? "graded" : s.state === "missing" ? "unsubmitted" : "submitted",
           submissionType: s.body ? "text" : null,
           body: s.body ?? null,
+          topicScores: s.topicScores ?? null,
         };
       })
     );

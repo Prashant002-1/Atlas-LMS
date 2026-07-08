@@ -1,6 +1,6 @@
 # v0 Implementation Plan
 
-**Status:** Phase 0 is complete. Phase 1 is complete (the v0 payloads now seed as native rows). Phase 2 is built and in review.
+**Status:** Phases 0-2 are complete and merged. Phase 3 (grading pipeline) is built and in review. Phase 4 (professor surfaces) is next.
 
 **Runtime decision:** AI SDK 7 is the runtime foundation. Eve is removed, not completed. `WorkflowAgent` was evaluated at the Phase 2 door and deferred with reasons; the session engine runs plain AI SDK 7 streams with Postgres turn persistence behind one seam module. See ADR-0010.
 
@@ -61,7 +61,7 @@ Definition of done for the current Phase 1 state:
 
 ## Phase 2 - Session engine
 
-**Status:** Built, in review (feat/session-engine).
+**Status:** Complete, merged (PR #23).
 
 **Intent:** a student can actually take a session assignment.
 
@@ -82,29 +82,30 @@ Definition of done:
 - Submit persists a normalized transcript with artifact states.
 - The resulting data is ready for the grading pipeline.
 
-Remaining to call the phase closed after review:
-
-- `npm run verify` green locally (sandbox could not run installs; code is written against the verified v7 API surface).
-- One live end-to-end run with a real model key: featured-student session, side note firing on the slope confusion, artifact revisions, submit.
-
 ## Phase 3 - Grading pipeline
 
-**Status:** Later.
+**Status:** Built, in review (feat/grading-pipeline).
 
 **Intent:** the rubric reads the transcript.
 
-Build:
+Built:
 
-- Normalize transcript turns and artifact states.
-- Extract per-criterion evidence from student turns.
-- Verify every quote by string match before it can affect a score or appear in UI.
-- Assign rubric levels from verified evidence and rubric descriptors.
-- Aggregate journey reports and deterministic class rollups.
+- Native rows: `evidence_spans` (verbatim quotes located by turn + char offsets, string-verified before storage), `journey_reports` (per-criterion `{level, score, rationale, evidenceSpans[]}`, draft until the professor finalizes, grader provenance recorded), `class_rollups` (one per course + assignment). Migration `drizzle/0002_v0_grading_pipeline.sql`; `db:push` equivalent.
+- The pipeline (`lib/agent/grading.ts`), per criterion: extract candidate quotes from STUDENT turns only -> verify every quote by exact string match against the frozen transcript, with one feedback re-extraction on total failure, then drop -> judge the level from the criterion's own descriptors plus verified evidence with surrounding context and the frozen artifact -> score is the rubric level's points, a deterministic mapping; the model never picks a number. No verifiable evidence stores a Missing-level draft for professor review; a model failure aborts the run and stores nothing (a grading outage never grades a student down).
+- Decisions at this door, resolved: single-model grading shipped; the council (3 models + chair synthesis) stays deferred behind the `judgeCriterion` seam until final-grade stakes warrant it. Grading runs synchronously on submit through the org BYOK model; `npm run regrade` covers pending/forced regrades and the calibration pilot.
+- Class rollups (`lib/agent/rollup.ts`): deterministic aggregation over stored reports and side notes (criterion level counts, average/median, side-note topic fire counts, review requests), computed by code and never asserted; the narrative is a template sentence built from those numbers, with an optional model paraphrase that may only repeat them and falls back to the template.
+- Student payoff: the session page renders the journey report (four criteria, levels, rubric points, rationale, verified evidence quotes with the surrounding exchange one click away) plus a "Request professor review" chip that stamps the report for the Phase 4 queue. Draft reports say so: the professor confirms before it counts.
+- Seed lands the graded world: 112 evidence spans and 28 journey reports (20 final where the gradebook shows a grade, 8 draft) for the frozen sessions, and a class rollup computed through the same aggregation code the live pipeline uses. Seeded gradebook scores now EQUAL their journey report sums (Strong 100, Steady 80, Recoverer 86, Struggling 49, Delegator 34), with a fixture check pinning the invariant; delegation earning almost nothing is the story, not a bug.
+- Tests: the full pipeline runs against the real seeded featured-student transcript with a scripted model (verification failure -> re-extraction exercised, canonical 86 reproduced, every stored span re-verified by string match); pure tests pin verification refusals (tutor turns, fabricated quotes), whitespace recovery storing only transcript characters, deterministic level-to-score mapping, rollup aggregation and narrative discipline.
 
 Definition of done:
 
 - Submitting a session produces a stored, evidence-verified journey report.
 - The seeded archetypes grade plausibly and reproducibly.
+
+Remaining to call the phase closed after review:
+
+- One live calibration run with a real model key: `npm run regrade -- --all` over the 28 seeded transcripts, then eyeball archetype plausibility (the calibration pilot against professor blind grades comes before anyone calls it a grade).
 
 ## Phase 4 - Professor surfaces
 

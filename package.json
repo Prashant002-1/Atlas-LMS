@@ -16,6 +16,7 @@
     "test": "tsx --test lib/workspace/*.test.ts lib/db/fixtures/*.test.ts lib/agent/*.test.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build",
     "smoke": "tsx scripts/smoke.ts",
+    "regrade": "tsx scripts/regrade.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",

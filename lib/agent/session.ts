@@ -37,7 +37,6 @@ export type CommandSessionSummary = {
   userTurnCount: number;
   draftCount: number;
   decidedCount: number;
-  eveSessionId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -149,7 +148,6 @@ export async function listCommandSessions(scope: CommandSessionScope): Promise<C
     .select({
       id: agentSessions.id,
       title: agentSessions.title,
-      eveSessionId: agentSessions.eveSessionId,
       createdAt: agentSessions.createdAt,
       updatedAt: agentSessions.updatedAt,
     })
@@ -192,31 +190,10 @@ export async function listCommandSessions(scope: CommandSessionScope): Promise<C
       userTurnCount: userTurns.get(row.id) ?? 0,
       draftCount: counts.draftCount,
       decidedCount: counts.decidedCount,
-      eveSessionId: row.eveSessionId,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
   });
-}
-
-export async function updateCommandSessionEveCursor(
-  session: AgentSession,
-  cursor: {
-    eveSessionId?: string | null;
-    eveContinuationToken?: string | null;
-    eveStreamIndex?: number;
-  }
-): Promise<void> {
-  const values = {
-    ...(cursor.eveSessionId !== undefined ? { eveSessionId: cursor.eveSessionId } : {}),
-    ...(cursor.eveContinuationToken !== undefined ? { eveContinuationToken: cursor.eveContinuationToken } : {}),
-    ...(cursor.eveStreamIndex !== undefined ? { eveStreamIndex: cursor.eveStreamIndex } : {}),
-    updatedAt: new Date(),
-  };
-  await db.update(agentSessions).set(values).where(eq(agentSessions.id, session.id));
-  if (cursor.eveSessionId !== undefined) session.eveSessionId = cursor.eveSessionId;
-  if (cursor.eveContinuationToken !== undefined) session.eveContinuationToken = cursor.eveContinuationToken;
-  if (cursor.eveStreamIndex !== undefined) session.eveStreamIndex = cursor.eveStreamIndex;
 }
 
 export type TurnRecord = {

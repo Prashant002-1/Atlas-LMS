@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { loadStudentMaterialWorkspace } from "@/lib/student/workspace";
 import { PageHeader } from "@/components/teach/page-header";
-import { CuePanel } from "@/components/agent/cue-panel";
 import { BackLink, CodeList, StatusBadge, TextLink } from "@/components/atlas/primitives";
 
 const tone = { graded: "good", submitted: "accent", open: "neutral", missing: "warn" } as const;
@@ -49,13 +48,6 @@ export default async function StudentMaterialPage({ params }: { params: Promise<
             <CodeList codes={material.objectiveCodes} />
           </div>
         ) : null}
-
-        <div className="mt-5">
-          <CuePanel
-            target={{ courseId: workspace.course.id, targetType: "module", targetId: material.id }}
-            availability={workspace.cuePolicy}
-          />
-        </div>
       </section>
 
       {workspace.relatedAssignments.length > 0 ? (

@@ -3,7 +3,6 @@ import { auth } from "@/lib/auth";
 import { submitAssignment } from "@/lib/student/actions";
 import { loadStudentAssignmentWorkspace, type StudentAssignment } from "@/lib/student/workspace";
 import { PageHeader } from "@/components/teach/page-header";
-import { CuePanel } from "@/components/agent/cue-panel";
 import { ActionButton, BackLink, CodeList, StatusBadge, TextLink } from "@/components/atlas/primitives";
 
 const tone = { graded: "good", submitted: "accent", open: "neutral", missing: "warn" } as const;
@@ -72,13 +71,6 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
             </div>
           </div>
         ) : null}
-
-        <div className="mt-5">
-          <CuePanel
-            target={{ courseId: workspace.course.id, targetType: "assignment", targetId: assignment.id }}
-            availability={workspace.cuePolicy}
-          />
-        </div>
       </section>
 
       {assignment.status === "graded" ? (

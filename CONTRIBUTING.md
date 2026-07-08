@@ -1,13 +1,13 @@
 # Contributing to Atlas
 
-**Read [`docs/Philosophy.md`](docs/Philosophy.md) first.** It is the operating doctrine for the product and it governs every contribution.
+**Start with [`docs/README.md`](docs/README.md).** It points to the current thesis, demo target, and v0 build plan.
 
-The shorthand: **Atlas is the professor's agent, not an agent that manages the professor** — reactive, propose-only, grounded, professor in control. If a feature makes Atlas act on its own initiative, surface unsolicited judgments (e.g. "at-risk" flags), invent thresholds, or apply changes without explicit approval, it does not belong in Atlas.
+The shorthand: Atlas is teacher-shaped, grounded in course records, and evidence-backed. If a feature makes Atlas act outside professor-defined scope, invent labels or thresholds, or grade without verified evidence, it does not belong in Atlas.
 
 ## Engineering conventions
-- Every agent **write** goes through a reviewable `change_proposals` record the user approves. No tool posts, grades, sends, or publishes directly.
+- Every course-changing **write** goes through a reviewable approval path. No tool posts, grades, sends, or publishes directly.
 - Every **query** uses criteria the user supplied — never an inferred default.
-- Everything is **org-scoped** and persistent (see `docs/Architecture.md`).
+- Everything is **org-scoped** and persistent.
 - **Design:** quiet, monochrome, upscaled from the original — see [`docs/DesignSystem.md`](docs/DesignSystem.md).
 
 ## Workflow

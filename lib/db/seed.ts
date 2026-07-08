@@ -30,6 +30,11 @@ import {
   agentTurns,
   changeProposals,
   proposalBlocks,
+  rubrics,
+  sessionAssignments,
+  sessionArtifactStates,
+  sessionSideNotes,
+  sessionSubmissions,
 } from "./schema";
 import { demoPackage } from "./fixtures/package";
 import {
@@ -37,8 +42,15 @@ import {
   agentTurns as v0AgentTurns,
   changeProposals as v0ChangeProposals,
   proposalBlocks as v0ProposalBlocks,
+  artifactStates as v0ArtifactStates,
+  rubric as v0Rubric,
+  sessionAssignment as v0SessionAssignment,
+  sideNoteCards as v0SideNoteCards,
+  studentSessions as v0StudentSessions,
+  turns as v0Turns,
 } from "./fixtures/v0-demo-world";
 import type { FixtureCourse } from "./fixtures/types";
+import { normalizeSessionTranscript } from "../agent/transcript";
 import { hashPassword } from "../auth/password";
 
 /** Deterministic UUID from a stable key (sha256 → UUID v4 shape). */
@@ -139,8 +151,105 @@ async function main() {
     }
   }
 
+  /* v0 session primitives: rubric, per-assignment contract, artifact states,
+     side notes, and frozen submissions for the already-completed sessions.
+     Same fixture payloads the tests validate, landed as queryable rows. */
+  await db.insert(rubrics).values({
+    id: v0Rubric.id,
+    orgId: v0Rubric.orgId,
+    courseId: v0Rubric.courseId,
+    version: v0Rubric.version,
+    criteria: v0Rubric.criteria,
+  });
+
+  await db.insert(sessionAssignments).values({
+    id: v0SessionAssignment.id,
+    orgId: v0SessionAssignment.orgId,
+    courseId: v0SessionAssignment.courseId,
+    assignmentId: v0SessionAssignment.assignmentId,
+    rubricId: v0Rubric.id,
+    instructions: v0SessionAssignment.instructions,
+    durationMinutes: v0SessionAssignment.durationMinutes,
+    groundingScope: v0SessionAssignment.groundingScope,
+    transcriptPolicy: v0SessionAssignment.transcriptPolicy,
+    personalRecordSideNotes: v0SessionAssignment.personalRecordSideNotes,
+    sideNoteTriggers: v0SessionAssignment.sideNoteTriggers,
+    planningSessionId: v0SessionAssignment.planningSessionId,
+  });
+
+  if (v0ArtifactStates.length) {
+    const artifactRows = v0ArtifactStates.map((state) => ({
+      id: state.id,
+      orgId: state.orgId,
+      sessionId: state.sessionId,
+      turnIndex: state.turnIndex,
+      artifactType: state.artifactType,
+      state: state.state,
+      createdAt: new Date(state.createdAt),
+    }));
+    for (let i = 0; i < artifactRows.length; i += 50) {
+      await db.insert(sessionArtifactStates).values(artifactRows.slice(i, i + 50));
+    }
+  }
+
+  if (v0SideNoteCards.length) {
+    await db.insert(sessionSideNotes).values(
+      v0SideNoteCards.map((card) => ({
+        id: card.id,
+        orgId: card.orgId,
+        sessionId: card.sessionId,
+        turnIndex: card.turnIndex,
+        topic: card.topic,
+        text: card.text,
+        sourceRefs: card.sourceRefs,
+        sourcePageSlug: card.sourcePageSlug ?? null,
+        createdAt: new Date(card.createdAt),
+      }))
+    );
+  }
+
+  // Frozen session submissions mirror the gradebook: every seeded student whose
+  // session-assignment submission is submitted or graded gets the normalized
+  // transcript of their stored session, exactly what the grading pipeline reads.
+  const econ = pkg.courses[0];
+  const sessionStateByUserId = new Map<string, "submitted" | "graded">();
+  for (const sub of econ.submissions) {
+    if (sub.assignmentKey !== "session-assignment" || sub.state === "missing") continue;
+    sessionStateByUserId.set(idFor(`user:${sub.studentKey}`), sub.state);
+  }
+
+  const submissionRows = [];
+  for (const studentSession of v0StudentSessions) {
+    const state = sessionStateByUserId.get(studentSession.userId);
+    if (!state) continue;
+    const sessionTurns = v0Turns.filter((turn) => turn.sessionId === studentSession.id);
+    const sessionArtifacts = v0ArtifactStates.filter((s) => s.sessionId === studentSession.id);
+    const transcript = normalizeSessionTranscript(
+      sessionTurns.map((turn) => ({ id: turn.id, turnIndex: turn.turnIndex, role: turn.role, parts: turn.parts })),
+      sessionArtifacts.map((s) => ({ id: s.id, turnIndex: s.turnIndex, artifactType: s.artifactType, state: s.state }))
+    );
+    submissionRows.push({
+      id: idFor(`sessionSubmission:${studentSession.id}`),
+      orgId: studentSession.orgId,
+      sessionId: studentSession.id,
+      assignmentId: v0SessionAssignment.assignmentId,
+      courseId: studentSession.courseId,
+      userId: studentSession.userId,
+      status: state,
+      transcript: transcript.turns,
+      finalArtifact: transcript.finalArtifact,
+      turnCount: transcript.turnCount,
+      rubricId: v0Rubric.id,
+      rubricVersion: v0Rubric.version,
+      submittedAt: new Date(studentSession.updatedAt),
+    });
+  }
+  for (let i = 0; i < submissionRows.length; i += 25) {
+    await db.insert(sessionSubmissions).values(submissionRows.slice(i, i + 25));
+  }
+
   console.log(
-    `Seeded ${pkg.org.name}: ${pkg.terms.length} terms, ${pkg.users.length} users, ${pkg.courses.length} courses, ${submissionCount} submissions.`
+    `Seeded ${pkg.org.name}: ${pkg.terms.length} terms, ${pkg.users.length} users, ${pkg.courses.length} courses, ${submissionCount} submissions, ${submissionRows.length} frozen sessions.`
   );
   console.log(`Sign in: instructor@demo.edu or student@demo.edu · password "${pkg.password}".`);
   process.exit(0);
@@ -328,6 +437,7 @@ async function seedCourse(db: Db, orgId: string, c: FixtureCourse) {
           workflowState: s.state === "graded" ? "graded" : s.state === "missing" ? "unsubmitted" : "submitted",
           submissionType: s.body ? "text" : null,
           body: s.body ?? null,
+          topicScores: s.topicScores ?? null,
         };
       })
     );

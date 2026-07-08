@@ -98,6 +98,12 @@ export type FixtureSubmission = {
   grade?: string;
   /** The student's actual written response (realistic, course-specific). */
   body?: string;
+  /**
+   * Per-topic breakdown for work graded by topic (exams). Self-describing
+   * (score + possible points per topic); the live side-note trigger reads
+   * this shape from submissions.topic_scores.
+   */
+  topicScores?: Record<string, { score: number; max: number }>;
 };
 
 export type FixtureCoursePolicy = {
@@ -240,6 +246,15 @@ export type V0FlaggedTopicsArtifact = {
   flaggedTopics: string[];
 };
 
+export type V0SideNoteTrigger = {
+  /** The record topic the trigger is about, e.g. "elasticity". */
+  topic: string;
+  /** Student-turn keywords that arm the card (the topic itself and what it gets confused with). */
+  keywords: string[];
+  /** Course page the card cites as grounding. */
+  sourcePageSlug?: string;
+};
+
 export type V0SessionAssignment = {
   id: string;
   orgId: string;
@@ -250,6 +265,10 @@ export type V0SessionAssignment = {
   groundingScope: string[];
   transcriptPolicy: string;
   personalRecordSideNotes: boolean;
+  /** Professor-sanctioned side-note triggers; the runtime never invents one. */
+  sideNoteTriggers: V0SideNoteTrigger[];
+  /** Provenance: the professor's planning session this configuration came out of. */
+  planningSessionId: string;
 };
 
 export type V0RubricLevel = {

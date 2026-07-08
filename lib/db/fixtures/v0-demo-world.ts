@@ -384,6 +384,19 @@ export const studentProfiles: V0StudentProfile[] = studentDefs.map((s) => ({
 
 // Build Exam 1 record
 const exam1PointsPossible = 100;
+
+/**
+ * Exam 1's grading blueprint: possible points per topic. Sums to the exam's
+ * 100 points; every student topic score stays within its topic max. This is
+ * the "of 12" in the canonical side note, a defined max, never a class max.
+ */
+export const exam1TopicMaxes: Record<string, number> = {
+  supply_demand: 20,
+  consumer_surplus: 20,
+  cost_revenue: 24,
+  elasticity: 12,
+  market_power: 24,
+};
 const examRecord: V0ExamRecord = {
   assignmentId: idFor(`assignment:${courseKey}:exam-1`),
   pointsPossible: exam1PointsPossible,
@@ -634,6 +647,12 @@ for (const stud of studentDefs) {
     score: examScoreObj.totalScore,
     grade: examScoreObj.grade,
     body: `Midterm Exam 1 submission by ${stud.name}. Total score of ${examScoreObj.totalScore} recorded across all topics. Elasticity score: ${examScoreObj.topicScores.elasticity}/12.`,
+    topicScores: Object.fromEntries(
+      Object.entries(examScoreObj.topicScores).map(([topic, score]) => [
+        topic,
+        { score, max: exam1TopicMaxes[topic] },
+      ])
+    ),
   });
 
   // Session Assignment submission (graded, submitted, or missing)
@@ -828,6 +847,16 @@ export const sessionAssignment: V0SessionAssignment = {
   groundingScope: ["Syllabus", "Weeks 4-6", "Exam 1"],
   transcriptPolicy: "shared on request / for review",
   personalRecordSideNotes: true,
+  // Professor-sanctioned triggers, flagged during the Exam 2 planning session:
+  // the weak concept (and the term it gets confused with) arms the side note.
+  sideNoteTriggers: [
+    {
+      topic: "elasticity",
+      keywords: ["elasticity", "elastic", "slope", "price sensitivity"],
+      sourcePageSlug: "elasticity-revenue-relation",
+    },
+  ],
+  planningSessionId: professorPlanningAgentSessionId,
 };
 
 // Hand-crafted transcripts: Turn definitions with verbatim text to make index extraction reliable
@@ -989,6 +1018,7 @@ const sideNotes: V0SideNoteCard[] = [
     sourcePageSlug: "elasticity-revenue-relation",
   }
 ];
+export { sideNotes as sideNoteCards };
 
 // Programmatic generation details for the other 28 student sessions
 const dialogueDataMap: Record<string, {
@@ -2233,6 +2263,31 @@ for (const score of examRecord.studentScores) {
   }
 }
 validationChecks.push(examTotalsCheck);
+
+// 9b. exam.topic_maxes: the grading blueprint is coherent and every score fits it
+const examTopicMaxesCheck: V0ValidationCheck = { id: "exam.topic_maxes", status: "pass" };
+const topicMaxSum = Object.values(exam1TopicMaxes).reduce((sum, v) => sum + v, 0);
+if (topicMaxSum !== exam1PointsPossible) {
+  examTopicMaxesCheck.status = "fail";
+  examTopicMaxesCheck.detail = `Topic maxes sum to ${topicMaxSum}, expected ${exam1PointsPossible}.`;
+}
+if (exam1TopicMaxes.elasticity !== 12) {
+  examTopicMaxesCheck.status = "fail";
+  examTopicMaxesCheck.detail = "Elasticity must be out of 12 points (canonical side-note fact).";
+}
+for (const score of examRecord.studentScores) {
+  for (const [topic, points] of Object.entries(score.topicScores)) {
+    const max = exam1TopicMaxes[topic];
+    if (max === undefined) {
+      examTopicMaxesCheck.status = "fail";
+      examTopicMaxesCheck.detail = `Student ${score.studentKey} has unknown exam topic ${topic}.`;
+    } else if (points > max) {
+      examTopicMaxesCheck.status = "fail";
+      examTopicMaxesCheck.detail = `Student ${score.studentKey} scored ${points} on ${topic}, above its max ${max}.`;
+    }
+  }
+}
+validationChecks.push(examTopicMaxesCheck);
 
 // 10. exam.distribution
 const examDistCheck: V0ValidationCheck = { id: "exam.distribution", status: "pass" };

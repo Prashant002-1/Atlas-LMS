@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { submitAssignment } from "@/lib/student/actions";
 import { loadStudentAssignmentWorkspace, type StudentAssignment } from "@/lib/student/workspace";
+import { loadSessionAssignmentBundle } from "@/lib/agent/session-store";
 import { PageHeader } from "@/components/teach/page-header";
-import { ActionButton, BackLink, CodeList, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { ActionButton, BackLink, ButtonLink, CodeList, StatusBadge, TextLink } from "@/components/atlas/primitives";
 
 const tone = { graded: "good", submitted: "accent", open: "neutral", missing: "warn" } as const;
 const label = { graded: "Done", submitted: "Submitted", open: "Open", missing: "Missing" } as const;
@@ -30,8 +31,9 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
 
   const assignment = workspace.assignment;
   const returnTo = `/student/work/${assignment.id}`;
-  const canSubmit = assignment.status === "open" || assignment.status === "missing";
-  const canRevise = assignment.status === "submitted";
+  const sessionBundle = session.user.orgId ? await loadSessionAssignmentBundle(session.user.orgId, assignment.id) : null;
+  const canSubmit = !sessionBundle && (assignment.status === "open" || assignment.status === "missing");
+  const canRevise = !sessionBundle && assignment.status === "submitted";
 
   return (
     <>
@@ -72,6 +74,22 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
           </div>
         ) : null}
       </section>
+
+      {sessionBundle ? (
+        <section className="mt-4 rounded-[8px] border border-[color-mix(in_oklch,var(--color-accent)_35%,var(--color-border))] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
+          <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-accent-strong)]">Work session</p>
+          <p className="mt-2 max-w-3xl text-[14px] leading-6 text-[var(--color-muted)]">
+            This assignment is taken as a live session: you work the problem out loud with Atlas, your design evolves in
+            a side panel, and the reasoning journey itself is what gets graded. About {sessionBundle.config.durationMinutes}{" "}
+            minutes.
+          </p>
+          <div className="mt-4">
+            <ButtonLink href={`/student/session/${assignment.id}`}>
+              {assignment.status === "open" || assignment.status === "missing" ? "Open work session" : "View your session"}
+            </ButtonLink>
+          </div>
+        </section>
+      ) : null}
 
       {assignment.status === "graded" ? (
         <section className="mt-4 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">

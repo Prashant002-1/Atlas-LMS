@@ -1,8 +1,8 @@
 # v0 Implementation Plan
 
-**Status:** Phase 0 is complete. Phase 1 is mostly complete. Phase 2 is next and has not started.
+**Status:** Phase 0 is complete. Phase 1 is complete (the v0 payloads now seed as native rows). Phase 2 is built and in review.
 
-**Runtime decision:** AI SDK 7 is the runtime foundation. Eve is removed, not completed. `@ai-sdk/workflow` remains the preferred durability path to evaluate when Phase 2 begins.
+**Runtime decision:** AI SDK 7 is the runtime foundation. Eve is removed, not completed. `WorkflowAgent` was evaluated at the Phase 2 door and deferred with reasons; the session engine runs plain AI SDK 7 streams with Postgres turn persistence behind one seam module. See ADR-0010.
 
 ## How this plan works
 
@@ -61,18 +61,19 @@ Definition of done for the current Phase 1 state:
 
 ## Phase 2 - Session engine
 
-**Status:** Next. Do not start this from the docs-only update.
+**Status:** Built, in review (feat/session-engine).
 
 **Intent:** a student can actually take a session assignment.
 
-Build next:
+Built:
 
-- Choose and implement the durable streaming path: `WorkflowAgent` if it behaves cleanly, otherwise the simplest fallback that gives refresh/resume and approval safety.
-- Adapt context packs for the session: course materials, syllabus/outcomes, student record, Exam 1 subscores, professor planning history, rubric, and policy.
-- Stream typed data parts for artifact panel updates and side-note cards. These should not be prose pretending to be structure.
-- Trigger side-note cards from joined context: student weakness, professor plan, current topic, and policy toggle.
-- Build the student session surface: brief, rubric, grounding, timer, conversation, evolving artifact panel, side-note margin, and Submit.
-- Persist the normalized transcript and artifact states when the student submits.
+- Durable streaming path decided and recorded (ADR-0010): plain AI SDK 7 `streamText` inside a UI message stream, with every turn persisted to `agent_turns` around the stream. The user turn lands before generation; the assistant turn (text + `update_artifact` tool parts + `data-side-note` parts) lands on stream end. Refresh rehydrates from rows. `WorkflowAgent` deferred: its self-hosted Postgres World needs a long-lived polling worker and a standalone build target, with an unresolved self-hosting bug, wrong tradeoff for a self-hosted demo build. The seam is `lib/agent/session-runtime.ts`.
+- Native rows where the live pipeline needs queryable persistence (the decision at that door): `rubrics` (versioned criteria), `session_assignments` (the per-ASSIGNMENT policy object: duration, grounding scope, transcript policy, personal-record side-note toggle, sanctioned side-note triggers, planning-session provenance), `session_artifact_states`, `session_side_notes`, `session_submissions`, plus `submissions.topic_scores` (self-describing per-topic exam breakdown). Migration `drizzle/0001_v0_session_engine.sql`; `db:push` derives the same state.
+- Session context pack (`lib/agent/session-context.ts`): the base student pack plus session contract, full rubric, the student's own record, and professor planning provenance. Instructions state the doctrine: never produce the deliverable, Socratic, stress-test, ground and cite, capture every design revision via `update_artifact`.
+- Side-note cards (`lib/agent/side-notes.ts`): server-triggered and deterministic. A card fires only when the professor toggle is on AND a sanctioned trigger keyword lands in the student's turn AND the student's own exam record is weak on that topic AND the topic has not fired yet. Text is composed from record numbers (points lost, exam name, planning-session title), never generated. Persisted, then streamed as a `data-side-note` part.
+- Student session surface (`/student/session/[assignmentId]`): brief, rubric panel ("what doing well looks like"), duration timer, conversation with in-flow flagged side-note cards, evolving artifact panel with revision tabs and change highlights, and Submit. The work page routes session assignments into it and keeps the classic response form for everything else.
+- Submit (`submitSession` action + `submitSessionRecord`): one transaction freezes the normalized transcript (stable turn ids, speaker roles, plain text per turn, artifact states, final artifact) into `session_submissions` and mirrors the state onto the classic gradebook row. `verifyQuote` ships with the transcript shape so Phase 3 inherits the string-match contract.
+- Seed now lands the whole demo world in the new rows too: rubric, session assignment, artifact states, the canonical side note, and 28 frozen session submissions normalized through the SAME code path the live submit uses. Tests re-verify seeded evidence quotes through that path.
 
 Definition of done:
 
@@ -80,6 +81,11 @@ Definition of done:
 - A refresh during the session does not lose the transcript.
 - Submit persists a normalized transcript with artifact states.
 - The resulting data is ready for the grading pipeline.
+
+Remaining to call the phase closed after review:
+
+- `npm run verify` green locally (sandbox could not run installs; code is written against the verified v7 API surface).
+- One live end-to-end run with a real model key: featured-student session, side note firing on the slope confusion, artifact revisions, submit.
 
 ## Phase 3 - Grading pipeline
 

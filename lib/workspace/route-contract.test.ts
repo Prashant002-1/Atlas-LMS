@@ -21,6 +21,8 @@ const requiredRoutes = [
   "/student/course/[courseId]",
   "/student/material/[moduleId]",
   "/student/work/[assignmentId]",
+  "/student/session/[assignmentId]",
+  "/api/session/[assignmentId]",
   "/teach",
   "/teach/atlas",
   "/teach/review",
@@ -138,6 +140,42 @@ test("session, proposal, policy, and BYOK substrate remains for v0 adaptation", 
   ]) {
     assertSourceExcludes("lib/db/schema.ts", removed);
   }
+});
+
+test("phase 2 mounts the session engine on the kept substrate", () => {
+  // The five session primitives exist as native rows.
+  assertSourceIncludes("lib/db/schema.ts", "export const rubrics");
+  assertSourceIncludes("lib/db/schema.ts", "export const sessionAssignments");
+  assertSourceIncludes("lib/db/schema.ts", "export const sessionArtifactStates");
+  assertSourceIncludes("lib/db/schema.ts", "export const sessionSideNotes");
+  assertSourceIncludes("lib/db/schema.ts", "export const sessionSubmissions");
+  assertSourceIncludes("lib/db/schema.ts", "personalRecordSideNotes");
+  assertSourceIncludes("lib/db/schema.ts", "topicScores");
+
+  // The runtime seam: turn-persisted streams on plain AI SDK 7 (ADR-0010).
+  assertSourceIncludes("lib/agent/session-runtime.ts", "export async function runSessionTurn");
+  assertSourceIncludes("lib/agent/session-runtime.ts", "createUIMessageStream");
+  assertSourceIncludes("lib/agent/session-runtime.ts", "persistSessionTurn(session, \"user\"");
+  assertSourceIncludes("app/api/session/[assignmentId]/route.ts", "resolveModelForOrg");
+  assertSourceIncludes("app/api/session/[assignmentId]/route.ts", 'user.role !== "student"');
+
+  // Side notes are server-triggered, policy-gated, and record-composed.
+  assertSourceIncludes("lib/agent/side-notes.ts", "export function evaluateSideNote");
+  assertSourceIncludes("lib/agent/side-notes.ts", "personalRecordSideNotes");
+  assertSourceExcludes("lib/agent/side-notes.ts", "generateText");
+
+  // Submit freezes a normalized transcript for the grading pipeline.
+  assertSourceIncludes("lib/agent/transcript.ts", "export function normalizeSessionTranscript");
+  assertSourceIncludes("lib/agent/transcript.ts", "export function verifyQuote");
+  assertServerAction("lib/student/actions.ts", "submitSession");
+  assertSourceIncludes("lib/db/seed.ts", "normalizeSessionTranscript");
+  assertSourceIncludes("lib/db/seed.ts", "sessionSubmissions");
+
+  // The student surface exists and the work page routes into it.
+  assertSourceIncludes("app/student/session/[assignmentId]/page.tsx", "SessionRoom");
+  assertSourceIncludes("components/session/session-room.tsx", "useChat");
+  assertSourceIncludes("components/session/session-room.tsx", "data-side-note");
+  assertSourceIncludes("app/student/work/[assignmentId]/page.tsx", "loadSessionAssignmentBundle");
 });
 
 test("legacy blocks remain persisted but not rendered by the removed registry UI", () => {

@@ -87,6 +87,7 @@ export const providerKindEnum = pgEnum("provider_kind", [
   "google",
   "openai_compatible",
 ]);
+export const sessionSubmissionStatusEnum = pgEnum("session_submission_status", ["submitted", "graded"]);
 
 /* ──────────────────── 1. tenancy & auth ─────────────────── */
 
@@ -431,6 +432,10 @@ export const submissions = pgTable(
     submissionType: text("submission_type"),
     body: text("body"),
     url: text("url"),
+    // Per-topic score breakdown when the grader recorded one (e.g. an exam graded
+    // by topic: { "elasticity": 4, ... }). This is the student-record source the
+    // session side-note trigger joins against; flat topic -> points shape.
+    topicScores: jsonb("topic_scores"),
   },
   (t) => [
     primaryKey({ columns: [t.assignmentId, t.userId] }),
@@ -760,6 +765,168 @@ export const changeProposals = pgTable(
   (t) => [index("proposals_course_idx").on(t.courseId, t.status)]
 );
 
+/* ────────────────── 5. v0 session primitives ────────────────── */
+
+/**
+ * Rubrics, first-class and versioned. The session grades against a specific
+ * (rubricId, version); journey evidence stays attributable to the exact
+ * descriptors that produced it. Criteria are the validated jsonb payload
+ * (see rubricCriterionSchema in lib/agent/session-parts.ts). This replaces
+ * the old stopgap of materializing rubric drafts as Markdown pages.
+ */
+export const rubrics = pgTable(
+  "rubrics",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    version: integer("version").notNull().default(1),
+    criteria: jsonb("criteria").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("rubrics_course_version_idx").on(t.courseId, t.version)]
+);
+
+/**
+ * Session assignments, the per-ASSIGNMENT policy and contract object. Where
+ * course_ai_policies governs the course-wide study surface, this row governs
+ * one assessed work session: duration, grounding scope, transcript policy,
+ * the personal-record side-note toggle, and the professor-sanctioned side-note
+ * triggers. `planningSessionId` records provenance: the professor's planning
+ * session with the agent that this configuration came out of.
+ */
+export const sessionAssignments = pgTable(
+  "session_assignments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    assignmentId: uuid("assignment_id")
+      .notNull()
+      .references(() => assignments.id, { onDelete: "cascade" }),
+    rubricId: uuid("rubric_id")
+      .notNull()
+      .references(() => rubrics.id, { onDelete: "restrict" }),
+    instructions: text("instructions").notNull(),
+    durationMinutes: integer("duration_minutes").notNull().default(30),
+    // Display labels for what the session may ground on, e.g. ["Syllabus", "Weeks 4-6"].
+    groundingScope: jsonb("grounding_scope").notNull().default([]),
+    transcriptPolicy: text("transcript_policy").notNull().default("shared on request / for review"),
+    // The professor toggle that gates every personal-record side note.
+    personalRecordSideNotes: boolean("personal_record_side_notes").notNull().default(false),
+    // Professor-sanctioned triggers: [{ topic, keywords[], sourcePageSlug? }].
+    // Drafted during planning, approved with the assignment; the runtime never
+    // invents a trigger that is not in this list.
+    sideNoteTriggers: jsonb("side_note_triggers").notNull().default([]),
+    planningSessionId: uuid("planning_session_id").references(() => agentSessions.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("session_assignments_assignment_idx").on(t.assignmentId),
+    index("session_assignments_course_idx").on(t.courseId),
+  ]
+);
+
+/**
+ * Artifact states, one snapshot per revision of the student's evolving
+ * deliverable (e.g. the pricing table). Written when the agent's
+ * update_artifact tool call lands; turnIndex ties the snapshot to the
+ * assistant turn that produced it so the drill-in can replay the evolution.
+ */
+export const sessionArtifactStates = pgTable(
+  "session_artifact_states",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => agentSessions.id, { onDelete: "cascade" }),
+    turnIndex: integer("turn_index").notNull(),
+    artifactType: text("artifact_type").notNull(),
+    state: jsonb("state").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("session_artifact_states_session_idx").on(t.sessionId, t.turnIndex)]
+);
+
+/**
+ * Side-note cards, the context layer surfacing the student's own record
+ * mid-session. Server-triggered from joined context (exam record + professor
+ * plan + current topic), policy-gated, never model-invented. sourceRefs keep
+ * the provenance chain renderable and auditable.
+ */
+export const sessionSideNotes = pgTable(
+  "session_side_notes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => agentSessions.id, { onDelete: "cascade" }),
+    turnIndex: integer("turn_index").notNull(),
+    topic: text("topic").notNull(),
+    text: text("text").notNull(),
+    sourceRefs: jsonb("source_refs").notNull().default([]),
+    sourcePageSlug: text("source_page_slug"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("session_side_notes_session_idx").on(t.sessionId, t.turnIndex)]
+);
+
+/**
+ * Session submissions, the durable record path for assessed sessions. Submit
+ * freezes the session: the normalized transcript (stable turn ids, speaker
+ * roles, plain text per turn) and the final artifact state land here as the
+ * exact input the grading pipeline reads. One submission per session.
+ */
+export const sessionSubmissions = pgTable(
+  "session_submissions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => agentSessions.id, { onDelete: "cascade" }),
+    assignmentId: uuid("assignment_id")
+      .notNull()
+      .references(() => assignments.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: sessionSubmissionStatusEnum("status").notNull().default("submitted"),
+    // NormalizedTurn[] (lib/agent/transcript.ts): id, turnIndex, role, text, parts.
+    transcript: jsonb("transcript").notNull(),
+    finalArtifact: jsonb("final_artifact"),
+    turnCount: integer("turn_count").notNull().default(0),
+    rubricId: uuid("rubric_id").references(() => rubrics.id, { onDelete: "set null" }),
+    rubricVersion: integer("rubric_version").notNull().default(1),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("session_submissions_session_idx").on(t.sessionId),
+    index("session_submissions_assignment_user_idx").on(t.assignmentId, t.userId),
+    index("session_submissions_course_idx").on(t.courseId),
+  ]
+);
+
 /* ─────────────────────── inferred types ────────────────────── */
 
 export type Organization = typeof organizations.$inferSelect;
@@ -779,3 +946,9 @@ export type Assignment = typeof assignments.$inferSelect;
 export type LearningObjective = typeof learningObjectives.$inferSelect;
 export type ContentAlignment = typeof contentAlignments.$inferSelect;
 export type ChangeProposal = typeof changeProposals.$inferSelect;
+export type Rubric = typeof rubrics.$inferSelect;
+export type SessionAssignment = typeof sessionAssignments.$inferSelect;
+export type SessionArtifactState = typeof sessionArtifactStates.$inferSelect;
+export type SessionSideNote = typeof sessionSideNotes.$inferSelect;
+export type SessionSubmission = typeof sessionSubmissions.$inferSelect;
+export type Submission = typeof submissions.$inferSelect;

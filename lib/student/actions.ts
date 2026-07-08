@@ -6,6 +6,13 @@ import { and, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { assignments, enrollments, submissions } from "@/lib/db/schema";
+import {
+  activeStudentEnrollment,
+  loadSessionAssignmentBundle,
+  openLiveSession,
+  studentDisplayName,
+  submitSessionRecord,
+} from "@/lib/agent/session-store";
 
 export async function submitAssignment(formData: FormData) {
   const user = await requireStudentActor();
@@ -100,6 +107,53 @@ export async function submitAssignment(formData: FormData) {
 function assignmentReturnPath(value: FormDataEntryValue | null, assignmentId: string) {
   const path = typeof value === "string" ? value : "";
   return path === `/student/work/${assignmentId}` ? path : "/student";
+}
+
+/**
+ * Submit a work session: freeze the open session into the durable record
+ * (normalized transcript + final artifact) and reflect it on the gradebook
+ * row. Idempotent; a second submit of the same session is a no-op.
+ */
+export async function submitSession(formData: FormData) {
+  const user = await requireStudentActor();
+  const assignmentId = String(formData.get("assignmentId") ?? "");
+  if (!assignmentId) {
+    throw new Error("No assignment selected.");
+  }
+
+  const bundle = await loadSessionAssignmentBundle(user.orgId, assignmentId);
+  if (!bundle) {
+    throw new Error("This assignment is not a work session.");
+  }
+
+  const enrollment = await activeStudentEnrollment(user.orgId, bundle.assignment.courseId, user.id);
+  if (!enrollment) {
+    throw new Error("Session unavailable.");
+  }
+
+  const session = await openLiveSession({
+    orgId: user.orgId,
+    userId: user.id,
+    courseId: bundle.assignment.courseId,
+    assignmentId: bundle.assignment.id,
+  });
+  if (!session) {
+    throw new Error("There is no open session to submit.");
+  }
+  if (session.totalTurns < 1) {
+    throw new Error("Work the session before submitting it.");
+  }
+
+  const studentName = await studentDisplayName(user.orgId, user.id);
+  await submitSessionRecord({ session, bundle, studentName });
+
+  revalidatePath("/teach");
+  revalidatePath(`/teach/work/${bundle.assignment.id}`);
+  revalidatePath(`/teach/student/${user.id}`);
+  revalidatePath("/student");
+  revalidatePath(`/student/work/${bundle.assignment.id}`);
+  revalidatePath(`/student/session/${bundle.assignment.id}`);
+  redirect(`/student/session/${bundle.assignment.id}`);
 }
 
 

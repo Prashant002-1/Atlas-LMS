@@ -1,95 +1,544 @@
 # Demo World Data Blueprint
 
-**Date:** 2026-07-04. **Status:** ready to execute once the scenario is final (econ is the working placeholder; every scenario-specific value is a slot, see section 8). **Consumer:** a data-generation agent produces the dataset from this blueprint; a human spot-audits against section 7.
+**Date:** 2026-07-06. **Status:** repo-aware contract for a device agent with file access. **Scenario:** econ remains the working placeholder until the final course/problem is chosen.
 
-## 1. Why the old seed data fails
+This document is the contract for regenerating the v0 demo data. The agent should inspect the current repo, update fixture files, add validation, and leave the dataset in a shape the app can seed and the v0 primitives can normalize later.
 
-The existing fixtures (`lib/db/fixtures`) model breadth: Demo University, 3 semesters, 6-9 courses, 13 students spread thin. That was right for an LMS walkthrough. v0 needs the opposite: **one course, deep, with a believable past.** The demo's most important beats (the side note, the journey grid, the class insight) are only honest if the world has a memory - prior exams, prior sessions, prior grades - and the current seed has none.
+The target is one course, deep: a believable six-week course history, one professor planning session, one session assignment, 31 completed student sessions, evidence-verified journey reports, and a deterministic class rollup.
 
-## 2. Design goals
+No aggregate may be handwritten. If the UI says "14 of 31 sessions confuse elasticity with slope," exactly 14 stored sessions/reports must make that true by computation.
 
-1. **Every on-camera claim has a data source.** If the narration says "14 of 31 sessions confuse {CONCEPT_WEAK} with {CONFUSED_WITH}", the dataset must make that true by computation over stored scores - aggregates are computed, never asserted.
-2. **The world has a memory.** At least 6 weeks of history before demo day: materials, graded assignments, Exam 1, and the professor's prior planning session with the agent.
-3. **One featured student with a clean arc.** A named, quantified weakness on Exam 1 -> hits that exact concept mid-session -> side note fires -> visible recovery. The whole video rides this student.
-4. **Believable spread, not uniform.** Archetypes with distinct session behaviors and outcomes. Real classes are lumpy.
-5. **Scenario-parameterized.** Swapping econ for the final course is a content substitution (section 8 slots), not a reshape.
-6. **Deterministic and idempotent.** Stable IDs across runs; re-seeding is safe. (Keep this discipline from the old fixtures - it is the one part worth copying.)
-7. **Hand-auditable.** Small enough to read end to end. Every artifact should survive a professor's sniff test.
+## 1. Read First
 
-## 3. The cast
+Before generating or editing data, inspect these files in the repo:
 
-**Professor (1).** Persona: name, a consistent voice (dry, direct, cares about reasoning over answers), and a stated intent that explains her rubric weights: "they pattern-match formulas; I want to see if they can reason about {PROBLEM_DOMAIN}." Her pedagogy preference (weight Iteration highest) must be visible in both the rubric edit and her feedback voice.
+1. `lib/db/schema.ts` - live Drizzle schema, enums, and current table columns.
+2. `lib/db/fixtures/types.ts` - current fixture type contract.
+3. `lib/db/fixtures/package.ts` - current seed package composition.
+4. `lib/db/seed.ts` - deterministic ID behavior, date handling, and insert order.
+5. `lib/db/fixtures/package.test.ts` - current fixture integrity style.
+6. `docs/v0/implementation-plan.md` - v0 primitive scope and phase split.
+7. `docs/v0/architecture.md` - runtime/grading/evidence pipeline.
+8. `docs/demo/script.md` - camera beats, side-note source, rubric, and scenario slots.
 
-**Students (31).** Five archetypes; counts chosen so the journey grid reads believably at a glance:
+If this blueprint conflicts with current code, follow the code for loadability and update this doc or note the conflict in the handoff.
 
-| Archetype | Count | Session behavior | Expected journey outcome |
-|---|---|---|---|
-| Strong | 6 | Sharp questions early, minimal scaffolding needed, clean artifact | Exceeds on 2-3 criteria |
-| Steady | 12 | Normal path: some vague starts, engages concepts correctly with nudges | Meets across the board |
-| Struggling | 7 | Effortful but conceptually shaky; side notes fire; partial recovery | Developing on 1-2 criteria, Meets elsewhere |
-| Delegator | 3 | Asks the agent to produce the answer, minimal engagement, thin follow-ups | Missing/Developing on Iteration and Framing; artifact may be fine - and it earns them nothing. This is the "delegation is worthless" proof in data |
-| Recoverer | 3 | Weak start on a known concept, side note fires, visibly revises under challenge | Exceeds on Iteration; the featured student is one of these |
+## 2. Deliverables
 
-Names: diverse, plausible, no real people. Each student gets a one-line persona note (drives their transcript voice).
+Prefer a small number of fixture files. Do not add a generator service, extra framework, or complex build step.
 
-## 4. The timeline (relative to DEMO_DAY)
+Required files:
 
-| When | What exists |
-|---|---|
-| Week 1 | Term starts. Syllabus + 5-6 learning outcomes with codes (the rubric-drafting source) |
-| Weeks 1-6 | Weekly materials (section 5). Concepts tagged per item |
-| Weeks 2-4 | Two or three conventional prior assignments, graded (fills the gradebook, makes the course feel lived-in) |
-| Week 5 | **Exam 1.** Per-student, per-topic subscores. The featured student's weakness is quantified ("lost 8 of 12 points on {CONCEPT_WEAK}"). Class distribution is realistic (mean ~74, sd ~11, a few outliers) |
-| Week 6 + 2 days | **The professor's planning session with the agent**: an 8-12 turn transcript where she plans the Exam 2 practice set and flags topics (including {CONCEPT_WEAK} and {CONCEPT_NEXT}). Output artifact: flagged-topics list. THIS IS THE SIDE NOTE'S SOURCE and it appears on camera in her session history. It must read like a real working conversation, not exposition |
-| Week 7 | The session assignment is posted (instructions = the monologue from `docs/demo/script.md`), configured: rubric, ~30 min duration, grounding scope, transcript-on-request, personal-record side notes ON |
-| Week 7 + 1 day (DEMO_DAY) | All 31 sessions completed and scored. The professor's review surface is full |
+```text
+lib/db/fixtures/v0-demo-world.ts       # exports the generated v0 world payload
+lib/db/fixtures/v0-demo-world.test.ts  # pure validation tests, no DB required
+```
 
-## 5. Entities and required properties
+Allowed edits:
 
-- **CourseProfile:** code, title, term, week pointer, short description.
-- **Syllabus + LearningOutcomes:** 5-6 outcomes with stable codes; the rubric must be traceably draftable from these.
-- **Materials (weeks 1-6):** for each week 2-3 items (reading, notes, problem set). Key items need REAL body text (300-800 words) containing the tagged concepts, because grounding and evidence citations must be able to quote them. No lorem ipsum anywhere.
-- **Exam 1:** topic list, per-student per-topic scores, class stats. Featured student's weak topic must match the side note exactly.
-- **ProfessorPlanningSession:** the week-6 transcript + flagged-topics artifact (see timeline).
-- **SessionAssignment:** instructions text, rubric (4 criteria, weights showing her edit - e.g. Iteration 25 -> 30, Framing 25 -> 20 - and level descriptors for Exceeds/Meets/Developing/Missing per criterion), config toggles.
-- **StudentSessions (31):**
-  - **3 hand-crafted full transcripts** (18-24 turns): the featured Recoverer (side-note trigger, artifact evolution with one clear revision diff), one Strong (contrast), one Delegator (the "earns nothing" proof).
-  - **28 generated transcripts** (8-14 turns each): shorter but real, archetype-consistent, each containing the exact spans its evidence quotes cite.
-- **ArtifactStates:** per session, an ordered progression of the artifact ({ARTIFACT_TYPE}) with at least one diff moment for Recoverers/Steadies. States must be valid (no impossible jumps).
-- **JourneyReports (31):** per criterion: level + 1-2 evidence quotes, each quote carrying a turn reference into that student's stored transcript.
-- **ClassRollup:** derived only. The insight numbers ("14 of 31...", "strongest recoveries followed the {STRESS_TEST} push") are computed from JourneyReports and must be reproducible by a script.
+```text
+lib/db/fixtures/types.ts               # extend shared fixture types if useful
+lib/db/fixtures/package.ts             # point seed package at the new one-course world if implementing seed swap
+lib/db/seed.ts                         # only if needed to insert current-schema rows not currently supported
+```
 
-## 6. Voice and realism rules
+`v0-demo-world.ts` should export this top-level shape:
 
-- Student text is imperfect: lowercase, occasional typos, varied message lengths. Delegators write short; Strongs write precise.
-- The agent's voice follows doctrine: grounds in course materials, asks questions back, never dumps a full solution unprompted, references the rubric's expectations naturally.
-- The professor's voice is consistent everywhere she appears (instructions, planning session, feedback).
-- Dates cohere with the term calendar. Nothing is dated after DEMO_DAY.
+```ts
+export const v0DemoWorld = {
+  manifest,
+  scenario,
+  currentSchema,
+  v0,
+  validation,
+} satisfies V0DemoWorld;
+```
 
-## 7. Acceptance checklist (hand-audit before use)
+The exact TypeScript type may live in `types.ts` or in the fixture file, but it must include:
 
-- [ ] Every evidence quote in every JourneyReport is verbatim in the referenced transcript turn (script-checkable: string match).
-- [ ] ClassRollup numbers recompute exactly from JourneyReports.
-- [ ] Featured student: Exam-1 weak topic == side-note topic == the concept in their session's revision moment == a rubric criterion event. One unbroken thread.
-- [ ] The planning session mentions exactly the topics the side note cites, and predates the assignment.
-- [ ] Delegator transcripts justify their low Iteration/Framing scores on read.
-- [ ] Rubric is traceably draftable from the stored learning outcomes.
-- [ ] No orphan references (every turn ref, material ref, and topic tag resolves).
-- [ ] A cold reader can grade the featured session by hand with the rubric and land within one level of the stored scores.
+```ts
+type V0DemoWorld = {
+  manifest: V0DemoWorldManifest;
+  scenario: ScenarioSlots;
+  currentSchema: {
+    package: FixturePackage;
+    agentSessions: Array<Record<string, unknown>>;
+    agentTurns: Array<Record<string, unknown>>;
+    changeProposals: Array<Record<string, unknown>>;
+    proposalBlocks: Array<Record<string, unknown>>;
+  };
+  v0: {
+    studentProfiles: V0StudentProfile[];
+    examRecord: V0ExamRecord;
+    professorPlanning: {
+      session: V0SessionAdaptation;
+      flaggedTopics: V0FlaggedTopicsArtifact;
+      turns: V0Turn[];
+    };
+    sessionAssignment: V0SessionAssignment;
+    rubric: V0Rubric;
+    studentSessions: V0SessionAdaptation[];
+    turns: V0Turn[];
+    artifactStates: V0ArtifactState[];
+    sideNoteCards: V0SideNoteCard[];
+    evidenceSpans: V0EvidenceSpan[];
+    journeyReports: V0JourneyReport[];
+    classRollup: V0ClassRollup;
+  };
+  validation: V0ValidationResult;
+};
+```
 
-## 8. Scenario slots (econ placeholder values)
+If the current seed path cannot yet insert v0-only objects, keep them in `v0DemoWorld.v0`; do not force them into the wrong table. Current schema rows and v0 payloads must share stable IDs/keys so they can be normalized once Phase 1 tables exist.
+
+## 3. Dataset Sizes
+
+Use the same contract for both sizes.
+
+| Size | Purpose | Required population |
+|---|---|---|
+| Mini | Phase 1-4 development | 1 org, 1 current term, 1 course, 1 professor, 3 students, 6 weeks history, 1 session assignment, 3 sessions, 3 journey reports |
+| Full | Phase 5 demo/interviews | 1 org, 1 current term, 1 course, 1 professor, 31 students, 6 weeks history, 1 session assignment, 31 sessions, 31 journey reports |
+
+The mini world is just the full world sliced to three students: one Strong, one Delegator, and one featured Recoverer. Do not maintain a separate product model for mini.
+
+## 4. ID And Record Rules
+
+Follow `lib/db/seed.ts` for deterministic ID behavior. The existing pattern is the source of truth.
+
+Every generated record should carry:
+
+```ts
+{
+  blueprint: "v1";
+  scenarioKey: string;
+}
+```
+
+Use stable keys that can be fed into the repo's `idFor` style:
+
+```ts
+idFor("org:demo-u")
+idFor("term:summer-2026")
+idFor("course:ECON-241:summer-2026")
+idFor("user:amina-rivera")
+idFor("assignment:ECON-241:summer-2026:streaming-problem-session")
+idFor("v0:journey-report:ECON-241:summer-2026:amina-rivera")
+```
+
+Do not use random UUIDs, database-generated IDs, timestamps, or array positions as durable IDs. Positions may exist for display order only.
+
+Manifest requirements:
+
+```ts
+type V0DemoWorldManifest = {
+  blueprint: "v1";
+  scenarioKey: string;
+  size: "mini" | "full";
+  counts: Record<string, number>;
+  canonicalIds: {
+    orgId: string;
+    termId: string;
+    courseId: string;
+    professorUserId: string;
+    featuredStudentUserId: string;
+    sessionAssignmentId: string;
+    professorPlanningAgentSessionId: string;
+  };
+  derivedMetrics: {
+    exam1Mean: number;
+    exam1StandardDeviation: number;
+    conceptWeakConfusions: number;
+    completedStudentSessions: number;
+    verifiedEvidenceSpans: number;
+  };
+};
+```
+
+## 5. Scenario Slots
+
+Keep scenario-specific values in one object so the course/problem can be swapped without reshaping the data model.
+
+```ts
+type ScenarioSlots = {
+  scenarioKey: string;
+  courseCode: string;
+  courseTitle: string;
+  professorName: string;
+  professorVoice: string;
+  problemTitle: string;
+  problemStatement: string;
+  problemDomain: string;
+  conceptWeak: string;
+  confusedWith: string;
+  conceptNext: string;
+  artifactType: string;
+  stressTest: string;
+};
+```
+
+Placeholder values:
 
 | Slot | Placeholder |
 |---|---|
-| {COURSE} | Intermediate Microeconomics |
-| {PROBLEM} | "The Streaming Problem" - pricing redesign after an 18% subscriber loss |
-| {PROBLEM_DOMAIN} | pricing |
-| {CONCEPT_WEAK} | elasticity |
-| {CONFUSED_WITH} | slope |
-| {CONCEPT_NEXT} | price discrimination |
-| {ARTIFACT_TYPE} | tiered pricing table + rationale |
-| {STRESS_TEST} | cannibalization ("who switches tiers, what happens to revenue") |
+| `scenarioKey` | `econ-streaming-pricing` |
+| `courseCode` | `ECON-241` |
+| `courseTitle` | `Intermediate Microeconomics` |
+| `professorName` | `Prof. Amara Osei` |
+| `professorVoice` | Dry, direct, cares more about reasoning than answers. |
+| `problemTitle` | The Streaming Problem |
+| `problemStatement` | VidStack lost 18% of subscribers after a flat $15 price hike. Design a new pricing structure and defend it. |
+| `problemDomain` | pricing |
+| `conceptWeak` | elasticity |
+| `confusedWith` | slope |
+| `conceptNext` | price discrimination |
+| `artifactType` | tiered pricing table plus rationale |
+| `stressTest` | cannibalization: who switches tiers, and what happens to revenue |
 
-## 9. Delivery format
+## 6. Timeline
 
-Storage format is the implementer's choice (JSON or TS modules), but: stable IDs, one manifest listing every entity with counts, and a `blueprint: v1` marker on each record. The generation agent should output the acceptance-checklist results alongside the data.
+Use a single `DEMO_DAY`. For the current script, `DEMO_DAY` is Week 7 Day 2.
+
+> [!IMPORTANT]
+> **Active Mid-Semester Course Rule**: The seed data must reflect a living mid-semester class, not a fully graded archive. While historical work (Weeks 1-5, including Exam 1) remains graded, the current week's assignment (`session-assignment`) must feature a realistic mix of graded submissions, submitted work waiting to be graded, and missing/unsubmitted submissions. Upcoming published assignments and unpublished/draft modules must also exist (such as draft final project assignments and strategic modules) to ensure the instructor view displays active work to review, drafts, and missing tasks.
+
+| Relative time | Required data |
+|---|---|
+| Week 1 Day 1 | Term starts. Syllabus and 5-6 learning objectives are live. |
+| Weeks 1-6 | Materials exist as modules/pages. Each page has concept tags and real body text. |
+| Weeks 2-4 | Two or three conventional assignments are assigned, submitted, and graded. |
+| Week 5 | Exam 1 happens. Per-student topic scores exist. |
+| Week 6 Day 3 | Professor planning session happens. It flags `conceptWeak` and `conceptNext` for Exam 2 practice. |
+| Week 7 Day 1 | Session assignment is posted with rubric, grounding scope, transcript policy, and side notes on. |
+| Week 7 Day 2 | All student sessions and journey reports are complete before professor review. |
+
+No seeded event may complete after `DEMO_DAY` unless it is explicitly a proposal.
+
+## 7. Current-Schema Contract
+
+These rows must match the current Drizzle schema after inspecting `lib/db/schema.ts`. If the schema changes, adapt to the schema.
+
+| Current table / fixture object | Full count | Contract |
+|---|---:|---|
+| `organizations` | 1 | Use `Demo University` / `demo-u` unless product copy changes. |
+| `terms` | 1 | Current term only; starts Week 1 Day 1 and ends at least three weeks after `DEMO_DAY`. |
+| `users` | 33 | 1 admin, 1 professor, 31 students. Professor login: `instructor@demo.edu`; featured student login: `student@demo.edu`. |
+| `courses` | 1 | Published final-scenario course with syllabus, description, dates, and timezone. |
+| `enrollments` | 32 | Professor plus all students. Student opt-in follows AI policy. |
+| `courseAiPolicies` | 1 | Explain/practice/questions/citations/share-struggle true; depth `guided`; instructions tell the agent to scaffold, cite, and avoid dumping full answers. |
+| `learningObjectives` | 5-6 | Stable codes, Bloom levels, weights sum to 1.0 +/- 0.01. |
+| `modules` | 8 | Weeks 1-6 history, Week 7 session module, and one unpublished Week 8 draft module. |
+| `pages` | 12-18 | Two or three material pages per Week 1-6 module. Each has real text, objective codes, and concept tags. |
+| `assignments` | 7 | Three prior problem sets, Exam 1, the session assignment, one upcoming published problem set, and one unpublished final-project draft. |
+| `submissions` | 155 | All students have rows for ps1, ps2, ps3, Exam 1, and the session assignment; the session assignment intentionally mixes graded, submitted, and missing states. |
+| `contentAlignments` | all content | Every module/page/assignment links to one or more objectives. |
+| `announcements` | 2 | Include Exam 1 release history plus exactly one current/latest session reminder in professor voice. |
+| `agentSessions` | 32 | 1 professor planning session (`command`/`course`), 31 student sessions (`cue`/`assignment`). |
+| `agentTurns` | 260-460 | Planning 8-12 turns; 3 crafted sessions 18-24 turns; remaining student sessions 8-14 turns. |
+| `changeProposals` / `proposalBlocks` | 1+ | At minimum, retain the historical rubric proposal provenance. Add pending review items only when the UI explicitly needs a review queue. |
+
+Current-schema compatibility:
+
+- Text turns use renderable parts, usually `{ type: "text", text: "..." }`.
+- v0 structured events may appear as `data-v0-artifact-state`, `data-v0-side-note`, or `data-v0-journey-report` parts.
+- Embeddings may be null. Do not invent vectors.
+- If a v0 object has no current table, keep it in `v0DemoWorld.v0`.
+
+## 8. Course History Content
+
+The course must feel six weeks old.
+
+Required materials:
+
+- 6 published historical modules.
+- 2-3 pages per Week 1-6 module.
+- Each page body is 300-800 words.
+- The actual page text contains the concept tags it claims to teach.
+- No lorem ipsum, TODOs, bracket placeholders, or generic study tips.
+
+Placeholder econ sequence:
+
+| Week | Module | Required tags |
+|---|---|---|
+| 1 | Markets, demand, and supply | demand curve, supply curve, equilibrium |
+| 2 | Consumer choice and willingness to pay | willingness to pay, consumer surplus, marginal benefit |
+| 3 | Costs, revenue, and profit | marginal cost, fixed cost, revenue |
+| 4 | Elasticity and incidence | elasticity, slope, percentage change |
+| 5 | Market power and pricing mistakes | monopoly pricing, churn, markup |
+| 6 | Price discrimination and tier design | price discrimination, segmentation, cannibalization |
+
+Exam 1 covers Weeks 1-5. The session assignment uses Weeks 4-6.
+
+## 9. Roster
+
+Full world archetypes:
+
+| Archetype | Count | Session behavior | Journey outcome |
+|---|---:|---|---|
+| Strong | 6 | Precise early questions, minimal scaffolding, correct concepts | Exceeds on 2-3 criteria; never Missing |
+| Steady | 12 | Normal path: vague start, accepts nudges, reasonable artifact | Mostly Meets |
+| Struggling | 7 | Effortful but shaky, confusion appears, partial recovery | Developing on 1-2 criteria |
+| Delegator | 3 | Asks agent to produce answer, thin follow-ups | Missing/Developing on Framing and Iteration |
+| Recoverer | 3 | Starts weak, side note fires, revises under challenge | Exceeds on Iteration; featured student is one |
+
+Each student profile needs: `userId`, `key`, `name`, `email`, `archetype`, `personaNote`, `priorWorkPattern`, `exam1TopicScores`, optional `featured`.
+
+Name rules:
+
+- Plausible and diverse.
+- No real public figures.
+- Stable lower-kebab-case keys.
+- Persona notes are one sentence.
+
+The featured student must be a Recoverer and must use `student@demo.edu`.
+
+## 10. Exam 1
+
+Exam 1 is the backbone of the side note.
+
+Required:
+
+- Current-schema assignment row plus v0 `examRecord`.
+- Per-student total score and grade.
+- Per-student, per-topic scores in v0 payload.
+- Topic totals sum exactly to current-schema submission scores.
+- Full-world class mean: 74 +/- 2.
+- Standard deviation: 9-13.
+- At least two students above 92 and two below 60.
+- Featured student loses exactly 8 of 12 points on `conceptWeak`.
+- Exactly 14 students have a tagged `conceptWeak` vs `confusedWith` confusion.
+
+## 11. Professor Planning Session
+
+This is the side-note source and must be visible in session history.
+
+Required:
+
+- 8-12 turns.
+- Stored in current `agentSessions`/`agentTurns`.
+- Mirrored as v0 `professorPlanning.session`.
+- Predates session assignment.
+- Uses professor voice: students pattern-match, she wants reasoning under pressure.
+- Produces `flaggedTopics` with at least `conceptWeak` and `conceptNext`.
+
+Side notes may only cite topics present in `flaggedTopics`.
+
+## 12. Session Assignment
+
+Represent the session assignment in both current schema and v0 payload.
+
+Required visible config:
+
+- Instructions adapted from `docs/demo/script.md`.
+- Duration about 30 minutes.
+- Grounding scope: syllabus, objectives, Week 4-6 materials, Exam 1 record, professor planning session.
+- Transcript policy: shared on request / for review.
+- Personal-record side notes: on.
+- Rubric chip visible before work starts.
+- Submit button.
+
+The current `assignments.descriptionMd` should hold the instructions. v0 `sessionAssignment` holds the full config.
+
+## 13. Rubric
+
+Four criteria, weights sum to 100.
+
+| Key | Weight | Measures |
+|---|---:|---|
+| `framing` | 20 | Student interrogates the problem before proposing. |
+| `grounding` | 25 | Student uses course concepts correctly. |
+| `iteration` | 30 | Student revises under challenge. |
+| `final_design` | 25 | Final artifact is coherent and in student's own words. |
+
+Levels: `Exceeds`, `Meets`, `Developing`, `Missing`.
+
+Show professor edit: `iteration` 25 -> 30 and `framing` 25 -> 20 unless the final scenario explicitly changes the visible edit.
+
+## 14. Student Sessions
+
+Full world:
+
+- 31 completed sessions.
+- 3 hand-crafted full transcripts:
+  - Featured Recoverer with side-note trigger, concept correction, stress-test prompt, and artifact diff.
+  - One Strong student for contrast.
+  - One Delegator proving delegation earns little.
+- 28 generated transcripts that still contain real evidence spans.
+
+Turn counts:
+
+| Session kind | Count | Turns |
+|---|---:|---:|
+| Hand-crafted full | 3 | 18-24 each |
+| Generated full-world | 28 | 8-14 each |
+| Mini-world | 3 | same as the three hand-crafted sessions |
+
+Behavior rules:
+
+- Agent scaffolds and asks questions back.
+- Agent never dumps a complete final answer unprompted.
+- Student writing varies naturally.
+- Delegators can produce passable artifacts, but the transcript must show they did not frame, reason, or revise.
+- Recoverers visibly change their thinking after challenge.
+- Side-note cards appear only when the source chain exists.
+
+## 15. Artifacts
+
+Every completed student session has a final artifact state.
+
+Featured Recoverer has at least three artifact states:
+
+1. Initial sketch.
+2. Post-side-note revision.
+3. Post-stress-test revision.
+
+Diffs must identify changed fields and before/after values. Do not jump from a two-word answer to a polished final table without intervening work.
+
+Placeholder artifact shape:
+
+```ts
+type PricingArtifact = {
+  tiers: Array<{
+    name: string;
+    price: number;
+    targetSegment: string;
+    fence: string;
+    rationale: string;
+  }>;
+  expectedRisk: string;
+  revisionNote?: string;
+};
+```
+
+Current `submissions.body` for the session assignment should be the final artifact as Markdown.
+
+## 16. Evidence And Journey Reports
+
+Every completed session has one journey report.
+
+Per criterion:
+
+- Level.
+- Numeric score.
+- Rationale grounded in evidence.
+- One or two evidence spans.
+
+Evidence span requirements:
+
+- At least 4 verified evidence spans per report.
+- At least 124 verified evidence spans in the full world.
+- Evidence quote is verbatim in the referenced turn text.
+- Scoring evidence comes from student turns by default.
+- Agent turns can provide surrounding context but should not be used as scoring evidence.
+- Evidence cannot cite a side-note card as proof of learning; it must cite the student's response.
+
+Validation must assert:
+
+```ts
+turn.text.slice(charStart, charEnd) === quote
+```
+
+Expected journey distribution:
+
+- Strong: no Missing, at least two Exceeds each.
+- Steady: mostly Meets.
+- Struggling: at least one Developing.
+- Delegator: Framing and Iteration are Missing or Developing.
+- Recoverer: Iteration is Exceeds; Grounding improves after side note.
+
+## 17. Class Rollup
+
+The class rollup is derived from journey reports and tagged transcript events.
+
+Required:
+
+- Criterion-level counts.
+- Archetype-level summary.
+- Exactly `14 of 31` sessions with `conceptWeak` confused with `confusedWith` for the placeholder script.
+- Recovery pattern tied to `stressTest`.
+- Recommended practice set proposal with three short problems targeting `conceptWeak` and `conceptNext`.
+
+Separate deterministic numbers from any narrative draft:
+
+```ts
+{
+  deterministicStats: { ... },
+  narrativeDraft: "..."
+}
+```
+
+The validation test must recompute `deterministicStats`.
+
+## 18. Featured Student Chain
+
+The featured Recoverer must have one unbroken data chain:
+
+```text
+Exam 1 weak topic
+-> professor planning flagged topic
+-> side-note card
+-> student names or corrects the concept
+-> stress-test prompt
+-> artifact diff
+-> Iteration evidence span
+-> JourneyReport Iteration = Exceeds
+```
+
+## 19. Validation
+
+`v0DemoWorld.validation` must include:
+
+```ts
+type V0ValidationResult = {
+  blueprint: "v1";
+  scenarioKey: string;
+  size: "mini" | "full";
+  passed: boolean;
+  checks: Array<{
+    id: string;
+    status: "pass" | "fail";
+    detail?: string;
+  }>;
+  counts: Record<string, number>;
+  derivedMetrics: Record<string, number>;
+};
+```
+
+Minimum checks:
+
+| Check | Requirement |
+|---|---|
+| `counts.required_rows` | Required mini/full counts match. |
+| `ids.deterministic` | IDs/keys are stable and unique. |
+| `refs.resolve` | Every reference resolves. |
+| `dates.timeline` | No event violates Week 1-7 sequence. |
+| `weights.objectives` | Objective weights sum to 1.0 +/- 0.01. |
+| `weights.rubric` | Rubric weights sum to 100. |
+| `materials.real_text` | Pages are 300-800 words and contain tagged concepts. |
+| `materials.no_placeholders` | No lorem ipsum, TODOs, or unfilled slots. |
+| `exam.topic_totals` | Topic scores sum to Exam 1 totals. |
+| `exam.distribution` | Mean/sd/outliers fit required bands. |
+| `side_notes.sources` | Every side note source exists and predates the session. |
+| `featured.chain` | Featured chain matches one concept end to end. |
+| `turns.current_schema` | v0 turns map to `agentTurns`; session `totalTurns` matches. |
+| `evidence.verbatim` | Every evidence quote matches char offsets. |
+| `evidence.student_scoped` | Scoring evidence uses student turns. |
+| `journeys.weighted_scores` | Overall scores recompute from criteria/weights. |
+| `rollup.recomputes` | Class rollup recomputes from reports/events. |
+| `delegator.low_iteration` | Delegators have low Framing/Iteration with transcript evidence. |
+
+Validation tests should be pure TypeScript where possible, like `lib/db/fixtures/package.test.ts`, so broken data fails before touching a database.
+
+## 20. Agent Procedure
+
+1. Inspect the files in section 1.
+2. Confirm whether generating `mini` or `full`; default to `full`.
+3. Use final scenario slots if supplied; otherwise use the econ placeholder.
+4. Generate current-schema fixture rows first.
+5. Generate v0 payloads from the same IDs and dates.
+6. Add/update fixture validation tests.
+7. Run the fixture tests.
+8. If seed integration is touched, run the repo's appropriate verification command.
+9. Handoff with changed files, manifest counts, validation result, and any unresolved failures.
+
+Do not paste the full dataset into chat. The dataset belongs in repo files.

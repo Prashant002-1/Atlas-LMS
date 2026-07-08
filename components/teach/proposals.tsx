@@ -1,6 +1,5 @@
 import { Check, X } from "lucide-react";
 import { ActionButton, StatusBadge, TextLink } from "@/components/atlas/primitives";
-import { BlockView } from "@/components/agent/block-views";
 import { reviewCourseProposal } from "@/lib/instructor/actions";
 import type { InstructorProposal } from "@/lib/instructor/workspace";
 
@@ -22,9 +21,14 @@ export function ProposalCard({ proposal, compact = false }: { proposal: Instruct
 
       {!compact && proposal.blocks.length > 0 ? (
         <div className="mt-4 space-y-3">
-          {proposal.blocks.map((block, index) => (
-            <BlockView key={index} block={block} />
-          ))}
+          <ul className="divide-y divide-[var(--color-border)] rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)]">
+            {proposal.blocks.map((block, index) => (
+              <li key={index} className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]">
+                <span className="font-medium capitalize">{block.type.replaceAll("_", " ")}</span>
+                <span className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">legacy draft</span>
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 

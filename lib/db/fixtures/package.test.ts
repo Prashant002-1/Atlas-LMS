@@ -1,11 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { demoPackage } from "./package";
+import { v0DemoWorld } from "./v0-demo-world";
 
 /**
- * Integrity checks for the shared demo data package. These run without a
- * database, so a broken fixture fails CI before it ever reaches a seed.
+ * Integrity checks for the active demo data package. These run without a
+ * database, so a broken fixture fails CI before it reaches the seed.
  */
+
+const legacyCatalogCodes = ["STAT-201", "HIST-310", "CS-152", "BIO-110", "WRIT-105", "STAT-405"];
 
 test("exactly one current term, terms do not overlap", () => {
   const current = demoPackage.terms.filter((t) => t.current);
@@ -24,12 +27,27 @@ test("exactly one current term, terms do not overlap", () => {
 });
 
 test("canonical demo accounts exist exactly once", () => {
+  assert.equal(demoPackage.users.length, 33, "one admin, one instructor, and 31 students");
+
+  const admin = demoPackage.users.filter((u) => u.email === "admin@demo.edu");
   const instructor = demoPackage.users.filter((u) => u.email === "instructor@demo.edu");
   const student = demoPackage.users.filter((u) => u.email === "student@demo.edu");
+
+  assert.equal(admin.length, 1);
+  assert.equal(admin[0].key, "admin");
+  assert.equal(admin[0].role, "admin");
   assert.equal(instructor.length, 1);
+  assert.equal(instructor[0].key, "amara");
+  assert.equal(instructor[0].name, "Dr. Amara Osei");
   assert.equal(instructor[0].role, "instructor");
   assert.equal(student.length, 1);
+  assert.equal(student[0].key, "maya");
   assert.equal(student[0].role, "student");
+
+  const roleCounts = countBy(demoPackage.users, (u) => u.role);
+  assert.equal(roleCounts.admin, 1);
+  assert.equal(roleCounts.instructor, 1);
+  assert.equal(roleCounts.student, 31);
 
   const emails = demoPackage.users.map((u) => u.email);
   assert.equal(new Set(emails).size, emails.length, "user emails must be unique");
@@ -95,45 +113,94 @@ test("every course reference resolves", () => {
   }
 });
 
-test("the demo window falls inside the current term, with live work on both sides", () => {
+test("the active seed is the one-course ECON-241 v0 world", () => {
+  assert.strictEqual(demoPackage, v0DemoWorld.currentSchema.package);
+  assert.equal(demoPackage.terms.length, 1, "the demo package runs one term");
+  assert.deepEqual(demoPackage.courses.map((c) => c.code), ["ECON-241"]);
+
+  for (const code of legacyCatalogCodes) {
+    assert.equal(demoPackage.courses.some((c) => c.code === code), false, `${code} should not be in the active demo seed`);
+  }
+});
+
+test("the demo window and ECON course match the pricing-session story", () => {
   const current = demoPackage.terms.find((t) => t.current)!;
   const demoDay = "2026-06-09";
   assert.ok(current.startsAt <= demoDay && demoDay <= current.endsAt, "June 9 2026 must fall inside the current term");
 
-  const currentCourses = demoPackage.courses.filter((c) => c.termSlug === current.slug);
-  assert.ok(currentCourses.length >= 4, "the current term needs a real catalog");
+  const course = demoPackage.courses[0];
+  assert.equal(course.termSlug, current.slug);
+  assert.equal(course.code, "ECON-241");
+  assert.equal(course.name, "Intermediate Microeconomics");
+  assert.equal(course.instructorKey, "amara");
+  assert.equal(course.modules.length, 8);
+  assert.equal(course.pages.length, 12);
+  assert.equal(course.assignments.length, 7);
 
-  // The flagship course must exercise every workflow: grading queue, missing
-  // work, draft modules to publish, and graded history.
-  const stat = currentCourses.find((c) => c.code === "STAT-201");
-  assert.ok(stat, "STAT-201 must run in the current term");
-  assert.ok(stat!.submissions.some((s) => s.state === "submitted"), "STAT-201 needs ungraded submissions (grading desk)");
-  assert.ok(stat!.submissions.some((s) => s.state === "missing"), "STAT-201 needs missing work");
-  assert.ok(stat!.submissions.some((s) => s.state === "graded"), "STAT-201 needs graded history");
-  assert.ok(stat!.modules.some((m) => !m.published), "STAT-201 needs draft modules (publish queue)");
-  assert.ok(stat!.modules.some((m) => m.published), "STAT-201 needs live modules");
+  const assignmentKeys = course.assignments.map((a) => a.key);
+  assert.deepEqual(assignmentKeys, ["ps1", "ps2", "ps3", "exam-1", "session-assignment", "ps4", "final-project"]);
+  const sessionAssignment = course.assignments.find((a) => a.key === "session-assignment");
+  assert.ok(sessionAssignment, "pricing session assignment must exist");
+  assert.equal(sessionAssignment!.name, "Pricing Strategy Session");
+  assert.deepEqual(sessionAssignment!.objectiveCodes, ["LO4", "LO5", "LO6"]);
 
-  // Maya (the demo student) must have a story: a missing item somewhere and
-  // submitted-ungraded work somewhere else.
-  const mayaCourses = currentCourses.filter((c) => c.enrollments.some((e) => e.userKey === "maya" && e.role === "student"));
-  assert.ok(mayaCourses.length >= 3, "Maya should carry a real schedule");
-  const mayaStates = mayaCourses.flatMap((c) => c.submissions.filter((s) => s.studentKey === "maya").map((s) => s.state));
-  assert.ok(mayaStates.includes("missing"), "Maya needs one missing item");
-  assert.ok(mayaStates.includes("submitted"), "Maya needs submitted-ungraded work");
-  assert.ok(mayaStates.includes("graded"), "Maya needs graded work");
-  assert.equal(demoPackage.terms.length, 1, "the demo package runs one term");
-});
+  const enrollmentCounts = countBy(course.enrollments, (e) => e.role);
+  assert.equal(enrollmentCounts.instructor, 1);
+  assert.equal(enrollmentCounts.student, 31);
+  assert.equal(course.enrollments.some((e) => e.userKey === "maya" && e.role === "student"), true);
 
-test("policies vary and the persona course exists", () => {
-  const current = demoPackage.terms.find((t) => t.current)!;
-  const courses = demoPackage.courses.filter((c) => c.termSlug === current.slug);
-  assert.ok(
-    courses.some((c) => c.policy.personaName && c.policy.personaStyle),
-    "one current course should carry a persona"
-  );
-  assert.ok(courses.some((c) => !c.policy.allowPractice), "one course should have practice turned off");
-  assert.ok(courses.some((c) => c.policy.shareStruggleSignal) && courses.some((c) => !c.policy.shareStruggleSignal));
-  for (const c of courses) {
-    assert.ok(c.policy.studentDailyLimit > 0, `${c.code}: daily limit must be positive`);
+  assert.equal(course.submissions.length, 155, "31 students should each have submissions for ps1, ps2, ps3, exam-1, and the session assignment");
+  const submissionsByAssignment = countBy(course.submissions, (s) => s.assignmentKey);
+  const activeAssignmentKeys = ["ps1", "ps2", "ps3", "exam-1", "session-assignment"];
+  for (const key of activeAssignmentKeys) {
+    assert.equal(submissionsByAssignment[key], 31, `${key} should have one submission per student`);
   }
+
+  const sessionSubmissions = course.submissions.filter((s) => s.assignmentKey === "session-assignment");
+  assert.equal(sessionSubmissions.length, 31);
+  
+  const graded = sessionSubmissions.filter((s) => s.state === "graded");
+  const submitted = sessionSubmissions.filter((s) => s.state === "submitted");
+  const missing = sessionSubmissions.filter((s) => s.state === "missing");
+  
+  assert.equal(graded.length, 20, "expected 20 graded session assignments");
+  assert.equal(submitted.length, 8, "expected 8 submitted/waiting-to-grade session assignments");
+  assert.equal(missing.length, 3, "expected 3 missing session assignments");
+  
+  assert.equal(
+    graded.every((s) => s.body?.includes("Recommended Pricing Tiers")),
+    true,
+    "graded submissions should be inspectable artifacts"
+  );
+
+  const latestAnnouncement = [...course.announcements].sort((a, b) => b.dayOffset - a.dayOffset)[0];
+  assert.equal(latestAnnouncement.title, "Active Pricing Session Reminders");
+  assert.equal(course.announcements.filter((a) => a.dayOffset === latestAnnouncement.dayOffset).length, 1);
+  assert.equal(
+    submitted.every((s) => s.body?.includes("Pricing Strategy Session")),
+    true,
+    "submitted submissions should be inspectable draft artifacts"
+  );
 });
+
+test("ECON policy encodes the professor-controlled AI contract", () => {
+  const course = demoPackage.courses[0];
+  assert.equal(course.policy.allowExplain, true);
+  assert.equal(course.policy.allowPractice, true);
+  assert.equal(course.policy.allowQuestions, true);
+  assert.equal(course.policy.explanationDepth, "guided");
+  assert.equal(course.policy.citationsRequired, true);
+  assert.equal(course.policy.shareStruggleSignal, true);
+  assert.equal(course.policy.personaName, "The Strategist");
+  assert.equal(course.policy.studentDailyLimit, 40);
+  assert.ok(course.policy.customInstructions?.includes("Do not give students direct answers"));
+});
+
+function countBy<T>(items: T[], keyFor: (item: T) => string): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const item of items) {
+    const key = keyFor(item);
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+  return counts;
+}

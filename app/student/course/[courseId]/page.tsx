@@ -2,7 +2,6 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { loadStudentCourseWorkspace, type StudentAssignment } from "@/lib/student/workspace";
 import { PageHeader } from "@/components/teach/page-header";
-import { CuePanel } from "@/components/agent/cue-panel";
 import { StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { EmptyRecord } from "@/components/atlas/record";
 
@@ -91,12 +90,6 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
         </div>
       </section>
 
-      <section className="mt-7 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
-        <CuePanel
-          target={{ courseId: workspace.course.id, targetType: "course", targetId: null }}
-          availability={workspace.cuePolicy}
-        />
-      </section>
     </>
   );
 }

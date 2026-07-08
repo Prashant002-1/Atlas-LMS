@@ -24,7 +24,7 @@ const checks: SmokeCheck[] = [
   { name: "home guard", path: "/", status: 307, redirectTo: "/sign-in" },
   { name: "teach guard", path: "/teach", status: 307, redirectTo: "/sign-in?from=%2Fteach" },
   { name: "student guard", path: "/student", status: 307, redirectTo: "/sign-in?from=%2Fstudent" },
-  { name: "settings guard", path: "/teach/atlas", status: 307, redirectTo: "/sign-in?from=%2Fteach%2Fatlas" },
+  { name: "atlas guard", path: "/teach/atlas", status: 307, redirectTo: "/sign-in?from=%2Fteach%2Fatlas" },
   {
     name: "sign in",
     path: "/sign-in",
@@ -48,15 +48,20 @@ const checks: SmokeCheck[] = [
       return null;
     },
   },
-  // Agent routes refuse anonymous calls outright.
-  { name: "agent command guard", path: "/api/agent/command", status: 401 },
-  { name: "agent cue guard", path: "/api/agent/cue", status: 401 },
   {
     name: "teach signed in",
     path: "/teach",
     status: 200,
     auth: { email: "instructor@demo.edu", password: "atlas1234", redirectTo: "/teach" },
     includes: ["Overview", "To grade", "In review", "Next", "Applied Statistics"],
+  },
+  {
+    name: "atlas v0 shell",
+    path: "/teach/atlas",
+    status: 200,
+    auth: { email: "instructor@demo.edu", password: "atlas1234", redirectTo: "/teach/atlas" },
+    includes: ["v0 shell", "Session cockpit offline"],
+    excludes: ["CommandConsole"],
   },
   {
     name: "student signed in",

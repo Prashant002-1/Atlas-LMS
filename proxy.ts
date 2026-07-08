@@ -5,12 +5,12 @@ import type { NextRequest } from "next/server";
  * Atlas is signed-in software. Nothing renders without a session except the
  * auth pages themselves — there is no public marketing surface inside the app.
  *
- * The middleware checks for the Auth.js session cookie (cheap, edge-safe);
+ * The proxy checks for the Auth.js session cookie (cheap, request-level);
  * every page and API route still does full session validation server-side.
  */
 
 const PUBLIC_PATHS = new Set(["/sign-in", "/sign-up"]);
-const PUBLIC_PREFIXES = ["/api/auth", "/api/health", "/eve", "/_eve_internal/eve"];
+const PUBLIC_PREFIXES = ["/api/auth", "/api/health"];
 
 function hasSessionCookie(req: NextRequest): boolean {
   return Boolean(
@@ -18,7 +18,7 @@ function hasSessionCookie(req: NextRequest): boolean {
   );
 }
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const isPublic = PUBLIC_PATHS.has(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));

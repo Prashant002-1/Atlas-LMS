@@ -1,7 +1,7 @@
 /**
- * Seed the shared demo data package, one university, three semesters, full
- * course stacks. Deterministic: every row id derives from a stable key, so all
- * environments share the same ids and re-seeding is idempotent.
+ * Seed the v0 demo data package: one university, one ECON course, 31 students,
+ * completed journey sessions, proposals, and rollups. Deterministic: every row
+ * id derives from a stable key, so re-seeding is idempotent across environments.
  *
  *   npm run db:seed   (requires DATABASE_URL and a pushed schema)
  *
@@ -26,8 +26,18 @@ import {
   terms,
   users,
   submissions,
+  agentSessions,
+  agentTurns,
+  changeProposals,
+  proposalBlocks,
 } from "./schema";
 import { demoPackage } from "./fixtures/package";
+import {
+  agentSessions as v0AgentSessions,
+  agentTurns as v0AgentTurns,
+  changeProposals as v0ChangeProposals,
+  proposalBlocks as v0ProposalBlocks,
+} from "./fixtures/v0-demo-world";
 import type { FixtureCourse } from "./fixtures/types";
 import { hashPassword } from "../auth/password";
 
@@ -51,6 +61,10 @@ function weekEnd(termStart: Date, week: number): Date {
 }
 
 type Db = (typeof import("./index"))["db"];
+type ChangeProposalInsert = typeof changeProposals.$inferInsert;
+type ProposalBlockInsert = typeof proposalBlocks.$inferInsert;
+type AgentSessionInsert = typeof agentSessions.$inferInsert;
+type AgentTurnInsert = typeof agentTurns.$inferInsert;
 
 async function main() {
   loadLocalEnv();
@@ -94,6 +108,35 @@ async function main() {
   for (const course of pkg.courses) {
     await seedCourse(db, orgId, course);
     submissionCount += course.submissions.length;
+  }
+
+  function convertDates<T extends Record<string, unknown>>(rows: T[]): T[] {
+    return rows.map((row) => {
+      const nextRow: Record<string, unknown> = { ...row };
+      for (const key of ["createdAt", "updatedAt", "decidedAt"]) {
+        if (typeof nextRow[key] === "string") {
+          nextRow[key] = new Date(nextRow[key]);
+        }
+      }
+      return nextRow as T;
+    });
+  }
+
+  /* V0 specific agent/proposal seeding */
+  if (v0ChangeProposals.length) {
+    await db.insert(changeProposals).values(convertDates(v0ChangeProposals) as ChangeProposalInsert[]);
+  }
+  if (v0ProposalBlocks.length) {
+    await db.insert(proposalBlocks).values(convertDates(v0ProposalBlocks) as ProposalBlockInsert[]);
+  }
+  if (v0AgentSessions.length) {
+    await db.insert(agentSessions).values(convertDates(v0AgentSessions) as AgentSessionInsert[]);
+  }
+  if (v0AgentTurns.length) {
+    const convertedTurns = convertDates(v0AgentTurns);
+    for (let i = 0; i < convertedTurns.length; i += 50) {
+      await db.insert(agentTurns).values(convertedTurns.slice(i, i + 50) as AgentTurnInsert[]);
+    }
   }
 
   console.log(

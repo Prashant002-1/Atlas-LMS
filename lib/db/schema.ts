@@ -76,11 +76,8 @@ export const proposalStatusEnum = pgEnum("proposal_status", [
   "rejected",
   "applied",
 ]);
-export const personaEnum = pgEnum("persona", ["student", "instructor"]);
-export const memoryScopeEnum = pgEnum("memory_scope", ["global", "course"]);
 export const agentSurfaceEnum = pgEnum("agent_surface", ["command", "cue"]);
 export const agentTurnRoleEnum = pgEnum("agent_turn_role", ["user", "assistant", "tool"]);
-export const cueKindEnum = pgEnum("cue_kind", ["explain", "practice", "question"]);
 export const cueTargetEnum = pgEnum("cue_target", ["assignment", "module", "page", "course"]);
 export const explanationDepthEnum = pgEnum("explanation_depth", ["hint", "guided", "full"]);
 export const providerKindEnum = pgEnum("provider_kind", [
@@ -649,9 +646,6 @@ export const agentSessions = pgTable(
     summary: text("summary"),
     compactedThroughTurn: integer("compacted_through_turn").notNull().default(0),
     totalTurns: integer("total_turns").notNull().default(0),
-    eveSessionId: text("eve_session_id"),
-    eveContinuationToken: text("eve_continuation_token"),
-    eveStreamIndex: integer("eve_stream_index").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -720,38 +714,6 @@ export const proposalBlocks = pgTable(
 );
 
 /**
- * Cue events, every student cue press, with the course/objective context it ran
- * against. Powers the per-student daily limit and (opt-in only) the aggregated
- * struggle signal to the professor. Aggregates only; never a per-student feed.
- */
-export const cueEvents = pgTable(
-  "cue_events",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    orgId: uuid("org_id")
-      .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    courseId: uuid("course_id")
-      .notNull()
-      .references(() => courses.id, { onDelete: "cascade" }),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    sessionId: uuid("session_id").references(() => agentSessions.id, { onDelete: "set null" }),
-    kind: cueKindEnum("kind").notNull(),
-    targetType: cueTargetEnum("target_type").notNull(),
-    targetId: uuid("target_id"),
-    objectiveCodes: jsonb("objective_codes").notNull().default([]),
-    shared: boolean("shared").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (t) => [
-    index("cue_events_course_idx").on(t.courseId, t.createdAt),
-    index("cue_events_user_day_idx").on(t.userId, t.courseId, t.createdAt),
-  ]
-);
-
-/**
  * BYOK, org-level provider keys, AES-256-GCM encrypted with the app secret.
  * Resolution order at runtime: org key → environment fallback. Keys never reach
  * the client; the settings UI shows only a masked tail.
@@ -798,68 +760,6 @@ export const changeProposals = pgTable(
   (t) => [index("proposals_course_idx").on(t.courseId, t.status)]
 );
 
-export const chatSessions = pgTable(
-  "chat_sessions",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    orgId: uuid("org_id")
-      .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    courseId: uuid("course_id").references(() => courses.id, { onDelete: "set null" }),
-    persona: personaEnum("persona").notNull().default("student"),
-    title: text("title"),
-    contextData: text("context_data"),
-    summary: text("summary"),
-    summaryCount: integer("summary_count").notNull().default(0),
-    messages: jsonb("messages").notNull().default([]), // UIMessage[] (normalized to a table in a later phase)
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (t) => [index("chat_sessions_user_idx").on(t.userId)]
-);
-
-export const chatMemories = pgTable(
-  "chat_memories",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    orgId: uuid("org_id")
-      .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    // memory is per-USER now (the prototype keyed it to a shared chat id)
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    scope: memoryScopeEnum("scope").notNull().default("global"),
-    courseId: uuid("course_id").references(() => courses.id, { onDelete: "cascade" }),
-    memoryKey: text("memory_key").notNull(),
-    memoryValue: text("memory_value").notNull(),
-    source: text("source").notNull().default("user"),
-    embedding: vector("embedding", { dimensions: 1536 }),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (t) => [uniqueIndex("memories_user_key_idx").on(t.userId, t.memoryKey)]
-);
-
-export const plannerState = pgTable(
-  "planner_state",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    orgId: uuid("org_id")
-      .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    signature: text("signature").notNull(),
-    snapshot: jsonb("snapshot").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (t) => [uniqueIndex("planner_state_user_idx").on(t.userId)]
-);
-
 /* ─────────────────────── inferred types ────────────────────── */
 
 export type Organization = typeof organizations.$inferSelect;
@@ -871,7 +771,6 @@ export type AgentSession = typeof agentSessions.$inferSelect;
 export type AgentTurn = typeof agentTurns.$inferSelect;
 export type ProposalBlock = typeof proposalBlocks.$inferSelect;
 export type PracticeSet = typeof practiceSets.$inferSelect;
-export type CueEvent = typeof cueEvents.$inferSelect;
 export type OrgProviderKey = typeof orgProviderKeys.$inferSelect;
 export type NewCourse = typeof courses.$inferInsert;
 export type Enrollment = typeof enrollments.$inferSelect;
@@ -880,5 +779,3 @@ export type Assignment = typeof assignments.$inferSelect;
 export type LearningObjective = typeof learningObjectives.$inferSelect;
 export type ContentAlignment = typeof contentAlignments.$inferSelect;
 export type ChangeProposal = typeof changeProposals.$inferSelect;
-export type ChatSession = typeof chatSessions.$inferSelect;
-export type ChatMemory = typeof chatMemories.$inferSelect;

@@ -4,8 +4,8 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 /**
- * Product contract tests, static checks that the route surface, the agent
- * doctrine, and the wiring between them hold. These run without a database.
+ * Product contract tests, static checks that the App Router surface and the
+ * v0 Phase 0 boundary hold. These run without a database.
  */
 
 const root = process.cwd();
@@ -15,9 +15,6 @@ const sourceDirs = ["app", "components", "lib"].map((dir) => path.join(root, dir
 const requiredRoutes = [
   "/",
   "/api/health",
-  "/api/agent/command",
-  "/api/agent/eve-command",
-  "/api/agent/cue",
   "/sign-in",
   "/sign-up",
   "/student",
@@ -59,187 +56,105 @@ test("internal app links and redirects target implemented routes", () => {
   assert.deepEqual([...missing].sort(), []);
 });
 
-test("every route is gated: middleware guards the surface, pages check sessions", () => {
-  // Middleware exists and protects everything except the auth pages.
-  assertSourceIncludes("middleware.ts", 'PUBLIC_PATHS = new Set(["/sign-in", "/sign-up"])');
-  assertSourceIncludes("middleware.ts", '"/api/auth"');
-  assertSourceIncludes("middleware.ts", '"/api/health"');
-  assertSourceIncludes("middleware.ts", "NextResponse.redirect");
+test("every route is gated: proxy guards the surface, pages check sessions", () => {
+  assertSourceIncludes("proxy.ts", 'PUBLIC_PATHS = new Set(["/sign-in", "/sign-up"])');
+  assertSourceIncludes("proxy.ts", '"/api/auth"');
+  assertSourceIncludes("proxy.ts", '"/api/health"');
+  assertSourceIncludes("proxy.ts", "NextResponse.redirect");
 
-  // Defense in depth: the role layouts and the root resolve sessions themselves.
   for (const gate of ["app/teach/layout.tsx", "app/student/layout.tsx", "app/page.tsx"]) {
     assertSourceIncludes(gate, "auth()");
     assertSourceIncludes(gate, "redirect(");
   }
-  // No public preview data leaks onto auth pages.
+
   assertSourceExcludes("app/sign-in/page.tsx", "atlasDemo");
   assertSourceExcludes("app/sign-up/page.tsx", "atlasDemo");
 });
 
-test("the agent runtime exists and observes the doctrine", () => {
-  // Eve is mounted as the durable runtime shell while Atlas keeps its record doctrine.
-  assertSourceIncludes("package.json", '"eve"');
-  assertSourceIncludes("package.json", '"ai": "^7.0.0-beta.178"');
-  assertSourceIncludes("next.config.mjs", "withEve");
-  assertSourceIncludes("middleware.ts", '"/eve"');
-  assertSourceIncludes("agent/agent.ts", "defineAgent");
-  assertSourceIncludes("agent/agent.ts", "atlasModel");
-  assertSourceIncludes("agent/instructions.md", "Propose, never perform");
-  assertSourceIncludes("agent/channels/eve.ts", "atlasBridgeAuth");
-  assertSourceIncludes("agent/channels/eve.ts", "jwtHmac");
-  assertSourceIncludes("app/api/agent/eve-command/route.ts", "updateCommandSessionEveCursor");
-  assertSourceIncludes("app/api/agent/eve-command/route.ts", "persistEveRun");
-  assertSourceIncludes("lib/agent/stream-client.ts", "runEveAgentStream");
-  assertSourceIncludes("components/agent/command-console.tsx", "runEveAgentStream");
-  assertSourceIncludes("app/teach/atlas/page.tsx", "ATLAS_COMMAND_RUNTIME");
-  for (const disabledTool of [
-    "bash",
-    "glob",
-    "grep",
-    "load_skill",
-    "read_file",
-    "todo",
-    "web_fetch",
-    "web_search",
-    "write_file",
+test("phase 0 clears the obsolete command, cue, and second-runtime surfaces", () => {
+  for (const removed of [
+    "agent/agent.ts",
+    "agent/channels/eve.ts",
+    "app/api/agent/command/route.ts",
+    "app/api/agent/cue/route.ts",
+    "app/api/agent/eve-command/route.ts",
+    "components/agent/block-views.tsx",
+    "components/agent/command-console.tsx",
+    "components/agent/cue-panel.tsx",
+    "lib/agent/eve-auth.ts",
+    "lib/agent/runtime.ts",
+    "lib/agent/stream-client.ts",
   ]) {
-    assertSourceIncludes(`agent/tools/${disabledTool}.ts`, "disableTool");
-  }
-  for (const proposalTool of [
-    "proposeObjective",
-    "proposeModule",
-    "proposeAssignment",
-    "proposePage",
-    "proposeAnnouncement",
-    "proposePracticeSet",
-    "proposeRubric",
-  ]) {
-    assertSourceIncludes(`agent/tools/${proposalTool}.ts`, "defineTool");
+    assert.equal(existsSync(path.join(root, removed)), false, `${removed} should not exist.`);
   }
 
-  // Context packs are built from the course record, deterministically.
-  assertSourceIncludes("lib/agent/context.ts", "export async function buildContextPack");
-  assertSourceIncludes("lib/agent/context.ts", "policy");
-
-  // Sessions persist, anchor, and compact.
-  assertSourceIncludes("lib/agent/session.ts", "export async function resumeOrCreateSession");
-  assertSourceIncludes("lib/agent/session.ts", "export async function compactIfNeeded");
-  assertSourceIncludes("lib/agent/session.ts", "COMPACT_THRESHOLD_TOKENS");
-
-  // The doctrine is in the system prompts: grounded, propose-never-perform.
-  assertSourceIncludes("lib/agent/runtime.ts", "never invent grades");
-  assertSourceIncludes("lib/agent/runtime.ts", "Propose, never perform");
-
-  // Command tools emit typed blocks onto proposals; nothing writes live rows.
-  assertSourceIncludes("lib/agent/runtime.ts", "proposalBlocks");
-  assertSourceExcludes("lib/agent/runtime.ts", ".insert(modules)");
-  assertSourceExcludes("lib/agent/runtime.ts", ".insert(assignments)");
-
-  // Apply is the only door from draft to live, and dismiss exists.
-  assertSourceIncludes("lib/agent/apply.ts", "export async function applyProposal");
-  assertSourceIncludes("lib/agent/apply.ts", "export async function dismissProposal");
-  assertSourceIncludes("lib/agent/apply.ts", "db.transaction");
+  assertSourceExcludes("package.json", '"eve"');
+  assertSourceIncludes("package.json", '"ai": "^7.0.');
+  assertSourceExcludes("next.config.mjs", "withEve");
+  assertSourceExcludes("proxy.ts", '"/eve"');
+  assertSourceExcludes(".env.example", "ATLAS_COMMAND_RUNTIME");
+  assertSourceExcludes("app/teach/atlas/page.tsx", "CommandConsole");
+  assertSourceIncludes("app/teach/atlas/page.tsx", "v0 shell");
 });
 
-test("blocks are a closed, versioned registry rendered by one component map", () => {
+test("active source carries no old runtime references", () => {
+  const forbidden = /\bEve\b|\beve\b|ATLAS_COMMAND_RUNTIME|withEve|runEveAgentStream|eveSession|eveContinuation|eveStream/;
+
+  for (const file of [
+    "package.json",
+    "next.config.mjs",
+    "proxy.ts",
+    ".env.example",
+    ...sourceFiles(sourceDirs),
+  ]) {
+    const relative = path.relative(root, path.isAbsolute(file) ? file : path.join(root, file));
+    if (relative.endsWith(".test.ts") || relative.startsWith(`lib${path.sep}db${path.sep}fixtures${path.sep}`)) continue;
+    const source = readFile(file);
+    assert.equal(forbidden.test(source), false, `${relative} keeps an old runtime reference`);
+  }
+});
+
+test("session, proposal, policy, and BYOK substrate remains for v0 adaptation", () => {
+  assertSourceIncludes("lib/db/schema.ts", "export const agentSessions");
+  assertSourceIncludes("lib/db/schema.ts", "export const agentTurns");
+  assertSourceIncludes("lib/db/schema.ts", "export const proposalBlocks");
+  assertSourceIncludes("lib/db/schema.ts", "export const changeProposals");
+  assertSourceIncludes("lib/db/schema.ts", "export const courseAiPolicies");
+  assertSourceIncludes("lib/db/schema.ts", "export const orgProviderKeys");
+  assertSourceIncludes("lib/agent/context.ts", "export async function buildContextPack");
+  assertSourceIncludes("lib/agent/session.ts", "export async function resumeOrCreateSession");
+  assertSourceIncludes("lib/agent/session.ts", "export async function compactIfNeeded");
+  assertSourceIncludes("lib/agent/apply.ts", "export async function applyProposal");
+  assertSourceIncludes("lib/agent/apply.ts", "export async function dismissProposal");
+
+  for (const removed of [
+    "cueEvents",
+    "chatSessions",
+    "chatMemories",
+    "plannerState",
+    "eve_session_id",
+    "eve_continuation_token",
+    "eve_stream_index",
+  ]) {
+    assertSourceExcludes("lib/db/schema.ts", removed);
+  }
+});
+
+test("legacy blocks remain persisted but not rendered by the removed registry UI", () => {
   assertSourceIncludes("lib/agent/blocks.ts", "discriminatedUnion");
   assertSourceIncludes("lib/agent/blocks.ts", "BLOCK_SCHEMA_VERSION");
   assertSourceIncludes("lib/agent/blocks.ts", "export function parseStoredBlock");
-  // The registry renders every block type; unknown blocks degrade visibly.
-  assertSourceIncludes("components/agent/block-views.tsx", "export function BlockView");
-  for (const blockType of ["objective", "module", "assignment", "page", "announcement", "practice_set", "rubric", "explanation", "answer"]) {
-    assertSourceIncludes("components/agent/block-views.tsx", `case "${blockType}"`);
-  }
-});
-
-test("the professor command surface streams blocks and lands proposals in Review", () => {
-  assertSourceIncludes("app/api/agent/command/route.ts", "isInstructorLike");
-  assertSourceIncludes("app/api/agent/command/route.ts", "resolveModelForOrg");
-  assertSourceIncludes("app/api/agent/command/route.ts", "buildContextPack");
-  assertSourceIncludes("app/api/agent/command/route.ts", "toUIMessageStreamResponse");
-
-  assertSourceIncludes("components/agent/command-console.tsx", "runAgentStream");
-  assertSourceIncludes("components/agent/command-console.tsx", "Nothing is live until you apply it");
-  assertSourceIncludes("components/agent/command-console.tsx", "ACTION_META");
-  assertSourceIncludes("components/agent/command-console.tsx", "Course sessions");
-  assertSourceIncludes("components/agent/command-console.tsx", "Artifacts");
-  assertSourceIncludes("components/agent/command-console.tsx", "Activity");
-  assertSourceIncludes("components/agent/command-console.tsx", "/teach/atlas?session=");
-  assertSourceIncludes("components/agent/command-console.tsx", "sessionId");
-  assertSourceIncludes("components/agent/command-console.tsx", "runtime=eve");
-  assertSourceIncludes("app/teach/atlas/page.tsx", "CommandConsole");
-  assertSourceIncludes("app/teach/atlas/page.tsx", "listCommandSessions");
-  assertSourceIncludes("app/teach/atlas/page.tsx", "createCommandSession");
-  assertSourceIncludes("app/api/agent/command/route.ts", "loadCommandSession");
-  assertSourceIncludes("app/api/agent/command/route.ts", "titleCommandSessionFromIntent");
-  // The conversation resumes: history hydrates from the persisted session.
-  assertSourceIncludes("app/teach/atlas/page.tsx", "turnsToUIMessages");
-  assertSourceIncludes("app/teach/atlas/page.tsx", "loadSessionDrafts");
-  assertSourceIncludes("lib/agent/session.ts", "changeProposals.sessionId");
-  assertSourceIncludes("lib/agent/session.ts", "export async function listCommandSessions");
-  assertSourceIncludes("lib/agent/session.ts", "export async function loadCommandSession");
-  // Reducing overhead is the point: a pasted syllabus becomes drafted records.
-  assertSourceIncludes("components/agent/command-console.tsx", "Import syllabus");
-
-  // Review renders the typed blocks and owns apply/dismiss.
-  assertSourceIncludes("components/teach/proposals.tsx", "BlockView");
-  assertSourceIncludes("components/teach/proposals.tsx", "action={reviewCourseProposal}");
-  assertServerAction("lib/instructor/actions.ts", "reviewCourseProposal");
-  assertSourceIncludes("lib/instructor/actions.ts", "applyProposal");
-  assertSourceIncludes("lib/instructor/actions.ts", "dismissProposal");
-});
-
-test("students get policy-gated cues, not a chat window", () => {
-  // The cue route enforces enrollment, policy, and the daily limit.
-  assertSourceIncludes("app/api/agent/cue/route.ts", 'eq(enrollments.role, "student")');
-  assertSourceIncludes("app/api/agent/cue/route.ts", "allowExplain");
-  assertSourceIncludes("app/api/agent/cue/route.ts", "studentDailyLimit");
-  assertSourceIncludes("app/api/agent/cue/route.ts", "cueEvents");
-
-  // The cue panel is buttons anchored to records.
-  assertSourceIncludes("components/agent/cue-panel.tsx", "Explain");
-  assertSourceIncludes("components/agent/cue-panel.tsx", "Practice");
-  assertSourceIncludes("components/agent/cue-panel.tsx", "Ask");
-  assertSourceIncludes("app/student/course/[courseId]/page.tsx", "CuePanel");
-  assertSourceIncludes("app/student/work/[assignmentId]/page.tsx", "CuePanel");
-  assertSourceIncludes("app/student/material/[moduleId]/page.tsx", "CuePanel");
-  // The overview is a glance across courses, not a single-course monolith.
-  assertSourceIncludes("app/student/page.tsx", "loadStudentOverview");
-
-  // The student surface carries no free-roaming chat composer.
-  assertSourceExcludes("app/student/page.tsx", "StudyCommandBox");
-  assertSourceExcludes("app/student/page.tsx", "saveStudyCommand");
-});
-
-test("the professor owns the AI policy for each course", () => {
-  assertSourceIncludes("lib/db/schema.ts", "courseAiPolicies");
-  assertSourceIncludes("lib/db/schema.ts", "explanationDepth");
-  assertSourceIncludes("lib/db/schema.ts", "shareStruggleSignal");
-  assertServerAction("lib/instructor/actions.ts", "updateCourseAiPolicy");
-  assertSourceIncludes("app/teach/settings/page.tsx", "updateCourseAiPolicy");
-  assertSourceIncludes("app/teach/settings/page.tsx", "personaName");
-  // Policy reaches the runtime: depth and persona shape the cue prompt.
-  assertSourceIncludes("lib/agent/runtime.ts", "explanationDepth");
-  assertSourceIncludes("lib/agent/runtime.ts", "personaName");
+  assertSourceIncludes("components/teach/proposals.tsx", "legacy draft");
+  assertSourceExcludes("components/teach/proposals.tsx", "BlockView");
 });
 
 test("the app is pages behind one sidebar, not a monolith", () => {
   assertSourceIncludes("components/atlas/app-shell.tsx", "Collapse sidebar");
   assertSourceIncludes("components/atlas/app-shell.tsx", "Sign out");
-  // The chrome carries the wordmark only; no taglines.
   assertSourceExcludes("components/atlas/app-shell.tsx", "Course record");
   assertSourceIncludes("app/teach/layout.tsx", "AppShell");
   assertSourceIncludes("app/student/layout.tsx", "AppShell");
   assertServerAction("lib/workspace/scope-actions.ts", "setCourseScope");
-});
-
-test("no invented metrics: coverage scores and evidence language stay out", () => {
-  for (const file of sourceFiles([path.join(root, "app"), path.join(root, "components")])) {
-    const source = readFileSync(file, "utf8");
-    const relative = path.relative(root, file);
-    assert.equal(source.includes("Coverage"), false, `${relative} renders a coverage metric`);
-    assert.equal(/\bEvidence\b/.test(source), false, `${relative} uses evidence language`);
-  }
 });
 
 test("no em dashes anywhere in the product", () => {
@@ -256,11 +171,10 @@ test("BYOK keys are encrypted, resolved server-side, and never default silently"
   assertSourceIncludes("lib/agent/keys.ts", "export async function resolveModelForOrg");
   assertSourceIncludes("lib/agent/keys.ts", "keyTail");
   assertServerAction("lib/instructor/actions.ts", "saveProviderKey");
-  // The settings page never renders the key itself.
   assertSourceExcludes("app/teach/settings/page.tsx", "decryptSecret");
 });
 
-test("record actions stay direct and editable by hand (it is a real LMS)", () => {
+test("record actions stay direct and editable by hand", () => {
   assertServerAction("lib/instructor/actions.ts", "createModuleRecord");
   assertServerAction("lib/instructor/actions.ts", "createAssignmentRecord");
   assertServerAction("lib/instructor/actions.ts", "createObjectiveRecord");
@@ -282,13 +196,11 @@ test("record actions stay direct and editable by hand (it is a real LMS)", () =>
 test("the demo data package is the seed's only source", () => {
   assertSourceIncludes("lib/db/seed.ts", 'from "./fixtures/package"');
   assertSourceIncludes("lib/db/seed.ts", "idFor(");
-  // Determinism: no random ids in the seed path.
   assertSourceExcludes("lib/db/seed.ts", "Math.random");
-  // The legacy single-course inline seed is gone.
   assertSourceExcludes("lib/db/seed.ts", "Clinic wait practice");
 });
 
-/* ── helpers ─────────────────────────────────────────────────── */
+/* helpers */
 
 function implementedRoutes() {
   const routes = new Set<string>();
@@ -369,6 +281,10 @@ function assertSourceIncludes(relativeFile: string, expected: string) {
 function assertSourceExcludes(relativeFile: string, unexpected: string) {
   const source = readSource(relativeFile);
   assert.equal(source.includes(unexpected), false, `${relativeFile} should not include ${unexpected}`);
+}
+
+function readFile(file: string) {
+  return readFileSync(path.isAbsolute(file) ? file : path.join(root, file), "utf8");
 }
 
 function readSource(relativeFile: string) {

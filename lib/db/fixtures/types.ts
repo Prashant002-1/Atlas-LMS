@@ -1,9 +1,9 @@
 /**
  * Atlas demo data package, fixture contract.
  *
- * Everyone developing on this repo seeds the SAME data package: a small university
- * across multiple semesters, with full course stacks (objectives, weeks, work,
- * pages, announcements, enrollments, submissions, grades, AI policy).
+ * Everyone developing on this repo seeds the same data package: a focused demo
+ * university with course stacks, pages, enrollments, submissions, grades, and
+ * AI policy.
  *
  * Dates are RELATIVE (week numbers / day offsets against the term start) so the
  * package stays evergreen, the seed resolves them to concrete timestamps.
@@ -141,4 +141,280 @@ export type FixturePackage = {
   terms: FixtureTerm[];
   users: FixtureUser[];
   courses: FixtureCourse[];
+};
+
+/* ───────────────────────── V0 specific types ───────────────────────── */
+
+export type V0DemoWorldManifest = {
+  blueprint: "v1";
+  scenarioKey: string;
+  size: "mini" | "full";
+  counts: Record<string, number>;
+  canonicalIds: {
+    orgId: string;
+    termId: string;
+    courseId: string;
+    professorUserId: string;
+    featuredStudentUserId: string;
+    sessionAssignmentId: string;
+    professorPlanningAgentSessionId: string;
+  };
+  derivedMetrics: {
+    exam1Mean: number;
+    exam1StandardDeviation: number;
+    conceptWeakConfusions: number;
+    completedStudentSessions: number;
+    verifiedEvidenceSpans: number;
+  };
+};
+
+export type ScenarioSlots = {
+  scenarioKey: string;
+  courseCode: string;
+  courseTitle: string;
+  professorName: string;
+  professorVoice: string;
+  problemTitle: string;
+  problemStatement: string;
+  problemDomain: string;
+  conceptWeak: string;
+  confusedWith: string;
+  conceptNext: string;
+  artifactType: string;
+  stressTest: string;
+};
+
+export type V0StudentProfile = {
+  userId: string;
+  key: string;
+  name: string;
+  email: string;
+  archetype: "Strong" | "Steady" | "Struggling" | "Delegator" | "Recoverer";
+  personaNote: string;
+  priorWorkPattern: string;
+  exam1TopicScores: Record<string, number>;
+  featured?: boolean;
+};
+
+export type V0ExamRecord = {
+  assignmentId: string;
+  pointsPossible: number;
+  studentScores: Array<{
+    studentId: string;
+    studentKey: string;
+    totalScore: number;
+    grade: string;
+    topicScores: Record<string, number>;
+  }>;
+};
+
+export type V0SessionAdaptation = {
+  id: string;
+  orgId: string;
+  userId: string;
+  courseId: string;
+  surface: "command" | "cue";
+  anchorType: "course" | "assignment";
+  anchorId: string;
+  title: string;
+  summary?: string;
+  compactedThroughTurn: number;
+  totalTurns: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type V0Turn = {
+  id: string;
+  orgId: string;
+  sessionId: string;
+  turnIndex: number;
+  role: "user" | "assistant" | "tool";
+  parts: Array<Record<string, unknown>>;
+  tokenEstimate?: number;
+  createdAt: string;
+  text: string;
+};
+
+export type V0FlaggedTopicsArtifact = {
+  flaggedTopics: string[];
+};
+
+export type V0SessionAssignment = {
+  id: string;
+  orgId: string;
+  courseId: string;
+  assignmentId: string;
+  instructions: string;
+  durationMinutes: number;
+  groundingScope: string[];
+  transcriptPolicy: string;
+  personalRecordSideNotes: boolean;
+};
+
+export type V0RubricLevel = {
+  level: "Exceeds" | "Meets" | "Developing" | "Missing";
+  score: number;
+  descriptor: string;
+};
+
+export type V0RubricCriterion = {
+  key: "framing" | "grounding" | "iteration" | "final_design";
+  weight: number;
+  name: string;
+  description: string;
+  levels: V0RubricLevel[];
+};
+
+export type V0Rubric = {
+  id: string;
+  orgId: string;
+  courseId: string;
+  version: number;
+  criteria: V0RubricCriterion[];
+};
+
+export type PricingTier = {
+  name: string;
+  price: number;
+  targetSegment: string;
+  fence: string;
+  rationale: string;
+};
+
+export type PricingArtifact = {
+  tiers: PricingTier[];
+  expectedRisk: string;
+  revisionNote?: string;
+};
+
+export type V0ArtifactState = {
+  id: string;
+  orgId: string;
+  sessionId: string;
+  turnIndex: number;
+  artifactType: string;
+  state: PricingArtifact;
+  createdAt: string;
+};
+
+export type V0SideNoteCard = {
+  id: string;
+  orgId: string;
+  sessionId: string;
+  turnIndex: number;
+  topic: string;
+  text: string;
+  createdAt: string;
+  sourceRefs: string[];
+  sourcePageSlug?: string | null;
+};
+
+export type V0EvidenceSpan = {
+  id: string;
+  orgId: string;
+  sessionId: string;
+  turnId: string;
+  criterionKey: string;
+  charStart: number;
+  charEnd: number;
+  quote: string;
+  verified: boolean;
+  speaker: "user" | "assistant" | "tool";
+  previousTurnId?: string | null;
+  nextTurnId?: string | null;
+  surroundingTurnRefs?: string[];
+};
+
+export type V0CriterionGrade = {
+  level: "Exceeds" | "Meets" | "Developing" | "Missing";
+  score: number;
+  rationale: string;
+  evidenceSpans: string[];
+};
+
+export type V0JourneyReport = {
+  id: string;
+  orgId: string;
+  sessionId: string;
+  userId: string;
+  courseId: string;
+  rubricVersion: number;
+  scores: Record<string, V0CriterionGrade>;
+  overallScore: number;
+  createdAt: string;
+  assignmentId: string;
+  sessionAssignmentId: string;
+  rubricId: string;
+};
+
+export type V0ClassRollup = {
+  id: string;
+  orgId: string;
+  courseId: string;
+  deterministicStats: {
+    criterionCounts: Record<string, Record<string, number>>;
+    archetypeCounts: Record<string, number>;
+    confusionCount: number;
+    recoveryCount: number;
+    completedStudentSessions: number;
+  };
+  narrativeDraft: string;
+  recommendedPracticeSet: {
+    title: string;
+    base: string;
+    questions: Array<{
+      question: string;
+      options?: string[];
+      correctAnswer?: string;
+      concept: string;
+    }>;
+  };
+};
+
+export type V0ValidationCheck = {
+  id: string;
+  status: "pass" | "fail";
+  detail?: string;
+};
+
+export type V0ValidationResult = {
+  blueprint: "v1";
+  scenarioKey: string;
+  size: "mini" | "full";
+  passed: boolean;
+  checks: V0ValidationCheck[];
+  counts: Record<string, number>;
+  derivedMetrics: Record<string, number>;
+};
+
+export type V0DemoWorld = {
+  manifest: V0DemoWorldManifest;
+  scenario: ScenarioSlots;
+  currentSchema: {
+    package: FixturePackage;
+    agentSessions: Array<Record<string, unknown>>;
+    agentTurns: Array<Record<string, unknown>>;
+    changeProposals: Array<Record<string, unknown>>;
+    proposalBlocks: Array<Record<string, unknown>>;
+  };
+  v0: {
+    studentProfiles: V0StudentProfile[];
+    examRecord: V0ExamRecord;
+    professorPlanning: {
+      session: V0SessionAdaptation;
+      flaggedTopics: V0FlaggedTopicsArtifact;
+      turns: V0Turn[];
+    };
+    sessionAssignment: V0SessionAssignment;
+    rubric: V0Rubric;
+    studentSessions: V0SessionAdaptation[];
+    turns: V0Turn[];
+    artifactStates: V0ArtifactState[];
+    sideNoteCards: V0SideNoteCard[];
+    evidenceSpans: V0EvidenceSpan[];
+    journeyReports: V0JourneyReport[];
+    classRollup: V0ClassRollup;
+  };
+  validation: V0ValidationResult;
 };

@@ -1,10 +1,10 @@
 # Demo World Data Blueprint
 
-**Date:** 2026-07-06. **Status:** repo-aware contract for a device agent with file access. **Scenario:** econ remains the working placeholder until the final course/problem is chosen.
+**Status:** active regeneration contract for the seeded v0 demo world. **Scenario:** ECON-241 / VidStack is the current working scenario unless explicitly changed.
 
-This document is the contract for regenerating the v0 demo data. The agent should inspect the current repo, update fixture files, add validation, and leave the dataset in a shape the app can seed and the v0 primitives can normalize later.
+This document is the contract for regenerating the v0 demo data. The agent should inspect the current repo, update fixture files, add validation, and leave the dataset in a shape the app can seed and the Phase 2 runtime can build against.
 
-The target is one course, deep: a believable six-week course history, one professor planning session, one session assignment, 31 completed student sessions, evidence-verified journey reports, and a deterministic class rollup.
+The target is one course, deep: a believable six-week course history, one professor planning session, one active session assignment, 31 modeled student sessions, evidence-verified journey reports, a deterministic class rollup, and current-schema workload rows that make the professor view feel mid-semester busy.
 
 No aggregate may be handwritten. If the UI says "14 of 31 sessions confuse elasticity with slope," exactly 14 stored sessions/reports must make that true by computation.
 
@@ -89,7 +89,7 @@ type V0DemoWorld = {
 };
 ```
 
-If the current seed path cannot yet insert v0-only objects, keep them in `v0DemoWorld.v0`; do not force them into the wrong table. Current schema rows and v0 payloads must share stable IDs/keys so they can be normalized once Phase 1 tables exist.
+If the current seed path cannot yet insert v0-only objects, keep them in `v0DemoWorld.v0`; do not force them into the wrong table. Current schema rows and v0 payloads must share stable IDs/keys so Phase 2 can decide which v0-only objects need native rows.
 
 ## 3. Dataset Sizes
 
@@ -97,8 +97,8 @@ Use the same contract for both sizes.
 
 | Size | Purpose | Required population |
 |---|---|---|
-| Mini | Phase 1-4 development | 1 org, 1 current term, 1 course, 1 professor, 3 students, 6 weeks history, 1 session assignment, 3 sessions, 3 journey reports |
-| Full | Phase 5 demo/interviews | 1 org, 1 current term, 1 course, 1 professor, 31 students, 6 weeks history, 1 session assignment, 31 sessions, 31 journey reports |
+| Mini | Optional scratch/dev slice | 1 org, 1 current term, 1 course, 1 professor, 3 students, 6 weeks history, 1 session assignment, 3 sessions, 3 journey reports |
+| Full | Active seeded demo world | 1 org, 1 current term, 1 course, 1 professor, 31 students, 6 weeks history, 1 session assignment, 31 sessions, 31 journey reports, plus current-week professor workload |
 
 The mini world is just the full world sliced to three students: one Strong, one Delegator, and one featured Recoverer. Do not maintain a separate product model for mini.
 
@@ -210,7 +210,7 @@ Use a single `DEMO_DAY`. For the current script, `DEMO_DAY` is Week 7 Day 2.
 | Week 5 | Exam 1 happens. Per-student topic scores exist. |
 | Week 6 Day 3 | Professor planning session happens. It flags `conceptWeak` and `conceptNext` for Exam 2 practice. |
 | Week 7 Day 1 | Session assignment is posted with rubric, grounding scope, transcript policy, and side notes on. |
-| Week 7 Day 2 | All student sessions and journey reports are complete before professor review. |
+| Week 7 Day 2 | Session assignment is active: v0 payloads can include modeled sessions and journey reports for grading-pipeline development, while current-schema submissions preserve the active workload split. |
 
 No seeded event may complete after `DEMO_DAY` unless it is explicitly a proposal.
 
@@ -230,7 +230,7 @@ These rows must match the current Drizzle schema after inspecting `lib/db/schema
 | `modules` | 8 | Weeks 1-6 history, Week 7 session module, and one unpublished Week 8 draft module. |
 | `pages` | 12-18 | Two or three material pages per Week 1-6 module. Each has real text, objective codes, and concept tags. |
 | `assignments` | 7 | Three prior problem sets, Exam 1, the session assignment, one upcoming published problem set, and one unpublished final-project draft. |
-| `submissions` | 155 | All students have rows for ps1, ps2, ps3, Exam 1, and the session assignment; the session assignment intentionally mixes graded, submitted, and missing states. |
+| `submissions` | 155 | All students have rows for ps1, ps2, ps3, Exam 1, and the session assignment. The session assignment intentionally mixes 20 graded, 8 submitted/waiting, and 3 missing states. |
 | `contentAlignments` | all content | Every module/page/assignment links to one or more objectives. |
 | `announcements` | 2 | Include Exam 1 release history plus exactly one current/latest session reminder in professor voice. |
 | `agentSessions` | 32 | 1 professor planning session (`command`/`course`), 31 student sessions (`cue`/`assignment`). |
@@ -358,7 +358,7 @@ Show professor edit: `iteration` 25 -> 30 and `framing` 25 -> 20 unless the fina
 
 Full world:
 
-- 31 completed sessions.
+- 31 modeled sessions for the v0 grading-pipeline payload. Current-schema submission rows still preserve the active 20 graded / 8 submitted / 3 missing workload split.
 - 3 hand-crafted full transcripts:
   - Featured Recoverer with side-note trigger, concept correction, stress-test prompt, and artifact diff.
   - One Strong student for contrast.

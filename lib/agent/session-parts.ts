@@ -84,6 +84,28 @@ export function parseRubricCriteria(data: unknown): RubricCriterion[] | null {
   return result.success ? result.data : null;
 }
 
+/* ── journey scores (journey_reports.scores jsonb) ──────────── */
+
+export const rubricLevelNameSchema = z.enum(["Exceeds", "Meets", "Developing", "Missing"]);
+export type RubricLevelName = z.infer<typeof rubricLevelNameSchema>;
+
+export const criterionGradeSchema = z.object({
+  level: rubricLevelNameSchema,
+  score: z.number(),
+  rationale: z.string(),
+  evidenceSpans: z.array(z.string()).default([]),
+});
+export type CriterionGrade = z.infer<typeof criterionGradeSchema>;
+
+export const journeyScoresSchema = z.record(z.string(), criterionGradeSchema);
+export type JourneyScores = z.infer<typeof journeyScoresSchema>;
+
+/** Parse a report's stored scores jsonb; null when malformed. */
+export function parseJourneyScores(data: unknown): JourneyScores | null {
+  const parsed = journeyScoresSchema.safeParse(data);
+  return parsed.success ? parsed.data : null;
+}
+
 /* ── side-note trigger config (session_assignments.side_note_triggers) ── */
 
 export const sideNoteTriggerSchema = z.object({

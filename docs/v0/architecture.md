@@ -1,6 +1,6 @@
 # v0 Architecture: Runtime and Grading Pipeline
 
-**Status:** accepted runtime direction for v0. Phase 0 has removed Eve from active code. Phase 2 will decide whether `WorkflowAgent` is the live durability path or whether a simpler fallback is needed.
+**Status:** accepted and now largely implemented. Phase 0 removed Eve; Phase 2 chose turn-persisted streams over `WorkflowAgent` (ADR-0010); Phase 3 implemented pipeline steps 1-7 below (single-model per criterion, council deferred behind the judge seam, rollups deterministic with narration on top). Step 8, the calibration pilot, remains a live exercise before anyone calls the output a grade.
 
 ## 0. The shape being built
 

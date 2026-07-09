@@ -11,6 +11,7 @@ const badgeTone = {
   accent: "border-[color-mix(in_oklch,var(--color-accent)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-accent)_12%,transparent)] text-[var(--color-accent-strong)]",
   good: "border-[color-mix(in_oklch,var(--color-good)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-good)_12%,transparent)] text-[var(--color-good)]",
   warn: "border-[color-mix(in_oklch,var(--color-warn)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-warn)_12%,transparent)] text-[var(--color-warn)]",
+  danger: "border-[color-mix(in_oklch,var(--color-danger)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-danger)_12%,transparent)] text-[var(--color-danger)]",
 };
 
 const focusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent-strong)]";

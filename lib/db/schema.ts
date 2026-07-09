@@ -88,6 +88,7 @@ export const providerKindEnum = pgEnum("provider_kind", [
   "openai_compatible",
 ]);
 export const sessionSubmissionStatusEnum = pgEnum("session_submission_status", ["submitted", "graded"]);
+export const journeyReportStatusEnum = pgEnum("journey_report_status", ["draft", "final"]);
 
 /* ──────────────────── 1. tenancy & auth ─────────────────── */
 
@@ -927,6 +928,124 @@ export const sessionSubmissions = pgTable(
   ]
 );
 
+/**
+ * Evidence spans, the atoms of journey grading. Every span is a verbatim
+ * quote located by (turnId, charStart, charEnd) in the frozen transcript and
+ * verified by exact string match BEFORE it may influence a score or reach a
+ * UI (docs/v0/architecture.md, load-bearing findings). Student turns only:
+ * the pipeline grades the student's moves, never the tutor's scaffolding.
+ */
+export const evidenceSpans = pgTable(
+  "evidence_spans",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => agentSessions.id, { onDelete: "cascade" }),
+    submissionId: uuid("submission_id")
+      .notNull()
+      .references(() => sessionSubmissions.id, { onDelete: "cascade" }),
+    turnId: uuid("turn_id")
+      .notNull()
+      .references(() => agentTurns.id, { onDelete: "cascade" }),
+    criterionKey: text("criterion_key").notNull(),
+    charStart: integer("char_start").notNull(),
+    charEnd: integer("char_end").notNull(),
+    quote: text("quote").notNull(),
+    verified: boolean("verified").notNull().default(true),
+    speaker: agentTurnRoleEnum("speaker").notNull(),
+    // Soft refs to the neighboring turns, for decontextualization defense in
+    // the judge input and the drill-in view.
+    previousTurnId: uuid("previous_turn_id"),
+    nextTurnId: uuid("next_turn_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("evidence_spans_submission_idx").on(t.submissionId, t.criterionKey),
+    index("evidence_spans_session_idx").on(t.sessionId),
+  ]
+);
+
+/**
+ * Journey reports, the rubric's reading of one submitted session. Scores are
+ * per-criterion {level, score, rationale, evidenceSpans[]} where score comes
+ * from the rubric's own level descriptors, never from the model choosing a
+ * number. Reports are DRAFTS until the professor finalizes them (AI drafts,
+ * educator publishes); the student may request review on a draft.
+ */
+export const journeyReports = pgTable(
+  "journey_reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    submissionId: uuid("submission_id")
+      .notNull()
+      .references(() => sessionSubmissions.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => agentSessions.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    assignmentId: uuid("assignment_id")
+      .notNull()
+      .references(() => assignments.id, { onDelete: "cascade" }),
+    rubricId: uuid("rubric_id")
+      .notNull()
+      .references(() => rubrics.id, { onDelete: "restrict" }),
+    rubricVersion: integer("rubric_version").notNull().default(1),
+    // Record<criterionKey, { level, score, rationale, evidenceSpans: string[] }>.
+    scores: jsonb("scores").notNull(),
+    overallScore: real("overall_score").notNull().default(0),
+    status: journeyReportStatusEnum("status").notNull().default("draft"),
+    // Provenance: which model graded this draft ("openai:gpt-4.1"), or "seed".
+    graderLabel: text("grader_label"),
+    reviewRequestedAt: timestamp("review_requested_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("journey_reports_submission_idx").on(t.submissionId),
+    index("journey_reports_course_assignment_idx").on(t.courseId, t.assignmentId),
+    index("journey_reports_user_idx").on(t.userId),
+  ]
+);
+
+/**
+ * Class rollups, deterministic aggregation over stored journey reports and
+ * side notes, one row per (course, assignment). The stats are computed by
+ * code (lib/agent/rollup.ts), never asserted; any narrative on top may only
+ * reference numbers that exist in the stats.
+ */
+export const classRollups = pgTable(
+  "class_rollups",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    assignmentId: uuid("assignment_id")
+      .notNull()
+      .references(() => assignments.id, { onDelete: "cascade" }),
+    stats: jsonb("stats").notNull(),
+    narrativeDraft: text("narrative_draft"),
+    recommendedPracticeSet: jsonb("recommended_practice_set"),
+    computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("class_rollups_course_assignment_idx").on(t.courseId, t.assignmentId)]
+);
+
 /* ─────────────────────── inferred types ────────────────────── */
 
 export type Organization = typeof organizations.$inferSelect;
@@ -952,3 +1071,6 @@ export type SessionArtifactState = typeof sessionArtifactStates.$inferSelect;
 export type SessionSideNote = typeof sessionSideNotes.$inferSelect;
 export type SessionSubmission = typeof sessionSubmissions.$inferSelect;
 export type Submission = typeof submissions.$inferSelect;
+export type EvidenceSpan = typeof evidenceSpans.$inferSelect;
+export type JourneyReport = typeof journeyReports.$inferSelect;
+export type ClassRollup = typeof classRollups.$inferSelect;

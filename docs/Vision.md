@@ -55,6 +55,12 @@ The governed agent is more useful than the open web's. It knows the course, the 
 
 The goal is not to replace teachers; there is no serious argument for that. The goal is to return teachers to the primitives of education: attentiveness, guidance, feedback, understanding how each student learns. In large classrooms that attention is impossible to scale by hand. Atlas scales it without taking control away: the professor sees the class think, teaches to what the evidence shows, and delivers feedback in their own voice, grounded in each student's actual journey.
 
+## Interface posture
+
+Atlas presents the course record and the controls that operate on it. It does not manage the professor's attention, prescribe a workflow, or explain ordinary software back to its user. A professor sees **Work**, **Modules**, **Announcements**, **Students**, and the facts attached to them. They decide what matters.
+
+The interface may show a status, a due date, a submission count, a published state, or a direct control. It must not turn those facts into an instruction such as "Needs action," "Next," "To do," "course health," or a generic "insight." The product has a tutoring contract for students; that is separate from the ordinary LMS interface, which respects professors as people who know their course and their work.
+
 ---
 
 ## What stays from the first vision

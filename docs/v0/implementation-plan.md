@@ -1,6 +1,6 @@
 # v0 Implementation Plan
 
-**Status:** Phases 0-2 are complete and merged. Phase 3 (grading pipeline) and Phase 4 (professor surfaces) are built and in review, stacked. Phase 5 (demo world polish and recording) is next.
+**Status:** Phases 0-4 are complete and merged. Phase 5 is demo readiness: live validation, on-camera polish, and recording. The professor-facing agent-chat layer is deliberately deferred to a separately planned architecture phase.
 
 **Runtime decision:** AI SDK 7 is the runtime foundation. Eve is removed, not completed. `WorkflowAgent` was evaluated at the Phase 2 door and deferred with reasons; the session engine runs plain AI SDK 7 streams with Postgres turn persistence behind one seam module. See ADR-0010.
 
@@ -35,7 +35,7 @@ Definition of done:
 
 ## Phase 1 - Primitives and demo world
 
-**Status:** Mostly complete. Complete enough to move to Phase 2, with the remaining primitive work tied to the live session engine.
+**Status:** Complete. The remaining live-persistence and surface work landed in Phases 2-4.
 
 **Intent:** establish the data and type substrate the session engine will use.
 
@@ -47,13 +47,13 @@ Completed:
 - Seed now loads the active demo package plus current-schema agent sessions, turns, proposals, and proposal blocks.
 - Fixture tests assert the active-course shape, evidence verification, student-scoped evidence, rollup recomputation, and the professor-dashboard-driving workload counts.
 
-Still primitive-adjacent, but belongs with Phase 2 implementation:
+Delivered in later phases:
 
-- The runtime route has not yet turned the v0 fixture shape into a live student session.
-- Artifact state, side-note cards, journey reports, and evidence spans currently exist as typed fixture payloads, not as a completed live write pipeline.
-- The student-facing session surface and professor drill-in are not built yet.
+- The runtime route turns the v0 fixture shape into durable live student sessions.
+- Artifact state, side-note cards, journey reports, and evidence spans persist in native rows through the live write pipeline.
+- The student-facing session surface and professor drill-in close the student-to-professor loop.
 
-Definition of done for the current Phase 1 state:
+Definition of done:
 
 - `npm run verify` passes.
 - `npm run db:seed` produces one active ECON-241 course with realistic mid-semester activity.
@@ -84,7 +84,7 @@ Definition of done:
 
 ## Phase 3 - Grading pipeline
 
-**Status:** Built, in review (feat/grading-pipeline).
+**Status:** Complete, merged (PR #24).
 
 **Intent:** the rubric reads the transcript.
 
@@ -103,13 +103,13 @@ Definition of done:
 - Submitting a session produces a stored, evidence-verified journey report.
 - The seeded archetypes grade plausibly and reproducibly.
 
-Remaining to call the phase closed after review:
+Follow-up validation, owned by Phase 5:
 
 - One live calibration run with a real model key: `npm run regrade -- --all` over the 28 seeded transcripts, then eyeball archetype plausibility (the calibration pilot against professor blind grades comes before anyone calls it a grade).
 
 ## Phase 4 - Professor surfaces
 
-**Status:** Built, in review (feat/professor-surfaces, stacked on feat/grading-pipeline).
+**Status:** Complete, merged (PR #25).
 
 **Intent:** close the loop on the professor side.
 
@@ -129,13 +129,13 @@ Definition of done:
 
 - The demo loop is clickable end to end: configure -> student session -> journey report -> class insight -> approve.
 
-Remaining to call the phase closed after review:
+Follow-up validation, owned by Phase 5:
 
 - A live end-to-end walk with a real model key and seeded db: edit a weight, watch v2 appear; open a draft journey, spot-check highlighted evidence, finalize; refresh insight; propose the practice set and apply it in Review.
 
 ## Phase 5 - Polish and recording
 
-**Status:** Later.
+**Status:** Next: demo readiness.
 
 **Intent:** make the loop filmable.
 
@@ -143,21 +143,29 @@ Build:
 
 - Use the active demo world as the source of truth unless the scenario changes.
 - Keep only on-camera polish in scope.
+- Run the live grading calibration over the 28 seeded transcripts before presenting output as a grade.
+- Walk the full seeded loop with a real model key: revise a rubric, inspect and finalize a draft journey, refresh class insight, then propose and apply the practice set.
 - Record against the real seeded data and the same live product path used for interviews.
 
 Definition of done:
 
 - The demo video and live product run the same loop.
 
+## Deferred architecture: professor agent chat
+
+The completed cockpit is intentionally a configure, review, and approval surface. It does not include a professor-facing agent chat, and the broader AI SDK integration belongs in that future layer rather than being implied by the student-session runtime.
+
+This is not Phase 5 work. Its architecture, application boundaries, context, actions, persistence, and review model remain unplanned until the next phase is explicitly designed.
+
 ## Decisions at the door
 
 | Decision | Needed by | Default if undecided |
 |---|---|---|
-| Durable session path | Start of Phase 2 | Try `WorkflowAgent`; fall back only if it slows the build down |
-| Assignment-type name | First Phase 2 UI copy | Session |
-| Native tables vs typed fixture payloads for v0-only objects | When Phase 2 starts writing live outputs | Add native rows only where the live pipeline needs queryable persistence |
-| Council grading | Phase 3 | Single-model grading first; council remains behind a flag |
-| Final scenario change | Before recording polish | Keep ECON-241 / VidStack unless explicitly changed |
+| Durable session path | Phase 2 | Selected plain AI SDK 7 turn-persisted streams; `WorkflowAgent` deferred in ADR-0010 |
+| Assignment-type name | Phase 2 | Work session |
+| Native tables vs typed fixture payloads for v0-only objects | Phases 2-3 | Native rows for every live, queryable pipeline object |
+| Council grading | Phase 3 | Single-model grading shipped; council remains behind the judge seam |
+| Final scenario change | Phase 5 | Keep ECON-241 / VidStack unless explicitly changed |
 
 ## Cut lines
 

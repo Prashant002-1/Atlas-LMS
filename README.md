@@ -29,9 +29,9 @@ npm run smoke
 
 ## Current State
 
-Phase 0 of [`docs/v0/implementation-plan.md`](docs/v0/implementation-plan.md) is complete, and Phase 1 is mostly complete. The old Eve/command/cue product path is removed, `/teach/atlas` is an intentional v0 shell, and the next work is the Phase 2 session engine.
+Phases 0-4 of [`docs/v0/implementation-plan.md`](docs/v0/implementation-plan.md) are complete and merged. The v0 loop is implemented: professor configuration -> student session -> evidence-verified journey report -> class insight -> approved practice-set proposal. Phase 5 is limited to live validation, on-camera polish, and recording.
 
-The current seed data is the active v0 demo world from [`docs/v0/data-blueprint.md`](docs/v0/data-blueprint.md). The typed fixture carries v0-only objects until Phase 2 decides which live outputs need native persistence.
+The current seed data is the active v0 demo world from [`docs/v0/data-blueprint.md`](docs/v0/data-blueprint.md), including native session, evidence, report, and rollup rows. The professor-facing agent-chat layer and its broader AI SDK integration are deliberately not part of this completed loop; they need their own architecture phase before implementation.
 
 ## License
 

@@ -1,22 +1,22 @@
 # v0 Architecture: Runtime and Grading Pipeline
 
-**Status:** accepted and now largely implemented. Phase 0 removed Eve; Phase 2 chose turn-persisted streams over `WorkflowAgent` (ADR-0010); Phase 3 implemented pipeline steps 1-7 below (single-model per criterion, council deferred behind the judge seam, rollups deterministic with narration on top). Step 8, the calibration pilot, remains a live exercise before anyone calls the output a grade.
+**Status:** accepted and implemented for the completed Phases 0-4. Phase 0 removed Eve; Phase 2 chose turn-persisted streams over `WorkflowAgent` (ADR-0010); Phase 3 implemented pipeline steps 1-7 below (single-model per criterion, council deferred behind the judge seam, rollups deterministic with narration on top); Phase 4 completed the professor cockpit. Step 8, the calibration pilot, remains Phase 5 demo-readiness work before anyone calls the output a grade. Professor-facing agent chat is a separate, unplanned architecture phase.
 
 ## 0. The shape being built
 
 One loop on five primitives: professor configures a **session assignment** (agent-drafted rubric from syllabus + outcomes, professor edits and approves, policy toggles) -> student works a live **session** (streaming conversation + evolving typed artifact panel + margin side-note cards from the **course record**) -> a pipeline turns the transcript into **journey evidence** (per-criterion levels with verbatim quotes) -> professor reviews cards and class rollups. Requirements: typed structured streaming (blocks, not free text), sessions that survive a refresh, per-org BYOK, approval gates, Postgres as the record. Explicitly NOT needed: computer use, sandboxes, browsing, multi-agent swarms.
 
-## 1. Runtime recommendation
+## 1. Accepted runtime
 
-**Recommendation: plain Vercel AI SDK 7 + `WorkflowAgent` (@ai-sdk/workflow) + typed data parts, with our own Postgres persistence.** Not Eve.
+**Accepted v0 runtime: plain Vercel AI SDK 7 streams with typed data parts and Atlas-owned Postgres persistence.** Not Eve; `WorkflowAgent` was evaluated and deferred in ADR-0010.
 
 **Why not Eve:** Eve is the wrong shape for this v0. `defineAgent.model` remains static; `defineDynamic` covers tools/skills/instructions only, so per-org BYOK still requires either the Gateway `byok` escape hatch or a custom model proxy. The default harness is computer-use shaped, which is wrong for a typed-blocks session product. Eve's strengths are real, but not worth bringing back for this build. Sources: vercel.com/docs/eve; eve.dev/docs/agent-config; Eve release notes; Vercel changelog.
 
-**Why the boring path stopped being hand-rolled:** AI SDK 7 includes `WorkflowAgent`, first-party durable, resumable agent steps, persistent streams via getWritable(), and tool approvals that survive restarts. Typed `data-*` parts and per-tool UI parts carry the artifact panel and side-note cards with explicit streaming states, so the React tree renders progressively without jank. Our own tables and typed payloads stay the source of truth, which the grading pipeline requires anyway.
+**Why turn-persisted streams:** `streamText` runs inside a UI message stream while Atlas persists the user turn before generation and the completed assistant turn after it. Typed `data-*` parts and per-tool UI parts carry the artifact panel and side-note cards with explicit streaming states, while Postgres rows remain the source of truth for refresh, submission, and grading.
 
 **Accepted tradeoff:** we write our own session/turns schema and approval-gate logic instead of inheriting a framework's. More code up front, but code we can debug at 2am before the demo, on no one else's beta cadence. The code review confirms most of that schema already exists to adapt (agentSessions/agentTurns, changeProposals, apply.ts).
 
-**Fallbacks if WorkflowAgent slows Phase 2 down:** Trigger.dev chat transport or Inngest step/wait patterns can cover durability only. Use a fallback only if it keeps the session engine moving.
+**Why `WorkflowAgent` was deferred:** its self-hosted Postgres World needs a long-lived polling worker and standalone build target, with an unresolved self-hosting issue. That is the wrong tradeoff for this self-hosted v0 demo. The seam is `lib/agent/session-runtime.ts`, so a later durable runtime can replace that module without changing the record model.
 
 **Skipped for this shape (one line each):** LangGraph.js (trails Python, verbose AI SDK glue); Mastra (good, but an orchestration layer we do not need yet); OpenAI Agents SDK (heading toward sandbox agents - wrong direction); Claude Agent SDK (computer-use harness by default, same wrong shape as Eve).
 
@@ -50,8 +50,6 @@ This is the riskiest technical claim in the product: score a ~30-minute learning
 
 **Design implications for the schema:** evidence as (sessionId, turnId, charStart, charEnd); scores versioned with the rubric version that produced them; appeals attach to the same evidence objects; everything renderable in the drill-in view.
 
-## 3. Phase 2 decisions
+## 3. Future professor agent boundary
 
-1. Confirm whether `WorkflowAgent` is smooth enough for the session engine; otherwise use the simplest durable fallback.
-2. Choose model selection per pipeline stage through the existing BYOK registry.
-3. Decide whether the session agent and the grader share one context-pack builder or get separate builders. Default: shared builder with section flags.
+The completed professor cockpit is deliberately not a chat surface. A professor-facing agent layer, including its expanded AI SDK integration, is outside the v0 runtime decision above and has not been designed yet. Its context, action tools, persistence, approval gates, and relationship to the student-session and grading seams must be specified in a new architecture phase before implementation.

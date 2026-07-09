@@ -14,7 +14,7 @@ export function SideNoteCardView({ note, className }: { note: SideNoteCard; clas
     <aside
       aria-label="Side note from your course record"
       className={cn(
-        "relative w-full max-w-[560px] rounded-[10px] border border-[color-mix(in_oklch,var(--color-warn)_45%,var(--color-border))]",
+        "relative w-full max-w-[560px] rounded-panel border border-[color-mix(in_oklch,var(--color-warn)_45%,var(--color-border))]",
         "bg-[color-mix(in_oklch,var(--color-warn)_9%,var(--color-surface))] px-4 py-3 shadow-[var(--shadow-panel)]",
         className
       )}

@@ -42,7 +42,7 @@ export default async function CourseAtlasPage() {
   const checkbox =
     "size-4 accent-[var(--color-accent-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]";
   const field =
-    "min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]";
+    "min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]";
 
   return (
     <div className="max-w-2xl space-y-5">
@@ -146,7 +146,7 @@ export default async function CourseAtlasPage() {
                   rows={3}
                   placeholder="e.g. Always work from the course's own datasets. Never reveal solutions to open problem sets."
                   defaultValue={policy?.customInstructions ?? ""}
-                  className="min-h-20 resize-none rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+                  className="min-h-20 resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
                 />
               </label>
             </div>

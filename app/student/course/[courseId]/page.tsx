@@ -1,14 +1,15 @@
-import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { loadStudentCourseWorkspace, type StudentAssignment } from "@/lib/student/workspace";
+import { dueLabel, isOverdue } from "@/lib/student/format";
 import { PageHeader } from "@/components/teach/page-header";
-import { StatusBadge, TextLink } from "@/components/atlas/primitives";
-import { EmptyRecord } from "@/components/atlas/record";
+import { Panel, RecordRow, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { EmptyState } from "@/components/atlas/record";
 
-const tone = { graded: "good", submitted: "accent", open: "neutral", missing: "warn" } as const;
-const label = { graded: "Done", submitted: "Submitted", open: "Open", missing: "Missing" } as const;
-
-/** One course: this week, the work, the material, the notes, and the cues. */
+/**
+ * The course home: where the course stands right now. The current module,
+ * what is due, and what the professor posted. The full lists live on their
+ * own pages: Modules, Assignments, Grades.
+ */
 export default async function StudentCoursePage({ params }: { params: Promise<{ courseId: string }> }) {
   const session = await auth();
   const { courseId } = await params;
@@ -23,9 +24,14 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
     );
   }
 
-  const open = workspace.assignments.filter((a) => a.status === "open" || a.status === "missing");
-  const done = workspace.assignments.filter((a) => a.status === "submitted" || a.status === "graded");
-  const latestNote = workspace.notices[0];
+  const openWork = workspace.assignments
+    .filter((a) => a.status === "open" || a.status === "missing")
+    .sort((a, b) => {
+      if (a.dueAt && b.dueAt) return a.dueAt.getTime() - b.dueAt.getTime();
+      if (a.dueAt) return -1;
+      if (b.dueAt) return 1;
+      return 0;
+    });
 
   return (
     <>
@@ -35,81 +41,104 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
         action={workspace.standing ? <StatusBadge tone="neutral">{workspace.standing}</StatusBadge> : undefined}
       />
 
-      {workspace.currentWeek ? (
-        <section className="atlas-card-hover rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
-          <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">This week</p>
-          <p className="mt-1 text-[15px] font-semibold leading-6">
-            <TextLink href={`/student/material/${workspace.currentWeek.id}`}>{workspace.currentWeek.title}</TextLink>
-          </p>
-          {workspace.currentWeek.summary ? (
-            <p className="mt-1 line-clamp-2 text-[13.5px] leading-6 text-[var(--color-muted)]">{workspace.currentWeek.summary}</p>
+      {workspace.course.description ? (
+        <p className="-mt-3 mb-6 max-w-2xl text-[13.5px] leading-6 text-[var(--color-muted)]">
+          {workspace.course.description}
+        </p>
+      ) : null}
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.42fr)]">
+        <div className="min-w-0 space-y-4">
+          {workspace.currentWeek ? (
+            <section className="atlas-card-hover rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
+              <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">This week</p>
+              <p className="mt-1 text-[15px] font-semibold leading-6">
+                <TextLink href={`/student/material/${workspace.currentWeek.id}`}>{workspace.currentWeek.title}</TextLink>
+              </p>
+              {workspace.currentWeek.summary ? (
+                <p className="mt-1 line-clamp-2 text-[13.5px] leading-6 text-[var(--color-muted)]">
+                  {workspace.currentWeek.summary}
+                </p>
+              ) : null}
+            </section>
           ) : null}
-        </section>
-      ) : null}
 
-      {latestNote ? (
-        <section className="mt-3 atlas-card-hover rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
-          <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">From your professor</p>
-          <p className="mt-1 text-[14px] font-medium">{latestNote.title}</p>
-          {latestNote.message ? <p className="mt-1 line-clamp-2 text-[13px] leading-5 text-[var(--color-muted)]">{latestNote.message}</p> : null}
-        </section>
-      ) : null}
-
-      <section className="mt-7">
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Work</h2>
-        <div className="mt-2.5 divide-y divide-[var(--color-border)] rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-          {open.length + done.length > 0 ? (
-            [...open, ...done].map((assignment) => <WorkRow key={assignment.id} assignment={assignment} />)
-          ) : (
-            <div className="px-4 py-4">
-              <EmptyRecord title="No work yet" detail="Published work appears here." />
-            </div>
-          )}
+          <Panel
+            title="Due in this course"
+            action={<TextLink href={`/student/course/${courseId}/assignments`} className="text-[13px]">All assignments</TextLink>}
+          >
+            {openWork.length > 0 ? (
+              <div className="-mx-5 -my-5 divide-y divide-[var(--color-border)]">
+                {openWork.slice(0, 5).map((assignment) => (
+                  <OpenWorkRow key={assignment.id} assignment={assignment} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                art="summit"
+                title="Everything is in"
+                detail="No open work in this course right now."
+                action={<TextLink href={`/student/course/${courseId}/grades`} className="text-[13px]">See grades</TextLink>}
+              />
+            )}
+          </Panel>
         </div>
-      </section>
 
-      <section className="mt-7">
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Material</h2>
-        <div className="mt-2.5 divide-y divide-[var(--color-border)] rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-          {workspace.materials.length > 0 ? (
-            workspace.materials.map((material) => (
-              <Link
-                key={material.id}
-                href={`/student/material/${material.id}`}
-                className="atlas-row-hover flex items-center gap-4 px-4 py-2.5 hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
-              >
-                <span className="atlas-mono w-6 shrink-0 text-[12.5px] text-[var(--color-faint)]">{material.week}</span>
-                <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{material.title}</span>
-              </Link>
-            ))
-          ) : (
-            <div className="px-4 py-4">
-              <EmptyRecord title="No material yet" detail="Published weeks appear here." />
-            </div>
-          )}
+        <div className="min-w-0 space-y-4">
+          <Panel title="Announcements">
+            {workspace.notices.length > 0 ? (
+              <div className="space-y-4">
+                {workspace.notices.slice(0, 3).map((notice) => (
+                  <div key={notice.id ?? notice.title}>
+                    <p className="text-[13.5px] font-medium leading-5">{notice.title}</p>
+                    {notice.postedAt ? (
+                      <p className="atlas-mono mt-0.5 text-[11px] uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                        Posted {notice.postedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </p>
+                    ) : null}
+                    {notice.message ? (
+                      <p className="mt-1 line-clamp-3 text-[12.5px] leading-5 text-[var(--color-muted)]">{notice.message}</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[13px] leading-5 text-[var(--color-muted)]">Nothing posted yet.</p>
+            )}
+          </Panel>
+
+          <Panel title="Modules">
+            <p className="text-[13px] leading-5 text-[var(--color-muted)]">
+              {workspace.materials.length > 0
+                ? `${workspace.materials.length} published`
+                : "Nothing published yet"}
+            </p>
+            <p className="mt-2 text-[13px]">
+              <TextLink href={`/student/course/${courseId}/modules`} className="text-[13px]">All modules</TextLink>
+            </p>
+          </Panel>
         </div>
-      </section>
-
+      </div>
     </>
   );
 }
 
-function WorkRow({ assignment }: { assignment: StudentAssignment }) {
+function OpenWorkRow({ assignment }: { assignment: StudentAssignment }) {
+  const overdue = assignment.dueAt ? isOverdue(assignment.dueAt) : false;
   return (
-    <Link
+    <RecordRow
       href={`/student/work/${assignment.id}`}
-      className="flex items-center gap-4 px-4 py-3 transition hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
+      aside={assignment.status === "missing" ? <StatusBadge tone="warn">Missing</StatusBadge> : undefined}
     >
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[14px] font-medium">{assignment.name}</span>
-        <span className="mt-0.5 block text-[12.5px] text-[var(--color-muted)]">
-          {assignment.dueAt ? `Due ${assignment.dueAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "No due date"}
-          {typeof assignment.score === "number" && assignment.points
-            ? ` / ${Math.round(assignment.score)}/${Math.round(assignment.points)}`
-            : ""}
-        </span>
+      <span className="block truncate text-[14px] font-medium">{assignment.name}</span>
+      <span
+        className={`mt-0.5 block text-[12.5px] ${
+          overdue ? "font-medium text-[var(--color-danger)]" : "text-[var(--color-muted)]"
+        }`}
+      >
+        {assignment.dueAt ? dueLabel(assignment.dueAt) : "No due date"}
+        {assignment.points ? ` / ${Math.round(assignment.points)} pts` : ""}
       </span>
-      <StatusBadge tone={tone[assignment.status]}>{label[assignment.status]}</StatusBadge>
-    </Link>
+    </RecordRow>
   );
 }

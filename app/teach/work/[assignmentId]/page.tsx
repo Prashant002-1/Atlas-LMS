@@ -53,7 +53,7 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
         <>
           <InstructorWorkRecord workspace={workspace} />
           {sessionBundle ? (
-            <section className="mt-4 rounded-[8px] border border-[color-mix(in_oklch,var(--color-accent)_35%,var(--color-border))] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
+            <section className="mt-4 rounded-panel border border-[color-mix(in_oklch,var(--color-accent)_35%,var(--color-border))] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
               <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-accent-strong)]">Work session</p>
               <p className="mt-2 max-w-3xl text-[14px] leading-6 text-[var(--color-muted)]">
                 Students take this assignment as a live session with Atlas and are graded on the reasoning journey. The
@@ -150,7 +150,7 @@ function AssignmentEditForm({
 
   return (
     <details className="mt-5 border-t border-[var(--color-border)] pt-4">
-      <summary className="cursor-pointer rounded-[6px] text-[13px] font-medium text-[var(--color-muted)] marker:text-[var(--color-faint)]">
+      <summary className="cursor-pointer rounded-row text-[13px] font-medium text-[var(--color-muted)] marker:text-[var(--color-faint)]">
         Edit
       </summary>
       <form action={updateAssignmentRecord} className="mt-4 grid max-w-3xl gap-3">
@@ -164,7 +164,7 @@ function AssignmentEditForm({
             type="text"
             defaultValue={assignment.title}
             required
-            className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+            className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
@@ -172,7 +172,7 @@ function AssignmentEditForm({
           <textarea
             name="description"
             defaultValue={assignment.detail ?? ""}
-            className="min-h-32 resize-none rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+            className="min-h-32 resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px]">
@@ -182,7 +182,7 @@ function AssignmentEditForm({
               name="dueDate"
               type="date"
               defaultValue={dateInputValue(assignment.dueAt)}
-              className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+              className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </label>
           <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
@@ -193,7 +193,7 @@ function AssignmentEditForm({
               min={0.01}
               step="0.01"
               defaultValue={assignment.points ?? ""}
-              className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+              className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </label>
         </div>
@@ -303,7 +303,7 @@ function GradeForm({ assignment, submission }: { assignment: InstructorAssignmen
             step="0.01"
             defaultValue={typeof submission.score === "number" ? String(submission.score) : ""}
             required
-            className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+            className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
@@ -312,7 +312,7 @@ function GradeForm({ assignment, submission }: { assignment: InstructorAssignmen
             name="grade"
             type="text"
             defaultValue={submission.grade ?? ""}
-            className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+            className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <ActionButton className="w-full sm:w-auto">{label === "Grade" ? "Record grade" : "Save grade"}</ActionButton>

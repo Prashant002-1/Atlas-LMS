@@ -37,7 +37,7 @@ export default async function StudentMaterialPage({ params }: { params: Promise<
         <PageHeader title={material.title} course={`Week ${material.week}`} />
       </div>
 
-      <section className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
+      <section className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
         {material.summary ? (
           <p className="max-w-3xl whitespace-pre-wrap text-[14.5px] leading-7">{material.summary}</p>
         ) : (
@@ -51,7 +51,7 @@ export default async function StudentMaterialPage({ params }: { params: Promise<
       </section>
 
       {workspace.relatedAssignments.length > 0 ? (
-        <section className="mt-4 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+        <section className="mt-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
           <p className="atlas-mono border-b border-[var(--color-border)] px-5 py-3 text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">
             Work this leads to
           </p>

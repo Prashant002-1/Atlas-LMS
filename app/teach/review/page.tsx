@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { loadInstructorWorkspace } from "@/lib/instructor/workspace";
 import { PageHeader } from "@/components/teach/page-header";
 import { ProposalCard } from "@/components/teach/proposals";
-import { EmptyRecord } from "@/components/atlas/record";
+import { EmptyState } from "@/components/atlas/record";
 import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 /**
@@ -38,8 +38,8 @@ export default async function TeachReviewPage() {
           ))}
         </StaggerGrid>
       ) : (
-        <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-5 shadow-[var(--shadow-panel)]">
-          <EmptyRecord title="Clear" detail="Nothing is waiting. Drafts from Atlas land here." />
+        <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+          <EmptyState art="horizon" title="Nothing waiting" detail="Drafts from Atlas land here for your decision." />
         </div>
       )}
 

@@ -22,7 +22,7 @@ export function JourneyReportPanel({ report, assignmentId }: { report: StudentJo
   return (
     <section
       aria-label="Journey report"
-      className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]"
+      className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -46,7 +46,7 @@ export function JourneyReportPanel({ report, assignmentId }: { report: StudentJo
         {report.criteria.map((criterion) => (
           <article
             key={criterion.key}
-            className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3.5"
+            className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3.5"
           >
             <div className="flex items-center justify-between gap-2">
               <p className="text-[13px] font-semibold text-[var(--color-ink)]">
@@ -109,7 +109,7 @@ export function JourneyReportPanel({ report, assignmentId }: { report: StudentJo
             <input type="hidden" name="assignmentId" value={assignmentId} />
             <button
               type="submit"
-              className="rounded-full border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3.5 py-1.5 text-[12px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]"
+              className="rounded-row border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3.5 py-1.5 text-[12px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]"
             >
               Request professor review
             </button>

@@ -18,7 +18,7 @@ export function RubricPanel({ criteria, className }: { criteria: RubricCriterion
     <section
       aria-label="What doing well looks like"
       className={cn(
-        "rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]",
+        "rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]",
         className
       )}
     >
@@ -31,7 +31,7 @@ export function RubricPanel({ criteria, className }: { criteria: RubricCriterion
           const open = openKey === criterion.key;
           const meets = criterion.levels.find((l) => l.level === "Exceeds") ?? criterion.levels[0];
           return (
-            <li key={criterion.key} className="rounded-[8px] border border-transparent transition hover:border-[var(--color-border)]">
+            <li key={criterion.key} className="rounded-row border border-transparent transition hover:border-[var(--color-border)]">
               <button
                 type="button"
                 aria-expanded={open}

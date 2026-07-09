@@ -22,7 +22,7 @@ export function ProfessorReportPanel({ report, submissionId }: { report: DrillIn
   return (
     <section
       aria-label="Journey report"
-      className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
+      className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -44,7 +44,7 @@ export function ProfessorReportPanel({ report, submissionId }: { report: DrillIn
 
       <div className="mt-3 space-y-2.5">
         {report.criteria.map((criterion) => (
-          <article key={criterion.key} className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3">
+          <article key={criterion.key} className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3">
             <div className="flex items-center justify-between gap-2">
               <p className="text-[13px] font-semibold text-[var(--color-ink)]">
                 {criterion.name}
@@ -64,7 +64,7 @@ export function ProfessorReportPanel({ report, submissionId }: { report: DrillIn
                   <li key={evidence.id}>
                     <a
                       href={`#turn-${evidence.turnId}`}
-                      className="group flex items-start gap-1.5 rounded-[6px] text-[12.5px] leading-5 text-[var(--color-ink)] transition hover:text-[var(--color-accent-strong)]"
+                      className="group flex items-start gap-1.5 rounded-row text-[12.5px] leading-5 text-[var(--color-ink)] transition hover:text-[var(--color-accent-strong)]"
                     >
                       <Quote size={11} className="mt-1 shrink-0 text-[var(--color-accent-strong)]" aria-hidden />
                       <span className="italic">&ldquo;{evidence.quote}&rdquo;</span>
@@ -97,7 +97,7 @@ export function ProfessorReportPanel({ report, submissionId }: { report: DrillIn
               <input type="hidden" name="submissionId" value={submissionId} />
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 rounded-[8px] border border-[var(--color-border-strong)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]"
+                className="inline-flex items-center gap-1.5 rounded-control border border-[var(--color-border-strong)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]"
               >
                 <RotateCcw size={12} aria-hidden />
                 Regrade
@@ -107,7 +107,7 @@ export function ProfessorReportPanel({ report, submissionId }: { report: DrillIn
               <input type="hidden" name="reportId" value={report.id} />
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
+                className="inline-flex items-center gap-1.5 rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
               >
                 <BadgeCheck size={13} aria-hidden />
                 Finalize and write gradebook

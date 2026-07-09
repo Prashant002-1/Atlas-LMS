@@ -9,6 +9,16 @@
 @theme {
   --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   --default-transition-duration: 220ms;
+
+  /*
+   * The Atlas radius scale, sharp and fixed: controls 4, rows and badges 6,
+   * panels 8. Declared in the theme so the semantic utilities exist
+   * (rounded-control, rounded-row, rounded-panel) and literal px radii can
+   * stay out of components entirely; the route contract enforces that.
+   */
+  --radius-control: 4px;
+  --radius-row: 6px;
+  --radius-panel: 8px;
 }
 
 /*
@@ -66,11 +76,6 @@
   --dur-fast: 150ms;
   --dur-base: 220ms;
   --dur-slow: 340ms;
-
-  /* Radii - tight. Available as tokens; components keep their literals. */
-  --radius-control: 6px;
-  --radius-panel: 10px;
-  --radius-modal: 14px;
 
   /* Legacy aliases - consumed everywhere; names preserved. */
   --color-bg: var(--canvas);
@@ -225,7 +230,7 @@ select {
 .atlas-practice-glyph--compact {
   width: 44px;
   height: 34px;
-  border-radius: 7px;
+  border-radius: 6px;
   background-size: 9px 9px;
 }
 

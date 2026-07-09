@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { ComponentType, ReactNode } from "react";
 import type { LucideProps } from "lucide-react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronRight } from "lucide-react";
 
 type Icon = ComponentType<LucideProps>;
 
@@ -18,7 +18,7 @@ const focusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
-    <Link href="/" aria-label="Atlas" className={`group inline-flex items-center gap-3 rounded-[6px] ${focusStyle}`}>
+    <Link href="/" aria-label="Atlas" className={`group inline-flex items-center gap-3 rounded-row ${focusStyle}`}>
       <AtlasMark size={compact ? 26 : 32} />
       {!compact ? (
         <span className="leading-none">
@@ -48,11 +48,13 @@ export function ButtonLink({
   href,
   children,
   variant = "primary",
+  size = "md",
   icon = true,
 }: {
   href: string;
   children: ReactNode;
   variant?: "primary" | "secondary" | "ghost";
+  size?: "md" | "sm";
   icon?: boolean;
 }) {
   const styles = {
@@ -62,18 +64,26 @@ export function ButtonLink({
       "border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-ink)] hover:border-[var(--color-ink)]",
     ghost: "border-transparent bg-transparent text-[var(--color-muted)] hover:text-[var(--color-ink)]",
   };
+  const sizes = {
+    md: "min-h-10 px-4 text-[14px]",
+    sm: "min-h-9 px-3 text-[13px]",
+  };
 
   return (
     <Link
       href={href}
-      className={`atlas-card-hover inline-flex min-h-10 items-center justify-center gap-2 rounded-[8px] border px-4 text-[14px] font-medium ${focusStyle} ${styles[variant]}`}
+      className={`atlas-card-hover inline-flex items-center justify-center gap-2 rounded-control border font-medium active:translate-y-px ${sizes[size]} ${focusStyle} ${styles[variant]}`}
     >
-      <span>{children}</span>
-      {icon ? <ArrowRight size={16} strokeWidth={2} aria-hidden="true" /> : null}
+      <span className="inline-flex items-center">{children}</span>
+      {icon ? <ArrowRight size={size === "sm" ? 14 : 16} strokeWidth={2} aria-hidden="true" /> : null}
     </Link>
   );
 }
 
+/**
+ * An inline link into a record. The resting underline is the signifier that
+ * this text acts; hover confirms it with the accent, it never reveals it.
+ */
 export function TextLink({
   href,
   children,
@@ -86,9 +96,41 @@ export function TextLink({
   return (
     <Link
       href={href}
-      className={`rounded-[6px] font-medium text-[var(--color-ink)] transition hover:text-[var(--color-accent-strong)] ${focusStyle} ${className}`}
+      className={`rounded-row font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_30%,transparent)] decoration-1 underline-offset-[3px] transition hover:text-[var(--color-accent-strong)] hover:decoration-[var(--color-accent-strong)] ${focusStyle} ${className}`}
     >
       {children}
+    </Link>
+  );
+}
+
+/**
+ * A record row that navigates: hover fill plus a resting chevron at the
+ * trailing edge, so the row reads as an opening before the cursor arrives.
+ */
+export function RecordRow({
+  href,
+  children,
+  aside,
+  className = "",
+}: {
+  href: string;
+  children: ReactNode;
+  aside?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`group/row flex items-center gap-3 px-4 py-3 transition hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)] ${className}`}
+    >
+      <span className="min-w-0 flex-1">{children}</span>
+      {aside ? <span className="flex shrink-0 items-center gap-2.5">{aside}</span> : null}
+      <ChevronRight
+        size={14}
+        strokeWidth={2}
+        aria-hidden="true"
+        className="shrink-0 text-[var(--color-faint)] transition group-hover/row:translate-x-0.5 group-hover/row:text-[var(--color-muted)]"
+      />
     </Link>
   );
 }
@@ -97,7 +139,7 @@ export function BackLink({ href, children }: { href: string; children: ReactNode
   return (
     <Link
       href={href}
-      className={`inline-flex w-fit items-center gap-2 rounded-[6px] text-[13px] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)] ${focusStyle}`}
+      className={`inline-flex w-fit items-center gap-2 rounded-row text-[13px] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)] ${focusStyle}`}
     >
       <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" />
       <span>{children}</span>
@@ -111,15 +153,17 @@ export function Panel({
   action,
   children,
   className = "",
+  id,
 }: {
   title?: string;
   eyebrow?: string;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  id?: string;
 }) {
   return (
-    <section className={`rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)] ${className}`}>
+    <section id={id} className={`rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)] ${className}`}>
       {title || action ? (
         <header className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] px-5 py-4">
           <div>
@@ -148,7 +192,7 @@ export function CommandBand({
   children?: ReactNode;
 }) {
   return (
-    <section className="rounded-[10px] border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_90%,var(--color-accent)_10%)] px-5 py-4 shadow-[var(--shadow-panel)]">
+    <section className="rounded-panel border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_90%,var(--color-accent)_10%)] px-5 py-4 shadow-[var(--shadow-panel)]">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.55fr)] lg:items-center">
         <div className="min-w-0">
           <p className="text-[12px] font-medium text-[var(--color-accent-strong)]">{eyebrow}</p>
@@ -170,7 +214,7 @@ export function StatusBadge({
   tone?: keyof typeof badgeTone;
 }) {
   return (
-    <span className={`inline-flex min-h-7 items-center rounded-[6px] border px-2.5 text-[12px] font-medium ${badgeTone[tone]}`}>
+    <span className={`inline-flex min-h-7 items-center rounded-row border px-2.5 text-[12px] font-medium ${badgeTone[tone]}`}>
       {children}
     </span>
   );
@@ -222,7 +266,7 @@ export function ActionButton({
       type={type}
       aria-label={ariaLabel}
       title={title}
-      className={`atlas-card-hover inline-flex min-h-9 items-center justify-center rounded-[8px] border px-3 text-[13px] font-medium ${focusStyle} ${styles[variant]} ${className}`}
+      className={`atlas-card-hover inline-flex min-h-9 items-center justify-center rounded-control border px-3 text-[13px] font-medium active:translate-y-px ${focusStyle} ${styles[variant]} ${className}`}
     >
       {children}
     </button>
@@ -238,9 +282,9 @@ export function ProgressBar({ value, label }: { value: number; label?: string })
         <span>{label ?? "Progress"}</span>
         <span>{safeValue}%</span>
       </div>
-      <div className="mt-2 h-2 rounded-[6px] bg-[var(--color-surface-muted)]">
+      <div className="mt-2 h-2 rounded-row bg-[var(--color-surface-muted)]">
         <div
-          className="h-full rounded-[6px] bg-[var(--color-accent)] transition-[width] duration-[500ms] ease-out"
+          className="h-full rounded-row bg-[var(--color-accent)] transition-[width] duration-[500ms] ease-out"
           style={{ width: `${safeValue}%` }}
         />
       </div>
@@ -258,7 +302,7 @@ export function Metric({
   detail: string;
 }) {
   return (
-    <div className="atlas-card-hover rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
+    <div className="atlas-card-hover rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
       <p className="text-[12px] font-medium text-[var(--color-muted)]">{label}</p>
       <p className="mt-3 text-[28px] font-semibold leading-none text-[var(--color-ink)]">{value}</p>
       <p className="mt-2 text-[13px] leading-5 text-[var(--color-muted)]">{detail}</p>

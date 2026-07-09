@@ -4,9 +4,9 @@ The tokens in `app/globals.css` are the source of truth. This note describes the
 
 ## Foundation
 
-- Palette: cool neutral ground and white surfaces, charcoal ink, indigo for structure, one cyan for current state and progress, green for confirmed. Amber and red are reserved for real signals, never decoration.
-- Type: Spectral for titles, statements, and reading; Hanken Grotesk for interface chrome; IBM Plex Mono for figures, codes, and labels. Loaded in `app/layout.tsx` and exposed as `--font-serif`, `--font-sans`, `--font-mono`.
-- Shape: radii of 8px or less, fine borders over shadows.
+- Palette: a near-monochrome neutral scale carries the UI and one Atlas emerald signals brand, primary action, focus, and the live state. Dark is the default theme; light ships behind `[data-theme="light"]`. Amber and red are reserved for real signals, never decoration.
+- Type: Geist Sans for interface and reading, Geist Mono for figures, codes, and labels. Vendored in `assets/fonts`, decoded by the postinstall step, loaded in `app/layout.tsx`, and exposed as `--font-serif`, `--font-sans`, `--font-mono`.
+- Shape: one sharp radius scale, fixed. Controls 4px, rows and badges 6px, panels 8px, declared as theme tokens so the semantic utilities `rounded-control`, `rounded-row`, `rounded-panel` are the only radii components use. `rounded-full` is reserved for true circles (avatars, dots) and hairline rails. Fine borders over shadows.
 - Motion: one easing curve, short transitions, reduced motion respected.
 
 ## Mark

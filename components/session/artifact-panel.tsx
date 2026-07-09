@@ -55,7 +55,7 @@ export function ArtifactPanel({ revisions, className }: { revisions: ArtifactRev
     <section
       aria-label="Your working artifact"
       className={cn(
-        "rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]",
+        "rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]",
         className
       )}
     >
@@ -74,7 +74,7 @@ export function ArtifactPanel({ revisions, className }: { revisions: ArtifactRev
                 aria-selected={i === index}
                 onClick={() => setPinned(i >= latest ? null : i)}
                 className={cn(
-                  "rounded-[6px] px-2 py-0.5 text-[11px] font-medium transition",
+                  "rounded-row px-2 py-0.5 text-[11px] font-medium transition",
                   i === index
                     ? "bg-[var(--color-ink)] text-[var(--color-bg)]"
                     : "text-[var(--color-faint)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"

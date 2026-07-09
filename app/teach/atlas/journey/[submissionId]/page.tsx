@@ -67,7 +67,7 @@ export default async function JourneyDrillInPage({ params }: { params: Promise<{
           {view.report ? (
             <ProfessorReportPanel report={view.report} submissionId={view.submission.id} />
           ) : (
-            <section className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
+            <section className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
               <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Journey report</p>
               <p className="mt-2 text-[13.5px] leading-6 text-[var(--color-muted)]">
                 This submission has not been graded yet. Run the rubric to draft a report; nothing is published until
@@ -77,7 +77,7 @@ export default async function JourneyDrillInPage({ params }: { params: Promise<{
                 <input type="hidden" name="submissionId" value={view.submission.id} />
                 <button
                   type="submit"
-                  className="rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
+                  className="rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
                 >
                   Run the rubric
                 </button>

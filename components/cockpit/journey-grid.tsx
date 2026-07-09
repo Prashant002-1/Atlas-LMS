@@ -59,7 +59,7 @@ export function JourneyGrid({ rows }: { rows: JourneyGridRow[] }) {
         const card = (
           <article
             className={cn(
-              "flex h-full flex-col gap-2 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5 shadow-[var(--shadow-panel)]",
+              "flex h-full flex-col gap-2 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5 shadow-[var(--shadow-panel)]",
               row.submissionId && "atlas-card-hover"
             )}
           >
@@ -76,7 +76,7 @@ export function JourneyGrid({ rows }: { rows: JourneyGridRow[] }) {
                       key={entry.key}
                       title={`${entry.name}: ${entry.level}`}
                       className={cn(
-                        "atlas-mono inline-flex size-5 items-center justify-center rounded-[5px] text-[10px] font-semibold",
+                        "atlas-mono inline-flex size-5 items-center justify-center rounded-row text-[10px] font-semibold",
                         levelTone[entry.level]
                       )}
                     >
@@ -105,7 +105,7 @@ export function JourneyGrid({ rows }: { rows: JourneyGridRow[] }) {
           <Link
             key={row.userId}
             href={`/teach/atlas/journey/${row.submissionId}`}
-            className="rounded-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+            className="rounded-panel focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
           >
             {card}
           </Link>

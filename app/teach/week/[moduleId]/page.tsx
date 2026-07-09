@@ -33,7 +33,7 @@ export default async function InstructorWeekPage({ params }: { params: Promise<{
 
   return (
     <>
-      <BackLink href="/teach/weeks">Weeks</BackLink>
+      <BackLink href="/teach/weeks">Modules</BackLink>
       {workspace.problem || !workspace.module ? (
         <Panel title={workspace.problem?.title ?? "Week unavailable"}>
           <p className="text-[14px] leading-6 text-[var(--color-muted)]">
@@ -101,7 +101,7 @@ function WeekEditForm({
 
   return (
     <details className="mt-5 border-t border-[var(--color-border)] pt-4">
-      <summary className="cursor-pointer rounded-[6px] text-[13px] font-medium text-[var(--color-muted)] marker:text-[var(--color-faint)]">
+      <summary className="cursor-pointer rounded-row text-[13px] font-medium text-[var(--color-muted)] marker:text-[var(--color-faint)]">
         Edit
       </summary>
       <form action={updateModuleRecord} className="mt-4 grid max-w-3xl gap-3">
@@ -115,7 +115,7 @@ function WeekEditForm({
             type="text"
             defaultValue={module.title}
             required
-            className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+            className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
@@ -123,7 +123,7 @@ function WeekEditForm({
           <textarea
             name="summary"
             defaultValue={module.summary ?? ""}
-            className="min-h-28 resize-none rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+            className="min-h-28 resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <div>

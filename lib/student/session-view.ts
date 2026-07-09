@@ -1,3 +1,6 @@
+import { and, asc, eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { evidenceSpans, journeyReports, type SessionSubmission } from "@/lib/db/schema";
 import { turnsToUIMessages } from "@/lib/agent/session";
 import {
   activeStudentEnrollment,
@@ -11,7 +14,8 @@ import {
   openLiveSession,
   studentDisplayName,
 } from "@/lib/agent/session-store";
-import type { RubricCriterion, SideNoteCard } from "@/lib/agent/session-parts";
+import { parseJourneyScores, type RubricCriterion, type RubricLevelName, type SideNoteCard } from "@/lib/agent/session-parts";
+import { turnsFromSubmissionTranscript } from "@/lib/agent/grading";
 import type { UIMessage } from "ai";
 
 /**
@@ -24,6 +28,36 @@ export type StudentSessionArtifact = {
   turnIndex: number;
   artifactType: string;
   state: unknown;
+};
+
+export type StudentEvidenceView = {
+  id: string;
+  quote: string;
+  /** Clipped neighboring turns, for reading the quote in context. */
+  before: { role: string; text: string } | null;
+  after: { role: string; text: string } | null;
+};
+
+export type StudentCriterionView = {
+  key: string;
+  name: string;
+  weight: number;
+  level: RubricLevelName;
+  score: number;
+  maxScore: number;
+  rationale: string;
+  evidence: StudentEvidenceView[];
+};
+
+export type StudentJourneyReportView = {
+  id: string;
+  status: "draft" | "final";
+  overallScore: number;
+  maxScore: number;
+  graderLabel: string | null;
+  reviewRequestedAt: string | null;
+  createdAt: string;
+  criteria: StudentCriterionView[];
 };
 
 export type StudentSessionView =
@@ -47,6 +81,10 @@ export type StudentSessionView =
       submitted: boolean;
       submittedAt: string | null;
       studentName: string;
+      /** The journey report for the submitted session, when grading has run. */
+      report: StudentJourneyReportView | null;
+      /** Submitted but not yet graded (no model configured, or grading failed). */
+      gradingPending: boolean;
     };
 
 type Actor = { id: string; orgId: string | null; role: string };
@@ -101,6 +139,7 @@ export async function loadStudentSessionView(user: Actor, assignmentId: string):
     : [[], [], [] as SideNoteCard[]];
 
   const studentName = await studentDisplayName(user.orgId, user.id);
+  const report = submission ? await loadStudentJourneyReport(user.orgId, submission, bundle.criteria) : null;
 
   return {
     course: { id: course.id, code: course.code, name: course.name },
@@ -125,5 +164,80 @@ export async function loadStudentSessionView(user: Actor, assignmentId: string):
     submitted: Boolean(submission),
     submittedAt: submission ? submission.submittedAt.toISOString() : null,
     studentName,
+    report,
+    gradingPending: Boolean(submission) && !report,
+  };
+}
+
+const clip = (value: string, max: number) => (value.length <= max ? value : `${value.slice(0, max)}...`);
+
+/**
+ * The student's journey report, verified evidence resolved against the FROZEN
+ * transcript (the submission jsonb), so what renders is exactly what was
+ * graded. Returns null when grading has not produced a report yet.
+ */
+async function loadStudentJourneyReport(
+  orgId: string,
+  submission: SessionSubmission,
+  criteria: RubricCriterion[]
+): Promise<StudentJourneyReportView | null> {
+  const [report] = await db
+    .select()
+    .from(journeyReports)
+    .where(and(eq(journeyReports.orgId, orgId), eq(journeyReports.submissionId, submission.id)))
+    .limit(1);
+  if (!report) return null;
+
+  const scores = parseJourneyScores(report.scores);
+  if (!scores) return null;
+
+  const spanRows = await db
+    .select()
+    .from(evidenceSpans)
+    .where(and(eq(evidenceSpans.orgId, orgId), eq(evidenceSpans.submissionId, submission.id)))
+    .orderBy(asc(evidenceSpans.createdAt));
+  const spanById = new Map(spanRows.map((row) => [row.id, row]));
+
+  const transcriptTurns = turnsFromSubmissionTranscript(submission.transcript) ?? [];
+  const turnById = new Map(transcriptTurns.map((turn) => [turn.id, turn]));
+
+  const criteriaViews: StudentCriterionView[] = [];
+  for (const criterion of criteria) {
+    const grade = scores[criterion.key];
+    if (!grade) continue;
+    const evidence: StudentEvidenceView[] = [];
+    for (const spanId of grade.evidenceSpans) {
+      const span = spanById.get(spanId);
+      if (!span || !span.verified) continue;
+      const before = span.previousTurnId ? turnById.get(span.previousTurnId) : undefined;
+      const after = span.nextTurnId ? turnById.get(span.nextTurnId) : undefined;
+      evidence.push({
+        id: span.id,
+        quote: span.quote,
+        before: before ? { role: before.role, text: clip(before.text, 280) } : null,
+        after: after ? { role: after.role, text: clip(after.text, 280) } : null,
+      });
+    }
+    criteriaViews.push({
+      key: criterion.key,
+      name: criterion.name,
+      weight: criterion.weight,
+      level: grade.level,
+      score: grade.score,
+      maxScore: criterion.levels.reduce((max, level) => Math.max(max, level.score), 0),
+      rationale: grade.rationale,
+      evidence,
+    });
+  }
+
+  return {
+    id: report.id,
+    status: report.status,
+    overallScore: report.overallScore,
+    maxScore: criteriaViews.reduce((sum, c) => sum + c.maxScore, 0),
+    graderLabel: report.graderLabel,
+    reviewRequestedAt: report.reviewRequestedAt ? report.reviewRequestedAt.toISOString() : null,
+    createdAt: report.createdAt.toISOString(),
+    criteria: criteriaViews,
   };
 }

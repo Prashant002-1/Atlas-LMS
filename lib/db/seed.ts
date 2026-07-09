@@ -35,6 +35,9 @@ import {
   sessionArtifactStates,
   sessionSideNotes,
   sessionSubmissions,
+  evidenceSpans,
+  journeyReports,
+  classRollups,
 } from "./schema";
 import { demoPackage } from "./fixtures/package";
 import {
@@ -48,9 +51,13 @@ import {
   sideNoteCards as v0SideNoteCards,
   studentSessions as v0StudentSessions,
   turns as v0Turns,
+  evidenceSpans as v0EvidenceSpans,
+  journeyReports as v0JourneyReports,
+  classRollup as v0ClassRollup,
 } from "./fixtures/v0-demo-world";
 import type { FixtureCourse } from "./fixtures/types";
 import { normalizeSessionTranscript } from "../agent/transcript";
+import { buildRollupNarrative, computeClassRollupStats } from "../agent/rollup";
 import { hashPassword } from "../auth/password";
 
 /** Deterministic UUID from a stable key (sha256 → UUID v4 shape). */
@@ -248,8 +255,77 @@ async function main() {
     await db.insert(sessionSubmissions).values(submissionRows.slice(i, i + 25));
   }
 
+  /* Phase 3 grading rows: verified evidence spans and journey reports for
+     every frozen session, then a class rollup computed through the SAME
+     deterministic aggregation the live pipeline uses. Reports are `final`
+     where the gradebook shows a grade and `draft` where the submission is
+     still waiting on the professor. The three students whose work is missing
+     have no submission, so no report: when they submit live, the real
+     pipeline grades them. */
+  const submissionIdBySession = new Map(submissionRows.map((row) => [row.sessionId, row.id]));
+
+  const spanRows = v0EvidenceSpans
+    .filter((span) => submissionIdBySession.has(span.sessionId))
+    .map((span) => ({
+      id: span.id,
+      orgId: span.orgId,
+      sessionId: span.sessionId,
+      submissionId: submissionIdBySession.get(span.sessionId)!,
+      turnId: span.turnId,
+      criterionKey: span.criterionKey,
+      charStart: span.charStart,
+      charEnd: span.charEnd,
+      quote: span.quote,
+      verified: span.verified,
+      speaker: span.speaker,
+      previousTurnId: span.previousTurnId ?? null,
+      nextTurnId: span.nextTurnId ?? null,
+    }));
+  for (let i = 0; i < spanRows.length; i += 50) {
+    await db.insert(evidenceSpans).values(spanRows.slice(i, i + 50));
+  }
+
+  const reportRows = v0JourneyReports
+    .filter((report) => submissionIdBySession.has(report.sessionId))
+    .map((report) => ({
+      id: report.id,
+      orgId: report.orgId,
+      submissionId: submissionIdBySession.get(report.sessionId)!,
+      sessionId: report.sessionId,
+      userId: report.userId,
+      courseId: report.courseId,
+      assignmentId: report.assignmentId,
+      rubricId: report.rubricId,
+      rubricVersion: report.rubricVersion,
+      scores: report.scores,
+      overallScore: report.overallScore,
+      status: (sessionStateByUserId.get(report.userId) === "graded" ? "final" : "draft") as "final" | "draft",
+      graderLabel: "seed",
+      createdAt: new Date(report.createdAt),
+    }));
+  for (let i = 0; i < reportRows.length; i += 25) {
+    await db.insert(journeyReports).values(reportRows.slice(i, i + 25));
+  }
+
+  const rollupStats = computeClassRollupStats({
+    reports: reportRows.map((row) => ({ scores: row.scores, overallScore: row.overallScore, reviewRequestedAt: null })),
+    submittedSessions: submissionRows.length,
+    sideNotes: v0SideNoteCards
+      .filter((card) => submissionIdBySession.has(card.sessionId))
+      .map((card) => ({ sessionId: card.sessionId, topic: card.topic })),
+  });
+  await db.insert(classRollups).values({
+    id: v0ClassRollup.id,
+    orgId,
+    courseId: v0ClassRollup.courseId,
+    assignmentId: v0SessionAssignment.assignmentId,
+    stats: rollupStats,
+    narrativeDraft: buildRollupNarrative(rollupStats),
+    recommendedPracticeSet: v0ClassRollup.recommendedPracticeSet,
+  });
+
   console.log(
-    `Seeded ${pkg.org.name}: ${pkg.terms.length} terms, ${pkg.users.length} users, ${pkg.courses.length} courses, ${submissionCount} submissions, ${submissionRows.length} frozen sessions.`
+    `Seeded ${pkg.org.name}: ${pkg.terms.length} terms, ${pkg.users.length} users, ${pkg.courses.length} courses, ${submissionCount} submissions, ${submissionRows.length} frozen sessions, ${reportRows.length} journey reports, ${spanRows.length} evidence spans.`
   );
   console.log(`Sign in: instructor@demo.edu or student@demo.edu · password "${pkg.password}".`);
   process.exit(0);

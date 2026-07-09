@@ -17,6 +17,15 @@ A course aperture: measured top ticks, converging paths, and a single point of o
 
 The product does not paint decorative or implied-data backgrounds. Records carry the screen; identity stays in the mark, the type, and a restrained accent.
 
+## Interaction Posture
+
+Show the record and direct controls. Do not assign work to the user, narrate their attention, or teach them an ordinary interface. Labels name the actual object or state: `Work`, `Modules`, `Announcements`, `Students`, `Due Jun 28`, `8 submitted`, `Live`, `Draft`.
+
+- Do not use dashboard language such as `Needs action`, `Next`, `To do`, `course health`, generic `insights`, or tutorial hints.
+- A status is a fact, not an instruction. It may show a count, date, state, or direct consequence.
+- Give navigation and controls a visible, restrained signifier before hover. Hover and focus confirm an available action; they do not reveal that an otherwise identical surface is clickable.
+- The student agent may guide a student within a professor-defined learning contract. This rule applies to the ordinary LMS interface, especially professor surfaces.
+
 ## Components
 
 Shared primitives live in `components/atlas/`. Prefer extending them over adding one-off UI.

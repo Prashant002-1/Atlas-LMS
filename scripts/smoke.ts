@@ -53,7 +53,7 @@ const checks: SmokeCheck[] = [
     path: "/teach",
     status: 200,
     auth: { email: "instructor@demo.edu", password: "atlas1234", redirectTo: "/teach" },
-    includes: ["Overview", "To grade", "In review", "Next", "Applied Statistics"],
+    includes: ["Overview", "To grade", "In review", "Next", "ECON-241"],
   },
   {
     name: "atlas session cockpit",

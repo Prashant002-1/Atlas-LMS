@@ -84,6 +84,32 @@ export function parseRubricCriteria(data: unknown): RubricCriterion[] | null {
   return result.success ? result.data : null;
 }
 
+/**
+ * Reweight a criterion while keeping its level points coherent. The invariant
+ * this preserves: a criterion's weight IS its maximum points (weights sum to
+ * 100 across the rubric), and the other levels keep their proportion of the
+ * top level, so "Meets is 80% of full credit" survives a weight edit. Zeros
+ * stay zero; the top level lands exactly on the new weight.
+ */
+export function rescaleCriterionToWeight(criterion: RubricCriterion, newWeight: number): RubricCriterion {
+  if (!Number.isFinite(newWeight) || newWeight <= 0) {
+    throw new Error(`Weight for "${criterion.key}" must be a positive number.`);
+  }
+  const currentMax = criterion.levels.reduce((max, level) => Math.max(max, level.score), 0);
+  if (currentMax <= 0) {
+    throw new Error(`Criterion "${criterion.key}" has no positive level points to rescale.`);
+  }
+  const ratio = newWeight / currentMax;
+  return {
+    ...criterion,
+    weight: newWeight,
+    levels: criterion.levels.map((level) => ({
+      ...level,
+      score: level.score === currentMax ? newWeight : Math.round(level.score * ratio),
+    })),
+  };
+}
+
 /* ── journey scores (journey_reports.scores jsonb) ──────────── */
 
 export const rubricLevelNameSchema = z.enum(["Exceeds", "Meets", "Developing", "Missing"]);

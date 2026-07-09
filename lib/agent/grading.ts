@@ -159,6 +159,18 @@ export function scoreForLevel(criterion: RubricCriterion, level: RubricLevelName
   return descriptor ? descriptor.score : null;
 }
 
+/**
+ * Letter for a 0-100 score, the same mapping the demo world grades with.
+ * Used when finalize writes the gradebook row from a journey report.
+ */
+export function gradeLetterFor(score: number): string {
+  if (score >= 90) return "A";
+  if (score >= 80) return "B";
+  if (score >= 70) return "C";
+  if (score >= 60) return "D";
+  return "F";
+}
+
 /* ── prompts ────────────────────────────────────────────────── */
 
 const clip = (value: string, max: number) => (value.length <= max ? value : `${value.slice(0, max)}...`);

@@ -1,6 +1,6 @@
 import { Check, CircleAlert } from "lucide-react";
 import { redirect } from "next/navigation";
-import { ActionButton, BackLink, CodeList, Panel, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { ActionButton, BackLink, ButtonLink, CodeList, Panel, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { EmptyRecord, ObjectiveChecklist, RecordFact } from "@/components/atlas/record";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
@@ -11,6 +11,7 @@ import {
   type InstructorAssignmentSubmission,
   type InstructorAssignmentWorkspace,
 } from "@/lib/instructor/workspace";
+import { loadSessionAssignmentBundle } from "@/lib/agent/session-store";
 
 const submissionTone = {
   graded: "good",
@@ -37,6 +38,7 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
 
   const { assignmentId } = await params;
   const workspace = await loadInstructorAssignmentWorkspace(session.user, assignmentId);
+  const sessionBundle = session.user.orgId ? await loadSessionAssignmentBundle(session.user.orgId, assignmentId) : null;
 
   return (
     <>
@@ -50,6 +52,19 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
       ) : (
         <>
           <InstructorWorkRecord workspace={workspace} />
+          {sessionBundle ? (
+            <section className="mt-4 rounded-[8px] border border-[color-mix(in_oklch,var(--color-accent)_35%,var(--color-border))] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
+              <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-accent-strong)]">Work session</p>
+              <p className="mt-2 max-w-3xl text-[14px] leading-6 text-[var(--color-muted)]">
+                Students take this assignment as a live session with Atlas and are graded on the reasoning journey. The
+                journey grid, class insight, and grading live in the session cockpit; the gradebook below reflects what
+                you finalize there.
+              </p>
+              <div className="mt-4">
+                <ButtonLink href={`/teach/atlas/${assignmentId}`}>Open session cockpit</ButtonLink>
+              </div>
+            </section>
+          ) : null}
           <SubmissionList workspace={workspace} />
         </>
       )}

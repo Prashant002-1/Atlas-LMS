@@ -1,6 +1,6 @@
 # v0 Implementation Plan
 
-**Status:** Phases 0-2 are complete and merged. Phase 3 (grading pipeline) is built and in review. Phase 4 (professor surfaces) is next.
+**Status:** Phases 0-2 are complete and merged. Phase 3 (grading pipeline) and Phase 4 (professor surfaces) are built and in review, stacked. Phase 5 (demo world polish and recording) is next.
 
 **Runtime decision:** AI SDK 7 is the runtime foundation. Eve is removed, not completed. `WorkflowAgent` was evaluated at the Phase 2 door and deferred with reasons; the session engine runs plain AI SDK 7 streams with Postgres turn persistence behind one seam module. See ADR-0010.
 
@@ -109,20 +109,29 @@ Remaining to call the phase closed after review:
 
 ## Phase 4 - Professor surfaces
 
-**Status:** Later.
+**Status:** Built, in review (feat/professor-surfaces, stacked on feat/grading-pipeline).
 
 **Intent:** close the loop on the professor side.
 
-Build:
+Built:
 
-- Assignment setup for the session contract and rubric.
-- Journey card grid, drill-in, transcript view, and evidence-backed rubric display.
-- Class insight from stored rollups.
-- Practice-set proposal behind the existing approve gate.
+- The session cockpit replaces the Phase 0 shell at `/teach/atlas`: every work session in the course with its class at a glance, plus the professor's planning history (the provenance the student side-notes trace back to, expandable to the full planning transcript).
+- Per-assignment cockpit (`/teach/atlas/[assignmentId]`): the session contract editable in place (brief, duration, transcript policy, THE side-note toggle), the rubric with weight editing, the journey grid, and class insight. Rubric edits rescale level points proportionally so "weight = full credit" stays true, and versioning is honest: once anything has been graded, an edit writes a NEW rubric version and repoints the assignment; graded reports stay pinned to the version that read them.
+- Journey grid: one card per enrolled student from four set-based queries joined in memory (no N+1), latest submission per student, ordered by what needs the professor first. The state machine (not_started / in_session / pending_grading / draft / review_requested / final) is one pure function pinned by an exhaustive test.
+- Journey drill-in (`/teach/atlas/journey/[submissionId]`): the report with the rubric's own points, every evidence quote a jump-link to its exact place in the FROZEN transcript, where verified spans render highlighted in the characters they were taken from, side notes and artifact revisions alongside. Ungraded submissions offer "Run the rubric" in place.
+- Finalize is the publish moment and the ONLY session-grade gradebook writer: one transaction flips draft -> final with a who/when audit (finalizedAt, finalizedById; migration `drizzle/0003`), marks the frozen submission graded, and writes the classic gradebook row. Regrade reruns drafts only; a published grade stays the record (reopen is a later explicit affordance).
+- Class insight renders the STORED rollup (never recomputed at render; an explicit Refresh action recomputes, and a staleness chip shows when stored stats disagree with live counts). "Propose practice set" closes the loop through the EXISTING changeProposals approve gate: deterministic transform of the stored recommendation (objective alignment derived by matching concepts against the course record), model draft grounded on the stats as fallback, and the payload must round-trip the apply gate's own block schema before insertion, so an approved draft can never fail to apply. Review's proposal card now previews practice-set questions.
+- The classic assignment page banners into the cockpit for session assignments; smoke checks the cockpit; the route contract gains a phase 4 block including two architectural pins (the cockpit read layer contains no writes and never recomputes rollups inline).
+
+Deliberately deferred, recorded here: creating a NEW session assignment from scratch (the seeded one is configured; creation arrives with planning-session tooling), per-criterion grade overrides before finalize (accept or regrade for v0), reopening a finalized report, and the feedback-dictation flash (cut line 1).
 
 Definition of done:
 
 - The demo loop is clickable end to end: configure -> student session -> journey report -> class insight -> approve.
+
+Remaining to call the phase closed after review:
+
+- A live end-to-end walk with a real model key and seeded db: edit a weight, watch v2 appear; open a draft journey, spot-check highlighted evidence, finalize; refresh insight; propose the practice set and apply it in Review.
 
 ## Phase 5 - Polish and recording
 

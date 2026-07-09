@@ -13,7 +13,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test lib/workspace/*.test.ts lib/db/fixtures/*.test.ts lib/agent/*.test.ts",
+    "test": "tsx --test lib/workspace/*.test.ts lib/db/fixtures/*.test.ts lib/agent/*.test.ts lib/instructor/*.test.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build",
     "smoke": "tsx scripts/smoke.ts",
     "regrade": "tsx scripts/regrade.ts",

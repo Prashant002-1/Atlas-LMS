@@ -1,13 +1,17 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { auth } from "@/lib/auth";
-import { loadInstructorWorkspace } from "@/lib/instructor/workspace";
+import { loadInstructorWorkspace, type InstructorWorkspace } from "@/lib/instructor/workspace";
 import { PageHeader } from "@/components/teach/page-header";
-import { EmptyRecord } from "@/components/atlas/record";
+import { ButtonLink, Panel, RecordRow, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { EmptyState } from "@/components/atlas/record";
 import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 /**
- * The teaching overview: a glance, not a control room. Four numbers, the next
- * three things worth doing, the latest note. Every detail lives on its page.
+ * The teaching overview is the course record at a glance: the work, the
+ * modules, the announcements, and what changed recently, each as facts with
+ * direct controls. It presents the record; it does not assign work or rank
+ * attention. Results live with their own records.
  */
 export default async function TeachOverviewPage() {
   const session = await auth();
@@ -22,117 +26,185 @@ export default async function TeachOverviewPage() {
     );
   }
 
-  const toGrade = workspace.workProgress.reduce((sum, item) => sum + Math.max(0, item.submitted - item.graded), 0);
-  const inReview = workspace.proposals.filter((p) => p.status === "pending").length;
-  const drafts =
-    workspace.modules.filter((m) => m.status !== "approved").length +
-    workspace.assignments.filter((a) => a.status !== "approved").length;
-  const missing = workspace.workProgress.reduce((sum, item) => sum + item.missing, 0);
-
-  const gradeNext = workspace.workProgress
-    .filter((item) => item.submitted - item.graded > 0)
-    .sort((a, b) => b.submitted - b.graded - (a.submitted - a.graded))[0];
-  const reviewNext = workspace.proposals.find((p) => p.status === "pending");
-  const publishNext = workspace.modules.find((m) => m.status !== "approved") ?? null;
-  const latestNote = workspace.notices[0];
-
-  const actions = [
-    gradeNext
-      ? {
-          href: gradeNext.assignmentId ? `/teach/work/${gradeNext.assignmentId}` : "/teach/work",
-          label: `Grade ${gradeNext.title}`,
-          detail: `${gradeNext.submitted - gradeNext.graded} waiting`,
-        }
-      : null,
-    reviewNext
-      ? { href: "/teach/review", label: `Review: ${reviewNext.title}`, detail: "Drafted by Atlas, waiting on you" }
-      : null,
-    publishNext
-      ? {
-          href: publishNext.id ? `/teach/week/${publishNext.id}` : "/teach/weeks",
-          label: `Publish week ${publishNext.week}`,
-          detail: publishNext.title,
-        }
-      : null,
-    missing > 0 ? { href: "/teach/students", label: "Check missing work", detail: `${missing} items missing` } : null,
-  ].filter((a): a is { href: string; label: string; detail: string } => a !== null);
+  const progressById = new Map(workspace.workProgress.map((item) => [item.assignmentId, item]));
+  const workRows = workspace.assignments.slice(0, 6);
+  const moduleRows = workspace.modules.slice(0, 6);
 
   return (
     <>
-      <PageHeader title="Overview" course={`${workspace.course.code} / ${workspace.course.term}`} />
-
-      <StaggerGrid className="grid grid-cols-2 gap-3 lg:grid-cols-4" stagger={0.06}>
-        <MotionItem>
-          <Stat label="To grade" value={toGrade} href="/teach/work" />
-        </MotionItem>
-        <MotionItem>
-          <Stat label="In review" value={inReview} href="/teach/review" />
-        </MotionItem>
-        <MotionItem>
-          <Stat label="Drafts" value={drafts} href="/teach/weeks" />
-        </MotionItem>
-        <MotionItem>
-          <Stat label="Students" value={workspace.students.length} href="/teach/students" />
-        </MotionItem>
-      </StaggerGrid>
-
-      <section className="mt-8">
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Next</h2>
-        <StaggerGrid className="mt-2.5 space-y-2" stagger={0.05} delay={0.1}>
-          {actions.length > 0 ? (
-            actions.slice(0, 3).map((action) => (
-              <MotionItem key={action.href + action.label}>
-                <Link
-                  href={action.href}
-                  className="atlas-card-hover group flex items-center justify-between gap-3 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 shadow-[var(--shadow-panel)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate text-[14px] font-medium">{action.label}</span>
-                    <span className="mt-0.5 block text-[12.5px] text-[var(--color-muted)]">{action.detail}</span>
-                  </span>
-                  <span aria-hidden className="text-[var(--color-faint)] transition-transform duration-200 ease-out group-hover:translate-x-1 group-hover:text-[var(--color-accent-strong)]">&rarr;</span>
-                </Link>
-              </MotionItem>
-            ))
-          ) : (
-            <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 shadow-[var(--shadow-panel)]">
-              <EmptyRecord title="Clear" detail="Nothing needs you right now." />
-            </div>
-          )}
-        </StaggerGrid>
-      </section>
-
-      {latestNote ? (
-        <section className="mt-8">
-          <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Latest note</h2>
-          <div className="mt-2.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 shadow-[var(--shadow-panel)]">
-            <p className="text-[14px] font-medium">{latestNote.title}</p>
-            {latestNote.message ? (
-              <p className="mt-1 line-clamp-2 text-[13px] leading-5 text-[var(--color-muted)]">{latestNote.message}</p>
-            ) : null}
+      <PageHeader
+        title={workspace.course.name}
+        course={`${workspace.course.code} / ${workspace.course.term}`}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <ButtonLink href="/teach/work?new=1#new" variant="secondary" size="sm" icon={false}>
+              <Plus size={13} strokeWidth={2} aria-hidden className="mr-1.5" />
+              New assignment
+            </ButtonLink>
+            <ButtonLink href="/teach/weeks?new=1#new" variant="secondary" size="sm" icon={false}>
+              <Plus size={13} strokeWidth={2} aria-hidden className="mr-1.5" />
+              New module
+            </ButtonLink>
+            <ButtonLink href="/teach/announcements#new" variant="secondary" size="sm" icon={false}>
+              <Plus size={13} strokeWidth={2} aria-hidden className="mr-1.5" />
+              New announcement
+            </ButtonLink>
           </div>
-        </section>
-      ) : null}
+        }
+      />
+
+      <StaggerGrid className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.42fr)]" stagger={0.06}>
+        <div className="min-w-0 space-y-4">
+          <MotionItem>
+            <Panel title="Work" action={<TextLink href="/teach/work" className="text-[13px]">All work</TextLink>}>
+              {workRows.length > 0 ? (
+                <div className="-mx-5 -my-5 divide-y divide-[var(--color-border)]">
+                  {workRows.map((assignment) => (
+                    <WorkRecordRow
+                      key={assignment.id ?? assignment.title}
+                      assignment={assignment}
+                      progress={assignment.id ? progressById.get(assignment.id) : undefined}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  art="atlas"
+                  title="No work in the record"
+                  detail="Assignments and sessions appear here once they are added."
+                  action={<TextLink href="/teach/work?new=1#new" className="text-[13px]">New assignment</TextLink>}
+                />
+              )}
+            </Panel>
+          </MotionItem>
+
+          <MotionItem>
+            <Panel title="Modules" action={<TextLink href="/teach/weeks" className="text-[13px]">All modules</TextLink>}>
+              {moduleRows.length > 0 ? (
+                <div className="-mx-5 -my-5 divide-y divide-[var(--color-border)]">
+                  {moduleRows.map((module) => (
+                    <RecordRow
+                      key={module.id ?? module.title}
+                      href={module.id ? `/teach/week/${module.id}` : "/teach/weeks"}
+                      aside={
+                        <StatusBadge tone={module.status === "approved" ? "good" : "neutral"}>
+                          {module.status === "approved" ? "Live" : "Draft"}
+                        </StatusBadge>
+                      }
+                    >
+                      <span className="flex min-w-0 items-baseline gap-3">
+                        <span className="atlas-mono w-5 shrink-0 text-[13px] tabular-nums text-[var(--color-faint)]">
+                          {module.week}
+                        </span>
+                        <span className="truncate text-[14px] font-medium">{module.title}</span>
+                      </span>
+                    </RecordRow>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  art="atlas"
+                  title="No modules in the record"
+                  detail="The week-by-week material appears here once it is added."
+                  action={<TextLink href="/teach/weeks?new=1#new" className="text-[13px]">New module</TextLink>}
+                />
+              )}
+            </Panel>
+          </MotionItem>
+        </div>
+
+        <div className="min-w-0 space-y-4">
+          <MotionItem>
+            <Panel
+              title="Announcements"
+              action={<TextLink href="/teach/announcements" className="text-[13px]">All</TextLink>}
+            >
+              {workspace.notices.length > 0 ? (
+                <div className="space-y-4">
+                  {workspace.notices.slice(0, 3).map((notice) => (
+                    <div key={notice.id ?? notice.title}>
+                      <p className="text-[13.5px] font-medium leading-5">{notice.title}</p>
+                      <p className="atlas-mono mt-0.5 text-[11px] uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                        {notice.postedAt ? `Posted ${shortDate(notice.postedAt)}` : "Draft"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  art="atlas"
+                  title="Nothing posted"
+                  detail="Announcements are one-way course posts. Students see them on the course home."
+                  action={<TextLink href="/teach/announcements#new" className="text-[13px]">New announcement</TextLink>}
+                />
+              )}
+            </Panel>
+          </MotionItem>
+
+          <MotionItem>
+            <Panel title="Recent changes">
+              {workspace.recentChanges.length > 0 ? (
+                <div className="space-y-3.5">
+                  {workspace.recentChanges.map((change) => (
+                    <Link
+                      key={`${change.kind}-${change.href}-${change.at.getTime()}-${change.title}`}
+                      href={change.href}
+                      className="group/change block rounded-row focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+                    >
+                      <span className="block truncate text-[13px] font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_22%,transparent)] decoration-1 underline-offset-[3px] transition group-hover/change:text-[var(--color-accent-strong)] group-hover/change:decoration-[var(--color-accent-strong)]">
+                        {change.title}
+                      </span>
+                      <span className="atlas-mono mt-0.5 block text-[11px] uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                        {change.event} / {shortDate(change.at)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[13px] leading-5 text-[var(--color-muted)]">
+                  Changes to modules, work, and announcements appear here as they happen.
+                </p>
+              )}
+            </Panel>
+          </MotionItem>
+        </div>
+      </StaggerGrid>
     </>
   );
 }
 
-function Stat({
-  label,
-  value,
-  href,
+function WorkRecordRow({
+  assignment,
+  progress,
 }: {
-  label: string;
-  value: number;
-  href: string;
+  assignment: InstructorWorkspace["assignments"][number];
+  progress?: InstructorWorkspace["workProgress"][number];
 }) {
+  const facts: string[] = [];
+  if (assignment.dueAt) facts.push(`Due ${shortDate(assignment.dueAt)}`);
+  if (assignment.points) facts.push(`${Math.round(assignment.points)} pts`);
+  if (progress) {
+    facts.push(`${progress.submitted} submitted`);
+    if (progress.graded > 0) facts.push(`${progress.graded} graded`);
+  }
+
   return (
-    <Link
-      href={href}
-      className="atlas-card-hover block w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 shadow-[var(--shadow-panel)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+    <RecordRow
+      href={assignment.id ? `/teach/work/${assignment.id}` : "/teach/work"}
+      aside={
+        <StatusBadge tone={assignment.status === "approved" ? "good" : "neutral"}>
+          {assignment.status === "approved" ? "Live" : "Draft"}
+        </StatusBadge>
+      }
     >
-      <p className="atlas-mono text-[26px] font-medium leading-8 text-[var(--color-ink)]">{value}</p>
-      <p className="mt-0.5 text-[12.5px] text-[var(--color-muted)]">{label}</p>
-    </Link>
+      <span className="block truncate text-[14px] font-medium">{assignment.title}</span>
+      <span className="mt-0.5 block truncate text-[12.5px] text-[var(--color-muted)]">
+        {facts.length > 0 ? facts.join(" / ") : "No due date"}
+      </span>
+    </RecordRow>
   );
+}
+
+function shortDate(date: Date): string {
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }

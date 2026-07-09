@@ -18,7 +18,7 @@ export function Tool({ className, defaultOpen = false, children }: { className?:
   const [open, setOpen] = useState(defaultOpen);
   return (
     <ToolContext.Provider value={{ open, setOpen }}>
-      <div className={cn("w-full overflow-hidden rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)]", className)}>
+      <div className={cn("w-full overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)]", className)}>
         {children}
       </div>
     </ToolContext.Provider>
@@ -61,7 +61,7 @@ export function ToolHeader({
       <span className="flex min-w-0 items-center gap-2">
         <WrenchIcon className="size-3.5 shrink-0 text-[var(--color-faint)]" aria-hidden />
         <span className="truncate text-[13px] font-medium text-[var(--color-ink)]">{name}</span>
-        <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-muted)]">
+        <span className="inline-flex items-center gap-1 rounded-row border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-muted)]">
           <StatusIcon state={state} />
           {statusLabels[state]}
         </span>
@@ -81,7 +81,7 @@ export function ToolInput({ input, className }: { input: unknown; className?: st
   return (
     <div className={cn("space-y-1.5", className)}>
       <h4 className="atlas-mono text-[10px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Parameters</h4>
-      <pre className="overflow-x-auto rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-2.5 text-[11.5px] leading-5 text-[var(--color-muted)]">
+      <pre className="overflow-x-auto rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-2.5 text-[11.5px] leading-5 text-[var(--color-muted)]">
         <code>{JSON.stringify(input, null, 2)}</code>
       </pre>
     </div>
@@ -95,7 +95,7 @@ export function ToolOutput({ output, errorText, className }: { output?: ReactNod
       <h4 className="atlas-mono text-[10px] uppercase tracking-[0.08em] text-[var(--color-faint)]">{errorText ? "Error" : "Result"}</h4>
       <div
         className={cn(
-          "rounded-[8px] px-2.5 py-2 text-[12.5px] leading-5",
+          "rounded-row px-2.5 py-2 text-[12.5px] leading-5",
           errorText
             ? "border border-[color-mix(in_oklch,var(--color-danger)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-danger)_10%,transparent)] text-[var(--color-danger)]"
             : "border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-ink)]"

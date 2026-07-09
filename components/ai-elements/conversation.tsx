@@ -129,7 +129,7 @@ export function ConversationScrollButton({ className, label = "Scroll to latest"
         onClick={() => scrollToBottom("smooth")}
         aria-label={label}
         className={cn(
-          "pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-muted)] shadow-[var(--shadow-floating)] transition hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]",
+          "pointer-events-auto inline-flex items-center gap-1.5 rounded-row border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-muted)] shadow-[var(--shadow-floating)] transition hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]",
           className
         )}
       >

@@ -4,7 +4,7 @@ import { loadInstructorWorkspace, type InstructorWorkspace } from "@/lib/instruc
 import { createModuleRecord, publishModule } from "@/lib/instructor/actions";
 import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton, CodeList, StatusBadge, TextLink } from "@/components/atlas/primitives";
-import { EmptyRecord, ObjectiveChecklist } from "@/components/atlas/record";
+import { EmptyState, ObjectiveChecklist } from "@/components/atlas/record";
 import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 const statusTone = {
@@ -19,15 +19,20 @@ const statusLabel = {
   "needs-review": "Review",
 } as const;
 
-/** The week-by-week material record: distinct cards, clear separation, direct edits. */
-export default async function TeachWeeksPage() {
+/** The module-by-module material record: distinct cards, clear separation, direct edits. */
+export default async function TeachModulesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ new?: string }>;
+}) {
   const session = await auth();
-  const workspace = await loadInstructorWorkspace(session?.user);
+  const [workspace, params] = await Promise.all([loadInstructorWorkspace(session?.user), searchParams]);
+  const openNew = params.new === "1";
 
   if (workspace.problem) {
     return (
       <>
-        <PageHeader title="Weeks" />
+        <PageHeader title="Modules" />
         <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
       </>
     );
@@ -35,7 +40,7 @@ export default async function TeachWeeksPage() {
 
   return (
     <>
-      <PageHeader title="Weeks" course={`${workspace.course.code} / ${workspace.course.term}`} />
+      <PageHeader title="Modules" course={`${workspace.course.code} / ${workspace.course.term}`} />
 
       {workspace.modules.length > 0 ? (
         <StaggerGrid className="space-y-2.5" stagger={0.04}>
@@ -46,13 +51,17 @@ export default async function TeachWeeksPage() {
           ))}
         </StaggerGrid>
       ) : (
-        <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-6 shadow-[var(--shadow-panel)]">
-          <EmptyRecord title="No weeks yet" detail="Draft them with Atlas or add one below." />
+        <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+          <EmptyState art="atlas" title="No modules yet" detail="Draft them with Atlas or add one below." />
         </div>
       )}
 
-      <details className="mt-5 rounded-[10px] border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-4 shadow-[var(--shadow-panel)]">
-        <summary className="cursor-pointer text-[14px] font-semibold transition hover:text-[var(--color-accent-strong)]">Add a week</summary>
+      <details
+        id="new"
+        open={openNew}
+        className="mt-5 scroll-mt-24 rounded-panel border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-4 shadow-[var(--shadow-panel)]"
+      >
+        <summary className="cursor-pointer text-[14px] font-semibold transition hover:text-[var(--color-accent-strong)]">Add a module</summary>
         <form action={createModuleRecord} className="mt-4 grid max-w-xl gap-3">
           <label className="grid gap-1.5 text-[12px] font-medium">
             Title
@@ -61,7 +70,7 @@ export default async function TeachWeeksPage() {
               type="text"
               required
               placeholder="Week 8: Confidence intervals in practice"
-              className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+              className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </label>
           <label className="grid gap-1.5 text-[12px] font-medium">
@@ -70,14 +79,14 @@ export default async function TeachWeeksPage() {
               name="summary"
               rows={3}
               placeholder="What the week covers and why it matters."
-              className="resize-none rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[14px] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+              className="resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[14px] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </label>
           <ObjectiveChecklist objectives={workspace.objectives} selectedCodes={[]} />
           <div>
             <ActionButton>
               <Plus size={14} strokeWidth={2} aria-hidden="true" />
-              <span className="ml-1.5">Add week</span>
+              <span className="ml-1.5">Add module</span>
             </ActionButton>
           </div>
         </form>
@@ -91,7 +100,7 @@ function WeekCard({ module }: { module: InstructorWorkspace["modules"][number] }
   const tone = statusTone[module.status];
 
   return (
-    <article className="atlas-card-hover group flex gap-4 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
+    <article className="atlas-card-hover group flex gap-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
       {/* Week number: clean mono, no box. Top-aligned, faded. */}
       <span
         className={`atlas-mono shrink-0 pt-0.5 text-[18px] font-semibold leading-6 tabular-nums ${

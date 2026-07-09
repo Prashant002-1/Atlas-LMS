@@ -18,7 +18,12 @@ const requiredRoutes = [
   "/sign-in",
   "/sign-up",
   "/student",
+  "/student/calendar",
+  "/student/account",
   "/student/course/[courseId]",
+  "/student/course/[courseId]/modules",
+  "/student/course/[courseId]/assignments",
+  "/student/course/[courseId]/grades",
   "/student/material/[moduleId]",
   "/student/work/[assignmentId]",
   "/student/session/[assignmentId]",
@@ -28,8 +33,11 @@ const requiredRoutes = [
   "/teach/review",
   "/teach/weeks",
   "/teach/work",
+  "/teach/announcements",
+  "/teach/course",
   "/teach/students",
   "/teach/settings",
+  "/teach/account",
   "/teach/student/[studentId]",
   "/teach/week/[moduleId]",
   "/teach/work/[assignmentId]",
@@ -259,11 +267,75 @@ test("legacy blocks remain persisted but not rendered by the removed registry UI
 
 test("the app is pages behind one sidebar, not a monolith", () => {
   assertSourceIncludes("components/atlas/app-shell.tsx", "Collapse sidebar");
-  assertSourceIncludes("components/atlas/app-shell.tsx", "Sign out");
+  // Issue 26 replaced the account popover with explicit bottom destinations:
+  // Account (and Settings where one exists) are plain rows, and theme plus
+  // sign out live on the Account page itself.
+  assertSourceIncludes("components/atlas/app-shell.tsx", 'aria-label="Account"');
+  assertSourceExcludes("components/atlas/app-shell.tsx", "ChevronsUpDown");
+  assertSourceIncludes("components/atlas/account-panel.tsx", "Sign out");
+  assertSourceIncludes("components/atlas/account-panel.tsx", "signOutOfAtlas");
+  assertSourceIncludes("components/atlas/account-panel.tsx", "ThemeSwitch");
   assertSourceExcludes("components/atlas/app-shell.tsx", "Course record");
   assertSourceIncludes("app/teach/layout.tsx", "AppShell");
   assertSourceIncludes("app/student/layout.tsx", "AppShell");
   assertServerAction("lib/workspace/scope-actions.ts", "setCourseScope");
+  // Professors switch term and course from the shell itself.
+  assertServerAction("lib/workspace/scope-actions.ts", "setTermScope");
+  assertSourceIncludes("components/atlas/app-shell.tsx", "setTermScope");
+});
+
+test("issue 26: the shell holds the sharp radius scale by construction", () => {
+  // The scale is fixed in the theme: controls 4, rows and badges 6, panels 8.
+  assertSourceIncludes("app/globals.css", "--radius-control: 4px");
+  assertSourceIncludes("app/globals.css", "--radius-row: 6px");
+  assertSourceIncludes("app/globals.css", "--radius-panel: 8px");
+
+  // No component carries a literal px radius; the semantic utilities are the
+  // only way to round a corner, so 10px, 12px, and 14px drift cannot return.
+  const literalRadius = /rounded-(?:[a-z]+-)?\[\d+(?:\.\d+)?px\]/;
+  for (const file of sourceFiles(sourceDirs)) {
+    const source = readFileSync(file, "utf8");
+    assert.equal(literalRadius.test(source), false, `${path.relative(root, file)} uses a literal px radius`);
+  }
+});
+
+test("issue 26: workspaces present records and direct controls, not a task queue", () => {
+  // The professor overview is the course record: work, modules, announcements,
+  // recent changes, and direct creation. No attention management labels.
+  assertSourceIncludes("app/teach/page.tsx", '"Work"');
+  assertSourceIncludes("app/teach/page.tsx", '"Modules"');
+  assertSourceIncludes("app/teach/page.tsx", '"Announcements"');
+  assertSourceIncludes("app/teach/page.tsx", '"Recent changes"');
+  assertSourceIncludes("app/teach/page.tsx", "/teach/work?new=1");
+  assertSourceIncludes("app/teach/page.tsx", "/teach/weeks?new=1");
+  assertSourceIncludes("app/teach/page.tsx", "/teach/announcements#new");
+  for (const banned of ["Needs action", "Needs review", "To do", "course health", "Next up"]) {
+    for (const file of sourceFiles([path.join(root, "app"), path.join(root, "components")])) {
+      const source = readFileSync(file, "utf8");
+      assert.equal(source.includes(banned), false, `${path.relative(root, file)} says "${banned}"`);
+    }
+  }
+
+  // Announcements are one-way course posts with a direct creation form.
+  assertServerAction("lib/instructor/actions.ts", "createAnnouncementRecord");
+  assertSourceIncludes("app/teach/announcements/page.tsx", "action={createAnnouncementRecord}");
+
+  // Course setup is roster-facing and never touches Atlas policy or keys.
+  assertServerAction("lib/instructor/actions.ts", "updateCourseDetails");
+  assertSourceIncludes("app/teach/course/page.tsx", "action={updateCourseDetails}");
+  assertSourceExcludes("app/teach/course/page.tsx", "saveProviderKey");
+  assertSourceExcludes("app/teach/course/page.tsx", "updateCourseAiPolicy");
+
+  // The student calendar is derived from the record: assignment due dates and
+  // module openings. No separate event model feeds it.
+  assertSourceIncludes("lib/student/workspace.ts", "export async function loadStudentCalendar");
+  assertSourceExcludes("lib/student/workspace.ts", "calendarEvents");
+  assertSourceIncludes("app/student/calendar/page.tsx", "loadStudentCalendar");
+
+  // The overview states overdue work as a fact; it can never read "Nothing
+  // due" while an open assignment is past its date.
+  assertSourceIncludes("lib/student/workspace.ts", "overdueCount");
+  assertSourceIncludes("app/student/page.tsx", "card.overdue");
 });
 
 test("no em dashes anywhere in the product", () => {

@@ -141,6 +141,15 @@ export type InstructorProposal = {
   appliedRecords: InstructorProposalAppliedRecord[];
 };
 
+/** One record change, stated as a fact: what record, what happened, when. */
+export type InstructorRecordChange = {
+  kind: "module" | "assignment" | "announcement" | "applied";
+  title: string;
+  event: string;
+  at: Date;
+  href: string;
+};
+
 export type InstructorWorkspace = {
   source: "database" | "unavailable";
   course: WorkspaceCourse;
@@ -153,6 +162,7 @@ export type InstructorWorkspace = {
   workProgress: InstructorWorkProgress[];
   notices: InstructorCourseNotice[];
   proposals: InstructorProposal[];
+  recentChanges: InstructorRecordChange[];
   problem?: {
     title: string;
     detail: string;
@@ -216,6 +226,7 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
         position: modules.position,
         published: modules.published,
         createdAt: modules.createdAt,
+        updatedAt: modules.updatedAt,
       })
       .from(modules)
       .where(and(eq(modules.orgId, actor.orgId), eq(modules.courseId, course.id)))
@@ -232,6 +243,7 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
         position: assignments.position,
         published: assignments.published,
         createdAt: assignments.createdAt,
+        updatedAt: assignments.updatedAt,
       })
       .from(assignments)
       .where(and(eq(assignments.orgId, actor.orgId), eq(assignments.courseId, course.id)))
@@ -358,7 +370,7 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
       .from(announcements)
       .where(and(eq(announcements.orgId, actor.orgId), eq(announcements.courseId, course.id), eq(announcements.published, true)))
       .orderBy(desc(announcements.postedAt))
-      .limit(3);
+      .limit(5);
 
     const [policy] = await db
       .select()
@@ -385,6 +397,41 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
       });
     }
 
+    /*
+     * Recent record changes, assembled from the rows themselves: a module or
+     * work row whose updatedAt moved past its createdAt was edited, an
+     * announcement has its posted date, an applied proposal has its decision
+     * date. Facts with links, newest first; nothing is scored or ranked.
+     */
+    const recentChanges: InstructorRecordChange[] = [
+      ...moduleRows.map((m) => ({
+        kind: "module" as const,
+        title: m.name,
+        event: changeEvent("Module", m.createdAt, m.updatedAt),
+        at: m.updatedAt ?? m.createdAt,
+        href: `/teach/week/${m.id}`,
+      })),
+      ...assignmentRows.map((a) => ({
+        kind: "assignment" as const,
+        title: a.name,
+        event: changeEvent("Work", a.createdAt, a.updatedAt),
+        at: a.updatedAt ?? a.createdAt,
+        href: `/teach/work/${a.id}`,
+      })),
+      ...noticeRows.flatMap((n) =>
+        n.postedAt
+          ? [{ kind: "announcement" as const, title: n.title, event: "Announcement posted", at: n.postedAt, href: "/teach/announcements" }]
+          : []
+      ),
+      ...proposals.flatMap((p) =>
+        p.status === "applied" && p.decidedAt
+          ? [{ kind: "applied" as const, title: p.title, event: "Applied from Review", at: p.decidedAt, href: "/teach/review" }]
+          : []
+      ),
+    ]
+      .sort((a, b) => b.at.getTime() - a.at.getTime())
+      .slice(0, 8);
+
     return {
       source: "database",
       course: {
@@ -403,10 +450,17 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
       workProgress: toWorkProgress(assignmentRows, assignmentAlignmentRows, objectiveRows, submissionRows, studentEnrollmentRows.length),
       notices: noticeRows,
       proposals,
+      recentChanges,
     };
   } catch {
     return unavailableWorkspace("Course unavailable", "The course record could not be loaded.", scope);
   }
+}
+
+/** Added vs updated, read from the row's own timestamps. */
+function changeEvent(noun: string, createdAt: Date, updatedAt: Date | null): string {
+  if (!updatedAt || Math.abs(updatedAt.getTime() - createdAt.getTime()) < 60_000) return `${noun} added`;
+  return `${noun} updated`;
 }
 
 function proposalTitle(blocks: Block[], summary: string): string {
@@ -757,6 +811,7 @@ function unavailableWorkspace(title: string, detail: string, scope?: WorkspaceSc
     workProgress: [],
     notices: [],
     proposals: [],
+    recentChanges: [],
     problem: { title, detail },
   };
 }

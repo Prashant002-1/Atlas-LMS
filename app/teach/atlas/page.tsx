@@ -41,7 +41,7 @@ export default async function TeachAtlasPage() {
       <section aria-label="Work sessions">
         <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Work sessions</h2>
         {view.assignments.length === 0 ? (
-          <div className="mt-2.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
+          <div className="mt-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
             <p className="text-[14px] font-semibold">No work sessions yet</p>
             <p className="mt-1.5 max-w-2xl text-[13.5px] leading-6 text-[var(--color-muted)]">
               A work session is an assignment taken as a governed conversation with Atlas and graded on the reasoning
@@ -54,9 +54,9 @@ export default async function TeachAtlasPage() {
               <Link
                 key={assignment.id}
                 href={`/teach/atlas/${assignment.id}`}
-                className="block rounded-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+                className="block rounded-panel focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
               >
-                <article className="atlas-card-hover rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
+                <article className="atlas-card-hover rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-[15px] font-semibold text-[var(--color-ink)]">{assignment.name}</p>
                     <div className="flex items-center gap-2">

@@ -27,7 +27,7 @@ export function ContractPanel({
   return (
     <section
       aria-label="Session contract"
-      className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
+      className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
     >
       <p className="atlas-mono flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">
         <FileSliders size={12} aria-hidden />
@@ -49,7 +49,7 @@ export function ContractPanel({
             minLength={10}
             maxLength={2000}
             defaultValue={contract.instructions}
-            className="mt-1 w-full resize-y rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-[13px] leading-5 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+            className="mt-1 w-full resize-y rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-[13px] leading-5 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </div>
 
@@ -67,7 +67,7 @@ export function ContractPanel({
               step={1}
               required
               defaultValue={contract.durationMinutes}
-              className="mt-1 w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-[13px] tabular-nums transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+              className="mt-1 w-full rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-[13px] tabular-nums transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </div>
           <div>
@@ -82,12 +82,12 @@ export function ContractPanel({
               minLength={3}
               maxLength={200}
               defaultValue={contract.transcriptPolicy}
-              className="mt-1 w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-[13px] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+              className="mt-1 w-full rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-[13px] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </div>
         </div>
 
-        <label className="flex items-start gap-2.5 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5">
+        <label className="flex items-start gap-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5">
           <input
             type="checkbox"
             name="personalRecordSideNotes"
@@ -129,7 +129,7 @@ export function RubricEditor({
   return (
     <section
       aria-label="Rubric"
-      className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
+      className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
     >
       <div className="flex items-center justify-between gap-2">
         <p className="atlas-mono flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">
@@ -142,7 +142,7 @@ export function RubricEditor({
       <form action={updateRubricWeights} className="mt-3 space-y-2.5">
         <input type="hidden" name="assignmentId" value={assignmentId} />
         {criteria.map((criterion) => (
-          <div key={criterion.key} className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3">
+          <div key={criterion.key} className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[13px] font-medium text-[var(--color-ink)]">{criterion.name}</p>
               <label className="flex items-center gap-1.5">
@@ -155,7 +155,7 @@ export function RubricEditor({
                   step={1}
                   required
                   defaultValue={criterion.weight}
-                  className="w-16 rounded-[7px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-right text-[13px] tabular-nums transition focus:border-[var(--color-accent-strong)]"
+                  className="w-16 rounded-control border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-right text-[13px] tabular-nums transition focus:border-[var(--color-accent-strong)]"
                 />
                 <span className="text-[12px] text-[var(--color-faint)]">%</span>
               </label>

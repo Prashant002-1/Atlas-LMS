@@ -41,7 +41,7 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-4">
-          <section aria-label="Journeys" className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
+          <section aria-label="Journeys" className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Journeys</p>
               <JourneyGridSummary counts={view.counts} />

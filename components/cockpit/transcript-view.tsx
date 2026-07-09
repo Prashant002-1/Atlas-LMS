@@ -22,7 +22,7 @@ export function TranscriptView({
   return (
     <section
       aria-label="Session transcript"
-      className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
+      className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
     >
       <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">
         Transcript, as graded
@@ -35,7 +35,7 @@ export function TranscriptView({
               className={cn(
                 "max-w-[95%] text-[13.5px] leading-6",
                 turn.role === "user"
-                  ? "ml-auto w-fit rounded-[12px] bg-[var(--color-indigo-soft)] px-3.5 py-2 text-[var(--color-ink)]"
+                  ? "ml-auto w-fit rounded-panel bg-[var(--color-indigo-soft)] px-3.5 py-2 text-[var(--color-ink)]"
                   : "text-[var(--color-muted)]"
               )}
             >
@@ -46,7 +46,7 @@ export function TranscriptView({
                 segment.spans.length > 0 ? (
                   <mark
                     key={index}
-                    className="rounded-[3px] bg-[color-mix(in_oklch,var(--color-accent)_26%,transparent)] px-0.5 text-[var(--color-ink)]"
+                    className="rounded-control bg-[color-mix(in_oklch,var(--color-accent)_26%,transparent)] px-0.5 text-[var(--color-ink)]"
                     title={segment.spans
                       .map((span) => criterionNames[span.criterionKey] ?? span.criterionKey)
                       .join(", ")}

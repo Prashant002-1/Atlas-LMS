@@ -6,10 +6,12 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
+  announcements,
   assignments,
   changeProposals,
   contentAlignments,
   courseAiPolicies,
+  courses,
   enrollments,
   learningObjectives,
   modules,
@@ -646,6 +648,61 @@ export async function removeProviderKey(formData: FormData) {
   await deleteOrgProviderKey(user.orgId, providerRaw);
   revalidatePath("/teach/atlas");
   redirect("/teach/atlas");
+}
+
+/**
+ * Post an announcement: a one-way course post, published on creation with
+ * the posting time as its record fact. There is no inbox and no thread.
+ */
+export async function createAnnouncementRecord(formData: FormData) {
+  const user = await requireInstructorActor();
+  const course = await findEditableCourse({ id: user.id, orgId: user.orgId, role: user.role });
+  if (!course) {
+    throw new Error("No editable course found for this instructor.");
+  }
+
+  const title = compactField(formData.get("title"), "Announcement title is required.", 200);
+  const message = optionalLongField(formData.get("message"), 4000);
+
+  await db.insert(announcements).values({
+    orgId: user.orgId,
+    courseId: course.id,
+    authorId: user.id,
+    title,
+    messageMd: message,
+    postedAt: new Date(),
+    published: true,
+  });
+
+  revalidatePath("/teach");
+  revalidatePath("/student");
+  redirect("/teach/announcements");
+}
+
+/**
+ * Course setup: the roster-facing course details. Name, description, and the
+ * syllabus text students read. Atlas policy and model keys live in Settings,
+ * deliberately not here.
+ */
+export async function updateCourseDetails(formData: FormData) {
+  const user = await requireInstructorActor();
+  const course = await findEditableCourse({ id: user.id, orgId: user.orgId, role: user.role });
+  if (!course) {
+    throw new Error("No editable course found for this instructor.");
+  }
+
+  const name = compactField(formData.get("name"), "Course name is required.", 200);
+  const description = optionalLongField(formData.get("description"), 2000);
+  const syllabusMd = optionalLongField(formData.get("syllabus"), 20000);
+
+  await db
+    .update(courses)
+    .set({ name, description, syllabusMd, updatedAt: new Date() })
+    .where(and(eq(courses.orgId, user.orgId), eq(courses.id, course.id)));
+
+  revalidatePath("/teach");
+  revalidatePath("/student");
+  redirect("/teach/course");
 }
 
 async function requireInstructorActor() {

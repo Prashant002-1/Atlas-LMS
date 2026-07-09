@@ -11,7 +11,7 @@ export function PlanningHistory({ sessions }: { sessions: PlanningSessionView[] 
   return (
     <section
       aria-label="Planning history"
-      className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
+      className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
     >
       <p className="atlas-mono flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">
         <History size={12} aria-hidden />
@@ -27,7 +27,7 @@ export function PlanningHistory({ sessions }: { sessions: PlanningSessionView[] 
         <ul className="mt-2.5 space-y-2">
           {sessions.map((session) => (
             <li key={session.id}>
-              <details className="group rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)]">
+              <details className="group rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)]">
                 <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3 px-3 py-2.5">
                   <span className="min-w-0">
                     <span className="block truncate text-[13px] font-medium text-[var(--color-ink)]">{session.title}</span>

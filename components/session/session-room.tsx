@@ -161,7 +161,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
       <section
         aria-label="Session conversation"
-        className="flex min-h-[480px] flex-col overflow-hidden rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)] lg:h-[calc(100dvh-190px)]"
+        className="flex min-h-[480px] flex-col overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)] lg:h-[calc(100dvh-190px)]"
       >
         <Conversation className="flex-1">
           <ConversationContent>
@@ -208,7 +208,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
 
         <div className="border-t border-[var(--color-border)] p-3">
           {props.submitted ? (
-            <div className="flex items-start gap-2.5 rounded-[8px] bg-[var(--color-surface-muted)] px-3.5 py-3">
+            <div className="flex items-start gap-2.5 rounded-panel bg-[var(--color-surface-muted)] px-3.5 py-3">
               <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-[var(--color-accent-strong)]" aria-hidden />
               <div className="min-w-0 flex-1">
                 <p className="text-[13.5px] font-medium text-[var(--color-ink)]">Session submitted</p>
@@ -220,7 +220,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                   <button
                     type="button"
                     onClick={props.onStartFresh}
-                    className="mt-2 rounded-[8px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-ink)] transition hover:border-[var(--color-ink)]"
+                    className="mt-2 rounded-control border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-ink)] transition hover:border-[var(--color-ink)]"
                   >
                     Start a fresh run
                   </button>
@@ -326,7 +326,7 @@ function SessionContractCard(props: SessionRoomProps & { started: boolean }) {
   return (
     <section
       aria-label="Session contract"
-      className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
+      className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
     >
       <div className="flex items-center justify-between gap-2">
         <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Session</p>
@@ -423,14 +423,14 @@ function SubmitSessionControl({ assignmentId }: { assignmentId: string }) {
   return (
     <section
       aria-label="Submit session"
-      className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
+      className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
     >
       {!armed ? (
         <>
           <button
             type="button"
             onClick={() => setArmed(true)}
-            className="w-full rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-3.5 py-2 text-[13.5px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
+            className="w-full rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3.5 py-2 text-[13.5px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
           >
             Submit session
           </button>
@@ -449,7 +449,7 @@ function SubmitSessionControl({ assignmentId }: { assignmentId: string }) {
             <button
               type="button"
               onClick={() => setArmed(false)}
-              className="rounded-[8px] border border-[var(--color-border)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)]"
+              className="rounded-control border border-[var(--color-border)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)]"
             >
               Keep working
             </button>
@@ -466,7 +466,7 @@ function ConfirmSubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:opacity-50"
+      className="rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:opacity-50"
     >
       {pending ? "Submitting" : "Confirm submit"}
     </button>

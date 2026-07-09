@@ -47,7 +47,7 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
         />
       </div>
 
-      <section className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
+      <section className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
         {assignment.description ? (
           <p className="max-w-3xl whitespace-pre-wrap text-[14.5px] leading-7">{assignment.description}</p>
         ) : (
@@ -76,7 +76,7 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
       </section>
 
       {sessionBundle ? (
-        <section className="mt-4 rounded-[8px] border border-[color-mix(in_oklch,var(--color-accent)_35%,var(--color-border))] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
+        <section className="mt-4 rounded-panel border border-[color-mix(in_oklch,var(--color-accent)_35%,var(--color-border))] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
           <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-accent-strong)]">Work session</p>
           <p className="mt-2 max-w-3xl text-[14px] leading-6 text-[var(--color-muted)]">
             This assignment is taken as a live session: you work the problem out loud with Atlas, your design evolves in
@@ -92,7 +92,7 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
       ) : null}
 
       {assignment.status === "graded" ? (
-        <section className="mt-4 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
+        <section className="mt-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
           <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Result</p>
           <p className="mt-2 text-[20px] font-semibold">
             {typeof assignment.score === "number" ? Math.round(assignment.score) : ""}
@@ -103,14 +103,14 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
       ) : null}
 
       {assignment.response ? (
-        <section className="mt-4 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
+        <section className="mt-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
           <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Your response</p>
           <p className="mt-2 max-w-3xl whitespace-pre-wrap text-[14px] leading-6">{assignment.response}</p>
         </section>
       ) : null}
 
       {canSubmit || canRevise ? (
-        <section className="mt-4 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
+        <section className="mt-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
           <p className="text-[14px] font-semibold">{canRevise ? "Revise your response" : "Submit your response"}</p>
           <form action={submitAssignment} className="mt-3 grid max-w-3xl gap-3">
             <input type="hidden" name="assignmentId" value={assignment.id} />
@@ -126,7 +126,7 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
               rows={6}
               defaultValue={assignment.response ?? ""}
               placeholder="Write your response here."
-              className="w-full resize-y rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[14px] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+              className="w-full resize-y rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[14px] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
             <div>
               <ActionButton>{canRevise ? "Update response" : "Submit response"}</ActionButton>

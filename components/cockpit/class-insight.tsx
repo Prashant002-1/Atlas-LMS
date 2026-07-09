@@ -34,7 +34,7 @@ export function ClassInsight({
   return (
     <section
       aria-label="Class insight"
-      className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
+      className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="atlas-mono flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">
@@ -52,7 +52,7 @@ export function ClassInsight({
             <input type="hidden" name="assignmentId" value={assignmentId} />
             <button
               type="submit"
-              className="inline-flex items-center gap-1.5 rounded-[8px] border border-[var(--color-border)] px-2.5 py-1 text-[12px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]"
+              className="inline-flex items-center gap-1.5 rounded-control border border-[var(--color-border)] px-2.5 py-1 text-[12px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]"
             >
               <RefreshCw size={11.5} aria-hidden />
               Refresh
@@ -151,7 +151,7 @@ export function ClassInsight({
                   <input type="hidden" name="assignmentId" value={assignmentId} />
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-1.5 rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
+                    className="inline-flex items-center gap-1.5 rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
                   >
                     <Sparkles size={12} aria-hidden />
                     Propose practice set

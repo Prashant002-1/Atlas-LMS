@@ -51,7 +51,7 @@ export default async function StudentSessionPage({ params }: { params: Promise<{
           <JourneyReportPanel report={view.report} assignmentId={view.assignment.id} />
         </div>
       ) : view.gradingPending ? (
-        <div className="mb-4 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
+        <div className="mb-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
           <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Journey report</p>
           <p className="mt-1.5 text-[13px] leading-6 text-[var(--color-muted)]">
             Grading is pending for this session. The rubric reads your transcript once a model key is configured; your

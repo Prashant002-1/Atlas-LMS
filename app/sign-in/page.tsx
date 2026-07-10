@@ -19,7 +19,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           <BrandMark />
         </div>
         <SignInForm defaultRole={defaultRole} />
-        <p className="mt-6 text-center text-[12px] leading-5 text-[var(--color-faint)]">
+        <p className="mt-6 text-center text-[0.75rem] leading-5 text-[var(--color-faint)]">
           Accounts are provisioned by your institution.
         </p>
       </div>

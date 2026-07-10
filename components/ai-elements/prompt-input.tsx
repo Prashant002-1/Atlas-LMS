@@ -38,7 +38,7 @@ export function PromptInput({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        "flex flex-col rounded-[12px] border border-[var(--color-border-strong)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)] transition focus-within:border-[var(--color-accent-strong)]",
+        "flex flex-col rounded-panel border border-[var(--color-border-strong)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)] transition focus-within:border-[var(--color-accent-strong)]",
         className
       )}
     >
@@ -70,7 +70,7 @@ export function PromptInputTextarea({
         }
       }}
       className={cn(
-        "max-h-[200px] w-full resize-none bg-transparent px-3.5 pt-3 pb-1 text-[14px] leading-6 text-[var(--color-ink)] outline-none placeholder:text-[var(--color-faint)] disabled:opacity-60",
+        "max-h-[12.5rem] w-full resize-none bg-transparent px-3.5 pt-3 pb-1 text-[0.875rem] leading-6 text-[var(--color-ink)] outline-none placeholder:text-[var(--color-faint)] disabled:opacity-60",
         className
       )}
       {...props}
@@ -91,7 +91,7 @@ export function PromptInputButton({ className, children, ...props }: ButtonHTMLA
     <button
       type="button"
       className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-[8px] px-2.5 text-[12.5px] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex h-8 items-center gap-1.5 rounded-control px-2.5 text-[0.78125rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
       {...props}
@@ -117,7 +117,7 @@ export function PromptInputSubmit({
       disabled={disabled && !busy}
       aria-label={busy ? "Stop" : "Send"}
       className={cn(
-        "inline-flex size-9 shrink-0 items-center justify-center rounded-[8px] border border-[var(--color-ink)] bg-[var(--color-ink)] text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]",
+        "inline-flex size-9 shrink-0 items-center justify-center rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]",
         className
       )}
     >

@@ -9,6 +9,16 @@
 @theme {
   --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   --default-transition-duration: 220ms;
+
+  /*
+   * The Atlas radius scale, sharp and fixed: controls 4, rows and badges 6,
+   * panels 8. Declared in the theme so the semantic utilities exist
+   * (rounded-control, rounded-row, rounded-panel) and literal px radii can
+   * stay out of components entirely; the route contract enforces that.
+   */
+  --radius-control: 4px;
+  --radius-row: 6px;
+  --radius-panel: 8px;
 }
 
 /*
@@ -67,11 +77,6 @@
   --dur-base: 220ms;
   --dur-slow: 340ms;
 
-  /* Radii - tight. Available as tokens; components keep their literals. */
-  --radius-control: 6px;
-  --radius-panel: 10px;
-  --radius-modal: 14px;
-
   /* Legacy aliases - consumed everywhere; names preserved. */
   --color-bg: var(--canvas);
   --color-surface: var(--surface);
@@ -126,6 +131,13 @@
 }
 
 html {
+  /*
+   * The root scale. Type and component sizes are rem-based, so the whole
+   * interface renders at 110%: the "fuller" reading of a 10% browser zoom,
+   * built in. Hairline borders, radii, and icon glyphs stay in px so edges
+   * and marks remain crisp at every step.
+   */
+  font-size: 110%;
   min-width: 320px;
   background: var(--color-bg);
 }
@@ -204,7 +216,7 @@ select {
 }
 
 .atlas-section {
-  scroll-margin-top: 118px;
+  scroll-margin-top: 7.375rem;
 }
 
 /* Practice base surface: a professor-provided dataset or problem frame. */
@@ -225,7 +237,7 @@ select {
 .atlas-practice-glyph--compact {
   width: 44px;
   height: 34px;
-  border-radius: 7px;
+  border-radius: 6px;
   background-size: 9px 9px;
 }
 
@@ -287,7 +299,7 @@ select {
  * never raw `#`/`**`/`-`.
  */
 .atlas-prose {
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.65;
   color: var(--color-ink);
   overflow-wrap: anywhere;
@@ -344,7 +356,7 @@ select {
   overflow-x: auto;
 }
 .atlas-prose pre code {
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   line-height: 1.55;
   background: none;
   border: 0;
@@ -361,7 +373,7 @@ select {
   width: auto;
   margin: 0.7em 0;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .atlas-prose th,
 .atlas-prose td {
@@ -378,7 +390,7 @@ select {
   100% { background-position: -50% 0; }
 }
 .atlas-shimmer {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   background: linear-gradient(90deg, var(--color-faint) 0%, var(--color-ink) 50%, var(--color-faint) 100%);
   background-size: 200% 100%;

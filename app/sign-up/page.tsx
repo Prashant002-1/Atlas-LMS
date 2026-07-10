@@ -11,9 +11,9 @@ export default function SignUpPage() {
         <div className="mb-8 flex justify-center">
           <BrandMark />
         </div>
-        <div className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-panel)]">
-          <h1 className="text-[18px] font-semibold text-[var(--color-ink)]">Joining a course?</h1>
-          <p className="mt-2 text-[14px] leading-6 text-[var(--color-muted)]">
+        <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-panel)]">
+          <h1 className="text-[1.125rem] font-semibold text-[var(--color-ink)]">Joining a course?</h1>
+          <p className="mt-2 text-[0.875rem] leading-6 text-[var(--color-muted)]">
             Atlas accounts are provisioned by your institution. If your course runs on Atlas, your
             instructor or admin will send your sign-in.
           </p>

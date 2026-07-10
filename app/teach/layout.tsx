@@ -2,17 +2,37 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
-import { resolveScope } from "@/lib/workspace/scope";
-import { AppShell, type NavItem } from "@/components/atlas/app-shell";
+import { AppShell, type NavSection } from "@/components/atlas/app-shell";
 
-const teacherNav: NavItem[] = [
-  { href: "/teach", label: "Overview", icon: "dashboard", exact: true },
-  { href: "/teach/atlas", label: "Atlas", icon: "atlas" },
-  { href: "/teach/review", label: "Review", icon: "review" },
-  { href: "/teach/weeks", label: "Weeks", icon: "weeks" },
-  { href: "/teach/work", label: "Work", icon: "work" },
-  { href: "/teach/students", label: "Students", icon: "students" },
-  { href: "/teach/settings", label: "Settings", icon: "settings" },
+/**
+ * The teaching shell: the overview first, then the course itself, then the
+ * Atlas surfaces. Course and term switching live on the overview header;
+ * the account menu closes the column.
+ */
+const teacherSections: NavSection[] = [
+  {
+    items: [{ href: "/teach", label: "Overview", icon: "dashboard", exact: true }],
+  },
+  {
+    label: "Course",
+    items: [
+      { href: "/teach/work", label: "Work", icon: "work" },
+      { href: "/teach/weeks", label: "Modules", icon: "weeks" },
+      { href: "/teach/announcements", label: "Announcements", icon: "announce" },
+      { href: "/teach/calendar", label: "Calendar", icon: "calendar" },
+      { href: "/teach/gradebook", label: "Gradebook", icon: "gradebook" },
+      { href: "/teach/students", label: "Students", icon: "students" },
+      { href: "/teach/course", label: "Course setup", icon: "setup" },
+    ],
+  },
+  {
+    label: "Atlas",
+    items: [
+      { href: "/teach/atlas", label: "Atlas", icon: "atlas" },
+      { href: "/teach/review", label: "Review", icon: "review" },
+      { href: "/teach/settings", label: "Settings", icon: "settings" },
+    ],
+  },
 ];
 
 export default async function TeachLayout({ children }: { children: ReactNode }) {
@@ -27,22 +47,8 @@ export default async function TeachLayout({ children }: { children: ReactNode })
     redirect("/sign-in");
   }
 
-  const scope = await resolveScope({
-    orgId: session.user.orgId,
-    userId: session.user.id,
-    role: session.user.role,
-    teachingOnly: true,
-  });
-
   return (
-    <AppShell
-      nav={teacherNav}
-      courses={scope.courses.map((c) => ({ id: c.id, code: c.code, name: c.name }))}
-      activeCourseId={scope.course?.id}
-      scopePath="/teach"
-      userName={session.user.name}
-      userEmail={session.user.email}
-    >
+    <AppShell sections={teacherSections} userName={session.user.name} userEmail={session.user.email}>
       {children}
     </AppShell>
   );

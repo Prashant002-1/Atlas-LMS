@@ -1,0 +1,31 @@
+<svg viewBox="102 110 316 316" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Atlas" fill="none">
+  <!--
+    The Atlas mark in a single shade: the exact geometry of
+    public/brand/atlas-mark.svg (tile, aperture, ticks), rendered as a
+    currentColor stencil so it can sit among interface icons. The artwork is
+    a copy, never a redesign; only the shade differs.
+  -->
+  <defs>
+    <clipPath id="atlasIconClip">
+      <rect x="102" y="110" width="316" height="316" rx="72"/>
+    </clipPath>
+    <mask id="atlasIconMask" maskUnits="userSpaceOnUse" x="102" y="110" width="316" height="316">
+      <rect x="102" y="110" width="316" height="316" rx="72" fill="#fff"/>
+      <g clip-path="url(#atlasIconClip)">
+        <path d="M260 132 L430 426 H90 L260 132Z" fill="#000"/>
+        <path d="M260 132 L348 426 H172 L260 132Z" fill="#fff"/>
+        <path d="M260 132 L300 426 H220 L260 132Z" fill="#000"/>
+        <g fill="none" stroke="#000" stroke-linecap="butt">
+          <path d="M140 118.5 V137" stroke-width="5"/>
+          <path d="M180 110 V124" stroke-width="4"/>
+          <path d="M220 110 V125" stroke-width="4"/>
+          <path d="M300 110 V125" stroke-width="4"/>
+          <path d="M340 110 V124" stroke-width="4"/>
+          <path d="M380 118.5 V137" stroke-width="5"/>
+        </g>
+        <path d="M260 110 V132" fill="none" stroke="#000" stroke-width="6" stroke-linecap="butt"/>
+      </g>
+    </mask>
+  </defs>
+  <rect x="102" y="110" width="316" height="316" rx="72" fill="currentColor" mask="url(#atlasIconMask)"/>
+</svg>

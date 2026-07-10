@@ -33,11 +33,11 @@ export default async function InstructorWeekPage({ params }: { params: Promise<{
 
   return (
     <>
-      <BackLink href="/teach/weeks">Weeks</BackLink>
+      <BackLink href="/teach/weeks">Modules</BackLink>
       {workspace.problem || !workspace.module ? (
         <Panel title={workspace.problem?.title ?? "Week unavailable"}>
-          <p className="text-[14px] leading-6 text-[var(--color-muted)]">
-            {workspace.problem?.detail ?? "This week is not attached to the editable course record."}
+          <p className="text-[0.875rem] leading-6 text-[var(--color-muted)]">
+            {workspace.problem?.detail ?? "This module is not in a course you teach."}
           </p>
         </Panel>
       ) : (
@@ -59,18 +59,18 @@ function WeekRecord({ workspace }: { workspace: InstructorModuleWorkspace }) {
     <Panel title={courseModule.title} action={<StatusBadge tone={moduleTone[courseModule.status]}>{moduleLabel[courseModule.status]}</StatusBadge>}>
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px]">
         <section className="min-w-0">
-          <p className="text-[12px] font-medium text-[var(--color-muted)]">Week {courseModule.week}</p>
+          <p className="text-[0.75rem] font-medium text-[var(--color-muted)]">Week {courseModule.week}</p>
           {courseModule.summary ? (
-            <p className="mt-3 max-w-3xl text-[15px] leading-7 text-[var(--color-ink)]">{courseModule.summary}</p>
+            <p className="mt-3 max-w-3xl text-[0.9375rem] leading-7 text-[var(--color-ink)]">{courseModule.summary}</p>
           ) : (
-            <p className="mt-3 text-[14px] leading-6 text-[var(--color-muted)]">No summary is attached to this week.</p>
+            <p className="mt-3 text-[0.875rem] leading-6 text-[var(--color-muted)]">No summary is attached to this week.</p>
           )}
           <div className="mt-3">
             <CodeList codes={courseModule.objectiveCodes} />
           </div>
           {courseModule.id ? <WeekEditForm module={courseModule} objectives={workspace.courseObjectives} /> : null}
         </section>
-        <aside className="grid content-start gap-3 border-t border-[var(--color-border)] pt-4 text-[13px] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+        <aside className="grid content-start gap-3 border-t border-[var(--color-border)] pt-4 text-[0.8125rem] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
           <RecordFact label="Status" value={moduleLabel[courseModule.status]} />
           <RecordFact label="Work" value={workspace.assignments.length} />
           <RecordFact label="Objectives" value={workspace.objectives.length} />
@@ -101,29 +101,29 @@ function WeekEditForm({
 
   return (
     <details className="mt-5 border-t border-[var(--color-border)] pt-4">
-      <summary className="cursor-pointer rounded-[6px] text-[13px] font-medium text-[var(--color-muted)] marker:text-[var(--color-faint)]">
+      <summary className="cursor-pointer rounded-row text-[0.8125rem] font-medium text-[var(--color-muted)] marker:text-[var(--color-faint)]">
         Edit
       </summary>
       <form action={updateModuleRecord} className="mt-4 grid max-w-3xl gap-3">
         <input type="hidden" name="moduleId" value={module.id} />
         <input type="hidden" name="returnTo" value={`/teach/week/${module.id}`} />
         <ObjectiveChecklist objectives={objectives} selectedCodes={module.objectiveCodes} />
-        <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
+        <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Title
           <input
             name="title"
             type="text"
             defaultValue={module.title}
             required
-            className="min-h-10 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+            className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
-        <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
+        <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Summary
           <textarea
             name="summary"
             defaultValue={module.summary ?? ""}
-            className="min-h-28 resize-none rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+            className="min-h-28 resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-[0.875rem] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <div>
@@ -153,10 +153,10 @@ function AssignmentLine({ assignment }: { assignment: InstructorAssignment }) {
     <article className="py-4 first:pt-0 last:pb-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[14px] font-semibold leading-5 text-[var(--color-ink)]">
+          <p className="text-[0.875rem] font-semibold leading-5 text-[var(--color-ink)]">
             {assignment.id ? <TextLink href={`/teach/work/${assignment.id}`}>{assignment.title}</TextLink> : assignment.title}
           </p>
-          {assignment.detail ? <p className="mt-2 text-[13px] leading-5 text-[var(--color-muted)]">{assignment.detail}</p> : null}
+          {assignment.detail ? <p className="mt-2 text-[0.8125rem] leading-5 text-[var(--color-muted)]">{assignment.detail}</p> : null}
           <div className="mt-2 flex flex-wrap gap-2">
             {assignment.points ? <StatusBadge tone="neutral">{Math.round(assignment.points)} pts</StatusBadge> : null}
             <CodeList codes={assignment.objectiveCodes} />
@@ -175,8 +175,8 @@ function RelatedObjectives({ workspace }: { workspace: InstructorModuleWorkspace
       <div className="divide-y divide-[var(--color-border)]">
         {workspace.objectives.map((objective) => (
           <div key={objective.code} className="py-3 first:pt-0 last:pb-0">
-            <p className="text-[13.5px] font-medium">
-              <span className="atlas-mono mr-2 text-[12px] text-[var(--color-faint)]">{objective.code}</span>
+            <p className="text-[0.84375rem] font-medium">
+              <span className="atlas-mono mr-2 text-[0.75rem] text-[var(--color-faint)]">{objective.code}</span>
               {objective.description}
             </p>
           </div>

@@ -28,7 +28,7 @@ export function Suggestion({
       type="button"
       onClick={() => onClick?.(suggestion)}
       className={cn(
-        "cursor-pointer rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-1.5 text-[12.5px] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]",
+        "cursor-pointer rounded-row border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-1.5 text-[0.78125rem] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]",
         className
       )}
     >

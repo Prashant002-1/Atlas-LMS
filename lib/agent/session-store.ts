@@ -19,6 +19,7 @@ import {
   type SessionSubmission,
 } from "@/lib/db/schema";
 import { appendTurn } from "@/lib/agent/session";
+import { agentProfiles } from "@/lib/agent/profiles";
 import {
   parseRubricCriteria,
   type RubricCriterion,
@@ -103,6 +104,9 @@ export type LiveSessionScope = {
   assignmentId: string;
 };
 
+/** The work-session profile's address inside agent_sessions (lib/agent/profiles.ts). */
+const sessionProfile = agentProfiles.session;
+
 /**
  * The student's OPEN live session on an assignment anchor: the newest one
  * with no submission yet, or null. Read-only; never creates.
@@ -117,8 +121,8 @@ export async function openLiveSession(scope: LiveSessionScope): Promise<AgentSes
         eq(agentSessions.orgId, scope.orgId),
         eq(agentSessions.userId, scope.userId),
         eq(agentSessions.courseId, scope.courseId),
-        eq(agentSessions.surface, "cue"),
-        eq(agentSessions.anchorType, "assignment"),
+        eq(agentSessions.surface, sessionProfile.surface),
+        eq(agentSessions.anchorType, sessionProfile.anchorType),
         eq(agentSessions.anchorId, scope.assignmentId),
         isNull(sessionSubmissions.id)
       )
@@ -142,8 +146,8 @@ export async function resumeOrCreateLiveSession(args: LiveSessionScope & { title
       orgId: args.orgId,
       userId: args.userId,
       courseId: args.courseId,
-      surface: "cue",
-      anchorType: "assignment",
+      surface: sessionProfile.surface,
+      anchorType: sessionProfile.anchorType,
       anchorId: args.assignmentId,
       title: args.title,
     })
@@ -166,8 +170,8 @@ export async function latestSessionForAssignment(args: {
         eq(agentSessions.orgId, args.orgId),
         eq(agentSessions.userId, args.userId),
         eq(agentSessions.courseId, args.courseId),
-        eq(agentSessions.surface, "cue"),
-        eq(agentSessions.anchorType, "assignment"),
+        eq(agentSessions.surface, sessionProfile.surface),
+        eq(agentSessions.anchorType, sessionProfile.anchorType),
         eq(agentSessions.anchorId, args.assignmentId)
       )
     )

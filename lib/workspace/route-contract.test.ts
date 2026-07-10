@@ -29,6 +29,8 @@ const requiredRoutes = [
   "/api/session/[assignmentId]",
   "/teach",
   "/teach/atlas",
+  "/teach/atlas/planning",
+  "/api/atlas/planning",
   "/teach/review",
   "/teach/weeks",
   "/teach/work",
@@ -255,6 +257,50 @@ test("phase 4 closes the loop on the professor side", () => {
   assertSourceIncludes("app/teach/atlas/[assignmentId]/page.tsx", "JourneyGrid");
   assertSourceIncludes("app/teach/atlas/[assignmentId]/page.tsx", "ClassInsight");
   assertSourceIncludes("app/teach/work/[assignmentId]/page.tsx", "Open session cockpit");
+});
+
+test("issue 27: the professor plans with Atlas across the profile boundary", () => {
+  // The profile registry is the boundary contract, and the stores read the
+  // session addresses from it instead of carrying their own literals.
+  assertSourceIncludes("lib/agent/profiles.ts", "export const agentProfiles");
+  assertSourceIncludes("lib/agent/profiles.ts", "professor:");
+  assertSourceIncludes("lib/agent/profiles.ts", "session:");
+  assertSourceIncludes("lib/agent/profiles.ts", "study:");
+  assertSourceIncludes("lib/agent/session-store.ts", "agentProfiles.session");
+  assertSourceIncludes("lib/agent/session.ts", "agentProfiles.professor");
+
+  // The planning runtime rides the same durability seam as the student
+  // session (ADR-0010): the professor's turn is a row before any generation.
+  assertSourceIncludes("lib/agent/professor-runtime.ts", "export async function runProfessorTurn");
+  assertSourceIncludes("lib/agent/professor-runtime.ts", 'persistSessionTurn(session, "user"');
+  assertSourceIncludes("lib/agent/professor-runtime.ts", "createUIMessageStream");
+
+  // The endpoint fails closed: instructor role, course in view, org model key.
+  assertSourceIncludes("app/api/atlas/planning/route.ts", "isInstructorLike");
+  assertSourceIncludes("app/api/atlas/planning/route.ts", "resolveModelForOrg");
+  assertSourceIncludes("app/api/atlas/planning/route.ts", "loadCommandSession");
+
+  // The one door: planning tools draft proposals with session provenance and
+  // never mutate a live course record; applying stays Review's job.
+  assertSourceIncludes("lib/agent/professor-tools.ts", "changeProposals");
+  assertSourceIncludes("lib/agent/professor-tools.ts", "sessionId");
+  assertSourceExcludes("lib/agent/professor-tools.ts", ".update(");
+  assertSourceExcludes("lib/agent/professor-tools.ts", "applyProposal");
+
+  // The rubric draft round-trips the apply gate's own block schema, and the
+  // gate materializes it as a NEW rubric version on the work session.
+  assertSourceIncludes("lib/agent/rubric-proposal.ts", "parseStoredBlock");
+  assertSourceIncludes("lib/agent/blocks.ts", "session_rubric");
+  assertSourceIncludes("lib/agent/apply.ts", 'block.type === "session_rubric"');
+
+  // The room reads through the cockpit (which stays read-only by the phase 4
+  // assertions above) and renders drafts as the records they will become.
+  assertSourceIncludes("lib/instructor/cockpit.ts", "export async function loadPlanningRoom");
+  assertSourceIncludes("app/teach/atlas/planning/page.tsx", "loadPlanningRoom");
+  assertSourceIncludes("components/planning/planning-room.tsx", "useChat");
+  assertSourceIncludes("components/planning/planning-room.tsx", "RubricCard");
+  assertSourceIncludes("components/planning/rubric-card.tsx", "diffRubrics");
+  assertSourceIncludes("components/teach/proposals.tsx", "session_rubric");
 });
 
 test("legacy blocks remain persisted but not rendered by the removed registry UI", () => {

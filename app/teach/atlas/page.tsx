@@ -4,7 +4,7 @@ import { loadCockpitIndex } from "@/lib/instructor/cockpit";
 import { PageHeader } from "@/components/teach/page-header";
 import { PlanningHistory } from "@/components/cockpit/planning-history";
 import { JourneyGridSummary } from "@/components/cockpit/journey-grid";
-import { StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { ButtonLink, StatusBadge, TextLink } from "@/components/atlas/primitives";
 
 /**
  * The session cockpit index: every work session in the course, its class at
@@ -30,11 +30,16 @@ export default async function TeachAtlasPage() {
         title="Atlas"
         course={`${view.course.code} / ${view.course.name}`}
         action={
-          view.pendingProposals > 0 ? (
-            <TextLink href="/teach/review" className="text-[0.8125rem]">
-              {view.pendingProposals} draft{view.pendingProposals === 1 ? "" : "s"} in Review
-            </TextLink>
-          ) : undefined
+          <span className="flex items-center gap-4">
+            {view.pendingProposals > 0 ? (
+              <TextLink href="/teach/review" className="text-[0.8125rem]">
+                {view.pendingProposals} draft{view.pendingProposals === 1 ? "" : "s"} in Review
+              </TextLink>
+            ) : null}
+            <ButtonLink href="/teach/atlas/planning" size="sm">
+              Open planning
+            </ButtonLink>
+          </span>
         }
       />
 

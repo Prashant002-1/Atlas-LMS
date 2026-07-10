@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { rubricCriteriaSchema } from "@/lib/agent/session-parts";
 
 /**
  * The block registry, Atlas's generative-UI contract.
@@ -97,6 +98,20 @@ export const rubricBlockSchema = z.object({
     .max(10),
 });
 
+/**
+ * The v0 session rubric as a proposal payload: the SAME criteria shape the
+ * rubrics table stores and the grading pipeline reads (session-parts), plus
+ * the work-session assignment it targets. Applying writes a new rubric
+ * version and repoints the session assignment; grades already given stay
+ * pinned to the version that graded them.
+ */
+export const sessionRubricBlockSchema = z.object({
+  type: z.literal("session_rubric"),
+  assignmentId: z.string().uuid(),
+  title: z.string().min(3).max(200),
+  criteria: rubricCriteriaSchema,
+});
+
 /* ── student-facing response blocks (cue surface) ────────────── */
 
 export const explanationBlockSchema = z.object({
@@ -143,6 +158,7 @@ export const proposalBlockSchemas = {
   announcement: announcementBlockSchema,
   practice_set: practiceSetBlockSchema,
   rubric: rubricBlockSchema,
+  session_rubric: sessionRubricBlockSchema,
 } as const;
 
 export const blockSchema = z.discriminatedUnion("type", [
@@ -153,6 +169,7 @@ export const blockSchema = z.discriminatedUnion("type", [
   announcementBlockSchema,
   practiceSetBlockSchema,
   rubricBlockSchema,
+  sessionRubricBlockSchema,
   explanationBlockSchema,
   answerBlockSchema,
 ]);
@@ -166,6 +183,7 @@ export type PageBlock = z.infer<typeof pageBlockSchema>;
 export type AnnouncementBlock = z.infer<typeof announcementBlockSchema>;
 export type PracticeSetBlock = z.infer<typeof practiceSetBlockSchema>;
 export type RubricBlock = z.infer<typeof rubricBlockSchema>;
+export type SessionRubricBlock = z.infer<typeof sessionRubricBlockSchema>;
 export type ExplanationBlock = z.infer<typeof explanationBlockSchema>;
 export type AnswerBlock = z.infer<typeof answerBlockSchema>;
 

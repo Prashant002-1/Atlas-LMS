@@ -1,5 +1,6 @@
 import { Check, X } from "lucide-react";
 import { ActionButton, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { RubricCard } from "@/components/planning/rubric-card";
 import { reviewCourseProposal } from "@/lib/instructor/actions";
 import type { InstructorProposal } from "@/lib/instructor/workspace";
 
@@ -23,7 +24,17 @@ export function ProposalCard({ proposal, compact = false }: { proposal: Instruct
         <div className="mt-4 space-y-3">
           <ul className="divide-y divide-[var(--color-border)] rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)]">
             {proposal.blocks.map((block, index) =>
-              block.type === "practice_set" ? (
+              block.type === "session_rubric" ? (
+                <li key={index} className="px-3 py-2.5">
+                  <RubricCard title={block.title} criteria={block.criteria} />
+                  <p className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[0.71875rem] leading-4 text-[var(--color-faint)]">
+                    <span>Applying writes the next rubric version for its work session; grades already given stay pinned.</span>
+                    <TextLink href={`/teach/atlas/${block.assignmentId}`} className="text-[0.71875rem]">
+                      Open the work session
+                    </TextLink>
+                  </p>
+                </li>
+              ) : block.type === "practice_set" ? (
                 <li key={index} className="px-3 py-2.5 text-[0.8125rem]">
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-medium">{block.title}</span>

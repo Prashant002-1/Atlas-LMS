@@ -1,13 +1,16 @@
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import type { UIMessage } from "ai";
 import { db } from "@/lib/db";
 import {
   agentSessions,
   agentTurns,
+  assignments,
   changeProposals,
   enrollments,
   evidenceSpans,
   journeyReports,
   classRollups,
+  rubrics,
   sessionAssignments,
   sessionSubmissions,
   users,
@@ -20,12 +23,15 @@ import {
   loadSessionAssignmentBundle,
   listArtifactStates,
   listSideNotes,
+  loadFullSessionTurns,
   type SessionAssignmentBundle,
 } from "@/lib/agent/session-store";
+import { listCommandSessions, loadCommandSession, turnsToUIMessages, type CommandSessionSummary } from "@/lib/agent/session";
 import { turnsFromSubmissionTranscript } from "@/lib/agent/grading";
 import { splitTextBySpans, turnPlainText, type TextSegment } from "@/lib/agent/transcript";
 import {
   parseJourneyScores,
+  parseRubricCriteria,
   type RubricCriterion,
   type RubricLevelName,
   type SideNoteCard,
@@ -657,5 +663,135 @@ function buildDrillInReport(
     finalizedByName,
     createdAt: report.createdAt.toISOString(),
     criteria,
+  };
+}
+
+/* ── the planning room (professor profile threads) ──────────── */
+
+export type PlanningThreadRef = CommandSessionSummary;
+
+export type PlanningDraftRef = {
+  proposalId: string;
+  status: "pending" | "approved" | "rejected" | "applied";
+  kind: string;
+  summary: string;
+  createdAt: string;
+};
+
+export type PlanningWorkRef = {
+  assignmentId: string;
+  name: string;
+  rubricVersion: number;
+  criteria: RubricCriterion[];
+};
+
+export type PlanningRoomView =
+  | { problem: CockpitProblem }
+  | {
+      problem?: undefined;
+      course: CockpitCourse;
+      /** Every planning thread in the course, newest first. */
+      threads: PlanningThreadRef[];
+      /** The thread on screen, hydrated from rows; null renders a fresh room. */
+      active: { id: string; title: string; messages: UIMessage[] } | null;
+      /** Drafts this thread produced, so reopened cards show today's status. */
+      drafts: PlanningDraftRef[];
+      /** The course's work sessions with their CURRENT rubric, the rail's ground truth. */
+      work: PlanningWorkRef[];
+      pendingProposals: number;
+    };
+
+/**
+ * The planning room, read-only like everything in this file: threads come
+ * from the professor profile's session address (command surface, course
+ * anchor, this instructor, this course), the active thread hydrates from
+ * stored turns, and the rail reads the live session-work contracts. The
+ * requested thread must be the instructor's own in the course in view;
+ * anything else is a problem, never someone else's thread.
+ */
+export async function loadPlanningRoom(
+  actor: Actor | null | undefined,
+  requestedThreadId?: string
+): Promise<PlanningRoomView> {
+  const scoped = await scopedCourse(actor);
+  if ("problem" in scoped) return { problem: scoped.problem };
+  const { course } = scoped;
+  const orgId = actor!.orgId!;
+  const threadScope = { orgId, userId: actor!.id, courseId: course.id };
+
+  const threads = await listCommandSessions(threadScope);
+
+  let active: { id: string; title: string; messages: UIMessage[] } | null = null;
+  if (requestedThreadId && requestedThreadId !== "new") {
+    const thread = await loadCommandSession(threadScope, requestedThreadId);
+    if (!thread) {
+      return { problem: { title: "Thread unavailable", detail: "This planning thread is not yours in the course in view." } };
+    }
+    const turnRows = await loadFullSessionTurns(orgId, thread.id);
+    active = { id: thread.id, title: thread.title ?? "Planning thread", messages: turnsToUIMessages(turnRows) };
+  } else if (!requestedThreadId && threads.length > 0) {
+    const newest = threads[0];
+    const turnRows = await loadFullSessionTurns(orgId, newest.id);
+    active = { id: newest.id, title: newest.title, messages: turnsToUIMessages(turnRows) };
+  }
+
+  const draftRows = active
+    ? await db
+        .select({
+          id: changeProposals.id,
+          status: changeProposals.status,
+          kind: changeProposals.kind,
+          summary: changeProposals.summary,
+          createdAt: changeProposals.createdAt,
+        })
+        .from(changeProposals)
+        .where(
+          and(
+            eq(changeProposals.orgId, orgId),
+            eq(changeProposals.courseId, course.id),
+            eq(changeProposals.sessionId, active.id)
+          )
+        )
+        .orderBy(desc(changeProposals.createdAt))
+    : [];
+
+  const workRows = await db
+    .select({
+      assignmentId: sessionAssignments.assignmentId,
+      name: assignments.name,
+      rubricVersion: rubrics.version,
+      rubricCriteria: rubrics.criteria,
+    })
+    .from(sessionAssignments)
+    .innerJoin(assignments, eq(assignments.id, sessionAssignments.assignmentId))
+    .innerJoin(rubrics, eq(rubrics.id, sessionAssignments.rubricId))
+    .where(and(eq(sessionAssignments.orgId, orgId), eq(sessionAssignments.courseId, course.id)))
+    .orderBy(asc(assignments.position));
+
+  const pendingRows = await db
+    .select({ id: changeProposals.id })
+    .from(changeProposals)
+    .where(
+      and(eq(changeProposals.orgId, orgId), eq(changeProposals.courseId, course.id), eq(changeProposals.status, "pending"))
+    );
+
+  return {
+    course,
+    threads,
+    active,
+    drafts: draftRows.map((row) => ({
+      proposalId: row.id,
+      status: row.status,
+      kind: row.kind,
+      summary: row.summary,
+      createdAt: row.createdAt.toISOString(),
+    })),
+    work: workRows.map((row) => ({
+      assignmentId: row.assignmentId,
+      name: row.name,
+      rubricVersion: row.rubricVersion,
+      criteria: parseRubricCriteria(row.rubricCriteria) ?? [],
+    })),
+    pendingProposals: pendingRows.length,
   };
 }

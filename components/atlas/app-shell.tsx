@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { signOutOfAtlas } from "@/lib/auth/actions";
 import { MotionPage } from "@/components/atlas/motion";
-import { AtlasIcon } from "@/components/atlas/primitives";
+import { AtlasIcon, AtlasMark } from "@/components/atlas/primitives";
 import { ThemeToggle } from "@/components/atlas/theme-switch";
 
 /**
@@ -137,7 +137,7 @@ export function AppShell({
                 title="Atlas"
                 className="flex h-14 w-full items-center justify-center border-b border-[var(--color-border)] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
               >
-                <AtlasIcon size={20} />
+                <AtlasMark size={22} />
               </Link>
             ) : (
               /* Collapsed: the logo mark. On hover it crossfades into the
@@ -151,7 +151,7 @@ export function AppShell({
               >
                 <span className="relative flex size-5 items-center justify-center">
                   <span className="absolute inset-0 flex items-center justify-center opacity-100 transition-opacity duration-200 ease-out group-hover/brand:opacity-0">
-                    <AtlasIcon size={19} />
+                    <AtlasMark size={20} />
                   </span>
                   <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 ease-out group-hover/brand:opacity-100">
                     <PanelLeftOpen size={15} strokeWidth={2} aria-hidden />
@@ -167,9 +167,9 @@ export function AppShell({
               <Link
                 href="/"
                 aria-label="Atlas"
-                className="flex items-center gap-2 rounded-row text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+                className="flex items-center gap-2.5 rounded-row focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
               >
-                <AtlasIcon size={20} />
+                <AtlasMark size={24} />
                 <span className="atlas-serif text-[1.0625rem] font-medium">Atlas</span>
               </Link>
               <button

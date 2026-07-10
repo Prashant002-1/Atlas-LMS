@@ -22,9 +22,9 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Atlas LMS, course record for teaching and study",
+  title: "Atlas LMS",
   description:
-    "Atlas keeps course design, practice, and study grounded in one course record.",
+    "Course design, teaching, and study in one place.",
   icons: {
     icon: "/brand/atlas-mark.svg",
   },

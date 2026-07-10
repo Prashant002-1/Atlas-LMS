@@ -45,8 +45,8 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
       <BackLink href="/teach/work">Work</BackLink>
       {workspace.problem || !workspace.assignment ? (
         <Panel title={workspace.problem?.title ?? "Work unavailable"}>
-          <p className="text-[14px] leading-6 text-[var(--color-muted)]">
-            {workspace.problem?.detail ?? "This work is not attached to the editable course record."}
+          <p className="text-[0.875rem] leading-6 text-[var(--color-muted)]">
+            {workspace.problem?.detail ?? "This work is not in a course you teach."}
           </p>
         </Panel>
       ) : (
@@ -54,8 +54,8 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
           <InstructorWorkRecord workspace={workspace} />
           {sessionBundle ? (
             <section className="mt-4 rounded-panel border border-[color-mix(in_oklch,var(--color-accent)_35%,var(--color-border))] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
-              <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-accent-strong)]">Work session</p>
-              <p className="mt-2 max-w-3xl text-[14px] leading-6 text-[var(--color-muted)]">
+              <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-accent-strong)]">Work session</p>
+              <p className="mt-2 max-w-3xl text-[0.875rem] leading-6 text-[var(--color-muted)]">
                 Students take this assignment as a live session with Atlas and are graded on the reasoning journey. The
                 journey grid, class insight, and grading live in the session cockpit; the gradebook below reflects what
                 you finalize there.
@@ -81,7 +81,7 @@ function InstructorWorkRecord({ workspace }: { workspace: InstructorAssignmentWo
     <Panel title={assignment.title} action={<StatusBadge tone={assignment.status === "approved" ? "good" : "neutral"}>{assignment.status === "approved" ? "Live" : "Draft"}</StatusBadge>}>
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
         <section className="min-w-0">
-          {assignment.detail ? <p className="max-w-3xl text-[15px] leading-7 text-[var(--color-ink)]">{assignment.detail}</p> : null}
+          {assignment.detail ? <p className="max-w-3xl text-[0.9375rem] leading-7 text-[var(--color-ink)]">{assignment.detail}</p> : null}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {assignment.dueAt ? <StatusBadge tone="neutral">Due {formatShortDate(assignment.dueAt)}</StatusBadge> : null}
             {assignment.points ? <StatusBadge tone="neutral">{Math.round(assignment.points)} pts</StatusBadge> : null}
@@ -90,7 +90,7 @@ function InstructorWorkRecord({ workspace }: { workspace: InstructorAssignmentWo
           <InstructorWorkMaterialContext materials={workspace.materials} />
           {assignment.id ? <AssignmentEditForm assignment={assignment} objectives={workspace.courseObjectives} /> : null}
         </section>
-        <aside className="grid content-start gap-3 border-t border-[var(--color-border)] pt-4 text-[13px] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+        <aside className="grid content-start gap-3 border-t border-[var(--color-border)] pt-4 text-[0.8125rem] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
           <RecordFact label="Submitted" value={progress?.submitted ?? 0} />
           <RecordFact label="Graded" value={progress?.graded ?? 0} />
           <RecordFact label="Open" value={progress?.open ?? 0} />
@@ -116,16 +116,16 @@ function InstructorWorkMaterialContext({ materials }: { materials: InstructorAss
 
   return (
     <section className="mt-5 max-w-3xl border-t border-[var(--color-border)] pt-5">
-      <p className="text-[12px] font-medium text-[var(--color-ink)]">Material</p>
+      <p className="text-[0.75rem] font-medium text-[var(--color-ink)]">Material</p>
       <div className="mt-2 divide-y divide-[var(--color-border)]">
         {materials.map((material) => (
           <article key={material.id ?? `${material.week}-${material.title}`} className="py-3 first:pt-0 last:pb-0">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <h3 className="text-[15px] font-semibold leading-6 text-[var(--color-ink)]">
+                <h3 className="text-[0.9375rem] font-semibold leading-6 text-[var(--color-ink)]">
                   {material.id ? <TextLink href={`/teach/week/${material.id}`}>{material.title}</TextLink> : material.title}
                 </h3>
-                {material.summary ? <p className="mt-2 text-[13px] leading-5 text-[var(--color-muted)]">{material.summary}</p> : null}
+                {material.summary ? <p className="mt-2 text-[0.8125rem] leading-5 text-[var(--color-muted)]">{material.summary}</p> : null}
               </div>
               <StatusBadge tone="neutral">Week {material.week}</StatusBadge>
             </div>
@@ -150,42 +150,42 @@ function AssignmentEditForm({
 
   return (
     <details className="mt-5 border-t border-[var(--color-border)] pt-4">
-      <summary className="cursor-pointer rounded-row text-[13px] font-medium text-[var(--color-muted)] marker:text-[var(--color-faint)]">
+      <summary className="cursor-pointer rounded-row text-[0.8125rem] font-medium text-[var(--color-muted)] marker:text-[var(--color-faint)]">
         Edit
       </summary>
       <form action={updateAssignmentRecord} className="mt-4 grid max-w-3xl gap-3">
         <input type="hidden" name="assignmentId" value={assignment.id} />
         <input type="hidden" name="returnTo" value={`/teach/work/${assignment.id}`} />
         <ObjectiveChecklist objectives={objectives} selectedCodes={assignment.objectiveCodes} />
-        <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
+        <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Title
           <input
             name="title"
             type="text"
             defaultValue={assignment.title}
             required
-            className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+            className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
-        <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
+        <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Description
           <textarea
             name="description"
             defaultValue={assignment.detail ?? ""}
-            className="min-h-32 resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-[14px] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+            className="min-h-32 resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-[0.875rem] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px]">
-          <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
+          <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
             Due
             <input
               name="dueDate"
               type="date"
               defaultValue={dateInputValue(assignment.dueAt)}
-              className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+              className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </label>
-          <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
+          <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
             Points
             <input
               name="points"
@@ -193,7 +193,7 @@ function AssignmentEditForm({
               min={0.01}
               step="0.01"
               defaultValue={assignment.points ?? ""}
-              className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+              className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </label>
         </div>
@@ -236,8 +236,8 @@ function SubmissionRow({ assignment, submission }: { assignment: InstructorAssig
     <article className="py-4 first:pt-0 last:pb-0">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
-          <p className="text-[14px] font-semibold leading-5 text-[var(--color-ink)]">{submission.studentName}</p>
-          <p className="mt-1 text-[12px] text-[var(--color-muted)]">{submissionMeta(submission)}</p>
+          <p className="text-[0.875rem] font-semibold leading-5 text-[var(--color-ink)]">{submission.studentName}</p>
+          <p className="mt-1 text-[0.75rem] text-[var(--color-muted)]">{submissionMeta(submission)}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 md:justify-end">
           <StatusBadge tone="neutral">{submission.standing}</StatusBadge>
@@ -258,8 +258,8 @@ function SubmissionResponse({ body }: { body?: string | null }) {
 
   return (
     <div className="mt-3 border-t border-[var(--color-border)] pt-3">
-      <p className="text-[12px] font-medium text-[var(--color-ink)]">Response</p>
-      <p className="mt-2 text-[13px] leading-6 text-[var(--color-muted)]">{response}</p>
+      <p className="text-[0.75rem] font-medium text-[var(--color-ink)]">Response</p>
+      <p className="mt-2 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{response}</p>
     </div>
   );
 }
@@ -286,14 +286,14 @@ function GradeForm({ assignment, submission }: { assignment: InstructorAssignmen
 
   return (
     <details className="mt-3 border-t border-[var(--color-border)] pt-3">
-      <summary className="cursor-pointer text-[13px] font-medium text-[var(--color-muted)] marker:text-[var(--color-faint)]">
+      <summary className="cursor-pointer text-[0.8125rem] font-medium text-[var(--color-muted)] marker:text-[var(--color-faint)]">
         {label}
       </summary>
       <form action={gradeSubmission} className="mt-3 grid gap-3 sm:grid-cols-[120px_110px_minmax(120px,auto)] sm:items-end">
         <input type="hidden" name="assignmentId" value={assignment.id} />
         <input type="hidden" name="studentId" value={submission.studentId} />
         <input type="hidden" name="returnTo" value={`/teach/work/${assignment.id}`} />
-        <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
+        <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Score
           <input
             name="score"
@@ -303,16 +303,16 @@ function GradeForm({ assignment, submission }: { assignment: InstructorAssignmen
             step="0.01"
             defaultValue={typeof submission.score === "number" ? String(submission.score) : ""}
             required
-            className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+            className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
-        <label className="grid gap-1.5 text-[12px] font-medium text-[var(--color-ink)]">
+        <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Grade
           <input
             name="grade"
             type="text"
             defaultValue={submission.grade ?? ""}
-            className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+            className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
           />
         </label>
         <ActionButton className="w-full sm:w-auto">{label === "Grade" ? "Record grade" : "Save grade"}</ActionButton>

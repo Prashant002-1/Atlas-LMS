@@ -19,7 +19,7 @@ export default async function TeachAtlasPage() {
     return (
       <>
         <PageHeader title="Atlas" />
-        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">{view.problem.detail}</p>
+        <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">{view.problem.detail}</p>
       </>
     );
   }
@@ -31,7 +31,7 @@ export default async function TeachAtlasPage() {
         course={`${view.course.code} / ${view.course.name}`}
         action={
           view.pendingProposals > 0 ? (
-            <TextLink href="/teach/review" className="text-[13px]">
+            <TextLink href="/teach/review" className="text-[0.8125rem]">
               {view.pendingProposals} draft{view.pendingProposals === 1 ? "" : "s"} in Review
             </TextLink>
           ) : undefined
@@ -39,11 +39,11 @@ export default async function TeachAtlasPage() {
       />
 
       <section aria-label="Work sessions">
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Work sessions</h2>
+        <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Work sessions</h2>
         {view.assignments.length === 0 ? (
           <div className="mt-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
-            <p className="text-[14px] font-semibold">No work sessions yet</p>
-            <p className="mt-1.5 max-w-2xl text-[13.5px] leading-6 text-[var(--color-muted)]">
+            <p className="text-[0.875rem] font-semibold">No work sessions yet</p>
+            <p className="mt-1.5 max-w-2xl text-[0.84375rem] leading-6 text-[var(--color-muted)]">
               A work session is an assignment taken as a governed conversation with Atlas and graded on the reasoning
               journey. Creating one from scratch lands with planning sessions; the seeded course ships one configured.
             </p>
@@ -58,7 +58,7 @@ export default async function TeachAtlasPage() {
               >
                 <article className="atlas-card-hover rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-[15px] font-semibold text-[var(--color-ink)]">{assignment.name}</p>
+                    <p className="text-[0.9375rem] font-semibold text-[var(--color-ink)]">{assignment.name}</p>
                     <div className="flex items-center gap-2">
                       {assignment.counts.reviewRequested > 0 ? (
                         <StatusBadge tone="warn">
@@ -70,7 +70,7 @@ export default async function TeachAtlasPage() {
                       ) : null}
                     </div>
                   </div>
-                  <p className="atlas-mono mt-1 text-[11px] uppercase tracking-[0.07em] text-[var(--color-faint)]">
+                  <p className="atlas-mono mt-1 text-[0.6875rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">
                     {assignment.durationMinutes} min session
                     {assignment.dueAt
                       ? ` · due ${new Date(assignment.dueAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`

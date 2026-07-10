@@ -28,7 +28,7 @@ export function MessageContent({ className, children, ...props }: HTMLAttributes
   return (
     <div
       className={cn(
-        "flex w-fit min-w-0 max-w-full flex-col gap-3 overflow-hidden text-[14px] leading-6",
+        "flex w-fit min-w-0 max-w-full flex-col gap-3 overflow-hidden text-[0.875rem] leading-6",
         "group-[.is-user]:ml-auto group-[.is-user]:rounded-panel group-[.is-user]:bg-[var(--color-indigo-soft)] group-[.is-user]:px-3.5 group-[.is-user]:py-2.5 group-[.is-user]:text-[var(--color-ink)]",
         "group-[.is-assistant]:w-full group-[.is-assistant]:text-[var(--color-ink)]",
         className

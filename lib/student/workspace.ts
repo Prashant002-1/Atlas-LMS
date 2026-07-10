@@ -395,7 +395,7 @@ export async function loadStudentCourseWorkspace(
     .where(and(eq(courses.orgId, actor.orgId), eq(courses.id, courseId)))
     .limit(1);
   if (!course) {
-    return problem("Course unavailable", "The course record could not be loaded.");
+    return problem("Course unavailable", "This course could not be loaded.");
   }
 
   const [policy] = await db
@@ -440,7 +440,7 @@ export async function loadStudentAssignmentWorkspace(
 
   const assignment = base.allAssignments.find((a) => a.id === assignmentId);
   if (!assignment) {
-    return { ...base.workspace, problem: { title: "Work unavailable", detail: "This work is not in the course record." } };
+    return { ...base.workspace, problem: { title: "Work unavailable", detail: "This work is not part of this course." } };
   }
   const codes = new Set(assignment.objectiveCodes);
   return {
@@ -464,7 +464,7 @@ export async function loadStudentMaterialWorkspace(
 
   const material = base.allMaterials.find((m) => m.id === moduleId);
   if (!material) {
-    return { ...base.workspace, problem: { title: "Material unavailable", detail: "This material is not in the course record." } };
+    return { ...base.workspace, problem: { title: "Material unavailable", detail: "This material is not part of this course." } };
   }
   const codes = new Set(material.objectiveCodes);
   return {
@@ -494,7 +494,7 @@ async function recordBase(actor: Actor | null | undefined, courseId: string | un
   });
 
   if (!courseId) {
-    return failed("Record unavailable", "This record is not in the course record.");
+    return failed("Not available", "This is not part of your courses.");
   }
   const courseWorkspace = await loadStudentCourseWorkspace(actor, courseId);
   if (courseWorkspace.problem) {

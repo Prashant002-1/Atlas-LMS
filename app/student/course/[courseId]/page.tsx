@@ -19,7 +19,7 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
     return (
       <>
         <PageHeader title={workspace.problem.title} />
-        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
+        <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
       </>
     );
   }
@@ -42,21 +42,21 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
       />
 
       {workspace.course.description ? (
-        <p className="-mt-3 mb-6 max-w-2xl text-[13.5px] leading-6 text-[var(--color-muted)]">
+        <p className="-mt-3 mb-6 max-w-2xl text-[0.84375rem] leading-6 text-[var(--color-muted)]">
           {workspace.course.description}
         </p>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.42fr)]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16.25rem,0.42fr)]">
         <div className="min-w-0 space-y-4">
           {workspace.currentWeek ? (
             <section className="atlas-card-hover rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
-              <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">This week</p>
-              <p className="mt-1 text-[15px] font-semibold leading-6">
+              <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">This week</p>
+              <p className="mt-1 text-[0.9375rem] font-semibold leading-6">
                 <TextLink href={`/student/material/${workspace.currentWeek.id}`}>{workspace.currentWeek.title}</TextLink>
               </p>
               {workspace.currentWeek.summary ? (
-                <p className="mt-1 line-clamp-2 text-[13.5px] leading-6 text-[var(--color-muted)]">
+                <p className="mt-1 line-clamp-2 text-[0.84375rem] leading-6 text-[var(--color-muted)]">
                   {workspace.currentWeek.summary}
                 </p>
               ) : null}
@@ -65,7 +65,7 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
 
           <Panel
             title="Due in this course"
-            action={<TextLink href={`/student/course/${courseId}/assignments`} className="text-[13px]">All assignments</TextLink>}
+            action={<TextLink href={`/student/course/${courseId}/assignments`} className="text-[0.8125rem]">All assignments</TextLink>}
           >
             {openWork.length > 0 ? (
               <div className="-mx-5 -my-5 divide-y divide-[var(--color-border)]">
@@ -78,7 +78,7 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
                 art="summit"
                 title="Everything is in"
                 detail="No open work in this course right now."
-                action={<TextLink href={`/student/course/${courseId}/grades`} className="text-[13px]">See grades</TextLink>}
+                action={<TextLink href={`/student/course/${courseId}/grades`} className="text-[0.8125rem]">See grades</TextLink>}
               />
             )}
           </Panel>
@@ -90,31 +90,31 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
               <div className="space-y-4">
                 {workspace.notices.slice(0, 3).map((notice) => (
                   <div key={notice.id ?? notice.title}>
-                    <p className="text-[13.5px] font-medium leading-5">{notice.title}</p>
+                    <p className="text-[0.84375rem] font-medium leading-5">{notice.title}</p>
                     {notice.postedAt ? (
-                      <p className="atlas-mono mt-0.5 text-[11px] uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                      <p className="atlas-mono mt-0.5 text-[0.6875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
                         Posted {notice.postedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </p>
                     ) : null}
                     {notice.message ? (
-                      <p className="mt-1 line-clamp-3 text-[12.5px] leading-5 text-[var(--color-muted)]">{notice.message}</p>
+                      <p className="mt-1 line-clamp-3 text-[0.78125rem] leading-5 text-[var(--color-muted)]">{notice.message}</p>
                     ) : null}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-[13px] leading-5 text-[var(--color-muted)]">Nothing posted yet.</p>
+              <p className="text-[0.8125rem] leading-5 text-[var(--color-muted)]">Nothing posted yet.</p>
             )}
           </Panel>
 
           <Panel title="Modules">
-            <p className="text-[13px] leading-5 text-[var(--color-muted)]">
+            <p className="text-[0.8125rem] leading-5 text-[var(--color-muted)]">
               {workspace.materials.length > 0
                 ? `${workspace.materials.length} published`
                 : "Nothing published yet"}
             </p>
-            <p className="mt-2 text-[13px]">
-              <TextLink href={`/student/course/${courseId}/modules`} className="text-[13px]">All modules</TextLink>
+            <p className="mt-2 text-[0.8125rem]">
+              <TextLink href={`/student/course/${courseId}/modules`} className="text-[0.8125rem]">All modules</TextLink>
             </p>
           </Panel>
         </div>
@@ -130,9 +130,9 @@ function OpenWorkRow({ assignment }: { assignment: StudentAssignment }) {
       href={`/student/work/${assignment.id}`}
       aside={assignment.status === "missing" ? <StatusBadge tone="warn">Missing</StatusBadge> : undefined}
     >
-      <span className="block truncate text-[14px] font-medium">{assignment.name}</span>
+      <span className="block truncate text-[0.875rem] font-medium">{assignment.name}</span>
       <span
-        className={`mt-0.5 block text-[12.5px] ${
+        className={`mt-0.5 block text-[0.78125rem] ${
           overdue ? "font-medium text-[var(--color-danger)]" : "text-[var(--color-muted)]"
         }`}
       >

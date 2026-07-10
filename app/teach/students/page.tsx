@@ -14,7 +14,7 @@ export default async function TeachStudentsPage() {
     return (
       <>
         <PageHeader title="Students" />
-        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
+        <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
       </>
     );
   }
@@ -32,7 +32,7 @@ export default async function TeachStudentsPage() {
       <PageHeader title="Students" course={`${workspace.course.code} / ${workspace.course.term}`} />
 
       <section>
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Work</h2>
+        <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Work</h2>
         {active.length > 0 ? (
           <StaggerGrid className="mt-2.5 space-y-2" stagger={0.04}>
             {active.map((item) => (
@@ -49,7 +49,7 @@ export default async function TeachStudentsPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">
+        <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">
           Roster ({workspace.students.length})
         </h2>
         {workspace.students.length > 0 ? (
@@ -58,10 +58,10 @@ export default async function TeachStudentsPage() {
               <MotionItem key={student.id ?? student.name}>
                 <article className="atlas-card-hover group flex items-center gap-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-medium leading-6">
+                    <p className="truncate text-[0.875rem] font-medium leading-6">
                       {student.id ? <TextLink href={`/teach/student/${student.id}`}>{student.name}</TextLink> : student.name}
                     </p>
-                    <p className="text-[12.5px] text-[var(--color-muted)]">
+                    <p className="text-[0.78125rem] text-[var(--color-muted)]">
                       {student.graded} graded / {student.submitted - student.graded > 0 ? `${student.submitted - student.graded} waiting / ` : ""}
                       {student.open} open{student.missing > 0 ? ` / ${student.missing} missing` : ""}
                     </p>
@@ -86,10 +86,10 @@ function ProgressRow({ item }: { item: InstructorWorkspace["workProgress"][numbe
   return (
     <article className="atlas-card-hover group flex items-center gap-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[14px] font-medium leading-6">
+        <p className="truncate text-[0.875rem] font-medium leading-6">
           {item.assignmentId ? <TextLink href={`/teach/work/${item.assignmentId}`}>{item.title}</TextLink> : item.title}
         </p>
-        <p className="text-[12.5px] text-[var(--color-muted)]">
+        <p className="text-[0.78125rem] text-[var(--color-muted)]">
           {item.graded} graded / {item.submitted} submitted / {item.open} open
           {item.missing > 0 ? ` / ${item.missing} missing` : ""}
         </p>

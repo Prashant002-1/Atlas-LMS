@@ -13,8 +13,8 @@ export function ProposalCard({ proposal, compact = false }: { proposal: Instruct
     <article className="atlas-card-hover rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[14px] font-semibold leading-5">{proposal.title}</p>
-          <p className="mt-1 text-[12px] text-[var(--color-muted)]">{blockSummary(proposal)}</p>
+          <p className="text-[0.875rem] font-semibold leading-5">{proposal.title}</p>
+          <p className="mt-1 text-[0.75rem] text-[var(--color-muted)]">{blockSummary(proposal)}</p>
         </div>
         <StatusBadge tone={tone[proposal.status]}>{label[proposal.status]}</StatusBadge>
       </div>
@@ -24,30 +24,30 @@ export function ProposalCard({ proposal, compact = false }: { proposal: Instruct
           <ul className="divide-y divide-[var(--color-border)] rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)]">
             {proposal.blocks.map((block, index) =>
               block.type === "practice_set" ? (
-                <li key={index} className="px-3 py-2.5 text-[13px]">
+                <li key={index} className="px-3 py-2.5 text-[0.8125rem]">
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-medium">{block.title}</span>
-                    <span className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">
+                    <span className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">
                       {block.questions.length} question{block.questions.length === 1 ? "" : "s"}
                       {block.objectiveCodes.length > 0 ? ` \u00b7 ${block.objectiveCodes.join(" ")}` : ""}
                     </span>
                   </div>
-                  <p className="mt-1 text-[12px] leading-5 text-[var(--color-muted)]">{block.base}</p>
+                  <p className="mt-1 text-[0.75rem] leading-5 text-[var(--color-muted)]">{block.base}</p>
                   <ol className="mt-2 space-y-1">
                     {block.questions.slice(0, 3).map((question, qIndex) => (
-                      <li key={qIndex} className="text-[12px] leading-5 text-[var(--color-muted)]">
+                      <li key={qIndex} className="text-[0.75rem] leading-5 text-[var(--color-muted)]">
                         {qIndex + 1}. {question.prompt}
                       </li>
                     ))}
                     {block.questions.length > 3 ? (
-                      <li className="text-[11.5px] text-[var(--color-faint)]">and {block.questions.length - 3} more on apply</li>
+                      <li className="text-[0.71875rem] text-[var(--color-faint)]">and {block.questions.length - 3} more on apply</li>
                     ) : null}
                   </ol>
                 </li>
               ) : (
-                <li key={index} className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]">
+                <li key={index} className="flex items-center justify-between gap-3 px-3 py-2 text-[0.8125rem]">
                   <span className="font-medium capitalize">{block.type.replaceAll("_", " ")}</span>
-                  <span className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">legacy draft</span>
+                  <span className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">legacy draft</span>
                 </li>
               )
             )}
@@ -58,7 +58,7 @@ export function ProposalCard({ proposal, compact = false }: { proposal: Instruct
       {proposal.appliedRecords.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {proposal.appliedRecords.map((record) => (
-            <TextLink key={record.href} href={record.href} className="text-[12px]">
+            <TextLink key={record.href} href={record.href} className="text-[0.75rem]">
               {record.label}
             </TextLink>
           ))}

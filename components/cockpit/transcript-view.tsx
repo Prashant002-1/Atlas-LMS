@@ -24,7 +24,7 @@ export function TranscriptView({
       aria-label="Session transcript"
       className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
     >
-      <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">
+      <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">
         Transcript, as graded
       </p>
 
@@ -33,13 +33,13 @@ export function TranscriptView({
           <div key={turn.id} id={`turn-${turn.id}`} className="scroll-mt-24">
             <div
               className={cn(
-                "max-w-[95%] text-[13.5px] leading-6",
+                "max-w-[95%] text-[0.84375rem] leading-6",
                 turn.role === "user"
                   ? "ml-auto w-fit rounded-panel bg-[var(--color-indigo-soft)] px-3.5 py-2 text-[var(--color-ink)]"
                   : "text-[var(--color-muted)]"
               )}
             >
-              <span className="atlas-mono mr-2 text-[10px] uppercase tracking-[0.07em] text-[var(--color-faint)]">
+              <span className="atlas-mono mr-2 text-[0.625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">
                 {turn.role === "user" ? "student" : turn.role === "assistant" ? "atlas" : "tool"}
               </span>
               {turn.segments.map((segment, index) =>
@@ -52,7 +52,7 @@ export function TranscriptView({
                       .join(", ")}
                   >
                     {segment.text}
-                    <sup className="atlas-mono ml-0.5 text-[9px] text-[var(--color-accent-strong)]">
+                    <sup className="atlas-mono ml-0.5 text-[0.5625rem] text-[var(--color-accent-strong)]">
                       {[...new Set(segment.spans.map((span) => shortTag(span.criterionKey)))].join(",")}
                     </sup>
                   </mark>

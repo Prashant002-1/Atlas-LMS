@@ -22,8 +22,8 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
     return (
       <>
         <PageHeader title={workspace.problem?.title ?? "Work unavailable"} />
-        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">
-          {workspace.problem?.detail ?? "This work is not in the course record."}
+        <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">
+          {workspace.problem?.detail ?? "This work is not part of this course."}
         </p>
       </>
     );
@@ -49,9 +49,9 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
 
       <section className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
         {assignment.description ? (
-          <p className="max-w-3xl whitespace-pre-wrap text-[14.5px] leading-7">{assignment.description}</p>
+          <p className="max-w-3xl whitespace-pre-wrap text-[0.90625rem] leading-7">{assignment.description}</p>
         ) : (
-          <p className="text-[14px] text-[var(--color-muted)]">No instructions are attached.</p>
+          <p className="text-[0.875rem] text-[var(--color-muted)]">No instructions are attached.</p>
         )}
         {assignment.objectiveCodes.length > 0 ? (
           <div className="mt-4">
@@ -61,10 +61,10 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
 
         {workspace.relatedMaterials.length > 0 ? (
           <div className="mt-5 border-t border-[var(--color-border)] pt-4">
-            <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Material behind this</p>
+            <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Material behind this</p>
             <div className="mt-2 space-y-1">
               {workspace.relatedMaterials.map((material) => (
-                <p key={material.id} className="text-[13.5px]">
+                <p key={material.id} className="text-[0.84375rem]">
                   <TextLink href={`/student/material/${material.id}`}>
                     Week {material.week}: {material.title}
                   </TextLink>
@@ -77,8 +77,8 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
 
       {sessionBundle ? (
         <section className="mt-4 rounded-panel border border-[color-mix(in_oklch,var(--color-accent)_35%,var(--color-border))] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
-          <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-accent-strong)]">Work session</p>
-          <p className="mt-2 max-w-3xl text-[14px] leading-6 text-[var(--color-muted)]">
+          <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-accent-strong)]">Work session</p>
+          <p className="mt-2 max-w-3xl text-[0.875rem] leading-6 text-[var(--color-muted)]">
             This assignment is taken as a live session: you work the problem out loud with Atlas, your design evolves in
             a side panel, and the reasoning journey itself is what gets graded. About {sessionBundle.config.durationMinutes}{" "}
             minutes.
@@ -93,8 +93,8 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
 
       {assignment.status === "graded" ? (
         <section className="mt-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
-          <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Result</p>
-          <p className="mt-2 text-[20px] font-semibold">
+          <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Result</p>
+          <p className="mt-2 text-[1.25rem] font-semibold">
             {typeof assignment.score === "number" ? Math.round(assignment.score) : ""}
             {assignment.points ? ` / ${Math.round(assignment.points)}` : ""}
             {assignment.grade ? `  (${assignment.grade})` : ""}
@@ -104,14 +104,14 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
 
       {assignment.response ? (
         <section className="mt-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
-          <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Your response</p>
-          <p className="mt-2 max-w-3xl whitespace-pre-wrap text-[14px] leading-6">{assignment.response}</p>
+          <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Your response</p>
+          <p className="mt-2 max-w-3xl whitespace-pre-wrap text-[0.875rem] leading-6">{assignment.response}</p>
         </section>
       ) : null}
 
       {canSubmit || canRevise ? (
         <section className="mt-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
-          <p className="text-[14px] font-semibold">{canRevise ? "Revise your response" : "Submit your response"}</p>
+          <p className="text-[0.875rem] font-semibold">{canRevise ? "Revise your response" : "Submit your response"}</p>
           <form action={submitAssignment} className="mt-3 grid max-w-3xl gap-3">
             <input type="hidden" name="assignmentId" value={assignment.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
@@ -126,7 +126,7 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
               rows={6}
               defaultValue={assignment.response ?? ""}
               placeholder="Write your response here."
-              className="w-full resize-y rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[14px] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+              className="w-full resize-y rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[0.875rem] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
             <div>
               <ActionButton>{canRevise ? "Update response" : "Submit response"}</ActionButton>

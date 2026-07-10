@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import type { UIMessage } from "ai";
-import { CheckCircle2, Clock3, ShieldCheck, Sparkle } from "lucide-react";
+import { CheckCircle2, Clock3, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { submitSession } from "@/lib/student/actions";
 import {
@@ -161,15 +161,15 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
       <section
         aria-label="Session conversation"
-        className="flex min-h-[480px] flex-col overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)] lg:h-[calc(100dvh-190px)]"
+        className="flex min-h-[30rem] flex-col overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)] lg:h-[calc(100dvh-190px)]"
       >
         <Conversation className="flex-1">
           <ConversationContent>
             {messages.length === 0 ? (
               <ConversationEmptyState title="This session is the assignment" description={props.brief}>
                 <div className="max-w-md space-y-4">
-                  <p className="text-[14px] font-medium leading-6 text-[var(--color-ink)]">{props.brief}</p>
-                  <p className="text-[13px] leading-6 text-[var(--color-muted)]">
+                  <p className="text-[0.875rem] font-medium leading-6 text-[var(--color-ink)]">{props.brief}</p>
+                  <p className="text-[0.8125rem] leading-6 text-[var(--color-muted)]">
                     Work it out loud with Atlas. Your reasoning is what gets assessed, and the rubric on the right
                     is open the whole time.
                   </p>
@@ -197,9 +197,9 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
               ))
             )}
             {awaitingReply ? (
-              <div className="flex items-center gap-2 text-[12.5px] text-[var(--color-muted)]">
+              <div className="flex items-center gap-2 text-[0.78125rem] text-[var(--color-muted)]">
                 <Loader size={14} />
-                Reading the course record
+                Reading the course
               </div>
             ) : null}
           </ConversationContent>
@@ -211,8 +211,8 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
             <div className="flex items-start gap-2.5 rounded-panel bg-[var(--color-surface-muted)] px-3.5 py-3">
               <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-[var(--color-accent-strong)]" aria-hidden />
               <div className="min-w-0 flex-1">
-                <p className="text-[13.5px] font-medium text-[var(--color-ink)]">Session submitted</p>
-                <p className="mt-0.5 text-[12.5px] leading-5 text-[var(--color-muted)]">
+                <p className="text-[0.84375rem] font-medium text-[var(--color-ink)]">Session submitted</p>
+                <p className="mt-0.5 text-[0.78125rem] leading-5 text-[var(--color-muted)]">
                   {props.submittedAt ? `Frozen ${formatStamp(props.submittedAt)}. ` : ""}
                   The transcript and your final design are on your record; grading reads the journey next.
                 </p>
@@ -220,7 +220,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                   <button
                     type="button"
                     onClick={props.onStartFresh}
-                    className="mt-2 rounded-control border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-ink)] transition hover:border-[var(--color-ink)]"
+                    className="mt-2 rounded-control border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-1.5 text-[0.78125rem] font-medium text-[var(--color-ink)] transition hover:border-[var(--color-ink)]"
                   >
                     Start a fresh run
                   </button>
@@ -230,7 +230,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
           ) : (
             <>
               {error ? (
-                <p className="mb-2 text-[12.5px] text-[var(--color-danger)]">
+                <p className="mb-2 text-[0.78125rem] text-[var(--color-danger)]">
                   {error.message || "The session hit an error. Your transcript is saved; try again."}
                 </p>
               ) : null}
@@ -252,7 +252,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                 />
                 <PromptInputToolbar>
                   <PromptInputTools>
-                    <span className="px-1.5 text-[11.5px] text-[var(--color-faint)]">
+                    <span className="px-1.5 text-[0.71875rem] text-[var(--color-faint)]">
                       Assessed session. Your moves are the deliverable.
                     </span>
                   </PromptInputTools>
@@ -292,8 +292,7 @@ function MessageParts({ message, streaming }: { message: UIMessage; streaming: b
     }
     if (type === "tool-update_artifact") {
       rendered.push(
-        <p key={index} className="atlas-mono flex items-center gap-1.5 text-[11px] uppercase tracking-[0.07em] text-[var(--color-accent-strong)]">
-          <Sparkle size={11} aria-hidden />
+        <p key={index} className="atlas-mono flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-[0.07em] text-[var(--color-accent-strong)]">
           Design captured to the panel
         </p>
       );
@@ -329,23 +328,23 @@ function SessionContractCard(props: SessionRoomProps & { started: boolean }) {
       className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Session</p>
+        <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Session</p>
         <SessionTimer
           startedAt={props.sessionStartedAt}
           durationMinutes={props.durationMinutes}
           running={props.started && !props.submitted}
         />
       </div>
-      <p className="mt-2 text-[13px] leading-6 text-[var(--color-muted)]">{props.brief}</p>
-      <dl className="mt-3 space-y-1.5 text-[12px] leading-5">
+      <p className="mt-2 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{props.brief}</p>
+      <dl className="mt-3 space-y-1.5 text-[0.75rem] leading-5">
         {props.groundingScope.length > 0 ? (
           <div className="flex gap-2">
-            <dt className="atlas-mono shrink-0 text-[10.5px] uppercase tracking-[0.07em] text-[var(--color-faint)]">Grounded on</dt>
+            <dt className="atlas-mono shrink-0 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">Grounded on</dt>
             <dd className="text-[var(--color-muted)]">{props.groundingScope.join(", ")}</dd>
           </div>
         ) : null}
         <div className="flex gap-2">
-          <dt className="atlas-mono shrink-0 text-[10.5px] uppercase tracking-[0.07em] text-[var(--color-faint)]">Transcript</dt>
+          <dt className="atlas-mono shrink-0 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">Transcript</dt>
           <dd className="text-[var(--color-muted)]">{props.transcriptPolicy}</dd>
         </div>
         {props.personalRecordSideNotes ? (
@@ -389,7 +388,7 @@ function SessionTimer({
 
   if (!running || startMs === null || now === null) {
     return (
-      <span className="atlas-mono flex items-center gap-1 text-[11.5px] text-[var(--color-faint)]">
+      <span className="atlas-mono flex items-center gap-1 text-[0.71875rem] text-[var(--color-faint)]">
         <Clock3 size={11.5} aria-hidden />
         {durationMinutes} min
       </span>
@@ -404,7 +403,7 @@ function SessionTimer({
   return (
     <span
       className={cn(
-        "atlas-mono flex items-center gap-1 text-[11.5px] tabular-nums",
+        "atlas-mono flex items-center gap-1 text-[0.71875rem] tabular-nums",
         low ? "text-[var(--color-warn)]" : "text-[var(--color-muted)]"
       )}
       aria-label={remaining === 0 ? "Time is up" : `${minutes} minutes ${seconds} seconds left`}
@@ -430,18 +429,18 @@ function SubmitSessionControl({ assignmentId }: { assignmentId: string }) {
           <button
             type="button"
             onClick={() => setArmed(true)}
-            className="w-full rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3.5 py-2 text-[13.5px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
+            className="w-full rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3.5 py-2 text-[0.84375rem] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
           >
             Submit session
           </button>
-          <p className="mt-2 text-[11.5px] leading-4 text-[var(--color-faint)]">
-            Submitting freezes the transcript and your final design as the record your grade reads from.
+          <p className="mt-2 text-[0.71875rem] leading-4 text-[var(--color-faint)]">
+            Submitting freezes the transcript and your final design for grading.
           </p>
         </>
       ) : (
         <form action={submitSession} className="space-y-2">
           <input type="hidden" name="assignmentId" value={assignmentId} />
-          <p className="text-[12.5px] leading-5 text-[var(--color-muted)]">
+          <p className="text-[0.78125rem] leading-5 text-[var(--color-muted)]">
             Submit and freeze this session? You will not be able to add turns afterward.
           </p>
           <div className="flex gap-2">
@@ -449,7 +448,7 @@ function SubmitSessionControl({ assignmentId }: { assignmentId: string }) {
             <button
               type="button"
               onClick={() => setArmed(false)}
-              className="rounded-control border border-[var(--color-border)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)]"
+              className="rounded-control border border-[var(--color-border)] px-3 py-1.5 text-[0.78125rem] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)]"
             >
               Keep working
             </button>
@@ -466,7 +465,7 @@ function ConfirmSubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:opacity-50"
+      className="rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 py-1.5 text-[0.78125rem] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:opacity-50"
     >
       {pending ? "Submitting" : "Confirm submit"}
     </button>

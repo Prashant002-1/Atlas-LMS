@@ -6,20 +6,22 @@ import { resolveScope } from "@/lib/workspace/scope";
 import { AppShell, type NavSection } from "@/components/atlas/app-shell";
 
 /**
- * The teaching shell: global context first (the overview), then the course
- * record itself, then the Atlas surfaces. The term and course in view sit
- * above the navigation; Settings and Account close the column.
+ * The teaching shell: the overview first, then the course itself, then the
+ * Atlas surfaces. The term and course in view sit above the navigation; the
+ * account row closes the column.
  */
 const teacherSections: NavSection[] = [
   {
     items: [{ href: "/teach", label: "Overview", icon: "dashboard", exact: true }],
   },
   {
-    label: "Course record",
+    label: "Course",
     items: [
       { href: "/teach/work", label: "Work", icon: "work" },
       { href: "/teach/weeks", label: "Modules", icon: "weeks" },
       { href: "/teach/announcements", label: "Announcements", icon: "announce" },
+      { href: "/teach/calendar", label: "Calendar", icon: "calendar" },
+      { href: "/teach/gradebook", label: "Gradebook", icon: "gradebook" },
       { href: "/teach/students", label: "Students", icon: "students" },
       { href: "/teach/course", label: "Course setup", icon: "setup" },
     ],
@@ -29,6 +31,7 @@ const teacherSections: NavSection[] = [
     items: [
       { href: "/teach/atlas", label: "Atlas", icon: "atlas" },
       { href: "/teach/review", label: "Review", icon: "review" },
+      { href: "/teach/settings", label: "Settings", icon: "settings" },
     ],
   },
 ];
@@ -61,7 +64,6 @@ export default async function TeachLayout({ children }: { children: ReactNode })
       activeTermSlug={scope.term?.slug}
       scopePath="/teach"
       accountHref="/teach/account"
-      settingsHref="/teach/settings"
       userName={session.user.name}
       userEmail={session.user.email}
     >

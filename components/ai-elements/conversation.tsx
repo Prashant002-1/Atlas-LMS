@@ -110,8 +110,8 @@ export function ConversationEmptyState({
         <>
           {icon ? <div className="text-[var(--color-faint)]">{icon}</div> : null}
           <div className="space-y-1">
-            <h3 className="text-[14px] font-medium text-[var(--color-ink)]">{title}</h3>
-            {description ? <p className="text-[13px] text-[var(--color-muted)]">{description}</p> : null}
+            <h3 className="text-[0.875rem] font-medium text-[var(--color-ink)]">{title}</h3>
+            {description ? <p className="text-[0.8125rem] text-[var(--color-muted)]">{description}</p> : null}
           </div>
         </>
       )}
@@ -129,7 +129,7 @@ export function ConversationScrollButton({ className, label = "Scroll to latest"
         onClick={() => scrollToBottom("smooth")}
         aria-label={label}
         className={cn(
-          "pointer-events-auto inline-flex items-center gap-1.5 rounded-row border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-muted)] shadow-[var(--shadow-floating)] transition hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]",
+          "pointer-events-auto inline-flex items-center gap-1.5 rounded-row border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-1.5 text-[0.75rem] font-medium text-[var(--color-muted)] shadow-[var(--shadow-floating)] transition hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]",
           className
         )}
       >

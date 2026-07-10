@@ -18,7 +18,7 @@ export default async function StudentCourseAssignmentsPage({ params }: { params:
     return (
       <>
         <PageHeader title={workspace.problem.title} />
-        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
+        <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
       </>
     );
   }
@@ -31,7 +31,7 @@ export default async function StudentCourseAssignmentsPage({ params }: { params:
       <PageHeader title="Assignments" course={`${workspace.course.code} / ${workspace.course.name}`} />
 
       <section>
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Open</h2>
+        <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Open</h2>
         <div className="mt-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
           {open.length > 0 ? (
             <div className="divide-y divide-[var(--color-border)]">
@@ -49,7 +49,7 @@ export default async function StudentCourseAssignmentsPage({ params }: { params:
 
       {done.length > 0 ? (
         <section className="mt-7">
-          <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Turned in</h2>
+          <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Turned in</h2>
           <div className="mt-2.5 divide-y divide-[var(--color-border)] rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
             {done.map((assignment) => (
               <AssignmentRow key={assignment.id} assignment={assignment} />
@@ -79,9 +79,9 @@ function AssignmentRow({ assignment }: { assignment: StudentAssignment }) {
       href={`/student/work/${assignment.id}`}
       aside={<StatusBadge tone={tone[assignment.status]}>{label[assignment.status]}</StatusBadge>}
     >
-      <span className="block truncate text-[14px] font-medium">{assignment.name}</span>
+      <span className="block truncate text-[0.875rem] font-medium">{assignment.name}</span>
       <span
-        className={`mt-0.5 block truncate text-[12.5px] ${
+        className={`mt-0.5 block truncate text-[0.78125rem] ${
           overdue ? "font-medium text-[var(--color-danger)]" : "text-[var(--color-muted)]"
         }`}
       >

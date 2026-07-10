@@ -1,49 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 
 /**
- * The light/dark choice. Writes data-theme on the document root and persists
- * to localStorage; the no-flash init script in the root layout reads it back
- * on load. Lives on the Account page, the one place identity-level choices go.
+ * The light/dark toggle that lives in the sidebar's identity row: one small
+ * button showing the theme it switches to. It writes data-theme on the
+ * document root and persists to localStorage; the no-flash init script in the
+ * root layout reads it back on load. The current theme is read straight from
+ * the document through a sync external store, so there is no effect and no
+ * hydration mismatch.
  */
-export function ThemeSwitch() {
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof document === "undefined") return "dark";
-    return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
-  });
 
-  function applyTheme(next: "light" | "dark") {
-    document.documentElement.setAttribute("data-theme", next);
-    try {
-      window.localStorage.setItem("atlas-theme", next);
-    } catch {
-      // Storage can be unavailable (private mode); the choice still applies for this session.
-    }
-    setTheme(next);
-  }
+type Theme = "light" | "dark";
 
-  const option = (value: "light" | "dark", label: string, Icon: typeof Sun) => (
-    <button
-      type="button"
-      aria-pressed={theme === value}
-      onClick={() => applyTheme(value)}
-      className={`inline-flex min-h-8 items-center gap-1.5 rounded-control px-2.5 text-[12.5px] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)] ${
-        theme === value
-          ? "bg-[var(--color-indigo-soft)] text-[var(--color-ink)]"
-          : "text-[var(--color-muted)] hover:text-[var(--color-ink)]"
-      }`}
-    >
-      <Icon size={13} strokeWidth={2} aria-hidden />
-      {label}
-    </button>
-  );
+function subscribe(callback: () => void) {
+  const observer = new MutationObserver(callback);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return () => observer.disconnect();
+}
+
+function getSnapshot(): Theme {
+  return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+}
+
+function getServerSnapshot(): Theme {
+  return "dark";
+}
+
+export function ThemeToggle() {
+  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const next: Theme = theme === "dark" ? "light" : "dark";
+  const label = theme === "dark" ? "Switch to light theme" : "Switch to dark theme";
 
   return (
-    <div className="inline-flex rounded-control border border-[var(--color-border)] p-0.5">
-      {option("light", "Light", Sun)}
-      {option("dark", "Dark", Moon)}
-    </div>
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={() => {
+        document.documentElement.setAttribute("data-theme", next);
+        try {
+          window.localStorage.setItem("atlas-theme", next);
+        } catch {
+          // Storage can be unavailable (private mode); the choice still applies for this session.
+        }
+      }}
+      className="inline-flex size-7 shrink-0 items-center justify-center rounded-control text-[var(--color-faint)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+    >
+      {theme === "light" ? <Moon size={14} strokeWidth={2} aria-hidden /> : <Sun size={14} strokeWidth={2} aria-hidden />}
+    </button>
   );
 }

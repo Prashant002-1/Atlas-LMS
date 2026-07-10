@@ -21,7 +21,7 @@ export default async function TeachOverviewPage() {
     return (
       <>
         <PageHeader title={workspace.problem.title} />
-        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
+        <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
       </>
     );
   }
@@ -53,10 +53,10 @@ export default async function TeachOverviewPage() {
         }
       />
 
-      <StaggerGrid className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.42fr)]" stagger={0.06}>
+      <StaggerGrid className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(17.5rem,0.42fr)]" stagger={0.06}>
         <div className="min-w-0 space-y-4">
           <MotionItem>
-            <Panel title="Work" action={<TextLink href="/teach/work" className="text-[13px]">All work</TextLink>}>
+            <Panel title="Work" action={<TextLink href="/teach/work" className="text-[0.8125rem]">All work</TextLink>}>
               {workRows.length > 0 ? (
                 <div className="-mx-5 -my-5 divide-y divide-[var(--color-border)]">
                   {workRows.map((assignment) => (
@@ -70,16 +70,16 @@ export default async function TeachOverviewPage() {
               ) : (
                 <EmptyState
                   art="atlas"
-                  title="No work in the record"
-                  detail="Assignments and sessions appear here once they are added."
-                  action={<TextLink href="/teach/work?new=1#new" className="text-[13px]">New assignment</TextLink>}
+                  title="No work yet"
+                  detail="This course has no assignments yet."
+                  action={<TextLink href="/teach/work?new=1#new" className="text-[0.8125rem]">New assignment</TextLink>}
                 />
               )}
             </Panel>
           </MotionItem>
 
           <MotionItem>
-            <Panel title="Modules" action={<TextLink href="/teach/weeks" className="text-[13px]">All modules</TextLink>}>
+            <Panel title="Modules" action={<TextLink href="/teach/weeks" className="text-[0.8125rem]">All modules</TextLink>}>
               {moduleRows.length > 0 ? (
                 <div className="-mx-5 -my-5 divide-y divide-[var(--color-border)]">
                   {moduleRows.map((module) => (
@@ -93,10 +93,10 @@ export default async function TeachOverviewPage() {
                       }
                     >
                       <span className="flex min-w-0 items-baseline gap-3">
-                        <span className="atlas-mono w-5 shrink-0 text-[13px] tabular-nums text-[var(--color-faint)]">
+                        <span className="atlas-mono w-5 shrink-0 text-[0.8125rem] tabular-nums text-[var(--color-faint)]">
                           {module.week}
                         </span>
-                        <span className="truncate text-[14px] font-medium">{module.title}</span>
+                        <span className="truncate text-[0.875rem] font-medium">{module.title}</span>
                       </span>
                     </RecordRow>
                   ))}
@@ -104,9 +104,9 @@ export default async function TeachOverviewPage() {
               ) : (
                 <EmptyState
                   art="atlas"
-                  title="No modules in the record"
-                  detail="The week-by-week material appears here once it is added."
-                  action={<TextLink href="/teach/weeks?new=1#new" className="text-[13px]">New module</TextLink>}
+                  title="No modules yet"
+                  detail="This course has no modules yet."
+                  action={<TextLink href="/teach/weeks?new=1#new" className="text-[0.8125rem]">New module</TextLink>}
                 />
               )}
             </Panel>
@@ -117,14 +117,14 @@ export default async function TeachOverviewPage() {
           <MotionItem>
             <Panel
               title="Announcements"
-              action={<TextLink href="/teach/announcements" className="text-[13px]">All</TextLink>}
+              action={<TextLink href="/teach/announcements" className="text-[0.8125rem]">All</TextLink>}
             >
               {workspace.notices.length > 0 ? (
                 <div className="space-y-4">
                   {workspace.notices.slice(0, 3).map((notice) => (
                     <div key={notice.id ?? notice.title}>
-                      <p className="text-[13.5px] font-medium leading-5">{notice.title}</p>
-                      <p className="atlas-mono mt-0.5 text-[11px] uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                      <p className="text-[0.84375rem] font-medium leading-5">{notice.title}</p>
+                      <p className="atlas-mono mt-0.5 text-[0.6875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
                         {notice.postedAt ? `Posted ${shortDate(notice.postedAt)}` : "Draft"}
                       </p>
                     </div>
@@ -133,9 +133,9 @@ export default async function TeachOverviewPage() {
               ) : (
                 <EmptyState
                   art="atlas"
-                  title="Nothing posted"
-                  detail="Announcements are one-way course posts. Students see them on the course home."
-                  action={<TextLink href="/teach/announcements#new" className="text-[13px]">New announcement</TextLink>}
+                  title="No announcements"
+                  detail="Nothing has been posted to this course yet."
+                  action={<TextLink href="/teach/announcements#new" className="text-[0.8125rem]">New announcement</TextLink>}
                 />
               )}
             </Panel>
@@ -151,17 +151,17 @@ export default async function TeachOverviewPage() {
                       href={change.href}
                       className="group/change block rounded-row focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
                     >
-                      <span className="block truncate text-[13px] font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_22%,transparent)] decoration-1 underline-offset-[3px] transition group-hover/change:text-[var(--color-accent-strong)] group-hover/change:decoration-[var(--color-accent-strong)]">
+                      <span className="block truncate text-[0.8125rem] font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_22%,transparent)] decoration-1 underline-offset-[3px] transition group-hover/change:text-[var(--color-accent-strong)] group-hover/change:decoration-[var(--color-accent-strong)]">
                         {change.title}
                       </span>
-                      <span className="atlas-mono mt-0.5 block text-[11px] uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                      <span className="atlas-mono mt-0.5 block text-[0.6875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
                         {change.event} / {shortDate(change.at)}
                       </span>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <p className="text-[13px] leading-5 text-[var(--color-muted)]">
+                <p className="text-[0.8125rem] leading-5 text-[var(--color-muted)]">
                   Changes to modules, work, and announcements appear here as they happen.
                 </p>
               )}
@@ -197,8 +197,8 @@ function WorkRecordRow({
         </StatusBadge>
       }
     >
-      <span className="block truncate text-[14px] font-medium">{assignment.title}</span>
-      <span className="mt-0.5 block truncate text-[12.5px] text-[var(--color-muted)]">
+      <span className="block truncate text-[0.875rem] font-medium">{assignment.title}</span>
+      <span className="mt-0.5 block truncate text-[0.78125rem] text-[var(--color-muted)]">
         {facts.length > 0 ? facts.join(" / ") : "No due date"}
       </span>
     </RecordRow>

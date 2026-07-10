@@ -34,7 +34,9 @@ const requiredRoutes = [
   "/teach/weeks",
   "/teach/work",
   "/teach/announcements",
+  "/teach/calendar",
   "/teach/course",
+  "/teach/gradebook",
   "/teach/students",
   "/teach/settings",
   "/teach/account",
@@ -267,15 +269,25 @@ test("legacy blocks remain persisted but not rendered by the removed registry UI
 
 test("the app is pages behind one sidebar, not a monolith", () => {
   assertSourceIncludes("components/atlas/app-shell.tsx", "Collapse sidebar");
-  // Issue 26 replaced the account popover with explicit bottom destinations:
-  // Account (and Settings where one exists) are plain rows, and theme plus
-  // sign out live on the Account page itself.
+  // The account popover is gone. The sidebar ends in one identity row:
+  // the account destination, a small theme toggle, and a sign out button,
+  // all visible. The Account page keeps its own sign out.
   assertSourceIncludes("components/atlas/app-shell.tsx", 'aria-label="Account"');
+  assertSourceIncludes("components/atlas/app-shell.tsx", 'aria-label="Sign out"');
+  assertSourceIncludes("components/atlas/app-shell.tsx", "signOutOfAtlas");
+  assertSourceIncludes("components/atlas/app-shell.tsx", "ThemeToggle");
   assertSourceExcludes("components/atlas/app-shell.tsx", "ChevronsUpDown");
   assertSourceIncludes("components/atlas/account-panel.tsx", "Sign out");
   assertSourceIncludes("components/atlas/account-panel.tsx", "signOutOfAtlas");
-  assertSourceIncludes("components/atlas/account-panel.tsx", "ThemeSwitch");
   assertSourceExcludes("components/atlas/app-shell.tsx", "Course record");
+  // Settings is an ordinary navigation item, not a pinned bottom row, and
+  // the teaching sidebar names plain destinations, including the LMS
+  // staples: Gradebook and Calendar.
+  assertSourceExcludes("components/atlas/app-shell.tsx", "settingsHref");
+  assertSourceIncludes("app/teach/layout.tsx", '"/teach/settings"');
+  assertSourceIncludes("app/teach/layout.tsx", '"/teach/gradebook"');
+  assertSourceIncludes("app/teach/layout.tsx", '"/teach/calendar"');
+  assertSourceExcludes("app/teach/layout.tsx", "Course record");
   assertSourceIncludes("app/teach/layout.tsx", "AppShell");
   assertSourceIncludes("app/student/layout.tsx", "AppShell");
   assertServerAction("lib/workspace/scope-actions.ts", "setCourseScope");
@@ -296,6 +308,23 @@ test("issue 26: the shell holds the sharp radius scale by construction", () => {
   for (const file of sourceFiles(sourceDirs)) {
     const source = readFileSync(file, "utf8");
     assert.equal(literalRadius.test(source), false, `${path.relative(root, file)} uses a literal px radius`);
+  }
+
+  // The interface reads full without browser zoom: the root scale is 110%
+  // and text sizes are rem-based so they ride it.
+  assertSourceIncludes("app/globals.css", "font-size: 110%");
+  const literalTextPx = /text-\[\d+(?:\.\d+)?px\]/;
+  for (const file of sourceFiles(sourceDirs)) {
+    const source = readFileSync(file, "utf8");
+    assert.equal(literalTextPx.test(source), false, `${path.relative(root, file)} uses a px text size`);
+  }
+
+  // Atlas is the mark or a plain label. Sparkle iconography is off-brand
+  // and stays out of the product.
+  const sparkleIcon = /\b(?:Sparkles?|WandSparkles|Wand2)\b/;
+  for (const file of sourceFiles([path.join(root, "app"), path.join(root, "components")])) {
+    const source = readFileSync(file, "utf8");
+    assert.equal(sparkleIcon.test(source), false, `${path.relative(root, file)} uses sparkle iconography`);
   }
 });
 

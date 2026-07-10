@@ -60,7 +60,7 @@ export function ArtifactPanel({ revisions, className }: { revisions: ArtifactRev
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="atlas-mono flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">
+        <p className="atlas-mono flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">
           <Table2 size={12} aria-hidden />
           Your design
         </p>
@@ -74,7 +74,7 @@ export function ArtifactPanel({ revisions, className }: { revisions: ArtifactRev
                 aria-selected={i === index}
                 onClick={() => setPinned(i >= latest ? null : i)}
                 className={cn(
-                  "rounded-row px-2 py-0.5 text-[11px] font-medium transition",
+                  "rounded-row px-2 py-0.5 text-[0.6875rem] font-medium transition",
                   i === index
                     ? "bg-[var(--color-ink)] text-[var(--color-bg)]"
                     : "text-[var(--color-faint)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"
@@ -88,15 +88,15 @@ export function ArtifactPanel({ revisions, className }: { revisions: ArtifactRev
       </div>
 
       {!current ? (
-        <p className="mt-3 text-[13px] leading-6 text-[var(--color-muted)]">
+        <p className="mt-3 text-[0.8125rem] leading-6 text-[var(--color-muted)]">
           Nothing captured yet. As you propose and revise your design in the session, every version lands here.
         </p>
       ) : (
         <>
           <div className="mt-3 overflow-x-auto">
-            <table className="w-full border-collapse text-[12.5px] leading-5">
+            <table className="w-full border-collapse text-[0.78125rem] leading-5">
               <thead>
-                <tr className="atlas-mono text-left text-[10.5px] uppercase tracking-[0.07em] text-[var(--color-faint)]">
+                <tr className="atlas-mono text-left text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">
                   <th className="border-b border-[var(--color-border)] py-1.5 pr-3 font-medium">Tier</th>
                   <th className="border-b border-[var(--color-border)] py-1.5 pr-3 font-medium">Price</th>
                   <th className="border-b border-[var(--color-border)] py-1.5 pr-3 font-medium">Segment</th>
@@ -128,10 +128,10 @@ export function ArtifactPanel({ revisions, className }: { revisions: ArtifactRev
           </div>
 
           {current.revisionNote && index > 0 ? (
-            <p className="mt-2.5 text-[12px] leading-5 text-[var(--color-accent-strong)]">Revised: {current.revisionNote}</p>
+            <p className="mt-2.5 text-[0.75rem] leading-5 text-[var(--color-accent-strong)]">Revised: {current.revisionNote}</p>
           ) : null}
-          <p className="mt-2 text-[12px] leading-5 text-[var(--color-muted)]">
-            <span className="atlas-mono text-[10.5px] uppercase tracking-[0.07em] text-[var(--color-faint)]">Risk </span>
+          <p className="mt-2 text-[0.75rem] leading-5 text-[var(--color-muted)]">
+            <span className="atlas-mono text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">Risk </span>
             {current.expectedRisk}
           </p>
         </>

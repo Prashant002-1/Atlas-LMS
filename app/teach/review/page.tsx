@@ -17,7 +17,7 @@ export default async function TeachReviewPage() {
     return (
       <>
         <PageHeader title="Review" />
-        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
+        <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
       </>
     );
   }
@@ -45,7 +45,7 @@ export default async function TeachReviewPage() {
 
       {decided.length > 0 ? (
         <section className="mt-8">
-          <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Recent decisions</h2>
+          <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Recent decisions</h2>
           <StaggerGrid className="mt-2.5 space-y-3" stagger={0.05} delay={0.1}>
             {decided.map((proposal) => (
               <MotionItem key={proposal.id}>

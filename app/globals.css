@@ -131,6 +131,13 @@
 }
 
 html {
+  /*
+   * The root scale. Type and component sizes are rem-based, so the whole
+   * interface renders at 110%: the "fuller" reading of a 10% browser zoom,
+   * built in. Hairline borders, radii, and icon glyphs stay in px so edges
+   * and marks remain crisp at every step.
+   */
+  font-size: 110%;
   min-width: 320px;
   background: var(--color-bg);
 }
@@ -209,7 +216,7 @@ select {
 }
 
 .atlas-section {
-  scroll-margin-top: 118px;
+  scroll-margin-top: 7.375rem;
 }
 
 /* Practice base surface: a professor-provided dataset or problem frame. */
@@ -292,7 +299,7 @@ select {
  * never raw `#`/`**`/`-`.
  */
 .atlas-prose {
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.65;
   color: var(--color-ink);
   overflow-wrap: anywhere;
@@ -349,7 +356,7 @@ select {
   overflow-x: auto;
 }
 .atlas-prose pre code {
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   line-height: 1.55;
   background: none;
   border: 0;
@@ -366,7 +373,7 @@ select {
   width: auto;
   margin: 0.7em 0;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .atlas-prose th,
 .atlas-prose td {
@@ -383,7 +390,7 @@ select {
   100% { background-position: -50% 0; }
 }
 .atlas-shimmer {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   background: linear-gradient(90deg, var(--color-faint) 0%, var(--color-ink) 50%, var(--color-faint) 100%);
   background-size: 200% 100%;

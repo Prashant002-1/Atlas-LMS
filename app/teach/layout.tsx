@@ -2,13 +2,12 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
-import { resolveScope } from "@/lib/workspace/scope";
 import { AppShell, type NavSection } from "@/components/atlas/app-shell";
 
 /**
  * The teaching shell: the overview first, then the course itself, then the
- * Atlas surfaces. The term and course in view sit above the navigation; the
- * account row closes the column.
+ * Atlas surfaces. Course and term switching live on the overview header;
+ * the account menu closes the column.
  */
 const teacherSections: NavSection[] = [
   {
@@ -48,25 +47,8 @@ export default async function TeachLayout({ children }: { children: ReactNode })
     redirect("/sign-in");
   }
 
-  const scope = await resolveScope({
-    orgId: session.user.orgId,
-    userId: session.user.id,
-    role: session.user.role,
-    teachingOnly: true,
-  });
-
   return (
-    <AppShell
-      sections={teacherSections}
-      courses={scope.courses.map((c) => ({ id: c.id, code: c.code, name: c.name }))}
-      activeCourseId={scope.course?.id}
-      terms={scope.terms.map((t) => ({ slug: t.slug, name: t.name }))}
-      activeTermSlug={scope.term?.slug}
-      scopePath="/teach"
-      accountHref="/teach/account"
-      userName={session.user.name}
-      userEmail={session.user.email}
-    >
+    <AppShell sections={teacherSections} userName={session.user.name} userEmail={session.user.email}>
       {children}
     </AppShell>
   );

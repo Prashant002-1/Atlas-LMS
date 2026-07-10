@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { loadInstructorWorkspace, type InstructorWorkspace } from "@/lib/instructor/workspace";
 import { PageHeader } from "@/components/teach/page-header";
+import { CourseSwitch } from "@/components/teach/course-switch";
 import { ButtonLink, Panel, RecordRow, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { EmptyState } from "@/components/atlas/record";
 import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
@@ -32,26 +33,32 @@ export default async function TeachOverviewPage() {
 
   return (
     <>
-      <PageHeader
-        title={workspace.course.name}
-        course={`${workspace.course.code} / ${workspace.course.term}`}
-        action={
-          <div className="flex flex-wrap items-center gap-2">
-            <ButtonLink href="/teach/work?new=1#new" variant="secondary" size="sm" icon={false}>
-              <Plus size={13} strokeWidth={2} aria-hidden className="mr-1.5" />
-              New assignment
-            </ButtonLink>
-            <ButtonLink href="/teach/weeks?new=1#new" variant="secondary" size="sm" icon={false}>
-              <Plus size={13} strokeWidth={2} aria-hidden className="mr-1.5" />
-              New module
-            </ButtonLink>
-            <ButtonLink href="/teach/announcements#new" variant="secondary" size="sm" icon={false}>
-              <Plus size={13} strokeWidth={2} aria-hidden className="mr-1.5" />
-              New announcement
-            </ButtonLink>
-          </div>
-        }
-      />
+      {/* The header is the course in view, and switching it happens right
+          here: the name is the menu. Same header bones as every other page. */}
+      <header className="mb-7 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--color-border)] pb-5">
+        <h1 className="sr-only">{workspace.course.name}</h1>
+        <CourseSwitch
+          courses={workspace.scope.courses.map((c) => ({ id: c.id, code: c.code, name: c.name }))}
+          activeCourseId={workspace.scope.course?.id ?? ""}
+          terms={workspace.scope.terms.map((t) => ({ slug: t.slug, name: t.name }))}
+          activeTermSlug={workspace.scope.term?.slug ?? ""}
+          returnTo="/teach"
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <ButtonLink href="/teach/work?new=1#new" variant="secondary" size="sm" icon={false}>
+            <Plus size={13} strokeWidth={2} aria-hidden className="mr-1.5" />
+            New assignment
+          </ButtonLink>
+          <ButtonLink href="/teach/weeks?new=1#new" variant="secondary" size="sm" icon={false}>
+            <Plus size={13} strokeWidth={2} aria-hidden className="mr-1.5" />
+            New module
+          </ButtonLink>
+          <ButtonLink href="/teach/announcements#new" variant="secondary" size="sm" icon={false}>
+            <Plus size={13} strokeWidth={2} aria-hidden className="mr-1.5" />
+            New announcement
+          </ButtonLink>
+        </div>
+      </header>
 
       <StaggerGrid className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(17.5rem,0.42fr)]" stagger={0.06}>
         <div className="min-w-0 space-y-4">

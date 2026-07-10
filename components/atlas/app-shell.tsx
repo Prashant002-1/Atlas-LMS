@@ -6,8 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   BookOpenCheck,
   CalendarDays,
-  Check,
-  ChevronDown,
   ClipboardCheck,
   Compass,
   GraduationCap,
@@ -26,17 +24,16 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { signOutOfAtlas } from "@/lib/auth/actions";
-import { setCourseScope, setTermScope } from "@/lib/workspace/scope-actions";
 import { MotionPage } from "@/components/atlas/motion";
 import { AtlasMark } from "@/components/atlas/primitives";
 import { ThemeToggle } from "@/components/atlas/theme-switch";
 
 /**
  * The app frame: a grouped sidebar and a content column. The sidebar carries
- * the wordmark, the term and course in view, the navigation in labeled
- * sections, and one identity row at the bottom: the account, the theme
- * toggle, and sign out, all in the open. The collapse toggle lives beside
- * the logo; collapsed, the logo itself becomes the toggle. No popovers.
+ * the wordmark, the navigation in labeled sections, and one identity row at
+ * the bottom: the account menu (identity, theme, sign out) with a sign out
+ * button beside the name. Course and term switching live on the teaching
+ * overview, where the course name already stands.
  */
 
 const ICONS = {
@@ -78,37 +75,14 @@ export type NavSection = {
   items: NavItem[];
 };
 
-export type ShellCourse = {
-  id: string;
-  code: string;
-  name: string;
-};
-
-export type ShellTerm = {
-  slug: string;
-  name: string;
-};
-
 export function AppShell({
   sections,
   children,
-  courses,
-  activeCourseId,
-  terms,
-  activeTermSlug,
-  scopePath,
-  accountHref,
   userName,
   userEmail,
 }: {
   sections: NavSection[];
   children: ReactNode;
-  courses?: ShellCourse[];
-  activeCourseId?: string | null;
-  terms?: ShellTerm[];
-  activeTermSlug?: string | null;
-  scopePath?: string;
-  accountHref: string;
   userName?: string | null;
   userEmail?: string | null;
 }) {
@@ -139,8 +113,6 @@ export function AppShell({
 
   const isActive = (item: { href: string; exact?: boolean }) =>
     item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-  const hasContext = Boolean((courses && courses.length > 0) || (terms && terms.length > 0));
 
   return (
     <div className="atlas-app-bg flex min-h-screen text-[var(--color-ink)]">
@@ -182,8 +154,10 @@ export function AppShell({
               </button>
             )
           ) : (
-            /* Expanded: logo + wordmark on the left, toggle on the right */
-            <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--color-border)] px-4">
+            /* Expanded: logo + wordmark on the left, toggle on the right. The
+               right padding matches the identity block below, so the collapse
+               button and the sign out button share one right rail. */
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--color-border)] pl-4 pr-2">
               <Link
                 href="/"
                 aria-label="Atlas"
@@ -203,19 +177,6 @@ export function AppShell({
               </button>
             </div>
           )}
-
-          {/* The term and course in view: one menu bar, values only. */}
-          {!shellCollapsed && hasContext ? (
-            <div className="shrink-0 border-b border-[var(--color-border)] px-3 py-3">
-              <ScopeMenuBar
-                terms={terms ?? []}
-                activeTermSlug={activeTermSlug ?? ""}
-                courses={courses ?? []}
-                activeCourseId={activeCourseId ?? ""}
-                scopePath={scopePath ?? pathname}
-              />
-            </div>
-          ) : null}
 
           {/* Navigation, grouped: global context first, course context below. */}
           <nav className="flex-1 overflow-y-auto px-3 py-3" aria-label="Main">
@@ -284,22 +245,11 @@ export function AppShell({
             ))}
           </nav>
 
-          {/* The identity block: a small theme toggle above, then the account
-              row with sign out beside the name. Nothing else crowds the name. */}
+          {/* The identity row: the account menu behind the name, sign out
+              beside it. Nothing else. */}
           <div className="shrink-0 border-t border-[var(--color-border)] p-2">
-            {!shellCollapsed ? (
-              <div className="flex justify-end pb-1">
-                <ThemeToggle />
-              </div>
-            ) : null}
             <div className="flex items-center gap-1">
-              <AccountRow
-                href={accountHref}
-                collapsed={shellCollapsed}
-                active={isActive({ href: accountHref })}
-                name={userName}
-                email={userEmail}
-              />
+              <AccountMenu collapsed={shellCollapsed} name={userName} email={userEmail} />
               {!shellCollapsed ? (
                 <form action={signOutOfAtlas}>
                   <button
@@ -327,183 +277,80 @@ export function AppShell({
 }
 
 /**
- * The course in view, as one card: the code, the full name with room to
- * breathe, and the term beneath it. The card opens a single menu where each
- * course, and each term below the hairline, is a plain submit button into
- * its scope action, current choices checked. Nothing shares a line and
- * nothing truncates on the card itself.
+ * The account menu: the signed-in identity as a plain row that opens a small
+ * menu holding the identity, the theme choice, and sign out.
  */
-function ScopeMenuBar({
-  terms,
-  activeTermSlug,
-  courses,
-  activeCourseId,
-  scopePath,
+function AccountMenu({
+  collapsed,
+  name,
+  email,
 }: {
-  terms: ShellTerm[];
-  activeTermSlug: string;
-  courses: ShellCourse[];
-  activeCourseId: string;
-  scopePath: string;
+  collapsed: boolean;
+  name?: string | null;
+  email?: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const displayName = name?.trim() || email?.trim() || "Account";
+  const initial = displayName.charAt(0).toUpperCase();
 
-  const activeTerm = terms.find((t) => t.slug === activeTermSlug) ?? terms[0];
-  const activeCourse = courses.find((c) => c.id === activeCourseId) ?? courses[0];
-  if (!activeCourse && !activeTerm) return null;
+  const menuRow =
+    "flex w-full items-center gap-2.5 rounded-row px-2.5 py-2 text-left text-[0.8125rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]";
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0 flex-1">
       {open ? (
         <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-30 cursor-default" onClick={() => setOpen(false)} />
       ) : null}
 
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-        className={`group/scope flex w-full items-start gap-2 rounded-row border px-3 py-2.5 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] ${
-          open
-            ? "border-[var(--color-border-strong)] bg-[var(--color-surface)]"
-            : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-border-strong)]"
-        }`}
-      >
-        <span className="min-w-0 flex-1">
-          {activeCourse ? (
-            <>
-              <span className="atlas-mono block text-[0.65625rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">
-                {activeCourse.code}
-              </span>
-              <span className="mt-0.5 block text-[0.84375rem] font-medium leading-5 text-[var(--color-ink)]">
-                {activeCourse.name}
-              </span>
-            </>
-          ) : null}
-          {activeTerm ? (
-            <span className={`block text-[0.71875rem] text-[var(--color-faint)] ${activeCourse ? "mt-1" : ""}`}>
-              {activeTerm.name}
-            </span>
-          ) : null}
-        </span>
-        <ChevronDown
-          size={13}
-          strokeWidth={2}
-          aria-hidden
-          className={`mt-1 shrink-0 text-[var(--color-faint)] transition group-hover/scope:text-[var(--color-muted)] ${
-            open ? "rotate-180" : ""
-          }`}
-        />
-      </button>
-
       {open ? (
         <div
           role="menu"
-          className="absolute left-0 top-full z-40 mt-1.5 w-[19rem] max-w-[calc(100vw-1.5rem)] rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-1 shadow-[var(--shadow-floating)]"
+          className="absolute bottom-full left-0 z-40 mb-2 w-[14.5rem] rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-1 shadow-[var(--shadow-floating)]"
         >
-          {courses.length > 0 ? (
-            <form action={setCourseScope}>
-              <input type="hidden" name="returnTo" value={scopePath} />
-              {courses.map((course) => {
-                const current = course.id === activeCourse?.id;
-                return (
-                  <button
-                    key={course.id}
-                    type="submit"
-                    name="course"
-                    value={course.id}
-                    role="menuitemradio"
-                    aria-checked={current}
-                    className="flex w-full items-center gap-2.5 rounded-row px-2.5 py-2 text-left transition hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
-                  >
-                    <span className="atlas-mono shrink-0 text-[0.65625rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
-                      {course.code}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-medium text-[var(--color-ink)]">
-                      {course.name}
-                    </span>
-                    {current ? (
-                      <Check size={13} strokeWidth={2} aria-hidden className="shrink-0 text-[var(--color-accent-strong)]" />
-                    ) : null}
-                  </button>
-                );
-              })}
-            </form>
-          ) : null}
+          <div className="px-2.5 py-2">
+            <p className="truncate text-[0.8125rem] font-medium text-[var(--color-ink)]">{displayName}</p>
+            {email && name ? <p className="truncate text-[0.6875rem] text-[var(--color-faint)]">{email}</p> : null}
+          </div>
 
-          {courses.length > 0 && terms.length > 0 ? <div className="mx-1 my-1 h-px bg-[var(--color-border)]" aria-hidden /> : null}
+          <div className="mx-1 my-1 h-px bg-[var(--color-border)]" aria-hidden />
 
-          {terms.length > 0 ? (
-            <form action={setTermScope}>
-              <input type="hidden" name="returnTo" value={scopePath} />
-              {terms.map((term) => {
-                const current = term.slug === activeTerm?.slug;
-                return (
-                  <button
-                    key={term.slug}
-                    type="submit"
-                    name="term"
-                    value={term.slug}
-                    role="menuitemradio"
-                    aria-checked={current}
-                    className="flex w-full items-center gap-2.5 rounded-row px-2.5 py-1.5 text-left transition hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
-                  >
-                    <span className="min-w-0 flex-1 truncate text-[0.75rem] font-medium text-[var(--color-muted)]">
-                      {term.name}
-                    </span>
-                    {current ? (
-                      <Check size={13} strokeWidth={2} aria-hidden className="shrink-0 text-[var(--color-accent-strong)]" />
-                    ) : null}
-                  </button>
-                );
-              })}
-            </form>
-          ) : null}
+          <div className="flex items-center justify-between gap-3 px-2.5 py-1.5">
+            <span className="text-[0.8125rem] font-medium text-[var(--color-muted)]">Theme</span>
+            <ThemeToggle />
+          </div>
+
+          <div className="mx-1 my-1 h-px bg-[var(--color-border)]" aria-hidden />
+
+          <form action={signOutOfAtlas}>
+            <button type="submit" role="menuitem" className={menuRow}>
+              <LogOut size={14} strokeWidth={2} aria-hidden />
+              Sign out
+            </button>
+          </form>
         </div>
       ) : null}
-    </div>
-  );
-}
 
-/**
- * The Account destination: the signed-in identity as a plain row that opens
- * the Account page. The theme toggle and sign out sit beside it.
- */
-function AccountRow({
-  href,
-  collapsed,
-  active,
-  name,
-  email,
-}: {
-  href: string;
-  collapsed: boolean;
-  active: boolean;
-  name?: string | null;
-  email?: string | null;
-}) {
-  const displayName = name?.trim() || email?.trim() || "Account";
-  const initial = displayName.charAt(0).toUpperCase();
-
-  return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      aria-label="Account"
-      title={collapsed ? "Account" : undefined}
-      className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-row px-2 py-1.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] ${
-        collapsed ? "justify-center" : ""
-      } ${active ? "bg-[var(--color-indigo-soft)]" : "hover:bg-[var(--color-surface-muted)]"}`}
-    >
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-indigo-soft)] text-[0.75rem] font-semibold text-[var(--color-accent-strong)]">
-        {initial}
-      </span>
-      {!collapsed ? (
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[0.8125rem] font-medium text-[var(--color-ink)]">{displayName}</span>
-          <span className="block text-[0.6875rem] text-[var(--color-faint)]">Account</span>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Account"
+        title={collapsed ? displayName : undefined}
+        className={`flex w-full items-center gap-2.5 rounded-row px-2 py-1.5 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] ${
+          collapsed ? "justify-center" : ""
+        } ${open ? "bg-[var(--color-surface-muted)]" : "hover:bg-[var(--color-surface-muted)]"}`}
+      >
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-indigo-soft)] text-[0.75rem] font-semibold text-[var(--color-accent-strong)]">
+          {initial}
         </span>
-      ) : null}
-    </Link>
+        {!collapsed ? (
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[0.8125rem] font-medium text-[var(--color-ink)]">{displayName}</span>
+            <span className="block text-[0.6875rem] text-[var(--color-faint)]">Account</span>
+          </span>
+        ) : null}
+      </button>
+    </div>
   );
 }

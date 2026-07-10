@@ -64,12 +64,7 @@ export default async function StudentLayout({ children }: { children: ReactNode 
   ];
 
   return (
-    <AppShell
-      sections={sections}
-      accountHref="/student/account"
-      userName={session.user.name}
-      userEmail={session.user.email}
-    >
+    <AppShell sections={sections} userName={session.user.name} userEmail={session.user.email}>
       {children}
     </AppShell>
   );

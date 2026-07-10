@@ -19,7 +19,6 @@ const requiredRoutes = [
   "/sign-up",
   "/student",
   "/student/calendar",
-  "/student/account",
   "/student/course/[courseId]",
   "/student/course/[courseId]/modules",
   "/student/course/[courseId]/assignments",
@@ -39,7 +38,6 @@ const requiredRoutes = [
   "/teach/gradebook",
   "/teach/students",
   "/teach/settings",
-  "/teach/account",
   "/teach/student/[studentId]",
   "/teach/week/[moduleId]",
   "/teach/work/[assignmentId]",
@@ -269,20 +267,17 @@ test("legacy blocks remain persisted but not rendered by the removed registry UI
 
 test("the app is pages behind one sidebar, not a monolith", () => {
   assertSourceIncludes("components/atlas/app-shell.tsx", "Collapse sidebar");
-  // The account popover is gone. The sidebar ends in one identity row:
-  // the account destination, a small theme toggle, and a sign out button,
-  // all visible. The Account page keeps its own sign out.
+  // The sidebar ends in one identity row: the account menu behind the name
+  // (identity, theme, sign out) plus a sign out button beside it. There is
+  // no account page and no chevron on the trigger.
   assertSourceIncludes("components/atlas/app-shell.tsx", 'aria-label="Account"');
   assertSourceIncludes("components/atlas/app-shell.tsx", 'aria-label="Sign out"');
   assertSourceIncludes("components/atlas/app-shell.tsx", "signOutOfAtlas");
   assertSourceIncludes("components/atlas/app-shell.tsx", "ThemeToggle");
   assertSourceExcludes("components/atlas/app-shell.tsx", "ChevronsUpDown");
-  assertSourceIncludes("components/atlas/account-panel.tsx", "Sign out");
-  assertSourceIncludes("components/atlas/account-panel.tsx", "signOutOfAtlas");
   assertSourceExcludes("components/atlas/app-shell.tsx", "Course record");
-  // Settings is an ordinary navigation item, not a pinned bottom row, and
-  // the teaching sidebar names plain destinations, including the LMS
-  // staples: Gradebook and Calendar.
+  // Settings is an ordinary navigation item, and the teaching sidebar names
+  // plain destinations, including the LMS staples: Gradebook and Calendar.
   assertSourceExcludes("components/atlas/app-shell.tsx", "settingsHref");
   assertSourceIncludes("app/teach/layout.tsx", '"/teach/settings"');
   assertSourceIncludes("app/teach/layout.tsx", '"/teach/gradebook"');
@@ -290,10 +285,13 @@ test("the app is pages behind one sidebar, not a monolith", () => {
   assertSourceExcludes("app/teach/layout.tsx", "Course record");
   assertSourceIncludes("app/teach/layout.tsx", "AppShell");
   assertSourceIncludes("app/student/layout.tsx", "AppShell");
+  // Course and term switching lives on the overview header, where the
+  // course name already stands: the name is the menu.
   assertServerAction("lib/workspace/scope-actions.ts", "setCourseScope");
-  // Professors switch term and course from the shell itself.
   assertServerAction("lib/workspace/scope-actions.ts", "setTermScope");
-  assertSourceIncludes("components/atlas/app-shell.tsx", "setTermScope");
+  assertSourceIncludes("components/teach/course-switch.tsx", "setCourseScope");
+  assertSourceIncludes("components/teach/course-switch.tsx", "setTermScope");
+  assertSourceIncludes("app/teach/page.tsx", "CourseSwitch");
 });
 
 test("issue 26: the shell holds the sharp radius scale by construction", () => {

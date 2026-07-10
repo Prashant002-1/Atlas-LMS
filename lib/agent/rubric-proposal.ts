@@ -182,6 +182,72 @@ export function sessionRubricBlockData(block: SessionRubricBlock): Omit<SessionR
   return rest as Omit<SessionRubricBlock, "type">;
 }
 
+/* ── the starter frame (direct AI-assignment creation) ──────── */
+
+/**
+ * The standard four-criterion frame a new AI assignment starts from: four
+ * observable dimensions at equal weight, points on the fixed ladder. Built
+ * through normalizeRubricDraft so it carries the same invariants as any
+ * drafted rubric; the professor reshapes it on the grade view or by asking
+ * Atlas for a revision.
+ */
+export function starterRubricCriteria(): RubricCriterion[] {
+  const draft = normalizeRubricDraft({
+    criteria: [
+      {
+        key: "framing",
+        name: "Problem framing",
+        description: "How the student frames the problem before solving it.",
+        weight: 25,
+        levels: [
+          { level: "Exceeds", descriptor: "Names the goal, constraints, and unknowns in their own words before proposing anything." },
+          { level: "Meets", descriptor: "Identifies the core question and most constraints before working." },
+          { level: "Developing", descriptor: "Starts solving with assumptions left unstated." },
+          { level: "Missing", descriptor: "No framing appears in the session." },
+        ],
+      },
+      {
+        key: "grounding",
+        name: "Course-concept grounding",
+        description: "Whether the course's own concepts carry the work.",
+        weight: 25,
+        levels: [
+          { level: "Exceeds", descriptor: "Applies course concepts accurately and names them while working." },
+          { level: "Meets", descriptor: "Uses course concepts correctly with minor imprecision." },
+          { level: "Developing", descriptor: "Reaches for intuition where a course concept was available." },
+          { level: "Missing", descriptor: "No course concepts appear in the work." },
+        ],
+      },
+      {
+        key: "iteration",
+        name: "Iteration under challenge",
+        description: "How the work changes when it is pressed.",
+        weight: 25,
+        levels: [
+          { level: "Exceeds", descriptor: "Revises substantively when challenged and can say what changed and why." },
+          { level: "Meets", descriptor: "Makes real revisions when pressed." },
+          { level: "Developing", descriptor: "Defends the first answer or revises only cosmetically." },
+          { level: "Missing", descriptor: "Ignores challenges entirely." },
+        ],
+      },
+      {
+        key: "final_product",
+        name: "Final product and defense",
+        description: "The deliverable and the reasoning that stands behind it.",
+        weight: 25,
+        levels: [
+          { level: "Exceeds", descriptor: "Delivers a complete final product and defends its choices from the session's own reasoning." },
+          { level: "Meets", descriptor: "Delivers a complete final product with a basic defense." },
+          { level: "Developing", descriptor: "The final product is incomplete or the defense does not hold." },
+          { level: "Missing", descriptor: "No final product is delivered." },
+        ],
+      },
+    ],
+  });
+  if (!draft.ok) throw new Error("The starter rubric no longer passes its own contract.");
+  return draft.criteria;
+}
+
 /* ── comparison (the presentation layer's ground truth) ─────── */
 
 export type RubricCriterionDiff = {

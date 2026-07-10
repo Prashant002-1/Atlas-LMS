@@ -30,6 +30,9 @@ const requiredRoutes = [
   "/teach",
   "/teach/atlas",
   "/api/atlas/planning",
+  "/teach/ai-assignments",
+  "/teach/ai-assignments/[assignmentId]",
+  "/teach/ai-assignments/journey/[submissionId]",
   "/teach/review",
   "/teach/weeks",
   "/teach/work",
@@ -42,8 +45,6 @@ const requiredRoutes = [
   "/teach/student/[studentId]",
   "/teach/week/[moduleId]",
   "/teach/work/[assignmentId]",
-  "/teach/atlas/[assignmentId]",
-  "/teach/atlas/journey/[submissionId]",
 ];
 
 test("required routes exist in the App Router tree", () => {
@@ -251,10 +252,10 @@ test("phase 4 closes the loop on the professor side", () => {
 
   // The drill-in shows receipts: evidence highlighted in the frozen transcript.
   assertSourceIncludes("lib/agent/transcript.ts", "export function splitTextBySpans");
-  assertSourceIncludes("app/teach/atlas/journey/[submissionId]/page.tsx", "TranscriptView");
-  assertSourceIncludes("app/teach/atlas/journey/[submissionId]/page.tsx", "ProfessorReportPanel");
-  assertSourceIncludes("app/teach/atlas/[assignmentId]/page.tsx", "JourneyGrid");
-  assertSourceIncludes("app/teach/atlas/[assignmentId]/page.tsx", "ClassInsight");
+  assertSourceIncludes("app/teach/ai-assignments/journey/[submissionId]/page.tsx", "TranscriptView");
+  assertSourceIncludes("app/teach/ai-assignments/journey/[submissionId]/page.tsx", "ProfessorReportPanel");
+  assertSourceIncludes("app/teach/ai-assignments/[assignmentId]/page.tsx", "JourneyGrid");
+  assertSourceIncludes("app/teach/ai-assignments/[assignmentId]/page.tsx", "ClassInsight");
   assertSourceIncludes("app/teach/work/[assignmentId]/page.tsx", "Journeys and rubric");
 });
 
@@ -308,6 +309,17 @@ test("issue 27: the professor plans with Atlas across the profile boundary", () 
   assertSourceIncludes("app/teach/work/page.tsx", "AI assignment");
   assertSourceIncludes("app/teach/work/[assignmentId]/page.tsx", "AI assignment");
   assertSourceExcludes("app/teach/atlas/page.tsx", "Work sessions");
+
+  // The type also has its own operational lens: the AI assignments tab in
+  // the Atlas group, with statuses, the policy facts, and direct creation.
+  // The chat rail stays conversation-native (no record list on the agent).
+  assertSourceIncludes("app/teach/layout.tsx", '"/teach/ai-assignments"');
+  assertSourceIncludes("app/teach/ai-assignments/page.tsx", "loadAiAssignmentIndex");
+  assertSourceIncludes("app/teach/ai-assignments/page.tsx", "JourneyGridSummary");
+  assertSourceIncludes("app/teach/ai-assignments/page.tsx", "action={createAiAssignment}");
+  assertServerAction("lib/instructor/session-actions.ts", "createAiAssignment");
+  assertSourceIncludes("lib/agent/rubric-proposal.ts", "export function starterRubricCriteria");
+  assertSourceExcludes("components/planning/planning-room.tsx", "WorkSessionsPanel");
 });
 
 test("legacy blocks remain persisted but not rendered by the removed registry UI", () => {

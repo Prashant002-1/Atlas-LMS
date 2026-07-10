@@ -60,8 +60,16 @@ const checks: SmokeCheck[] = [
     path: "/teach/atlas",
     status: 200,
     auth: { email: "instructor@demo.edu", password: "atlas1234", redirectTo: "/teach/atlas" },
-    includes: ["AI assignments", "Pricing Strategy Session", "Threads"],
+    includes: ["Threads", "Drafts from this thread", "Exam 2 Practice Set Planning"],
     excludes: ["CommandConsole", "Work sessions"],
+  },
+  {
+    name: "ai assignments tab",
+    path: "/teach/ai-assignments",
+    status: 200,
+    auth: { email: "instructor@demo.edu", password: "atlas1234", redirectTo: "/teach/ai-assignments" },
+    includes: ["Pricing Strategy Session", "New AI assignment", "Course AI policy"],
+    excludes: ["Work sessions"],
   },
   {
     name: "student signed in",

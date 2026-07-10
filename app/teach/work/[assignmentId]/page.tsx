@@ -61,7 +61,7 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
                 finalize there.
               </p>
               <div className="mt-4">
-                <ButtonLink href={`/teach/atlas/${assignmentId}`}>Journeys and rubric</ButtonLink>
+                <ButtonLink href={`/teach/ai-assignments/${assignmentId}`}>Journeys and rubric</ButtonLink>
               </div>
             </section>
           ) : null}

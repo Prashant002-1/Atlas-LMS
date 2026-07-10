@@ -3,6 +3,7 @@ import { and, asc, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { agentSessions, agentTurns, changeProposals, proposalBlocks, type AgentSession } from "@/lib/db/schema";
 import { parseStoredBlock, type Block } from "@/lib/agent/blocks";
+import { agentProfiles } from "@/lib/agent/profiles";
 import { estimateTokens } from "@/lib/agent/context";
 import { fallbackModel } from "@/lib/ai/provider";
 
@@ -46,13 +47,16 @@ const COMPACT_THRESHOLD_TOKENS = 12_000;
 /** How many recent turns always stay verbatim. */
 const KEEP_RECENT_TURNS = 6;
 
+/** The professor profile's address inside agent_sessions (lib/agent/profiles.ts). */
+const professorProfile = agentProfiles.professor;
+
 function commandSessionFilter(scope: CommandSessionScope) {
   return and(
     eq(agentSessions.orgId, scope.orgId),
     eq(agentSessions.userId, scope.userId),
     eq(agentSessions.courseId, scope.courseId),
-    eq(agentSessions.surface, "command"),
-    eq(agentSessions.anchorType, "course"),
+    eq(agentSessions.surface, professorProfile.surface),
+    eq(agentSessions.anchorType, professorProfile.anchorType),
     sql`${agentSessions.anchorId} IS NULL`
   );
 }
@@ -107,8 +111,8 @@ export async function createCommandSession(scope: CommandSessionScope): Promise<
       orgId: scope.orgId,
       userId: scope.userId,
       courseId: scope.courseId,
-      surface: "command",
-      anchorType: "course",
+      surface: professorProfile.surface,
+      anchorType: professorProfile.anchorType,
       anchorId: null,
       title: "Course command session",
     })

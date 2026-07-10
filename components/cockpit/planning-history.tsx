@@ -1,11 +1,12 @@
 import { History } from "lucide-react";
+import { TextLink } from "@/components/atlas/primitives";
 import type { PlanningSessionView } from "@/lib/instructor/cockpit";
 
 /**
- * Planning history: the professor's own working sessions with Atlas, on the
+ * Planning history: the professor's own working threads with Atlas, on the
  * record. This is the provenance story made visible; the side note a student
  * sees mid-session traces back to a conversation listed here, not to an
- * upload ceremony.
+ * upload ceremony. Every thread continues live in the planning room.
  */
 export function PlanningHistory({ sessions }: { sessions: PlanningSessionView[] }) {
   return (
@@ -13,14 +14,19 @@ export function PlanningHistory({ sessions }: { sessions: PlanningSessionView[] 
       aria-label="Planning history"
       className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
     >
-      <p className="atlas-mono flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">
-        <History size={12} aria-hidden />
-        Planning history
-      </p>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="atlas-mono flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">
+          <History size={12} aria-hidden />
+          Planning history
+        </p>
+        <TextLink href="/teach/atlas/planning?thread=new" className="text-[0.75rem]">
+          New thread
+        </TextLink>
+      </div>
 
       {sessions.length === 0 ? (
         <p className="mt-2.5 text-[0.8125rem] leading-6 text-[var(--color-muted)]">
-          No planning sessions on record yet. Your working sessions with Atlas land here and become the context your
+          No planning threads on record yet. Your working threads with Atlas land here and become the context your
           students&apos; sessions draw on.
         </p>
       ) : (
@@ -48,6 +54,11 @@ export function PlanningHistory({ sessions }: { sessions: PlanningSessionView[] 
                       <span className="text-[var(--color-muted)]">{turn.text}</span>
                     </p>
                   ))}
+                  <p className="pt-1">
+                    <TextLink href={`/teach/atlas/planning?thread=${session.id}`} className="text-[0.75rem]">
+                      Continue this thread
+                    </TextLink>
+                  </p>
                 </div>
               </details>
             </li>

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   announcements,
@@ -10,10 +10,13 @@ import {
   pages,
   practiceSets,
   proposalBlocks,
+  rubrics,
+  sessionAssignments,
   terms,
   courses,
 } from "@/lib/db/schema";
 import { parseStoredBlock, type Block } from "@/lib/agent/blocks";
+import { rubricCriteriaSchema } from "@/lib/agent/session-parts";
 
 /**
  * Apply, the one door between a draft and the live course.
@@ -215,6 +218,44 @@ async function applyBlock(
       .returning({ id: practiceSets.id });
     await alignItem(tx, orgId, courseId, "quiz", created.id, block.objectiveCodes);
     return { itemType: "quiz", itemId: created.id, title: block.title };
+  }
+
+  if (block.type === "session_rubric") {
+    // The v0 rubric, natively: a NEW rubric version for the course, repointed
+    // on the target work session. Grades already given stay pinned to the
+    // version that graded them; versioning is always honest on this path.
+    const [target] = await tx
+      .select({ assignmentId: sessionAssignments.assignmentId, assignmentName: assignments.name })
+      .from(sessionAssignments)
+      .innerJoin(assignments, eq(assignments.id, sessionAssignments.assignmentId))
+      .where(
+        and(
+          eq(sessionAssignments.orgId, orgId),
+          eq(sessionAssignments.courseId, courseId),
+          eq(sessionAssignments.assignmentId, block.assignmentId)
+        )
+      )
+      .limit(1);
+    if (!target) return null; // Not a work session in this course; nothing to write.
+
+    const criteria = rubricCriteriaSchema.safeParse(block.criteria);
+    if (!criteria.success) return null;
+
+    const [{ maxVersion }] = await tx
+      .select({ maxVersion: sql<number>`coalesce(max(${rubrics.version}), 0)` })
+      .from(rubrics)
+      .where(and(eq(rubrics.orgId, orgId), eq(rubrics.courseId, courseId)));
+    const [created] = await tx
+      .insert(rubrics)
+      .values({ orgId, courseId, version: Number(maxVersion) + 1, criteria: criteria.data })
+      .returning({ id: rubrics.id });
+
+    await tx
+      .update(sessionAssignments)
+      .set({ rubricId: created.id, updatedAt: new Date() })
+      .where(and(eq(sessionAssignments.orgId, orgId), eq(sessionAssignments.assignmentId, block.assignmentId)));
+
+    return { itemType: "assignment", itemId: block.assignmentId, title: `${block.title} (${target.assignmentName})` };
   }
 
   if (block.type === "rubric") {

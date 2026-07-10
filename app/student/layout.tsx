@@ -4,8 +4,13 @@ import { and, asc, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { courses, enrollments } from "@/lib/db/schema";
-import { AppShell, type NavItem } from "@/components/atlas/app-shell";
+import { AppShell, type NavSection } from "@/components/atlas/app-shell";
 
+/**
+ * The study shell: the global views first (home, calendar), then every
+ * enrolled course. The course in view opens into its own record navigation:
+ * Home, Modules, Assignments, Grades.
+ */
 export default async function StudentLayout({ children }: { children: ReactNode }) {
   const session = await auth();
   if (!session?.user) {
@@ -31,17 +36,35 @@ export default async function StudentLayout({ children }: { children: ReactNode 
         .orderBy(asc(courses.code))
     : [];
 
-  const nav: NavItem[] = [
-    { href: "/student", label: "Overview", icon: "dashboard", exact: true },
-    ...rows.map((row) => ({
-      href: `/student/course/${row.courseId}`,
-      label: row.code,
-      icon: "course" as const,
-    })),
+  const sections: NavSection[] = [
+    {
+      items: [
+        { href: "/student", label: "Home", icon: "dashboard", exact: true },
+        { href: "/student/calendar", label: "Calendar", icon: "calendar" },
+      ],
+    },
+    ...(rows.length > 0
+      ? [
+          {
+            label: "Courses",
+            items: rows.map((row) => ({
+              href: `/student/course/${row.courseId}`,
+              label: row.code,
+              icon: "course" as const,
+              children: [
+                { href: `/student/course/${row.courseId}`, label: "Home", exact: true },
+                { href: `/student/course/${row.courseId}/modules`, label: "Modules" },
+                { href: `/student/course/${row.courseId}/assignments`, label: "Assignments" },
+                { href: `/student/course/${row.courseId}/grades`, label: "Grades" },
+              ],
+            })),
+          },
+        ]
+      : []),
   ];
 
   return (
-    <AppShell nav={nav} userName={session.user.name} userEmail={session.user.email}>
+    <AppShell sections={sections} userName={session.user.name} userEmail={session.user.email}>
       {children}
     </AppShell>
   );

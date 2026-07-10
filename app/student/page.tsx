@@ -1,14 +1,17 @@
 import Link from "next/link";
+import { ArrowUpRight, ChevronRight } from "lucide-react";
 import { auth } from "@/lib/auth";
-import { loadStudentOverview } from "@/lib/student/workspace";
+import { loadStudentOverview, type StudentCourseCard } from "@/lib/student/workspace";
+import { dueLabel } from "@/lib/student/format";
 import { PageHeader } from "@/components/teach/page-header";
-import { StatusBadge } from "@/components/atlas/primitives";
-import { EmptyRecord } from "@/components/atlas/record";
+import { StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { EmptyState } from "@/components/atlas/record";
 import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 /**
- * The student overview: every course at a glance. What is due, what is
- * waiting, what came back. Each course has its own page for the work itself.
+ * The student home: every course at a glance. What is due (overdue first,
+ * stated as the fact it is), then each course as its own card. The work
+ * itself lives on the course pages.
  */
 export default async function StudentOverviewPage() {
   const session = await auth();
@@ -16,65 +19,68 @@ export default async function StudentOverviewPage() {
 
   return (
     <>
-      <PageHeader title="Overview" />
+      <PageHeader title="Home" />
 
-      {overview.dueSoon.length > 0 ? (
-        <section className="mb-7">
-          <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Due next</h2>
+      <section className="mb-7">
+        <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Due</h2>
+        {overview.dueSoon.length > 0 ? (
           <StaggerGrid className="mt-2.5 space-y-2" stagger={0.05}>
             {overview.dueSoon.map((item) => (
-              <MotionItem key={item.assignmentId}>
+              <MotionItem key={`${item.assignmentId}-${item.overdue ? "overdue" : "ahead"}`}>
                 <Link
                   href={`/student/work/${item.assignmentId}`}
-                  className="atlas-card-hover group flex items-center justify-between gap-3 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-[var(--shadow-panel)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
+                  className="atlas-card-hover group flex items-center justify-between gap-3 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-[var(--shadow-panel)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
                 >
                   <span className="min-w-0">
-                    <span className="block truncate text-[14px] font-medium">{item.name}</span>
-                    <span className="atlas-mono mt-0.5 block text-[11.5px] uppercase tracking-[0.06em] text-[var(--color-faint)]">{item.courseCode}</span>
+                    <span className="block truncate text-[0.875rem] font-medium">{item.name}</span>
+                    <span className="atlas-mono mt-0.5 block text-[0.71875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                      {item.courseCode}
+                    </span>
                   </span>
-                  <span className="shrink-0 text-[12.5px] text-[var(--color-muted)]">{dueLabel(item.dueAt)}</span>
-                </Link>
-              </MotionItem>
-            ))}
-          </StaggerGrid>
-        </section>
-      ) : null}
-
-      <section>
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Courses</h2>
-        {overview.cards.length > 0 ? (
-          <StaggerGrid className="mt-2.5 grid gap-3 md:grid-cols-2" stagger={0.06}>
-            {overview.cards.map((card) => (
-              <MotionItem key={card.courseId}>
-                <Link
-                  href={`/student/course/${card.courseId}`}
-                  className="atlas-card-hover group block rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="atlas-mono text-[11.5px] uppercase tracking-[0.06em] text-[var(--color-faint)]">{card.code}</p>
-                      <p className="mt-0.5 truncate text-[15px] font-semibold leading-6">{card.name}</p>
-                    </div>
-                    {card.standing ? <StatusBadge tone="neutral">{card.standing}</StatusBadge> : null}
-                  </div>
-                  <p className="mt-3 text-[12.5px] leading-5 text-[var(--color-muted)]">
-                    {card.nextDue ? `${card.nextDue.name} ${dueLabel(card.nextDue.dueAt).toLowerCase()}` : "Nothing due"}
-                  </p>
-                  <p className="mt-1 text-[12.5px] text-[var(--color-muted)]">
-                    {card.openCount} open
-                    {card.waitingCount > 0 ? ` / ${card.waitingCount} waiting` : ""}
-                    {card.missingCount > 0 ? ` / ${card.missingCount} missing` : ""}
-                  </p>
-                  {card.missingCount > 0 ? (
-                    <p className="mt-2 text-[12px] font-medium text-[var(--color-warn)]">Missing work needs attention</p>
-                  ) : null}
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span
+                      className={`text-[0.78125rem] ${
+                        item.overdue ? "font-medium text-[var(--color-danger)]" : "text-[var(--color-muted)]"
+                      }`}
+                    >
+                      {dueLabel(item.dueAt)}
+                    </span>
+                    <ChevronRight
+                      size={14}
+                      strokeWidth={2}
+                      aria-hidden
+                      className="text-[var(--color-faint)] transition group-hover:translate-x-0.5 group-hover:text-[var(--color-muted)]"
+                    />
+                  </span>
                 </Link>
               </MotionItem>
             ))}
           </StaggerGrid>
         ) : (
-          <div className="mt-2.5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 shadow-[var(--shadow-panel)]">
-            <EmptyRecord title="No courses" detail="You are not enrolled in anything yet." />
+          <div className="mt-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+            <EmptyState
+              art="horizon"
+              title="Nothing due"
+              detail="No open work has a deadline ahead of you."
+              action={<TextLink href="/student/calendar" className="text-[0.8125rem]">Open the calendar</TextLink>}
+            />
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Courses</h2>
+        {overview.cards.length > 0 ? (
+          <StaggerGrid className="mt-2.5 grid gap-3 md:grid-cols-2" stagger={0.06}>
+            {overview.cards.map((card) => (
+              <MotionItem key={card.courseId}>
+                <CourseCard card={card} />
+              </MotionItem>
+            ))}
+          </StaggerGrid>
+        ) : (
+          <div className="mt-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+            <EmptyState art="atlas" title="No courses" detail="You are not enrolled in anything yet." />
           </div>
         )}
       </section>
@@ -82,10 +88,42 @@ export default async function StudentOverviewPage() {
   );
 }
 
-function dueLabel(dueAt: Date): string {
-  const days = Math.ceil((dueAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
-  if (days <= 0) return "Due today";
-  if (days === 1) return "Due tomorrow";
-  if (days < 7) return `Due in ${days} days`;
-  return `Due ${dueAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+function CourseCard({ card }: { card: StudentCourseCard }) {
+  const counts: string[] = [`${card.openCount} open`];
+  if (card.waitingCount > 0) counts.push(`${card.waitingCount} waiting`);
+  if (card.missingCount > 0) counts.push(`${card.missingCount} missing`);
+
+  return (
+    <Link
+      href={`/student/course/${card.courseId}`}
+      className="atlas-card-hover group block rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="atlas-mono text-[0.71875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">{card.code}</p>
+          <p className="mt-0.5 truncate text-[0.9375rem] font-semibold leading-6">{card.name}</p>
+        </div>
+        <span className="flex shrink-0 items-center gap-2">
+          {card.standing ? <StatusBadge tone="neutral">{card.standing}</StatusBadge> : null}
+          <ArrowUpRight
+            size={14}
+            strokeWidth={2}
+            aria-hidden
+            className="text-[var(--color-faint)] transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[var(--color-accent-strong)]"
+          />
+        </span>
+      </div>
+      {/* The nearest date fact. An overdue record always outranks "Nothing due". */}
+      {card.overdue ? (
+        <p className="mt-3 truncate text-[0.78125rem] font-medium leading-5 text-[var(--color-danger)]">
+          {card.overdue.name}, {dueLabel(card.overdue.dueAt).toLowerCase()}
+        </p>
+      ) : (
+        <p className="mt-3 truncate text-[0.78125rem] leading-5 text-[var(--color-muted)]">
+          {card.nextDue ? `${card.nextDue.name}, ${dueLabel(card.nextDue.dueAt).toLowerCase()}` : "Nothing due"}
+        </p>
+      )}
+      <p className="mt-1 text-[0.78125rem] text-[var(--color-muted)]">{counts.join(" / ")}</p>
+    </Link>
+  );
 }

@@ -40,7 +40,7 @@ export function JourneyGridSummary({ counts }: { counts: JourneyGridCounts }) {
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-1.5">
       {chips.map((chip) => (
-        <p key={chip.label} className="text-[12.5px] text-[var(--color-muted)]">
+        <p key={chip.label} className="text-[0.78125rem] text-[var(--color-muted)]">
           <span className="font-semibold tabular-nums text-[var(--color-ink)]">{chip.value}</span> {chip.label}
         </p>
       ))}
@@ -50,7 +50,7 @@ export function JourneyGridSummary({ counts }: { counts: JourneyGridCounts }) {
 
 export function JourneyGrid({ rows }: { rows: JourneyGridRow[] }) {
   if (rows.length === 0) {
-    return <p className="text-[13.5px] text-[var(--color-muted)]">No students are enrolled yet.</p>;
+    return <p className="text-[0.84375rem] text-[var(--color-muted)]">No students are enrolled yet.</p>;
   }
 
   return (
@@ -59,12 +59,12 @@ export function JourneyGrid({ rows }: { rows: JourneyGridRow[] }) {
         const card = (
           <article
             className={cn(
-              "flex h-full flex-col gap-2 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5 shadow-[var(--shadow-panel)]",
+              "flex h-full flex-col gap-2 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5 shadow-[var(--shadow-panel)]",
               row.submissionId && "atlas-card-hover"
             )}
           >
             <div className="flex items-start justify-between gap-2">
-              <p className="min-w-0 truncate text-[13.5px] font-semibold text-[var(--color-ink)]">{row.studentName}</p>
+              <p className="min-w-0 truncate text-[0.84375rem] font-semibold text-[var(--color-ink)]">{row.studentName}</p>
               <StatusBadge tone={stateTone[row.state]}>{JOURNEY_STATE_LABEL[row.state]}</StatusBadge>
             </div>
 
@@ -76,7 +76,7 @@ export function JourneyGrid({ rows }: { rows: JourneyGridRow[] }) {
                       key={entry.key}
                       title={`${entry.name}: ${entry.level}`}
                       className={cn(
-                        "atlas-mono inline-flex size-5 items-center justify-center rounded-[5px] text-[10px] font-semibold",
+                        "atlas-mono inline-flex size-5 items-center justify-center rounded-row text-[0.625rem] font-semibold",
                         levelTone[entry.level]
                       )}
                     >
@@ -85,14 +85,14 @@ export function JourneyGrid({ rows }: { rows: JourneyGridRow[] }) {
                   ))}
                 </div>
               ) : (
-                <span className="text-[11.5px] text-[var(--color-faint)]">
+                <span className="text-[0.71875rem] text-[var(--color-faint)]">
                   {row.submittedAt ? `Submitted ${shortDate(row.submittedAt)}` : "No record yet"}
                 </span>
               )}
               <div className="flex items-center gap-1.5">
                 {row.reviewRequestedAt ? <Flag size={11} className="text-[var(--color-warn)]" aria-label="Review requested" /> : null}
                 {row.overallScore !== null ? (
-                  <span className="text-[15px] font-semibold tabular-nums text-[var(--color-ink)]">
+                  <span className="text-[0.9375rem] font-semibold tabular-nums text-[var(--color-ink)]">
                     {Math.round(row.overallScore)}
                   </span>
                 ) : null}
@@ -105,7 +105,7 @@ export function JourneyGrid({ rows }: { rows: JourneyGridRow[] }) {
           <Link
             key={row.userId}
             href={`/teach/atlas/journey/${row.submissionId}`}
-            className="rounded-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+            className="rounded-panel focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
           >
             {card}
           </Link>

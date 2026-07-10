@@ -57,6 +57,7 @@ export type StudentMaterial = {
   week: string;
   title: string;
   summary?: string | null;
+  unlockAt?: Date | null;
   objectiveCodes: string[];
 };
 
@@ -74,6 +75,9 @@ export type StudentCourseCard = {
   term: string;
   standing: string | null;
   nextDue: { assignmentId: string; name: string; dueAt: Date } | null;
+  /** Open work whose due date has passed: a fact the overview must surface. */
+  overdue: { assignmentId: string; name: string; dueAt: Date } | null;
+  overdueCount: number;
   openCount: number;
   waitingCount: number;
   missingCount: number;
@@ -83,8 +87,8 @@ export type StudentCourseCard = {
 export type StudentOverview = {
   studentName: string;
   cards: StudentCourseCard[];
-  /** The closest deadlines across every course, soonest first. */
-  dueSoon: Array<{ assignmentId: string; courseCode: string; name: string; dueAt: Date }>;
+  /** Overdue work first (oldest due date up), then the closest deadlines. */
+  dueSoon: Array<{ assignmentId: string; courseCode: string; name: string; dueAt: Date; overdue: boolean }>;
 };
 
 export type StudentCourseWorkspace = {
@@ -200,13 +204,23 @@ export async function loadStudentOverview(actor?: Actor | null): Promise<Student
     let open = 0;
     let waiting = 0;
     let missing = 0;
+    let overdueCount = 0;
     let nextDue: StudentCourseCard["nextDue"] = null;
+    let overdue: StudentCourseCard["overdue"] = null;
     for (const a of courseAssignments) {
       const status = submissionStatus(submissionByAssignment.get(a.id));
       if (status === "open") {
         open += 1;
         if (a.dueAt && a.dueAt.getTime() >= now && (!nextDue || a.dueAt < nextDue.dueAt)) {
           nextDue = { assignmentId: a.id, name: a.name, dueAt: a.dueAt };
+        }
+        // Open work past its due date is overdue, and the overview says so:
+        // it must never read "Nothing due" while this row exists.
+        if (a.dueAt && a.dueAt.getTime() < now) {
+          overdueCount += 1;
+          if (!overdue || a.dueAt < overdue.dueAt) {
+            overdue = { assignmentId: a.id, name: a.name, dueAt: a.dueAt };
+          }
         }
       } else if (status === "submitted") waiting += 1;
       else if (status === "missing") missing += 1;
@@ -219,6 +233,8 @@ export async function loadStudentOverview(actor?: Actor | null): Promise<Student
       term: row.term ?? "",
       standing: standingLabel(row.currentGrade, row.currentScore),
       nextDue,
+      overdue,
+      overdueCount,
       openCount: open,
       waitingCount: waiting,
       missingCount: missing,
@@ -226,12 +242,113 @@ export async function loadStudentOverview(actor?: Actor | null): Promise<Student
     };
   });
 
-  const dueSoon = cards
-    .flatMap((card) => (card.nextDue ? [{ ...card.nextDue, courseCode: card.code }] : []))
-    .sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime())
-    .slice(0, 4);
+  const overdueSoon = cards
+    .flatMap((card) => (card.overdue ? [{ ...card.overdue, courseCode: card.code, overdue: true }] : []))
+    .sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime());
+  const upcomingSoon = cards
+    .flatMap((card) => (card.nextDue ? [{ ...card.nextDue, courseCode: card.code, overdue: false }] : []))
+    .sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime());
+  const dueSoon = [...overdueSoon, ...upcomingSoon].slice(0, 5);
 
   return { studentName: actor.name ?? "Student", cards, dueSoon };
+}
+
+/* ── calendar: derived from the record, never asserted ───────── */
+
+export type StudentCalendarEntry = {
+  date: Date;
+  /** "due": an assignment due date. "opens": a module unlock date. */
+  kind: "due" | "opens";
+  title: string;
+  courseCode: string;
+  href: string;
+  status?: StudentAssignment["status"];
+};
+
+export type StudentCalendar = {
+  entries: StudentCalendarEntry[];
+};
+
+/**
+ * Every dated fact in the student's published course record inside a window:
+ * assignment due dates and module unlock dates. There is no separate event
+ * model; the calendar is a projection of the records it links back to.
+ */
+export async function loadStudentCalendar(
+  actor: Actor | null | undefined,
+  window: { from: Date; to: Date }
+): Promise<StudentCalendar> {
+  if (!actor?.orgId || actor.role !== "student") {
+    return { entries: [] };
+  }
+
+  const enrollmentRows = await db
+    .select({ courseId: enrollments.courseId, code: courses.code })
+    .from(enrollments)
+    .innerJoin(courses, eq(enrollments.courseId, courses.id))
+    .where(
+      and(
+        eq(enrollments.orgId, actor.orgId),
+        eq(enrollments.userId, actor.id),
+        eq(enrollments.role, "student"),
+        eq(enrollments.state, "active")
+      )
+    );
+  if (enrollmentRows.length === 0) {
+    return { entries: [] };
+  }
+
+  const courseIds = enrollmentRows.map((row) => row.courseId);
+  const codeByCourse = new Map(enrollmentRows.map((row) => [row.courseId, row.code]));
+
+  const [assignmentRows, moduleRows, submissionRows] = await Promise.all([
+    db
+      .select({ id: assignments.id, courseId: assignments.courseId, name: assignments.name, dueAt: assignments.dueAt })
+      .from(assignments)
+      .where(and(eq(assignments.orgId, actor.orgId), inArray(assignments.courseId, courseIds), eq(assignments.published, true))),
+    db
+      .select({ id: modules.id, courseId: modules.courseId, name: modules.name, unlockAt: modules.unlockAt })
+      .from(modules)
+      .where(and(eq(modules.orgId, actor.orgId), inArray(modules.courseId, courseIds), eq(modules.published, true))),
+    db
+      .select({
+        assignmentId: submissions.assignmentId,
+        submittedAt: submissions.submittedAt,
+        gradedAt: submissions.gradedAt,
+        missing: submissions.missing,
+      })
+      .from(submissions)
+      .where(and(eq(submissions.orgId, actor.orgId), inArray(submissions.courseId, courseIds), eq(submissions.userId, actor.id))),
+  ]);
+
+  const submissionByAssignment = new Map(submissionRows.map((s) => [s.assignmentId, s]));
+  const inWindow = (date: Date) => date.getTime() >= window.from.getTime() && date.getTime() <= window.to.getTime();
+
+  const entries: StudentCalendarEntry[] = [];
+  for (const a of assignmentRows) {
+    if (!a.dueAt || !inWindow(a.dueAt)) continue;
+    entries.push({
+      date: a.dueAt,
+      kind: "due",
+      title: a.name,
+      courseCode: codeByCourse.get(a.courseId) ?? "",
+      href: `/student/work/${a.id}`,
+      status: submissionStatus(submissionByAssignment.get(a.id)),
+    });
+  }
+  for (const m of moduleRows) {
+    if (!m.unlockAt || !inWindow(m.unlockAt)) continue;
+    entries.push({
+      date: m.unlockAt,
+      kind: "opens",
+      title: m.name,
+      courseCode: codeByCourse.get(m.courseId) ?? "",
+      href: `/student/material/${m.id}`,
+    });
+  }
+
+  entries.sort((a, b) => a.date.getTime() - b.date.getTime());
+  return { entries };
 }
 
 /* ── one course ──────────────────────────────────────────────── */
@@ -278,7 +395,7 @@ export async function loadStudentCourseWorkspace(
     .where(and(eq(courses.orgId, actor.orgId), eq(courses.id, courseId)))
     .limit(1);
   if (!course) {
-    return problem("Course unavailable", "The course record could not be loaded.");
+    return problem("Course unavailable", "This course could not be loaded.");
   }
 
   const [policy] = await db
@@ -323,7 +440,7 @@ export async function loadStudentAssignmentWorkspace(
 
   const assignment = base.allAssignments.find((a) => a.id === assignmentId);
   if (!assignment) {
-    return { ...base.workspace, problem: { title: "Work unavailable", detail: "This work is not in the course record." } };
+    return { ...base.workspace, problem: { title: "Work unavailable", detail: "This work is not part of this course." } };
   }
   const codes = new Set(assignment.objectiveCodes);
   return {
@@ -347,7 +464,7 @@ export async function loadStudentMaterialWorkspace(
 
   const material = base.allMaterials.find((m) => m.id === moduleId);
   if (!material) {
-    return { ...base.workspace, problem: { title: "Material unavailable", detail: "This material is not in the course record." } };
+    return { ...base.workspace, problem: { title: "Material unavailable", detail: "This material is not part of this course." } };
   }
   const codes = new Set(material.objectiveCodes);
   return {
@@ -377,7 +494,7 @@ async function recordBase(actor: Actor | null | undefined, courseId: string | un
   });
 
   if (!courseId) {
-    return failed("Record unavailable", "This record is not in the course record.");
+    return failed("Not available", "This is not part of your courses.");
   }
   const courseWorkspace = await loadStudentCourseWorkspace(actor, courseId);
   if (courseWorkspace.problem) {
@@ -467,6 +584,7 @@ async function loadCourseRecords(actor: Actor & { orgId: string }, courseId: str
     week: String(m.position ?? ""),
     title: m.name,
     summary: m.summaryMd,
+    unlockAt: m.unlockAt,
     objectiveCodes: codesFor(m.id),
   }));
   const moduleUnlocks = new Map(moduleRows.map((m) => [m.id, m.unlockAt ?? new Date(0)]));

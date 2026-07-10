@@ -26,7 +26,7 @@ export function TaskTrigger({ title, className }: { title: string; className?: s
     <button
       type="button"
       onClick={() => ctx?.setOpen(!ctx.open)}
-      className={cn("flex w-full cursor-pointer items-center gap-2 text-[13px] text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]", className)}
+      className={cn("flex w-full cursor-pointer items-center gap-2 text-[0.8125rem] text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]", className)}
     >
       <SearchIcon className="size-3.5 shrink-0" aria-hidden />
       <span className="min-w-0 truncate">{title}</span>
@@ -42,5 +42,5 @@ export function TaskContent({ className, children }: { className?: string; child
 }
 
 export function TaskItem({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn("text-[12.5px] leading-5 text-[var(--color-muted)]", className)}>{children}</div>;
+  return <div className={cn("text-[0.78125rem] leading-5 text-[var(--color-muted)]", className)}>{children}</div>;
 }

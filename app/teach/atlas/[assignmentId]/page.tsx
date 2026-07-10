@@ -8,9 +8,11 @@ import { ClassInsight } from "@/components/cockpit/class-insight";
 import { ContractPanel, RubricEditor } from "@/components/cockpit/contract-rubric";
 
 /**
- * One work session's cockpit: the contract and rubric on the left rail (what
- * the professor governs), the journey grid and class insight in the main
- * column (what the class did). Every number renders from stored rows.
+ * One AI assignment's grading view: the contract and rubric on the right rail
+ * (what the professor governs), the journey grid and class insight in the
+ * main column (what the class did). Every number renders from stored rows.
+ * Reached from the assignment itself under Work, like any other grading
+ * surface; this is a normal part of the course, not a showcase.
  */
 export default async function AssignmentCockpitPage({ params }: { params: Promise<{ assignmentId: string }> }) {
   const session = await auth();
@@ -23,7 +25,7 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
   if (view.problem) {
     return (
       <>
-        <PageHeader title="Work session" />
+        <PageHeader title="AI assignment" />
         <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">{view.problem.detail}</p>
       </>
     );
@@ -33,10 +35,10 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
 
   return (
     <>
-      <BackLink href="/teach/atlas">Atlas</BackLink>
+      <BackLink href={`/teach/work/${view.assignment.id}`}>{view.assignment.name}</BackLink>
 
       <div className="mt-3">
-        <PageHeader title={view.assignment.name} course={`${view.course.code} / Work session`} />
+        <PageHeader title={view.assignment.name} course={`${view.course.code} / AI assignment`} />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">

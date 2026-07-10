@@ -29,7 +29,6 @@ const requiredRoutes = [
   "/api/session/[assignmentId]",
   "/teach",
   "/teach/atlas",
-  "/teach/atlas/planning",
   "/api/atlas/planning",
   "/teach/review",
   "/teach/weeks",
@@ -108,8 +107,9 @@ test("phase 0 clears the obsolete command, cue, and second-runtime surfaces", ()
   assertSourceExcludes("proxy.ts", '"/eve"');
   assertSourceExcludes(".env.example", "ATLAS_COMMAND_RUNTIME");
   assertSourceExcludes("app/teach/atlas/page.tsx", "CommandConsole");
-  // Phase 0 left a shell here; Phase 4 mounts the session cockpit in its place.
-  assertSourceIncludes("app/teach/atlas/page.tsx", "loadCockpitIndex");
+  // Phase 0 left a shell here; Phase 4 mounted the cockpit index; issue 27
+  // round 2 makes the agent itself the surface (chat first, records in Work).
+  assertSourceIncludes("app/teach/atlas/page.tsx", "loadPlanningRoom");
 });
 
 test("active source carries no old runtime references", () => {
@@ -224,7 +224,6 @@ test("phase 3 makes the rubric read the transcript", () => {
 
 test("phase 4 closes the loop on the professor side", () => {
   // The cockpit is a read layer over stored rows; mutations live in actions.
-  assertSourceIncludes("lib/instructor/cockpit.ts", "export async function loadCockpitIndex");
   assertSourceIncludes("lib/instructor/cockpit.ts", "export async function loadAssignmentCockpit");
   assertSourceIncludes("lib/instructor/cockpit.ts", "export async function loadJourneyDrillIn");
   assertSourceExcludes("lib/instructor/cockpit.ts", "recomputeClassRollup");
@@ -256,7 +255,7 @@ test("phase 4 closes the loop on the professor side", () => {
   assertSourceIncludes("app/teach/atlas/journey/[submissionId]/page.tsx", "ProfessorReportPanel");
   assertSourceIncludes("app/teach/atlas/[assignmentId]/page.tsx", "JourneyGrid");
   assertSourceIncludes("app/teach/atlas/[assignmentId]/page.tsx", "ClassInsight");
-  assertSourceIncludes("app/teach/work/[assignmentId]/page.tsx", "Open session cockpit");
+  assertSourceIncludes("app/teach/work/[assignmentId]/page.tsx", "Journeys and rubric");
 });
 
 test("issue 27: the professor plans with Atlas across the profile boundary", () => {
@@ -293,14 +292,22 @@ test("issue 27: the professor plans with Atlas across the profile boundary", () 
   assertSourceIncludes("lib/agent/blocks.ts", "session_rubric");
   assertSourceIncludes("lib/agent/apply.ts", 'block.type === "session_rubric"');
 
-  // The room reads through the cockpit (which stays read-only by the phase 4
-  // assertions above) and renders drafts as the records they will become.
+  // The agent IS the Atlas surface: opening /teach/atlas opens the
+  // conversation, threads switch in place, and the shell never locks or
+  // strips itself for a route (the old immersive mode is gone for good).
   assertSourceIncludes("lib/instructor/cockpit.ts", "export async function loadPlanningRoom");
-  assertSourceIncludes("app/teach/atlas/planning/page.tsx", "loadPlanningRoom");
+  assertSourceIncludes("app/teach/atlas/page.tsx", "PlanningRoom");
+  assertSourceExcludes("components/atlas/app-shell.tsx", "immersive");
   assertSourceIncludes("components/planning/planning-room.tsx", "useChat");
   assertSourceIncludes("components/planning/planning-room.tsx", "RubricCard");
   assertSourceIncludes("components/planning/rubric-card.tsx", "diffRubrics");
   assertSourceIncludes("components/teach/proposals.tsx", "session_rubric");
+
+  // AI assignments are ordinary course records: named plainly, entered from
+  // the graded Work area, never showcased as a special list on the agent page.
+  assertSourceIncludes("app/teach/work/page.tsx", "AI assignment");
+  assertSourceIncludes("app/teach/work/[assignmentId]/page.tsx", "AI assignment");
+  assertSourceExcludes("app/teach/atlas/page.tsx", "Work sessions");
 });
 
 test("legacy blocks remain persisted but not rendered by the removed registry UI", () => {

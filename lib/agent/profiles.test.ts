@@ -69,7 +69,7 @@ test("the session profile can never cross students", () => {
 
 test("colleague cards describe the others, not the self", () => {
   const forProfessor = describeColleagues("professor");
-  assert.match(forProfessor, /work session/i);
+  assert.match(forProfessor, /AI assignment/i);
   assert.match(forProfessor, /study/i);
   assert.doesNotMatch(forProfessor, /drafts rubrics/);
 });

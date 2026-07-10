@@ -14,7 +14,7 @@ import { describeColleagues } from "@/lib/agent/profiles";
  *
  * On top of the instructor-audience base pack (full record, drafts marked)
  * it adds what planning work actually needs:
- *   - every work session's contract and its CURRENT rubric in full, because
+ *   - every AI assignment's contract and its CURRENT rubric in full, because
  *     "revise the rubric" is the flagship conversation;
  *   - the drafts already waiting in Review, so the agent never re-drafts
  *     what is already on the professor's desk;
@@ -66,7 +66,7 @@ export async function buildProfessorPack(scope: ProfessorScope): Promise<Profess
     .where(and(eq(sessionAssignments.orgId, scope.orgId), eq(sessionAssignments.courseId, scope.courseId)))
     .orderBy(asc(assignments.position));
 
-  const workLines: string[] = ["WORK SESSIONS (assessed conversations; the rubric grades the transcript)"];
+  const workLines: string[] = ["AI ASSIGNMENTS (assignments taken as assessed conversations; the rubric grades the transcript)"];
   for (const row of workRows) {
     const triggers = parseSideNoteTriggers(row.sideNoteTriggers);
     workLines.push(
@@ -139,7 +139,7 @@ export function buildProfessorInstructions(args: { professorPack: ProfessorPack 
     `6. Speak through real course objects: modules, work, pages, practice sets, rubric criteria, announcements. Never talk about the interface.`,
     ``,
     `Rubric drafts (propose_rubric):`,
-    `- Target a work session by its assignment id from the pack. Weights are integers summing to exactly 100; a criterion's weight is its full credit.`,
+    `- Target an AI assignment by its assignment id from the pack. Weights are integers summing to exactly 100; a criterion's weight is its full credit.`,
     `- Every criterion carries the four levels Exceeds, Meets, Developing, Missing, each with its own descriptor. Leave points out unless the professor names them; they derive as full, 80 percent, 50 percent, and 0 of the weight.`,
     `- Write descriptors as observable moves in a transcript ("names the segments and their willingness to pay"), never as inner states ("shows understanding"). The grader quotes the student verbatim against these lines.`,
     `- When revising an existing rubric, keep the keys of criteria you are keeping so the comparison reads cleanly.`,

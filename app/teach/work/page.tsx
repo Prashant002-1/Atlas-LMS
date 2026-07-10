@@ -39,6 +39,7 @@ export default async function TeachWorkPage({
               <WorkRow
                 assignment={assignment}
                 progress={assignment.id ? progressById.get(assignment.id) : undefined}
+                aiAssignment={assignment.id ? workspace.aiAssignmentIds.includes(assignment.id) : false}
               />
             </MotionItem>
           ))}
@@ -101,9 +102,11 @@ export default async function TeachWorkPage({
 function WorkRow({
   assignment,
   progress,
+  aiAssignment = false,
 }: {
   assignment: InstructorWorkspace["assignments"][number];
   progress?: InstructorWorkspace["workProgress"][number];
+  aiAssignment?: boolean;
 }) {
   const waiting = progress ? Math.max(0, progress.submitted - progress.graded) : 0;
   const approved = assignment.status === "approved";
@@ -117,6 +120,7 @@ function WorkRow({
         <p className="text-[0.78125rem] text-[var(--color-muted)]">
           {assignment.dueAt ? `Due ${assignment.dueAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "No due date"}
           {assignment.points ? ` / ${Math.round(assignment.points)} pts` : ""}
+          {aiAssignment ? " / AI assignment" : ""}
         </p>
       </div>
       <div className="hidden shrink-0 sm:block">

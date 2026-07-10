@@ -93,7 +93,6 @@ export function AppShell({
   userEmail?: string | null;
 }) {
   const pathname = usePathname();
-  const immersive = pathname === "/teach/atlas";
   // null until hydrated: the server renders expanded, the stored preference
   // applies on the first client frame, and only then do transitions turn on.
   const [stored, setStored] = useState<boolean | null>(null);
@@ -106,8 +105,8 @@ export function AppShell({
   }, []);
 
   const ready = stored !== null;
-  const collapsed = stored ?? false;
-  const shellCollapsed = immersive || collapsed;
+  // One shell everywhere: the sidebar state is the user's, never a route's.
+  const shellCollapsed = stored ?? false;
 
   function toggle() {
     setStored((value) => {
@@ -130,35 +129,24 @@ export function AppShell({
         <div className="flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-surface-sidebar)]">
           {/* Brand header */}
           {shellCollapsed ? (
-            immersive ? (
-              <Link
-                href="/teach"
-                aria-label="Atlas"
-                title="Atlas"
-                className="flex h-14 w-full items-center justify-center border-b border-[var(--color-border)] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
-              >
-                <AtlasMark size={22} />
-              </Link>
-            ) : (
-              /* Collapsed: the logo mark. On hover it crossfades into the
-                 expand icon. Clicking toggles the sidebar open. */
-              <button
-                type="button"
-                onClick={toggle}
-                aria-label="Expand sidebar"
-                title="Expand"
-                className="group/brand flex h-14 w-full items-center justify-center border-b border-[var(--color-border)] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
-              >
-                <span className="relative flex size-5 items-center justify-center">
-                  <span className="absolute inset-0 flex items-center justify-center opacity-100 transition-opacity duration-200 ease-out group-hover/brand:opacity-0">
-                    <AtlasMark size={20} />
-                  </span>
-                  <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 ease-out group-hover/brand:opacity-100">
-                    <PanelLeftOpen size={15} strokeWidth={2} aria-hidden />
-                  </span>
+            /* Collapsed: the logo mark. On hover it crossfades into the
+               expand icon. Clicking toggles the sidebar open. */
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label="Expand sidebar"
+              title="Expand"
+              className="group/brand flex h-14 w-full items-center justify-center border-b border-[var(--color-border)] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
+            >
+              <span className="relative flex size-5 items-center justify-center">
+                <span className="absolute inset-0 flex items-center justify-center opacity-100 transition-opacity duration-200 ease-out group-hover/brand:opacity-0">
+                  <AtlasMark size={20} />
                 </span>
-              </button>
-            )
+                <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 ease-out group-hover/brand:opacity-100">
+                  <PanelLeftOpen size={15} strokeWidth={2} aria-hidden />
+                </span>
+              </span>
+            </button>
           ) : (
             /* Expanded: logo + wordmark on the left, toggle on the right. The
                right padding matches the identity block below, so the collapse
@@ -267,9 +255,9 @@ export function AppShell({
         </div>
       </aside>
 
-      <main className={`min-w-0 flex-1 ${immersive ? "overflow-hidden" : ""}`}>
-        <div className={immersive ? "h-screen min-w-0 px-0 py-0" : "mx-auto max-w-[66.25rem] px-6 py-7 md:px-9"}>
-          <MotionPage className={immersive ? "h-full min-w-0" : undefined}>{children}</MotionPage>
+      <main className="min-w-0 flex-1">
+        <div className="mx-auto max-w-[66.25rem] px-6 py-7 md:px-9">
+          <MotionPage>{children}</MotionPage>
         </div>
       </main>
     </div>

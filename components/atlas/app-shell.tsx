@@ -284,8 +284,14 @@ export function AppShell({
             ))}
           </nav>
 
-          {/* The identity row: account, theme, sign out. All in the open. */}
+          {/* The identity block: a small theme toggle above, then the account
+              row with sign out beside the name. Nothing else crowds the name. */}
           <div className="shrink-0 border-t border-[var(--color-border)] p-2">
+            {!shellCollapsed ? (
+              <div className="flex justify-end pb-1">
+                <ThemeToggle />
+              </div>
+            ) : null}
             <div className="flex items-center gap-1">
               <AccountRow
                 href={accountHref}
@@ -295,19 +301,16 @@ export function AppShell({
                 email={userEmail}
               />
               {!shellCollapsed ? (
-                <>
-                  <ThemeToggle />
-                  <form action={signOutOfAtlas}>
-                    <button
-                      type="submit"
-                      aria-label="Sign out"
-                      title="Sign out"
-                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-control text-[var(--color-faint)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
-                    >
-                      <LogOut size={14} strokeWidth={2} aria-hidden />
-                    </button>
-                  </form>
-                </>
+                <form action={signOutOfAtlas}>
+                  <button
+                    type="submit"
+                    aria-label="Sign out"
+                    title="Sign out"
+                    className="inline-flex size-7 shrink-0 items-center justify-center rounded-control text-[var(--color-faint)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+                  >
+                    <LogOut size={14} strokeWidth={2} aria-hidden />
+                  </button>
+                </form>
               ) : null}
             </div>
           </div>
@@ -324,10 +327,11 @@ export function AppShell({
 }
 
 /**
- * The scope menu bar: the term and the course in view as two menu segments,
- * values only, no markers. Each segment toggles a menu; each menu item is a
- * plain submit button into the matching scope action, so switching is one
- * click and one round trip.
+ * The course in view, as one card: the code, the full name with room to
+ * breathe, and the term beneath it. The card opens a single menu where each
+ * course, and each term below the hairline, is a plain submit button into
+ * its scope action, current choices checked. Nothing shares a line and
+ * nothing truncates on the card itself.
  */
 function ScopeMenuBar({
   terms,
@@ -342,95 +346,122 @@ function ScopeMenuBar({
   activeCourseId: string;
   scopePath: string;
 }) {
-  const [open, setOpen] = useState<"term" | "course" | null>(null);
+  const [open, setOpen] = useState(false);
 
   const activeTerm = terms.find((t) => t.slug === activeTermSlug) ?? terms[0];
   const activeCourse = courses.find((c) => c.id === activeCourseId) ?? courses[0];
-
-  const segment = (kind: "term" | "course", value: string, grow: boolean) => (
-    <button
-      type="button"
-      aria-haspopup="menu"
-      aria-expanded={open === kind}
-      onClick={() => setOpen((current) => (current === kind ? null : kind))}
-      className={`flex min-h-8 items-center gap-1.5 px-2.5 text-[0.78125rem] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)] ${
-        grow ? "min-w-0 flex-1" : "shrink-0"
-      } ${open === kind ? "bg-[var(--color-surface-muted)] text-[var(--color-ink)]" : "text-[var(--color-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"}`}
-    >
-      <span className="truncate">{value}</span>
-      <ChevronDown size={12} strokeWidth={2} aria-hidden className="shrink-0 text-[var(--color-faint)]" />
-    </button>
-  );
+  if (!activeCourse && !activeTerm) return null;
 
   return (
     <div className="relative">
-      {open ? <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-30 cursor-default" onClick={() => setOpen(null)} /> : null}
-
-      <div className="flex items-stretch divide-x divide-[var(--color-border)] overflow-hidden rounded-row border border-[var(--color-border)] bg-[var(--color-surface)]">
-        {activeTerm ? segment("term", activeTerm.name, false) : null}
-        {activeCourse ? segment("course", activeCourse.code, true) : null}
-      </div>
-
-      {open === "term" && activeTerm ? (
-        <ScopeMenu
-          action={setTermScope}
-          field="term"
-          scopePath={scopePath}
-          active={activeTerm.slug}
-          options={terms.map((t) => ({ value: t.slug, label: t.name }))}
-        />
+      {open ? (
+        <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-30 cursor-default" onClick={() => setOpen(false)} />
       ) : null}
-      {open === "course" && activeCourse ? (
-        <ScopeMenu
-          action={setCourseScope}
-          field="course"
-          scopePath={scopePath}
-          active={activeCourse.id}
-          options={courses.map((c) => ({ value: c.id, label: `${c.code} ${c.name}` }))}
+
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className={`group/scope flex w-full items-start gap-2 rounded-row border px-3 py-2.5 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] ${
+          open
+            ? "border-[var(--color-border-strong)] bg-[var(--color-surface)]"
+            : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-border-strong)]"
+        }`}
+      >
+        <span className="min-w-0 flex-1">
+          {activeCourse ? (
+            <>
+              <span className="atlas-mono block text-[0.65625rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">
+                {activeCourse.code}
+              </span>
+              <span className="mt-0.5 block text-[0.84375rem] font-medium leading-5 text-[var(--color-ink)]">
+                {activeCourse.name}
+              </span>
+            </>
+          ) : null}
+          {activeTerm ? (
+            <span className={`block text-[0.71875rem] text-[var(--color-faint)] ${activeCourse ? "mt-1" : ""}`}>
+              {activeTerm.name}
+            </span>
+          ) : null}
+        </span>
+        <ChevronDown
+          size={13}
+          strokeWidth={2}
+          aria-hidden
+          className={`mt-1 shrink-0 text-[var(--color-faint)] transition group-hover/scope:text-[var(--color-muted)] ${
+            open ? "rotate-180" : ""
+          }`}
         />
+      </button>
+
+      {open ? (
+        <div
+          role="menu"
+          className="absolute left-0 top-full z-40 mt-1.5 w-[19rem] max-w-[calc(100vw-1.5rem)] rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-1 shadow-[var(--shadow-floating)]"
+        >
+          {courses.length > 0 ? (
+            <form action={setCourseScope}>
+              <input type="hidden" name="returnTo" value={scopePath} />
+              {courses.map((course) => {
+                const current = course.id === activeCourse?.id;
+                return (
+                  <button
+                    key={course.id}
+                    type="submit"
+                    name="course"
+                    value={course.id}
+                    role="menuitemradio"
+                    aria-checked={current}
+                    className="flex w-full items-center gap-2.5 rounded-row px-2.5 py-2 text-left transition hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
+                  >
+                    <span className="atlas-mono shrink-0 text-[0.65625rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                      {course.code}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-medium text-[var(--color-ink)]">
+                      {course.name}
+                    </span>
+                    {current ? (
+                      <Check size={13} strokeWidth={2} aria-hidden className="shrink-0 text-[var(--color-accent-strong)]" />
+                    ) : null}
+                  </button>
+                );
+              })}
+            </form>
+          ) : null}
+
+          {courses.length > 0 && terms.length > 0 ? <div className="mx-1 my-1 h-px bg-[var(--color-border)]" aria-hidden /> : null}
+
+          {terms.length > 0 ? (
+            <form action={setTermScope}>
+              <input type="hidden" name="returnTo" value={scopePath} />
+              {terms.map((term) => {
+                const current = term.slug === activeTerm?.slug;
+                return (
+                  <button
+                    key={term.slug}
+                    type="submit"
+                    name="term"
+                    value={term.slug}
+                    role="menuitemradio"
+                    aria-checked={current}
+                    className="flex w-full items-center gap-2.5 rounded-row px-2.5 py-1.5 text-left transition hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-[0.75rem] font-medium text-[var(--color-muted)]">
+                      {term.name}
+                    </span>
+                    {current ? (
+                      <Check size={13} strokeWidth={2} aria-hidden className="shrink-0 text-[var(--color-accent-strong)]" />
+                    ) : null}
+                  </button>
+                );
+              })}
+            </form>
+          ) : null}
+        </div>
       ) : null}
     </div>
-  );
-}
-
-function ScopeMenu({
-  action,
-  field,
-  scopePath,
-  active,
-  options,
-}: {
-  action: (formData: FormData) => void;
-  field: string;
-  scopePath: string;
-  active: string;
-  options: Array<{ value: string; label: string }>;
-}) {
-  return (
-    <form
-      action={action}
-      role="menu"
-      className="absolute left-0 right-0 top-full z-40 mt-1 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-1 shadow-[var(--shadow-floating)]"
-    >
-      <input type="hidden" name="returnTo" value={scopePath} />
-      {options.map((option) => {
-        const current = option.value === active;
-        return (
-          <button
-            key={option.value}
-            type="submit"
-            name={field}
-            value={option.value}
-            role="menuitemradio"
-            aria-checked={current}
-            className="flex w-full items-center gap-2 rounded-row px-2 py-1.5 text-left text-[0.78125rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
-          >
-            <span className="min-w-0 flex-1 truncate">{option.label}</span>
-            {current ? <Check size={13} strokeWidth={2} aria-hidden className="shrink-0 text-[var(--color-accent-strong)]" /> : null}
-          </button>
-        );
-      })}
-    </form>
   );
 }
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import type { ComponentType, ReactNode, SVGAttributes } from "react";
+import { useId, type ComponentType, type ReactNode, type SVGAttributes } from "react";
 import type { LucideProps } from "lucide-react";
 import { ArrowLeft, ArrowRight, ChevronRight } from "lucide-react";
 
@@ -42,9 +42,10 @@ export function AtlasMark({ size = 28, className }: { size?: number; className?:
 }
 
 /**
- * The Atlas icon: the mark's geometry alone, no tile, in currentColor, so it
- * sits in text and navigation like any other icon. This is how Atlas appears
- * everywhere it is not the logo; the asset copy lives at
+ * The Atlas mark in a single shade: the EXACT geometry of
+ * public/brand/atlas-mark.svg (tile, aperture, ticks), rendered as a
+ * currentColor stencil so it can sit among interface icons. The artwork is
+ * a copy, never a redesign; only the shade differs. Asset copy at
  * public/brand/atlas-icon.svg.
  */
 export function AtlasIcon({
@@ -52,16 +53,34 @@ export function AtlasIcon({
   className,
   ...rest
 }: { size?: number; className?: string } & SVGAttributes<SVGSVGElement>) {
+  const id = useId();
+  const clipId = `${id}-clip`;
+  const maskId = `${id}-mask`;
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" className={className} {...rest}>
-      <path d="M12 1.9v2.3" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
-      <path d="M6.9 3.3v1.5M17.1 3.3v1.5" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" />
-      <path
-        fill="currentColor"
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M12 5.4 L20.6 20 L3.4 20 Z M12 5.4 L16.3 20 L7.7 20 Z M12 5.4 L13.8 20 L10.2 20 Z"
-      />
+    <svg viewBox="102 110 316 316" width={size} height={size} fill="none" className={className} {...rest}>
+      <defs>
+        <clipPath id={clipId}>
+          <rect x="102" y="110" width="316" height="316" rx="72" />
+        </clipPath>
+        <mask id={maskId} maskUnits="userSpaceOnUse" x="102" y="110" width="316" height="316">
+          <rect x="102" y="110" width="316" height="316" rx="72" fill="#fff" />
+          <g clipPath={`url(#${clipId})`}>
+            <path d="M260 132 L430 426 H90 L260 132Z" fill="#000" />
+            <path d="M260 132 L348 426 H172 L260 132Z" fill="#fff" />
+            <path d="M260 132 L300 426 H220 L260 132Z" fill="#000" />
+            <g fill="none" stroke="#000" strokeLinecap="butt">
+              <path d="M140 118.5 V137" strokeWidth="5" />
+              <path d="M180 110 V124" strokeWidth="4" />
+              <path d="M220 110 V125" strokeWidth="4" />
+              <path d="M300 110 V125" strokeWidth="4" />
+              <path d="M340 110 V124" strokeWidth="4" />
+              <path d="M380 118.5 V137" strokeWidth="5" />
+            </g>
+            <path d="M260 110 V132" fill="none" stroke="#000" strokeWidth="6" strokeLinecap="butt" />
+          </g>
+        </mask>
+      </defs>
+      <rect x="102" y="110" width="316" height="316" rx="72" fill="currentColor" mask={`url(#${maskId})`} />
     </svg>
   );
 }

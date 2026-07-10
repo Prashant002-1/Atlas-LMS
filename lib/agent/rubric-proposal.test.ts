@@ -5,6 +5,7 @@ import {
   diffRubrics,
   normalizeRubricDraft,
   sessionRubricBlockData,
+  starterRubricCriteria,
   type NormalizedRubricDraft,
 } from "@/lib/agent/rubric-proposal";
 import { parseStoredBlock } from "@/lib/agent/blocks";
@@ -175,6 +176,19 @@ test("the diff names what changed, what arrived, and what fell away", () => {
     ["defense"]
   );
   assert.equal(diff.weightMoved, true);
+});
+
+test("the starter frame carries the grading invariants", () => {
+  const criteria = starterRubricCriteria();
+  assert.equal(criteria.length, 4);
+  assert.equal(
+    criteria.reduce((sum, criterion) => sum + criterion.weight, 0),
+    100
+  );
+  for (const criterion of criteria) {
+    assert.equal(criterion.levels[0].score, criterion.weight);
+    assert.equal(criterion.levels[3].score, 0);
+  }
 });
 
 test("a fresh rubric against nothing reads all-new", () => {

@@ -68,8 +68,8 @@ const checks: SmokeCheck[] = [
     path: "/teach/ai-assignments",
     status: 200,
     auth: { email: "instructor@demo.edu", password: "atlas1234", redirectTo: "/teach/ai-assignments" },
-    includes: ["Pricing Strategy Session", "New AI assignment", "Course AI policy"],
-    excludes: ["Work sessions"],
+    includes: ["Pricing Strategy Session", "Course AI policy"],
+    excludes: ["Work sessions", "New AI assignment", "<form"],
   },
   {
     name: "student signed in",

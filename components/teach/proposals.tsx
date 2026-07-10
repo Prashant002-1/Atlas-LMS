@@ -24,7 +24,24 @@ export function ProposalCard({ proposal, compact = false }: { proposal: Instruct
         <div className="mt-4 space-y-3">
           <ul className="divide-y divide-[var(--color-border)] rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)]">
             {proposal.blocks.map((block, index) =>
-              block.type === "session_rubric" ? (
+              block.type === "ai_assignment" ? (
+                <li key={index} className="px-3 py-2.5">
+                  <div className="mb-2.5">
+                    <p className="text-[0.8125rem] leading-5 text-[var(--color-ink)]">{block.instructions}</p>
+                    <p className="atlas-mono mt-1.5 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">
+                      {block.durationMinutes} min session · side notes {block.personalRecordSideNotes ? "on" : "off"} · transcript:{" "}
+                      {block.transcriptPolicy}
+                    </p>
+                  </div>
+                  <RubricCard title="Rubric" criteria={block.criteria} />
+                  <p className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[0.71875rem] leading-4 text-[var(--color-faint)]">
+                    <span>Applying creates the AI assignment with this contract and rubric.</span>
+                    <TextLink href={`/teach/work/${block.assignmentId}`} className="text-[0.71875rem]">
+                      Open the assignment
+                    </TextLink>
+                  </p>
+                </li>
+              ) : block.type === "session_rubric" ? (
                 <li key={index} className="px-3 py-2.5">
                   <RubricCard title={block.title} criteria={block.criteria} />
                   <p className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[0.71875rem] leading-4 text-[var(--color-faint)]">

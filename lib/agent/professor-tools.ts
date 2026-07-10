@@ -10,24 +10,31 @@ import {
   moduleBlockSchema,
   objectiveBlockSchema,
   pageBlockSchema,
+  parseStoredBlock,
   practiceSetBlockSchema,
+  type AiAssignmentBlock,
 } from "@/lib/agent/blocks";
 import {
   buildSessionRubricBlock,
   normalizeRubricDraft,
+  rubricDraftCriterionSchema,
   rubricDraftSchema,
   sessionRubricBlockData,
+  starterRubricCriteria,
 } from "@/lib/agent/rubric-proposal";
 import { parseRubricCriteria, type RubricCriterion } from "@/lib/agent/session-parts";
 import type { ProfessorScope } from "@/lib/agent/professor-context";
 
 /**
- * The professor profile's closed tool set. Three moves, no more:
+ * The professor profile's closed tool set. Four moves, no more:
  *
- *   read_page        read one course page in full (the pack clips bodies);
- *   propose_rubric   draft a session rubric behind the Review gate;
- *   propose_records  draft modules, work, pages, notes, practice, objectives
- *                    behind the same gate.
+ *   read_page              read one course page in full (the pack clips bodies);
+ *   propose_ai_assignment  set up an existing assignment as an AI assignment
+ *                          (contract + rubric) behind the Review gate. This is
+ *                          THE creation path; there is no form for it anywhere;
+ *   propose_rubric         draft a rubric revision for an existing AI assignment;
+ *   propose_records        draft modules, work, pages, notes, practice,
+ *                          objectives behind the same gate.
  *
  * The write-shaped tools produce changeProposals + proposalBlocks rows ONLY.
  * Nothing here updates a live course record; applying is Review's job
@@ -54,6 +61,22 @@ export type RecordsProposalOutput =
   | { ok: true; proposalId: string; summary: string; records: Array<{ type: string; title: string }> }
   | { ok: false; error: string };
 
+export type AiAssignmentProposalOutput =
+  | {
+      ok: true;
+      proposalId: string;
+      assignmentId: string;
+      assignmentName: string;
+      instructions: string;
+      durationMinutes: number;
+      transcriptPolicy: string;
+      personalRecordSideNotes: boolean;
+      criteria: RubricCriterion[];
+      usedStandardFrame: boolean;
+      note: string | null;
+    }
+  | { ok: false; error: string };
+
 export type ReadPageOutput = { ok: true; title: string; body: string } | { ok: false; error: string };
 
 /** Blocks the professor profile may draft. Student-facing cue blocks and the legacy rubric shape are not in this set. */
@@ -69,6 +92,31 @@ const professorRecordBlockSchema = z.discriminatedUnion("type", [
 const proposeRecordsSchema = z.object({
   summary: z.string().min(8).max(300).describe("One plain line naming what these drafts are, in the professor's voice."),
   blocks: z.array(professorRecordBlockSchema).min(1).max(6),
+});
+
+const aiAssignmentDraftSchema = z.object({
+  assignmentId: z
+    .string()
+    .uuid()
+    .describe("An existing assignment in the course, from the pack, that does not run as an AI assignment yet."),
+  brief: z
+    .string()
+    .min(10)
+    .max(2000)
+    .describe("The brief the student sees: the problem, the deliverable, and how the session runs."),
+  durationMinutes: z.number().int().min(5).max(240).optional().describe("Session length in minutes; 30 unless the professor says otherwise."),
+  transcriptPolicy: z.string().min(3).max(200).optional().describe("What students are told about transcript visibility."),
+  personalRecordSideNotes: z
+    .boolean()
+    .optional()
+    .describe("Let the session surface a student's own record as margin cards. Off unless the professor turns it on."),
+  criteria: z
+    .array(rubricDraftCriterionSchema)
+    .min(2)
+    .max(8)
+    .optional()
+    .describe("The rubric shaped in this conversation. Omit to start from the standard four-criterion frame."),
+  note: z.string().max(400).optional().describe("One line on the intent, shown with the draft."),
 });
 
 function kindForBlockTypes(types: string[]): "module" | "assignment" | "quiz" | "objective" | "course" {
@@ -113,6 +161,136 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
     },
   });
 
+  const propose_ai_assignment = tool({
+    description:
+      "Set up an existing assignment as an AI assignment: the brief, duration, transcript policy, side-notes toggle, and the rubric, as ONE reviewable draft. Applying creates the AI assignment. This is the only way one is created.",
+    inputSchema: aiAssignmentDraftSchema,
+    execute: async (draft): Promise<AiAssignmentProposalOutput> => {
+      const [target] = await db
+        .select({ id: assignments.id, name: assignments.name })
+        .from(assignments)
+        .where(
+          and(eq(assignments.orgId, scope.orgId), eq(assignments.courseId, scope.courseId), eq(assignments.id, draft.assignmentId))
+        )
+        .limit(1);
+      if (!target) {
+        return { ok: false, error: "That assignment is not in this course. Use an id from the pack." };
+      }
+
+      const [configured] = await db
+        .select({ id: sessionAssignments.id })
+        .from(sessionAssignments)
+        .where(and(eq(sessionAssignments.orgId, scope.orgId), eq(sessionAssignments.assignmentId, draft.assignmentId)))
+        .limit(1);
+      if (configured) {
+        return {
+          ok: false,
+          error: `${target.name} already runs as an AI assignment. Use propose_rubric to revise its rubric, or the grade view for its contract.`,
+        };
+      }
+
+      const pending = await db
+        .select({ id: changeProposals.id, diff: changeProposals.diff })
+        .from(changeProposals)
+        .where(
+          and(
+            eq(changeProposals.orgId, scope.orgId),
+            eq(changeProposals.courseId, scope.courseId),
+            eq(changeProposals.kind, "assignment"),
+            eq(changeProposals.status, "pending")
+          )
+        );
+      const alreadyWaiting = pending.some((row) => {
+        const diff = row.diff as { assignmentId?: string } | null;
+        return diff?.assignmentId === draft.assignmentId;
+      });
+      if (alreadyWaiting) {
+        return {
+          ok: false,
+          error: "An AI assignment draft for that assignment is already waiting in Review. The professor decides that one first.",
+        };
+      }
+
+      const usedStandardFrame = !draft.criteria || draft.criteria.length === 0;
+      let criteria: RubricCriterion[];
+      if (usedStandardFrame) {
+        criteria = starterRubricCriteria();
+      } else {
+        const normalized = normalizeRubricDraft({ criteria: draft.criteria! });
+        if (!normalized.ok) return { ok: false, error: normalized.error };
+        criteria = normalized.criteria;
+      }
+
+      const block: AiAssignmentBlock = {
+        type: "ai_assignment",
+        assignmentId: draft.assignmentId,
+        title: `Run ${target.name} as an AI assignment`,
+        instructions: draft.brief,
+        durationMinutes: draft.durationMinutes ?? 30,
+        transcriptPolicy: draft.transcriptPolicy ?? "shared on request / for review",
+        personalRecordSideNotes: draft.personalRecordSideNotes ?? false,
+        criteria,
+      };
+      const blockData = {
+        assignmentId: block.assignmentId,
+        title: block.title,
+        instructions: block.instructions,
+        durationMinutes: block.durationMinutes,
+        transcriptPolicy: block.transcriptPolicy,
+        personalRecordSideNotes: block.personalRecordSideNotes,
+        criteria: block.criteria,
+      };
+      const roundTrip = parseStoredBlock("ai_assignment", blockData);
+      if (!roundTrip || roundTrip.type !== "ai_assignment") {
+        return { ok: false, error: "The draft did not pass the AI assignment block contract; adjust it and try again." };
+      }
+
+      try {
+        const proposalId = await db.transaction(async (tx) => {
+          const [proposal] = await tx
+            .insert(changeProposals)
+            .values({
+              orgId: scope.orgId,
+              courseId: scope.courseId,
+              authorId: scope.instructorId,
+              kind: "assignment",
+              status: "pending",
+              summary: `AI assignment draft: ${target.name}`,
+              diff: { source: "planning_chat", assignmentId: draft.assignmentId, note: draft.note ?? null },
+              sessionId,
+            })
+            .returning({ id: changeProposals.id });
+          await tx.insert(proposalBlocks).values({
+            orgId: scope.orgId,
+            proposalId: proposal.id,
+            position: 1,
+            blockType: "ai_assignment",
+            schemaVersion: BLOCK_SCHEMA_VERSION,
+            data: blockData,
+            status: "pending",
+          });
+          return proposal.id;
+        });
+
+        return {
+          ok: true,
+          proposalId,
+          assignmentId: draft.assignmentId,
+          assignmentName: target.name,
+          instructions: block.instructions,
+          durationMinutes: block.durationMinutes,
+          transcriptPolicy: block.transcriptPolicy,
+          personalRecordSideNotes: block.personalRecordSideNotes,
+          criteria,
+          usedStandardFrame,
+          note: draft.note ?? null,
+        };
+      } catch {
+        return { ok: false, error: "Could not store the draft. Nothing was written; try once more." };
+      }
+    },
+  });
+
   const propose_rubric = tool({
     description:
       "Draft a rubric for one AI assignment as a reviewable change. The draft lands in Review; applying writes a new rubric version and repoints the assignment. Use for new rubrics and for revisions.",
@@ -137,7 +315,11 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
         )
         .limit(1);
       if (!target) {
-        return { ok: false, error: "That assignment is not an AI assignment in this course. Use an id from the pack." };
+        return {
+          ok: false,
+          error:
+            "That assignment does not run as an AI assignment yet. Set it up with propose_ai_assignment; propose_rubric revises existing ones.",
+        };
       }
 
       const pending = await db
@@ -273,5 +455,5 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
     },
   });
 
-  return { read_page, propose_rubric, propose_records };
+  return { read_page, propose_ai_assignment, propose_rubric, propose_records };
 }

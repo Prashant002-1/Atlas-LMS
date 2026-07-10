@@ -6,7 +6,6 @@ import { and, eq, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
-  assignments,
   changeProposals,
   classRollups,
   journeyReports,
@@ -31,7 +30,6 @@ import {
   practiceSetBlockData,
   type CourseObjectiveRef,
 } from "@/lib/agent/practice-proposal";
-import { starterRubricCriteria } from "@/lib/agent/rubric-proposal";
 import { parseRubricCriteria, rescaleCriterionToWeight } from "@/lib/agent/session-parts";
 import { renderFinalArtifactBody } from "@/lib/agent/transcript";
 import { pricingArtifactSchema } from "@/lib/agent/session-parts";
@@ -485,83 +483,6 @@ export async function updateRubricWeights(formData: FormData) {
         .set({ criteria: rescaled })
         .where(and(eq(rubrics.orgId, actor.orgId), eq(rubrics.id, bundle.rubric.id)));
     }
-  });
-
-  revalidateCockpit(assignmentId);
-  redirect(`/teach/ai-assignments/${assignmentId}`);
-}
-/* ── direct creation (the AI assignments tab) ───────────────── */
-
-/**
- * Run an existing assignment as an AI assignment: one transaction writes the
- * next rubric version from the standard four-criterion frame and the
- * session-assignment contract row. A direct record edit like every other
- * creation form; the professor reshapes the rubric on the grade view or by
- * asking Atlas for a draft, and the assignment itself stays a normal course
- * record under Work.
- */
-export async function createAiAssignment(formData: FormData) {
-  const actor = await requireInstructorActor();
-  const course = await requireCourse(actor);
-
-  const assignmentId = String(formData.get("assignmentId") ?? "");
-  if (!assignmentId) {
-    throw new Error("Pick an assignment to run as an AI assignment.");
-  }
-  const [assignment] = await db
-    .select({ id: assignments.id })
-    .from(assignments)
-    .where(and(eq(assignments.orgId, actor.orgId), eq(assignments.courseId, course.id), eq(assignments.id, assignmentId)))
-    .limit(1);
-  if (!assignment) {
-    throw new Error("That assignment is not in the course in view.");
-  }
-
-  const [existing] = await db
-    .select({ id: sessionAssignments.id })
-    .from(sessionAssignments)
-    .where(and(eq(sessionAssignments.orgId, actor.orgId), eq(sessionAssignments.assignmentId, assignmentId)))
-    .limit(1);
-  if (existing) {
-    redirect(`/teach/ai-assignments/${assignmentId}`);
-  }
-
-  const instructions = String(formData.get("instructions") ?? "").trim();
-  if (instructions.length < 10 || instructions.length > 2000) {
-    throw new Error("The brief must be 10 to 2000 characters.");
-  }
-  const durationMinutes = Number(formData.get("durationMinutes"));
-  if (!Number.isInteger(durationMinutes) || durationMinutes < 5 || durationMinutes > 240) {
-    throw new Error("Duration must be a whole number of minutes between 5 and 240.");
-  }
-  const transcriptPolicy = String(formData.get("transcriptPolicy") ?? "").trim() || "shared on request / for review";
-  if (transcriptPolicy.length < 3 || transcriptPolicy.length > 200) {
-    throw new Error("Transcript policy must be 3 to 200 characters.");
-  }
-  const personalRecordSideNotes = formData.get("personalRecordSideNotes") === "on";
-
-  const criteria = starterRubricCriteria();
-
-  await db.transaction(async (tx) => {
-    const [{ maxVersion }] = await tx
-      .select({ maxVersion: sql<number>`coalesce(max(${rubrics.version}), 0)` })
-      .from(rubrics)
-      .where(and(eq(rubrics.orgId, actor.orgId), eq(rubrics.courseId, course.id)));
-    const [rubric] = await tx
-      .insert(rubrics)
-      .values({ orgId: actor.orgId, courseId: course.id, version: Number(maxVersion) + 1, criteria })
-      .returning({ id: rubrics.id });
-
-    await tx.insert(sessionAssignments).values({
-      orgId: actor.orgId,
-      courseId: course.id,
-      assignmentId,
-      rubricId: rubric.id,
-      instructions,
-      durationMinutes,
-      transcriptPolicy,
-      personalRecordSideNotes,
-    });
   });
 
   revalidateCockpit(assignmentId);

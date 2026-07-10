@@ -1,28 +1,22 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { loadAiAssignmentIndex } from "@/lib/instructor/cockpit";
-import { createAiAssignment } from "@/lib/instructor/session-actions";
 import { PageHeader } from "@/components/teach/page-header";
-import { ActionButton, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { EmptyState } from "@/components/atlas/record";
 import { JourneyGridSummary } from "@/components/cockpit/journey-grid";
 import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 /**
- * The AI assignments tab: the operational lens over one record type. Every
- * AI assignment in the course with its facts and class status, the course AI
- * policy stated plainly, and direct creation from an existing assignment.
- * Rows open the same grade view Work leads to; one canonical page, two doors.
+ * The AI assignments tab: see, inspect, govern. Every AI assignment in the
+ * course with its facts and class status, and the course AI policy stated
+ * plainly. Nothing is created here; creation is a conversation with Atlas,
+ * which drafts the whole AI assignment behind Review. Rows open the same
+ * grade view Work leads to; one canonical page, two doors.
  */
-export default async function TeachAiAssignmentsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ new?: string }>;
-}) {
+export default async function TeachAiAssignmentsPage() {
   const session = await auth();
-  const [view, params] = await Promise.all([loadAiAssignmentIndex(session?.user), searchParams]);
-  const openNew = params.new === "1";
+  const view = await loadAiAssignmentIndex(session?.user);
 
   if (view.problem) {
     return (
@@ -83,7 +77,12 @@ export default async function TeachAiAssignmentsPage({
           <EmptyState
             art="atlas"
             title="No AI assignments yet"
-            detail="Convert an assignment below, or shape one with Atlas first."
+            detail="Ask Atlas to set one up from an existing assignment; the draft lands in Review."
+            action={
+              <TextLink href="/teach/atlas" className="text-[0.8125rem]">
+                Open Atlas
+              </TextLink>
+            }
           />
         </div>
       )}
@@ -110,103 +109,6 @@ export default async function TeachAiAssignmentsPage({
           </p>
         )}
       </section>
-
-      <details
-        id="new"
-        open={openNew}
-        className="mt-5 scroll-mt-24 rounded-panel border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-4 shadow-[var(--shadow-panel)]"
-      >
-        <summary className="cursor-pointer text-[0.875rem] font-semibold transition hover:text-[var(--color-accent-strong)]">
-          New AI assignment
-        </summary>
-        {view.availableAssignments.length === 0 ? (
-          <p className="mt-3 max-w-xl text-[0.8125rem] leading-6 text-[var(--color-muted)]">
-            Every assignment in this course already runs as an AI assignment. Add work first under{" "}
-            <TextLink href="/teach/work" className="text-[0.8125rem]">
-              Work
-            </TextLink>
-            , then convert it here.
-          </p>
-        ) : (
-          <form action={createAiAssignment} className="mt-4 grid max-w-xl gap-3">
-            <label className="grid gap-1.5 text-[0.75rem] font-medium">
-              Assignment
-              <select
-                name="assignmentId"
-                required
-                defaultValue=""
-                className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
-              >
-                <option value="" disabled>
-                  Pick an assignment
-                </option>
-                {view.availableAssignments.map((assignment) => (
-                  <option key={assignment.id} value={assignment.id}>
-                    {assignment.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-1.5 text-[0.75rem] font-medium">
-              Brief the student sees
-              <textarea
-                name="instructions"
-                rows={3}
-                required
-                minLength={10}
-                maxLength={2000}
-                placeholder="The problem, the deliverable, and how the session runs."
-                className="resize-y rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[0.875rem] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
-              />
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="grid gap-1.5 text-[0.75rem] font-medium">
-                Duration (minutes)
-                <input
-                  name="durationMinutes"
-                  type="number"
-                  min={5}
-                  max={240}
-                  step={1}
-                  required
-                  defaultValue={30}
-                  className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] tabular-nums transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
-                />
-              </label>
-              <label className="grid gap-1.5 text-[0.75rem] font-medium">
-                Transcript policy (students see this)
-                <input
-                  name="transcriptPolicy"
-                  type="text"
-                  minLength={3}
-                  maxLength={200}
-                  defaultValue="shared on request / for review"
-                  className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
-                />
-              </label>
-            </div>
-            <label className="flex items-start gap-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5">
-              <input type="checkbox" name="personalRecordSideNotes" className="mt-0.5 size-4 accent-[var(--color-accent-strong)]" />
-              <span>
-                <span className="block text-[0.8125rem] font-medium text-[var(--color-ink)]">Personal-record side notes</span>
-                <span className="mt-0.5 block text-[0.71875rem] leading-4 text-[var(--color-muted)]">
-                  Lets the session surface a student&apos;s own record as margin cards. Their data flows to them, never to
-                  other students.
-                </span>
-              </span>
-            </label>
-            <div className="flex flex-wrap items-center gap-3">
-              <ActionButton>
-                <Plus size={14} strokeWidth={2} aria-hidden="true" />
-                <span className="ml-1.5">Create AI assignment</span>
-              </ActionButton>
-              <p className="text-[0.71875rem] leading-4 text-[var(--color-faint)]">
-                Starts from the standard four-criterion rubric; reshape it on the assignment page or ask Atlas.
-              </p>
-            </div>
-          </form>
-        )}
-      </details>
     </>
   );
 }

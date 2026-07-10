@@ -33,7 +33,7 @@ export default async function TeachModulesPage({
     return (
       <>
         <PageHeader title="Modules" />
-        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
+        <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
       </>
     );
   }
@@ -61,25 +61,25 @@ export default async function TeachModulesPage({
         open={openNew}
         className="mt-5 scroll-mt-24 rounded-panel border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-4 shadow-[var(--shadow-panel)]"
       >
-        <summary className="cursor-pointer text-[14px] font-semibold transition hover:text-[var(--color-accent-strong)]">Add a module</summary>
+        <summary className="cursor-pointer text-[0.875rem] font-semibold transition hover:text-[var(--color-accent-strong)]">Add a module</summary>
         <form action={createModuleRecord} className="mt-4 grid max-w-xl gap-3">
-          <label className="grid gap-1.5 text-[12px] font-medium">
+          <label className="grid gap-1.5 text-[0.75rem] font-medium">
             Title
             <input
               name="title"
               type="text"
               required
               placeholder="Week 8: Confidence intervals in practice"
-              className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+              className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </label>
-          <label className="grid gap-1.5 text-[12px] font-medium">
+          <label className="grid gap-1.5 text-[0.75rem] font-medium">
             Summary
             <textarea
               name="summary"
               rows={3}
               placeholder="What the week covers and why it matters."
-              className="resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[14px] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+              className="resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[0.875rem] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </label>
           <ObjectiveChecklist objectives={workspace.objectives} selectedCodes={[]} />
@@ -103,7 +103,7 @@ function WeekCard({ module }: { module: InstructorWorkspace["modules"][number] }
     <article className="atlas-card-hover group flex gap-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
       {/* Week number: clean mono, no box. Top-aligned, faded. */}
       <span
-        className={`atlas-mono shrink-0 pt-0.5 text-[18px] font-semibold leading-6 tabular-nums ${
+        className={`atlas-mono shrink-0 pt-0.5 text-[1.125rem] font-semibold leading-6 tabular-nums ${
           approved ? "text-[var(--color-faint)]" : "text-[var(--color-faint)]"
         }`}
       >
@@ -114,11 +114,11 @@ function WeekCard({ module }: { module: InstructorWorkspace["modules"][number] }
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[15px] font-semibold leading-6 text-[var(--color-ink)]">
+            <p className="text-[0.9375rem] font-semibold leading-6 text-[var(--color-ink)]">
               {module.id ? <TextLink href={`/teach/week/${module.id}`}>{module.title}</TextLink> : module.title}
             </p>
             {module.summary ? (
-              <p className="mt-1 line-clamp-2 text-[13px] leading-5 text-[var(--color-muted)]">{module.summary}</p>
+              <p className="mt-1 line-clamp-2 text-[0.8125rem] leading-5 text-[var(--color-muted)]">{module.summary}</p>
             ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-2.5">

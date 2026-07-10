@@ -26,7 +26,7 @@ export default async function JourneyDrillInPage({ params }: { params: Promise<{
     return (
       <>
         <PageHeader title="Journey" />
-        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">{view.problem.detail}</p>
+        <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">{view.problem.detail}</p>
       </>
     );
   }
@@ -56,7 +56,7 @@ export default async function JourneyDrillInPage({ params }: { params: Promise<{
         />
       </div>
 
-      <p className="atlas-mono -mt-4 mb-5 text-[11px] uppercase tracking-[0.07em] text-[var(--color-faint)]">
+      <p className="atlas-mono -mt-4 mb-5 text-[0.6875rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">
         Submitted {new Date(view.submission.submittedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
         {" · "}
         {view.submission.turnCount} turns
@@ -68,8 +68,8 @@ export default async function JourneyDrillInPage({ params }: { params: Promise<{
             <ProfessorReportPanel report={view.report} submissionId={view.submission.id} />
           ) : (
             <section className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
-              <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Journey report</p>
-              <p className="mt-2 text-[13.5px] leading-6 text-[var(--color-muted)]">
+              <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Journey report</p>
+              <p className="mt-2 text-[0.84375rem] leading-6 text-[var(--color-muted)]">
                 This submission has not been graded yet. Run the rubric to draft a report; nothing is published until
                 you finalize it.
               </p>
@@ -77,7 +77,7 @@ export default async function JourneyDrillInPage({ params }: { params: Promise<{
                 <input type="hidden" name="submissionId" value={view.submission.id} />
                 <button
                   type="submit"
-                  className="rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
+                  className="rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 py-1.5 text-[0.78125rem] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
                 >
                   Run the rubric
                 </button>

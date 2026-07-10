@@ -21,7 +21,7 @@ export default async function TeachWorkPage({
     return (
       <>
         <PageHeader title="Work" />
-        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
+        <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
       </>
     );
   }
@@ -54,35 +54,35 @@ export default async function TeachWorkPage({
         open={openNew}
         className="mt-5 scroll-mt-24 rounded-panel border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-4 shadow-[var(--shadow-panel)]"
       >
-        <summary className="cursor-pointer text-[14px] font-semibold transition hover:text-[var(--color-accent-strong)]">Add work</summary>
+        <summary className="cursor-pointer text-[0.875rem] font-semibold transition hover:text-[var(--color-accent-strong)]">Add work</summary>
         <form action={createAssignmentRecord} className="mt-4 grid max-w-xl gap-3">
-          <label className="grid gap-1.5 text-[12px] font-medium">
+          <label className="grid gap-1.5 text-[0.75rem] font-medium">
             Title
             <input
               name="title"
               type="text"
               required
               placeholder="Problem Set 6: Regression diagnostics"
-              className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+              className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </label>
-          <label className="grid gap-1.5 text-[12px] font-medium">
+          <label className="grid gap-1.5 text-[0.75rem] font-medium">
             Instructions
             <textarea
               name="description"
               rows={3}
               placeholder="The task, the deliverable, and what good work looks like."
-              className="resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[14px] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+              className="resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[0.875rem] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
           </label>
           <div className="grid grid-cols-2 gap-3">
-            <label className="grid gap-1.5 text-[12px] font-medium">
+            <label className="grid gap-1.5 text-[0.75rem] font-medium">
               Due
-              <input name="dueDate" type="date" className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
+              <input name="dueDate" type="date" className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
             </label>
-            <label className="grid gap-1.5 text-[12px] font-medium">
+            <label className="grid gap-1.5 text-[0.75rem] font-medium">
               Points
-              <input name="points" type="number" min={1} defaultValue={100} className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
+              <input name="points" type="number" min={1} defaultValue={100} className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
             </label>
           </div>
           <ObjectiveChecklist objectives={workspace.objectives} selectedCodes={[]} />
@@ -111,10 +111,10 @@ function WorkRow({
   return (
     <article className="atlas-card-hover group flex items-center gap-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[14px] font-medium leading-6">
+        <p className="truncate text-[0.875rem] font-medium leading-6">
           {assignment.id ? <TextLink href={`/teach/work/${assignment.id}`}>{assignment.title}</TextLink> : assignment.title}
         </p>
-        <p className="text-[12.5px] text-[var(--color-muted)]">
+        <p className="text-[0.78125rem] text-[var(--color-muted)]">
           {assignment.dueAt ? `Due ${assignment.dueAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "No due date"}
           {assignment.points ? ` / ${Math.round(assignment.points)} pts` : ""}
         </p>

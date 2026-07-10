@@ -60,8 +60,8 @@ export function ToolHeader({
     >
       <span className="flex min-w-0 items-center gap-2">
         <WrenchIcon className="size-3.5 shrink-0 text-[var(--color-faint)]" aria-hidden />
-        <span className="truncate text-[13px] font-medium text-[var(--color-ink)]">{name}</span>
-        <span className="inline-flex items-center gap-1 rounded-row border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-muted)]">
+        <span className="truncate text-[0.8125rem] font-medium text-[var(--color-ink)]">{name}</span>
+        <span className="inline-flex items-center gap-1 rounded-row border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-0.5 text-[0.65625rem] font-medium text-[var(--color-muted)]">
           <StatusIcon state={state} />
           {statusLabels[state]}
         </span>
@@ -74,14 +74,14 @@ export function ToolHeader({
 export function ToolContent({ className, children }: { className?: string; children: ReactNode }) {
   const ctx = useContext(ToolContext);
   if (!ctx?.open) return null;
-  return <div className={cn("space-y-3 border-t border-[var(--color-border)] px-3 py-3 text-[12.5px] text-[var(--color-muted)]", className)}>{children}</div>;
+  return <div className={cn("space-y-3 border-t border-[var(--color-border)] px-3 py-3 text-[0.78125rem] text-[var(--color-muted)]", className)}>{children}</div>;
 }
 
 export function ToolInput({ input, className }: { input: unknown; className?: string }) {
   return (
     <div className={cn("space-y-1.5", className)}>
-      <h4 className="atlas-mono text-[10px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Parameters</h4>
-      <pre className="overflow-x-auto rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-2.5 text-[11.5px] leading-5 text-[var(--color-muted)]">
+      <h4 className="atlas-mono text-[0.625rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Parameters</h4>
+      <pre className="overflow-x-auto rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-2.5 text-[0.71875rem] leading-5 text-[var(--color-muted)]">
         <code>{JSON.stringify(input, null, 2)}</code>
       </pre>
     </div>
@@ -92,10 +92,10 @@ export function ToolOutput({ output, errorText, className }: { output?: ReactNod
   if (!output && !errorText) return null;
   return (
     <div className={cn("space-y-1.5", className)}>
-      <h4 className="atlas-mono text-[10px] uppercase tracking-[0.08em] text-[var(--color-faint)]">{errorText ? "Error" : "Result"}</h4>
+      <h4 className="atlas-mono text-[0.625rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">{errorText ? "Error" : "Result"}</h4>
       <div
         className={cn(
-          "rounded-row px-2.5 py-2 text-[12.5px] leading-5",
+          "rounded-row px-2.5 py-2 text-[0.78125rem] leading-5",
           errorText
             ? "border border-[color-mix(in_oklch,var(--color-danger)_38%,transparent)] bg-[color-mix(in_oklch,var(--color-danger)_10%,transparent)] text-[var(--color-danger)]"
             : "border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-ink)]"

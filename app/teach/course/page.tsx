@@ -64,38 +64,37 @@ export default async function TeachCourseSetupPage() {
     );
 
   const field =
-    "min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[14px] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]";
+    "min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]";
 
   return (
     <>
       <PageHeader title="Course setup" course={`${course.code} / ${course.term ?? ""}`} />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.38fr)]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16.25rem,0.38fr)]">
         <div className="min-w-0 space-y-4">
           <Panel title="Course details">
             <form action={updateCourseDetails} className="grid gap-3">
-              <label className="grid gap-1.5 text-[12px] font-medium">
+              <label className="grid gap-1.5 text-[0.75rem] font-medium">
                 Name
                 <input name="name" type="text" required defaultValue={course.name} className={field} />
               </label>
-              <label className="grid gap-1.5 text-[12px] font-medium">
+              <label className="grid gap-1.5 text-[0.75rem] font-medium">
                 Description
                 <textarea
                   name="description"
                   rows={3}
                   defaultValue={course.description ?? ""}
-                  placeholder="What this course is, in the words students see."
-                  className="resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[14px] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+                  className="resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[0.875rem] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
                 />
               </label>
-              <label className="grid gap-1.5 text-[12px] font-medium">
+              <label className="grid gap-1.5 text-[0.75rem] font-medium">
                 Syllabus
                 <textarea
                   name="syllabus"
                   rows={14}
                   defaultValue={course.syllabusMd ?? ""}
-                  placeholder="The full syllabus, in Markdown. Students read it from the course home; Atlas grounds itself in it."
-                  className="atlas-mono resize-y rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[12.5px] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
+                  placeholder="Markdown"
+                  className="atlas-mono resize-y rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[0.78125rem] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
                 />
               </label>
               <div>
@@ -110,7 +109,7 @@ export default async function TeachCourseSetupPage() {
 
         <div className="min-w-0 space-y-4">
           <Panel title="Offering">
-            <div className="grid gap-3 text-[13px]">
+            <div className="grid gap-3 text-[0.8125rem]">
               <RecordFact label="Code" value={<span className="atlas-mono">{course.code}</span>} />
               <RecordFact label="Term" value={course.term ?? "Not set"} />
               {course.startDate ? <RecordFact label="Starts" value={longDate(course.startDate)} /> : null}
@@ -119,18 +118,11 @@ export default async function TeachCourseSetupPage() {
           </Panel>
 
           <Panel title="Roster">
-            <div className="grid gap-3 text-[13px]">
+            <div className="grid gap-3 text-[0.8125rem]">
               <RecordFact label="Students" value={roster?.students ?? 0} />
             </div>
-            <p className="mt-3 text-[13px]">
-              <TextLink href="/teach/students" className="text-[13px]">Open Students</TextLink>
-            </p>
-          </Panel>
-
-          <Panel title="Atlas">
-            <p className="text-[13px] leading-6 text-[var(--color-muted)]">
-              What Atlas may do for students, and the model key it runs on, are set in{" "}
-              <TextLink href="/teach/settings" className="text-[13px]">Settings</TextLink>. Course setup never changes them.
+            <p className="mt-3 text-[0.8125rem]">
+              <TextLink href="/teach/students" className="text-[0.8125rem]">Open Students</TextLink>
             </p>
           </Panel>
         </div>

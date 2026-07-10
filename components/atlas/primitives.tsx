@@ -21,10 +21,7 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
     <Link href="/" aria-label="Atlas" className={`group inline-flex items-center gap-3 rounded-row ${focusStyle}`}>
       <AtlasMark size={compact ? 26 : 32} />
       {!compact ? (
-        <span className="leading-none">
-          <span className="atlas-serif block text-[18px] font-medium text-[var(--color-ink)]">Atlas</span>
-          <span className="mt-1 block text-[12px] text-[var(--color-muted)]">Course record</span>
-        </span>
+        <span className="atlas-serif text-[1.125rem] font-medium leading-none text-[var(--color-ink)]">Atlas</span>
       ) : null}
     </Link>
   );
@@ -65,8 +62,8 @@ export function ButtonLink({
     ghost: "border-transparent bg-transparent text-[var(--color-muted)] hover:text-[var(--color-ink)]",
   };
   const sizes = {
-    md: "min-h-10 px-4 text-[14px]",
-    sm: "min-h-9 px-3 text-[13px]",
+    md: "min-h-10 px-4 text-[0.875rem]",
+    sm: "min-h-9 px-3 text-[0.8125rem]",
   };
 
   return (
@@ -139,7 +136,7 @@ export function BackLink({ href, children }: { href: string; children: ReactNode
   return (
     <Link
       href={href}
-      className={`inline-flex w-fit items-center gap-2 rounded-row text-[13px] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)] ${focusStyle}`}
+      className={`inline-flex w-fit items-center gap-2 rounded-row text-[0.8125rem] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)] ${focusStyle}`}
     >
       <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" />
       <span>{children}</span>
@@ -167,8 +164,8 @@ export function Panel({
       {title || action ? (
         <header className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] px-5 py-4">
           <div>
-            {eyebrow ? <p className="text-[12px] font-medium text-[var(--color-muted)]">{eyebrow}</p> : null}
-            {title ? <h2 className="mt-1 text-[16px] font-semibold text-[var(--color-ink)]">{title}</h2> : null}
+            {eyebrow ? <p className="text-[0.75rem] font-medium text-[var(--color-muted)]">{eyebrow}</p> : null}
+            {title ? <h2 className="mt-1 text-[1rem] font-semibold text-[var(--color-ink)]">{title}</h2> : null}
           </div>
           {action}
         </header>
@@ -193,13 +190,13 @@ export function CommandBand({
 }) {
   return (
     <section className="rounded-panel border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_90%,var(--color-accent)_10%)] px-5 py-4 shadow-[var(--shadow-panel)]">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.55fr)] lg:items-center">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16.25rem,0.55fr)] lg:items-center">
         <div className="min-w-0">
-          <p className="text-[12px] font-medium text-[var(--color-accent-strong)]">{eyebrow}</p>
-          <h2 className="mt-1 text-[18px] font-semibold leading-7 text-[var(--color-ink)]">{title}</h2>
-          {detail ? <p className="mt-1 max-w-3xl text-[13px] leading-5 text-[var(--color-muted)]">{detail}</p> : null}
+          <p className="text-[0.75rem] font-medium text-[var(--color-accent-strong)]">{eyebrow}</p>
+          <h2 className="mt-1 text-[1.125rem] font-semibold leading-7 text-[var(--color-ink)]">{title}</h2>
+          {detail ? <p className="mt-1 max-w-3xl text-[0.8125rem] leading-5 text-[var(--color-muted)]">{detail}</p> : null}
         </div>
-        {children ? <div className="grid gap-2 text-[13px] sm:grid-cols-2">{children}</div> : null}
+        {children ? <div className="grid gap-2 text-[0.8125rem] sm:grid-cols-2">{children}</div> : null}
       </div>
       {after ? <div className="mt-4 border-t border-[var(--color-border)] pt-4">{after}</div> : null}
     </section>
@@ -214,7 +211,7 @@ export function StatusBadge({
   tone?: keyof typeof badgeTone;
 }) {
   return (
-    <span className={`inline-flex min-h-7 items-center rounded-row border px-2.5 text-[12px] font-medium ${badgeTone[tone]}`}>
+    <span className={`inline-flex min-h-7 items-center rounded-row border px-2.5 text-[0.75rem] font-medium ${badgeTone[tone]}`}>
       {children}
     </span>
   );
@@ -224,7 +221,7 @@ export function CodeList({ codes }: { codes: string[] }) {
   if (codes.length === 0) return null;
 
   return (
-    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] font-medium text-[var(--color-accent-strong)]">
+    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[0.75rem] font-medium text-[var(--color-accent-strong)]">
       {codes.map((code, index) => (
         <span key={code}>
           {code}
@@ -266,7 +263,7 @@ export function ActionButton({
       type={type}
       aria-label={ariaLabel}
       title={title}
-      className={`atlas-card-hover inline-flex min-h-9 items-center justify-center rounded-control border px-3 text-[13px] font-medium active:translate-y-px ${focusStyle} ${styles[variant]} ${className}`}
+      className={`atlas-card-hover inline-flex min-h-9 items-center justify-center rounded-control border px-3 text-[0.8125rem] font-medium active:translate-y-px ${focusStyle} ${styles[variant]} ${className}`}
     >
       {children}
     </button>
@@ -278,7 +275,7 @@ export function ProgressBar({ value, label }: { value: number; label?: string })
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 text-[12px] text-[var(--color-muted)]">
+      <div className="flex items-center justify-between gap-3 text-[0.75rem] text-[var(--color-muted)]">
         <span>{label ?? "Progress"}</span>
         <span>{safeValue}%</span>
       </div>
@@ -303,16 +300,16 @@ export function Metric({
 }) {
   return (
     <div className="atlas-card-hover rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
-      <p className="text-[12px] font-medium text-[var(--color-muted)]">{label}</p>
-      <p className="mt-3 text-[28px] font-semibold leading-none text-[var(--color-ink)]">{value}</p>
-      <p className="mt-2 text-[13px] leading-5 text-[var(--color-muted)]">{detail}</p>
+      <p className="text-[0.75rem] font-medium text-[var(--color-muted)]">{label}</p>
+      <p className="mt-3 text-[1.75rem] font-semibold leading-none text-[var(--color-ink)]">{value}</p>
+      <p className="mt-2 text-[0.8125rem] leading-5 text-[var(--color-muted)]">{detail}</p>
     </div>
   );
 }
 
 export function IconLabel({ icon: Icon, children }: { icon: Icon; children: ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-2 text-[13px] text-[var(--color-muted)]">
+    <span className="inline-flex items-center gap-2 text-[0.8125rem] text-[var(--color-muted)]">
       <Icon size={15} strokeWidth={2} aria-hidden="true" />
       {children}
     </span>

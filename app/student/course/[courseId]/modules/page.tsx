@@ -15,7 +15,7 @@ export default async function StudentCourseModulesPage({ params }: { params: Pro
     return (
       <>
         <PageHeader title={workspace.problem.title} />
-        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
+        <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">{workspace.problem.detail}</p>
       </>
     );
   }
@@ -35,20 +35,20 @@ export default async function StudentCourseModulesPage({ params }: { params: Pro
                 href={`/student/material/${material.id}`}
                 aside={
                   opensAhead && material.unlockAt ? (
-                    <span className="atlas-mono text-[11px] uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                    <span className="atlas-mono text-[0.6875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
                       {opensLabel(material.unlockAt)}
                     </span>
                   ) : undefined
                 }
               >
                 <span className="flex min-w-0 items-baseline gap-3.5">
-                  <span className="atlas-mono w-5 shrink-0 text-[13px] tabular-nums text-[var(--color-faint)]">
+                  <span className="atlas-mono w-5 shrink-0 text-[0.8125rem] tabular-nums text-[var(--color-faint)]">
                     {material.week}
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-[14px] font-medium">{material.title}</span>
+                    <span className="block truncate text-[0.875rem] font-medium">{material.title}</span>
                     {material.summary ? (
-                      <span className="mt-0.5 block truncate text-[12.5px] text-[var(--color-muted)]">{material.summary}</span>
+                      <span className="mt-0.5 block truncate text-[0.78125rem] text-[var(--color-muted)]">{material.summary}</span>
                     ) : null}
                   </span>
                 </span>

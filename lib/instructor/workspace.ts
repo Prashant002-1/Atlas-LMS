@@ -453,7 +453,7 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
       recentChanges,
     };
   } catch {
-    return unavailableWorkspace("Course unavailable", "The course record could not be loaded.", scope);
+    return unavailableWorkspace("Course unavailable", "This course could not be loaded.", scope);
   }
 }
 
@@ -505,6 +505,233 @@ export async function findEditableCourse(actor: Actor) {
   return course ?? null;
 }
 
+/* ── gradebook: every student against every assignment ───────── */
+
+export type GradebookColumn = {
+  id: string;
+  name: string;
+  points: number | null;
+  dueAt: Date | null;
+  published: boolean;
+};
+
+export type GradebookCell = {
+  status: "graded" | "submitted" | "missing" | "open";
+  score: number | null;
+  grade: string | null;
+};
+
+export type GradebookRow = {
+  studentId: string;
+  name: string;
+  standing: string | null;
+  /** Aligned with the columns array; null when nothing exists for the pair. */
+  cells: Array<GradebookCell | null>;
+};
+
+export type InstructorGradebook = {
+  course: WorkspaceCourse;
+  columns: GradebookColumn[];
+  rows: GradebookRow[];
+  problem?: { title: string; detail: string };
+};
+
+/**
+ * The gradebook: the whole class against the whole course, one cell per
+ * student and assignment, straight from the submissions rows.
+ */
+export async function loadInstructorGradebook(actor?: Actor | null): Promise<InstructorGradebook> {
+  const failed = (title: string, detail: string): InstructorGradebook => ({
+    course: { code: "Course", name: title, term: "" },
+    columns: [],
+    rows: [],
+    problem: { title, detail },
+  });
+
+  if (!actor?.orgId || !isInstructorLike(actor.role)) {
+    return failed("Course unavailable", "No editable course is attached to this account.");
+  }
+  const course = await findEditableCourse(actor);
+  if (!course) {
+    return failed("No course in this semester", "You are not teaching anything in the term in view.");
+  }
+
+  const [assignmentRows, enrollmentRows] = await Promise.all([
+    db
+      .select({
+        id: assignments.id,
+        name: assignments.name,
+        pointsPossible: assignments.pointsPossible,
+        dueAt: assignments.dueAt,
+        published: assignments.published,
+        position: assignments.position,
+        createdAt: assignments.createdAt,
+      })
+      .from(assignments)
+      .where(and(eq(assignments.orgId, actor.orgId), eq(assignments.courseId, course.id)))
+      .orderBy(asc(assignments.position), asc(assignments.dueAt), asc(assignments.createdAt)),
+    db
+      .select({
+        userId: enrollments.userId,
+        currentScore: enrollments.currentScore,
+        currentGrade: enrollments.currentGrade,
+        createdAt: enrollments.createdAt,
+      })
+      .from(enrollments)
+      .where(
+        and(
+          eq(enrollments.orgId, actor.orgId),
+          eq(enrollments.courseId, course.id),
+          eq(enrollments.role, "student"),
+          eq(enrollments.state, "active")
+        )
+      )
+      .orderBy(asc(enrollments.createdAt)),
+  ]);
+
+  const studentIds = enrollmentRows.map((row) => row.userId);
+  const [studentRows, submissionRows] = await Promise.all([
+    studentIds.length > 0
+      ? db
+          .select({ id: users.id, name: users.name })
+          .from(users)
+          .where(and(eq(users.orgId, actor.orgId), inArray(users.id, studentIds)))
+      : Promise.resolve([] as Array<{ id: string; name: string | null }>),
+    studentIds.length > 0 && assignmentRows.length > 0
+      ? db
+          .select({
+            assignmentId: submissions.assignmentId,
+            userId: submissions.userId,
+            submittedAt: submissions.submittedAt,
+            gradedAt: submissions.gradedAt,
+            score: submissions.score,
+            grade: submissions.grade,
+            missing: submissions.missing,
+          })
+          .from(submissions)
+          .where(and(eq(submissions.orgId, actor.orgId), eq(submissions.courseId, course.id), inArray(submissions.userId, studentIds)))
+      : Promise.resolve(
+          [] as Array<{
+            assignmentId: string;
+            userId: string;
+            submittedAt: Date | null;
+            gradedAt: Date | null;
+            score: number | null;
+            grade: string | null;
+            missing: boolean;
+          }>
+        ),
+  ]);
+
+  const nameById = new Map(studentRows.map((row) => [row.id, row.name ?? "Student"]));
+  const cellByPair = new Map(submissionRows.map((row) => [`${row.assignmentId}:${row.userId}`, row]));
+
+  const columns: GradebookColumn[] = assignmentRows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    points: row.pointsPossible,
+    dueAt: row.dueAt,
+    published: row.published,
+  }));
+
+  const rows: GradebookRow[] = enrollmentRows
+    .map((enrollment) => ({
+      studentId: enrollment.userId,
+      name: nameById.get(enrollment.userId) ?? "Student",
+      standing:
+        enrollment.currentGrade ??
+        (typeof enrollment.currentScore === "number" ? `${Math.round(enrollment.currentScore)}%` : null),
+      cells: columns.map((column) => {
+        const cell = cellByPair.get(`${column.id}:${enrollment.userId}`);
+        if (!cell) return null;
+        const status: GradebookCell["status"] = cell.missing
+          ? "missing"
+          : cell.gradedAt
+            ? "graded"
+            : cell.submittedAt
+              ? "submitted"
+              : "open";
+        return { status, score: cell.score, grade: cell.grade };
+      }),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    course: { id: course.id, code: course.code, name: course.name, term: course.term ?? "" },
+    columns,
+    rows,
+  };
+}
+
+/* ── calendar: the course's dated facts in a window ──────────── */
+
+export type InstructorCalendarEntry = {
+  date: Date;
+  kind: "due" | "opens";
+  title: string;
+  href: string;
+  published: boolean;
+};
+
+export type InstructorCalendar = {
+  course: WorkspaceCourse;
+  entries: InstructorCalendarEntry[];
+  problem?: { title: string; detail: string };
+};
+
+/**
+ * The teaching calendar: assignment due dates and module openings for the
+ * course in view, drafts included and marked. A projection of the rows, not
+ * a separate event model.
+ */
+export async function loadInstructorCalendar(
+  actor: Actor | null | undefined,
+  window: { from: Date; to: Date }
+): Promise<InstructorCalendar> {
+  const failed = (title: string, detail: string): InstructorCalendar => ({
+    course: { code: "Course", name: title, term: "" },
+    entries: [],
+    problem: { title, detail },
+  });
+
+  if (!actor?.orgId || !isInstructorLike(actor.role)) {
+    return failed("Course unavailable", "No editable course is attached to this account.");
+  }
+  const course = await findEditableCourse(actor);
+  if (!course) {
+    return failed("No course in this semester", "You are not teaching anything in the term in view.");
+  }
+
+  const [assignmentRows, moduleRows] = await Promise.all([
+    db
+      .select({ id: assignments.id, name: assignments.name, dueAt: assignments.dueAt, published: assignments.published })
+      .from(assignments)
+      .where(and(eq(assignments.orgId, actor.orgId), eq(assignments.courseId, course.id))),
+    db
+      .select({ id: modules.id, name: modules.name, unlockAt: modules.unlockAt, published: modules.published })
+      .from(modules)
+      .where(and(eq(modules.orgId, actor.orgId), eq(modules.courseId, course.id))),
+  ]);
+
+  const inWindow = (date: Date) => date.getTime() >= window.from.getTime() && date.getTime() <= window.to.getTime();
+
+  const entries: InstructorCalendarEntry[] = [];
+  for (const a of assignmentRows) {
+    if (!a.dueAt || !inWindow(a.dueAt)) continue;
+    entries.push({ date: a.dueAt, kind: "due", title: a.name, href: `/teach/work/${a.id}`, published: a.published });
+  }
+  for (const m of moduleRows) {
+    if (!m.unlockAt || !inWindow(m.unlockAt)) continue;
+    entries.push({ date: m.unlockAt, kind: "opens", title: m.name, href: `/teach/week/${m.id}`, published: m.published });
+  }
+
+  entries.sort((a, b) => a.date.getTime() - b.date.getTime());
+  return {
+    course: { id: course.id, code: course.code, name: course.name, term: course.term ?? "" },
+    entries,
+  };
+}
+
 export async function loadInstructorAssignmentWorkspace(
   actor: Actor | null | undefined,
   assignmentId: string
@@ -531,7 +758,7 @@ export async function loadInstructorAssignmentWorkspace(
       ...base,
       problem: {
         title: "Work unavailable",
-        detail: "This work is not attached to the editable course record.",
+        detail: "This work is not in a course you teach.",
       },
     };
   }
@@ -661,7 +888,7 @@ export async function loadInstructorModuleWorkspace(
       ...base,
       problem: {
         title: "Week unavailable",
-        detail: "This week is not attached to the editable course record.",
+        detail: "This module is not in a course you teach.",
       },
     };
   }
@@ -702,7 +929,7 @@ export async function loadInstructorStudentWorkspace(
       ...base,
       problem: {
         title: "Student unavailable",
-        detail: "This student is not attached to the editable course record.",
+        detail: "This student is not enrolled in a course you teach.",
       },
     };
   }

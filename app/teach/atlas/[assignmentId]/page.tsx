@@ -24,7 +24,7 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
     return (
       <>
         <PageHeader title="Work session" />
-        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">{view.problem.detail}</p>
+        <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">{view.problem.detail}</p>
       </>
     );
   }
@@ -43,7 +43,7 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
         <div className="min-w-0 space-y-4">
           <section aria-label="Journeys" className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Journeys</p>
+              <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Journeys</p>
               <JourneyGridSummary counts={view.counts} />
             </div>
             <JourneyGrid rows={view.grid} />

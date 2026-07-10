@@ -22,7 +22,7 @@ export default async function StudentOverviewPage() {
       <PageHeader title="Home" />
 
       <section className="mb-7">
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Due</h2>
+        <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Due</h2>
         {overview.dueSoon.length > 0 ? (
           <StaggerGrid className="mt-2.5 space-y-2" stagger={0.05}>
             {overview.dueSoon.map((item) => (
@@ -32,14 +32,14 @@ export default async function StudentOverviewPage() {
                   className="atlas-card-hover group flex items-center justify-between gap-3 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-[var(--shadow-panel)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
                 >
                   <span className="min-w-0">
-                    <span className="block truncate text-[14px] font-medium">{item.name}</span>
-                    <span className="atlas-mono mt-0.5 block text-[11.5px] uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                    <span className="block truncate text-[0.875rem] font-medium">{item.name}</span>
+                    <span className="atlas-mono mt-0.5 block text-[0.71875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
                       {item.courseCode}
                     </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
                     <span
-                      className={`text-[12.5px] ${
+                      className={`text-[0.78125rem] ${
                         item.overdue ? "font-medium text-[var(--color-danger)]" : "text-[var(--color-muted)]"
                       }`}
                     >
@@ -62,14 +62,14 @@ export default async function StudentOverviewPage() {
               art="horizon"
               title="Nothing due"
               detail="No open work has a deadline ahead of you."
-              action={<TextLink href="/student/calendar" className="text-[13px]">Open the calendar</TextLink>}
+              action={<TextLink href="/student/calendar" className="text-[0.8125rem]">Open the calendar</TextLink>}
             />
           </div>
         )}
       </section>
 
       <section>
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Courses</h2>
+        <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Courses</h2>
         {overview.cards.length > 0 ? (
           <StaggerGrid className="mt-2.5 grid gap-3 md:grid-cols-2" stagger={0.06}>
             {overview.cards.map((card) => (
@@ -100,8 +100,8 @@ function CourseCard({ card }: { card: StudentCourseCard }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="atlas-mono text-[11.5px] uppercase tracking-[0.06em] text-[var(--color-faint)]">{card.code}</p>
-          <p className="mt-0.5 truncate text-[15px] font-semibold leading-6">{card.name}</p>
+          <p className="atlas-mono text-[0.71875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">{card.code}</p>
+          <p className="mt-0.5 truncate text-[0.9375rem] font-semibold leading-6">{card.name}</p>
         </div>
         <span className="flex shrink-0 items-center gap-2">
           {card.standing ? <StatusBadge tone="neutral">{card.standing}</StatusBadge> : null}
@@ -115,15 +115,15 @@ function CourseCard({ card }: { card: StudentCourseCard }) {
       </div>
       {/* The nearest date fact. An overdue record always outranks "Nothing due". */}
       {card.overdue ? (
-        <p className="mt-3 truncate text-[12.5px] font-medium leading-5 text-[var(--color-danger)]">
+        <p className="mt-3 truncate text-[0.78125rem] font-medium leading-5 text-[var(--color-danger)]">
           {card.overdue.name}, {dueLabel(card.overdue.dueAt).toLowerCase()}
         </p>
       ) : (
-        <p className="mt-3 truncate text-[12.5px] leading-5 text-[var(--color-muted)]">
+        <p className="mt-3 truncate text-[0.78125rem] leading-5 text-[var(--color-muted)]">
           {card.nextDue ? `${card.nextDue.name}, ${dueLabel(card.nextDue.dueAt).toLowerCase()}` : "Nothing due"}
         </p>
       )}
-      <p className="mt-1 text-[12.5px] text-[var(--color-muted)]">{counts.join(" / ")}</p>
+      <p className="mt-1 text-[0.78125rem] text-[var(--color-muted)]">{counts.join(" / ")}</p>
     </Link>
   );
 }

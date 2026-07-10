@@ -23,7 +23,7 @@ export default async function StudentSessionPage({ params }: { params: Promise<{
     return (
       <>
         <PageHeader title={view.problem.title} />
-        <p className="max-w-lg text-[14px] leading-6 text-[var(--color-muted)]">{view.problem.detail}</p>
+        <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">{view.problem.detail}</p>
       </>
     );
   }
@@ -52,8 +52,8 @@ export default async function StudentSessionPage({ params }: { params: Promise<{
         </div>
       ) : view.gradingPending ? (
         <div className="mb-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
-          <p className="atlas-mono text-[11px] uppercase tracking-[0.08em] text-[var(--color-faint)]">Journey report</p>
-          <p className="mt-1.5 text-[13px] leading-6 text-[var(--color-muted)]">
+          <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Journey report</p>
+          <p className="mt-1.5 text-[0.8125rem] leading-6 text-[var(--color-muted)]">
             Grading is pending for this session. The rubric reads your transcript once a model key is configured; your
             submission is safely frozen either way.
           </p>

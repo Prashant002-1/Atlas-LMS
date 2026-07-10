@@ -41,8 +41,8 @@ export default async function InstructorStudentPage({ params }: { params: Promis
       <BackLink href="/teach/students">Students</BackLink>
       {workspace.problem || !workspace.student ? (
         <Panel title={workspace.problem?.title ?? "Student unavailable"}>
-          <p className="text-[14px] leading-6 text-[var(--color-muted)]">
-            {workspace.problem?.detail ?? "This student is not attached to the editable course record."}
+          <p className="text-[0.875rem] leading-6 text-[var(--color-muted)]">
+            {workspace.problem?.detail ?? "This student is not enrolled in a course you teach."}
           </p>
         </Panel>
       ) : (
@@ -71,7 +71,7 @@ function StudentRecord({ workspace }: { workspace: InstructorStudentWorkspace })
             <RecordFact label="Missing" value={student.missing} variant="stack" />
           </div>
         </section>
-        <aside className="grid content-start gap-3 border-t border-[var(--color-border)] pt-4 text-[13px] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+        <aside className="grid content-start gap-3 border-t border-[var(--color-border)] pt-4 text-[0.8125rem] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
           <RecordFact label="Standing" value={student.standing} />
           <RecordFact label="Work" value={workspace.work.length} />
           <RecordFact label="Last active" value={student.lastActivityAt ? formatShortDate(student.lastActivityAt) : "-"} />
@@ -102,11 +102,11 @@ function StudentWorkRow({ item }: { item: InstructorStudentWorkItem }) {
     <article className="py-4 first:pt-0 last:pb-0">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
-          <p className="text-[14px] font-semibold leading-5 text-[var(--color-ink)]">
+          <p className="text-[0.875rem] font-semibold leading-5 text-[var(--color-ink)]">
             {item.assignmentId ? <TextLink href={`/teach/work/${item.assignmentId}`}>{item.title}</TextLink> : item.title}
           </p>
-          <p className="mt-1 text-[12px] text-[var(--color-muted)]">{workMeta(item)}</p>
-          {item.detail ? <p className="mt-2 text-[13px] leading-5 text-[var(--color-muted)]">{item.detail}</p> : null}
+          <p className="mt-1 text-[0.75rem] text-[var(--color-muted)]">{workMeta(item)}</p>
+          {item.detail ? <p className="mt-2 text-[0.8125rem] leading-5 text-[var(--color-muted)]">{item.detail}</p> : null}
           <div className="mt-2 flex flex-wrap gap-2">
             {item.points ? <StatusBadge tone="neutral">{Math.round(item.points)} pts</StatusBadge> : null}
             <CodeList codes={item.objectiveCodes} />
@@ -119,8 +119,8 @@ function StudentWorkRow({ item }: { item: InstructorStudentWorkItem }) {
       </div>
       {item.body?.trim() ? (
         <div className="mt-3 border-t border-[var(--color-border)] pt-3">
-          <p className="text-[12px] font-medium text-[var(--color-ink)]">Response</p>
-          <p className="mt-2 text-[13px] leading-6 text-[var(--color-muted)]">{item.body.trim()}</p>
+          <p className="text-[0.75rem] font-medium text-[var(--color-ink)]">Response</p>
+          <p className="mt-2 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{item.body.trim()}</p>
         </div>
       ) : null}
     </article>

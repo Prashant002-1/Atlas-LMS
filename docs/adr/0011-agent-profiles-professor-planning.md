@@ -100,6 +100,31 @@ added and not carried over). The comparison baseline is captured at draft
 time inside the tool output, so a reopened thread shows the change the
 professor actually approved, not a diff against whatever is live today.
 
+## Presentation revision (2026-07-10, founder review)
+
+The first cut put the conversation behind a button on a records page, and
+the shell still carried a hard-coded immersive mode for `/teach/atlas` (a
+command-console relic) that locked the sidebar collapsed with no expand
+affordance and stripped the content padding. Both are gone, and the
+hierarchy now says what the product means:
+
+- **The agent is the surface.** `/teach/atlas` IS the conversation; threads
+  switch in place (`?thread=`). There is no separate planning route and no
+  records showcase in front of the chat.
+- **One shell everywhere.** The sidebar's state belongs to the user, never
+  to a route. The immersive branch is deleted and the contract test keeps
+  it out.
+- **AI assignments are ordinary course records.** The type is named plainly
+  ("AI assignment", not "work session"), it appears as a fact on the Work
+  list row, and its grading surface (journeys, rubric, class insight) is
+  entered from the assignment under Work, like any grading surface. The
+  agent page carries them only as rail context for the conversation.
+- **No navigation section per agent.** The sidebar mirrors the course, not
+  the machinery: the professor has one agent entry (Atlas), the assignment
+  agent lives inside each assignment, and the study agent will live on the
+  student side. An agent earns a nav item only when it grows a real,
+  distinct surface.
+
 ## Consequences
 
 - No schema changes. Profiles map onto existing enums; rubric proposals ride

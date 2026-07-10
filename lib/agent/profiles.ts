@@ -85,13 +85,13 @@ export const agentProfiles: Record<AgentProfileId, AgentProfile> = {
   },
   session: {
     id: "session",
-    label: "Atlas (work session)",
+    label: "Atlas (AI assignment)",
     status: "live",
     principal: "student",
     surface: "cue",
     anchorType: "assignment",
     description:
-      "Runs one student's assessed work session on one assignment: Socratic conversation under the session contract, artifact snapshots via update_artifact, side notes injected by the server from the student's own record.",
+      "Runs one student's assessed session on one AI assignment: Socratic conversation under the session contract, artifact snapshots via update_artifact, side notes injected by the server from the student's own record.",
     boundaries: {
       reads: [
         "the published course record (student audience pack)",

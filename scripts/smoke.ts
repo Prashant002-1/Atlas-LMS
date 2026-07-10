@@ -56,12 +56,12 @@ const checks: SmokeCheck[] = [
     includes: ["Overview", "To grade", "In review", "Next", "ECON-241"],
   },
   {
-    name: "atlas session cockpit",
+    name: "atlas planning room",
     path: "/teach/atlas",
     status: 200,
     auth: { email: "instructor@demo.edu", password: "atlas1234", redirectTo: "/teach/atlas" },
-    includes: ["Work sessions", "Pricing Strategy Session", "Planning history"],
-    excludes: ["CommandConsole", "Session cockpit offline"],
+    includes: ["AI assignments", "Pricing Strategy Session", "Threads"],
+    excludes: ["CommandConsole", "Work sessions"],
   },
   {
     name: "student signed in",

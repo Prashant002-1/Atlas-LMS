@@ -115,7 +115,7 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
 
   const propose_rubric = tool({
     description:
-      "Draft a rubric for one work session as a reviewable change. The draft lands in Review; applying writes a new rubric version and repoints the work session. Use for new rubrics and for revisions.",
+      "Draft a rubric for one AI assignment as a reviewable change. The draft lands in Review; applying writes a new rubric version and repoints the assignment. Use for new rubrics and for revisions.",
     inputSchema: rubricDraftSchema,
     execute: async (draft): Promise<RubricProposalOutput> => {
       const [target] = await db
@@ -137,7 +137,7 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
         )
         .limit(1);
       if (!target) {
-        return { ok: false, error: "That assignment is not a work session in this course. Use an id from the pack." };
+        return { ok: false, error: "That assignment is not an AI assignment in this course. Use an id from the pack." };
       }
 
       const pending = await db
@@ -159,7 +159,7 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
       if (alreadyWaiting) {
         return {
           ok: false,
-          error: "A rubric draft for this work session is already waiting in Review. The professor decides that one first.",
+          error: "A rubric draft for this AI assignment is already waiting in Review. The professor decides that one first.",
         };
       }
 

@@ -1,9 +1,8 @@
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import type { UIMessage } from "ai";
 import { db } from "@/lib/db";
 import {
   agentSessions,
-  agentTurns,
   assignments,
   changeProposals,
   enrollments,
@@ -28,7 +27,7 @@ import {
 } from "@/lib/agent/session-store";
 import { listCommandSessions, loadCommandSession, turnsToUIMessages, type CommandSessionSummary } from "@/lib/agent/session";
 import { turnsFromSubmissionTranscript } from "@/lib/agent/grading";
-import { splitTextBySpans, turnPlainText, type TextSegment } from "@/lib/agent/transcript";
+import { splitTextBySpans, type TextSegment } from "@/lib/agent/transcript";
 import {
   parseJourneyScores,
   parseRubricCriteria,
@@ -93,34 +92,6 @@ export type JourneyGridCounts = {
 };
 
 /* ── views ──────────────────────────────────────────────────── */
-
-export type CockpitAssignmentSummary = {
-  id: string;
-  name: string;
-  dueAt: string | null;
-  durationMinutes: number;
-  personalRecordSideNotes: boolean;
-  rubricVersion: number;
-  counts: JourneyGridCounts;
-};
-
-export type PlanningSessionView = {
-  id: string;
-  title: string;
-  summary: string | null;
-  updatedAt: string;
-  turns: Array<{ role: string; text: string }>;
-};
-
-export type CockpitIndexView =
-  | { problem: CockpitProblem }
-  | {
-      problem?: undefined;
-      course: CockpitCourse;
-      assignments: CockpitAssignmentSummary[];
-      planningSessions: PlanningSessionView[];
-      pendingProposals: number;
-    };
 
 export type ClassInsightView = {
   stats: ClassRollupStats;
@@ -222,94 +193,6 @@ async function scopedCourse(actor?: Actor | null): Promise<{ course: CockpitCour
     };
   }
   return { course: { id: scope.course.id, code: scope.course.code, name: scope.course.name, term: scope.course.term } };
-}
-
-/** Every session assignment in the course, with grid counts, one pass each. */
-export async function loadCockpitIndex(actor?: Actor | null): Promise<CockpitIndexView> {
-  const scoped = await scopedCourse(actor);
-  if ("problem" in scoped) return { problem: scoped.problem };
-  const { course } = scoped;
-  const orgId = actor!.orgId!;
-
-  const configRows = await db
-    .select({
-      assignmentId: sessionAssignments.assignmentId,
-      durationMinutes: sessionAssignments.durationMinutes,
-      personalRecordSideNotes: sessionAssignments.personalRecordSideNotes,
-      rubricId: sessionAssignments.rubricId,
-    })
-    .from(sessionAssignments)
-    .where(and(eq(sessionAssignments.orgId, orgId), eq(sessionAssignments.courseId, course.id)));
-
-  const assignments: CockpitAssignmentSummary[] = [];
-  for (const config of configRows) {
-    const bundle = await loadSessionAssignmentBundle(orgId, config.assignmentId);
-    if (!bundle) continue;
-    const { counts } = await loadJourneyGrid(orgId, course.id, bundle);
-    assignments.push({
-      id: bundle.assignment.id,
-      name: bundle.assignment.name,
-      dueAt: bundle.assignment.dueAt ? bundle.assignment.dueAt.toISOString() : null,
-      durationMinutes: config.durationMinutes,
-      personalRecordSideNotes: config.personalRecordSideNotes,
-      rubricVersion: bundle.rubric.version,
-      counts,
-    });
-  }
-  assignments.sort((a, b) => (a.dueAt ?? "").localeCompare(b.dueAt ?? ""));
-
-  const planningRows = await db
-    .select({
-      id: agentSessions.id,
-      title: agentSessions.title,
-      summary: agentSessions.summary,
-      updatedAt: agentSessions.updatedAt,
-    })
-    .from(agentSessions)
-    .where(
-      and(
-        eq(agentSessions.orgId, orgId),
-        eq(agentSessions.courseId, course.id),
-        eq(agentSessions.surface, "command")
-      )
-    )
-    .orderBy(desc(agentSessions.updatedAt))
-    .limit(3);
-
-  const planningTurnRows = planningRows.length
-    ? await db
-        .select({ sessionId: agentTurns.sessionId, turnIndex: agentTurns.turnIndex, role: agentTurns.role, parts: agentTurns.parts })
-        .from(agentTurns)
-        .where(
-          and(
-            eq(agentTurns.orgId, orgId),
-            inArray(
-              agentTurns.sessionId,
-              planningRows.map((row) => row.id)
-            )
-          )
-        )
-        .orderBy(asc(agentTurns.turnIndex))
-    : [];
-
-  const planningSessions: PlanningSessionView[] = planningRows.map((row) => ({
-    id: row.id,
-    title: row.title ?? "Planning session",
-    summary: row.summary,
-    updatedAt: row.updatedAt.toISOString(),
-    turns: planningTurnRows
-      .filter((turn) => turn.sessionId === row.id)
-      .map((turn) => ({ role: turn.role, text: turnPlainText(turn.parts) })),
-  }));
-
-  const pendingRows = await db
-    .select({ id: changeProposals.id })
-    .from(changeProposals)
-    .where(
-      and(eq(changeProposals.orgId, orgId), eq(changeProposals.courseId, course.id), eq(changeProposals.status, "pending"))
-    );
-
-  return { course, assignments, planningSessions, pendingProposals: pendingRows.length };
 }
 
 /**

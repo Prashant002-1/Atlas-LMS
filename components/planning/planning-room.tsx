@@ -29,11 +29,12 @@ import { RubricCard } from "@/components/planning/rubric-card";
 import type { RubricCriterion } from "@/lib/agent/session-parts";
 
 /**
- * The planning room, the professor's working thread with Atlas. Left: the
- * conversation, where drafts land as the records they will become (a rubric
- * renders as the rubric, compared against the version it replaces), never as
- * walls of text. Right: the course's work sessions with their live rubrics,
- * this thread's drafts with today's status, and the thread list.
+ * The planning room, the professor's working thread with Atlas, and the whole
+ * of the Atlas surface: the agent IS the page. Left: the conversation, where
+ * drafts land as the records they will become (a rubric renders as the
+ * rubric, compared against the version it replaces), never as walls of text.
+ * Right: the course's AI assignments with their live rubrics, this thread's
+ * drafts with today's status, and the thread list.
  *
  * All conversation state is server-owned: the thread hydrates from rows, the
  * client sends only its latest message, and a refresh mid-reply costs at
@@ -155,7 +156,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
 
   useEffect(() => {
     if (!learnedThreadId || props.threadId !== "new") return;
-    window.history.replaceState(null, "", `/teach/atlas/planning?thread=${learnedThreadId}`);
+    window.history.replaceState(null, "", `/teach/atlas?thread=${learnedThreadId}`);
   }, [learnedThreadId, props.threadId]);
 
   const statusByProposal = useMemo(() => {
@@ -385,7 +386,7 @@ function RubricDraftCard({ draft, status }: { draft: RubricDraftOutput; status: 
       status={status}
       reviewNote={
         status === "applied"
-          ? "Applied: the work session now grades against this rubric."
+          ? "Applied: the AI assignment now grades against this rubric."
           : `Applying replaces rubric v${draft.replacesVersion}; grades already given stay pinned.`
       }
     >
@@ -431,10 +432,10 @@ function WorkSessionsPanel({ work }: { work: PlanningWorkRef[] }) {
   if (work.length === 0) return null;
   return (
     <section
-      aria-label="Work sessions"
+      aria-label="AI assignments"
       className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
     >
-      <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Work sessions</p>
+      <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">AI assignments</p>
       <ul className="mt-2.5 space-y-3">
         {work.map((item) => (
           <li key={item.assignmentId}>
@@ -492,7 +493,7 @@ function ThreadsPanel({ threads, activeId }: { threads: PlanningThreadRef[]; act
     >
       <div className="flex items-baseline justify-between gap-3">
         <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Threads</p>
-        <TextLink href="/teach/atlas/planning?thread=new" className="text-[0.71875rem]">
+        <TextLink href="/teach/atlas?thread=new" className="text-[0.71875rem]">
           New thread
         </TextLink>
       </div>
@@ -505,7 +506,7 @@ function ThreadsPanel({ threads, activeId }: { threads: PlanningThreadRef[]; act
             return (
               <li key={thread.id}>
                 <Link
-                  href={`/teach/atlas/planning?thread=${thread.id}`}
+                  href={`/teach/atlas?thread=${thread.id}`}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "block rounded-row px-2 py-1.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]",

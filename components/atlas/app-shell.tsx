@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Megaphone,
+  MessagesSquare,
   PanelLeftClose,
   PanelLeftOpen,
   Send,
@@ -45,6 +46,7 @@ type NavIconComponent = ComponentType<{
 const ICONS = {
   dashboard: LayoutDashboard,
   atlas: AtlasIcon,
+  aiwork: MessagesSquare,
   review: ClipboardCheck,
   weeks: Layers3,
   work: Send,

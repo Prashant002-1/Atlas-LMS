@@ -615,9 +615,9 @@ export async function updateCourseAiPolicy(formData: FormData) {
     });
 
   revalidatePath("/teach");
-  revalidatePath("/teach/atlas");
+  revalidatePath("/teach/settings");
   revalidatePath("/student");
-  redirect("/teach/atlas");
+  redirect("/teach/settings");
 }
 
 /** Attach the org's model key (BYOK). Stored encrypted; only the tail is ever shown. */
@@ -635,8 +635,8 @@ export async function saveProviderKey(formData: FormData) {
 
   await saveOrgProviderKey({ orgId: user.orgId, userId: user.id, provider, apiKey, chatModel });
 
-  revalidatePath("/teach/atlas");
-  redirect("/teach/atlas");
+  revalidatePath("/teach/settings");
+  redirect("/teach/settings");
 }
 
 export async function removeProviderKey(formData: FormData) {
@@ -646,8 +646,8 @@ export async function removeProviderKey(formData: FormData) {
     throw new Error("Unknown provider.");
   }
   await deleteOrgProviderKey(user.orgId, providerRaw);
-  revalidatePath("/teach/atlas");
-  redirect("/teach/atlas");
+  revalidatePath("/teach/settings");
+  redirect("/teach/settings");
 }
 
 /**

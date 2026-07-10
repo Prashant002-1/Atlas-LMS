@@ -33,8 +33,9 @@ import type { RubricCriterion } from "@/lib/agent/session-parts";
  * of the Atlas surface: the agent IS the page. Left: the conversation, where
  * drafts land as the records they will become (a rubric renders as the
  * rubric, compared against the version it replaces), never as walls of text.
- * Right: the course's AI assignments with their live rubrics, this thread's
- * drafts with today's status, and the thread list.
+ * Right: only what is conversation-native, this thread's drafts with today's
+ * status and the thread list. Records live on their own tabs; the harness
+ * stays a conversation as the course scales.
  *
  * All conversation state is server-owned: the thread hydrates from rows, the
  * client sends only its latest message, and a refresh mid-reply costs at
@@ -61,8 +62,6 @@ export type PlanningDraftRef = {
 export type PlanningWorkRef = {
   assignmentId: string;
   name: string;
-  rubricVersion: number;
-  criteria: RubricCriterion[];
 };
 
 export type PlanningRoomProps = {
@@ -255,7 +254,6 @@ export function PlanningRoom(props: PlanningRoomProps) {
       </section>
 
       <div className="flex w-full flex-col gap-4 self-start lg:sticky lg:top-4">
-        <WorkSessionsPanel work={props.work} />
         <ThreadDraftsPanel drafts={props.drafts} pendingProposals={props.pendingProposals} />
         <ThreadsPanel threads={props.threads} activeId={props.threadId} />
       </div>
@@ -426,32 +424,7 @@ function RecordsDraftCard({ draft, status }: { draft: RecordsDraftOutput; status
   );
 }
 
-/* ── the rail: live contracts, this thread's drafts, threads ── */
-
-function WorkSessionsPanel({ work }: { work: PlanningWorkRef[] }) {
-  if (work.length === 0) return null;
-  return (
-    <section
-      aria-label="AI assignments"
-      className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
-    >
-      <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">AI assignments</p>
-      <ul className="mt-2.5 space-y-3">
-        {work.map((item) => (
-          <li key={item.assignmentId}>
-            <TextLink href={`/teach/atlas/${item.assignmentId}`} className="text-[0.8125rem]">
-              {item.name}
-            </TextLink>
-            <p className="atlas-mono mt-1 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">
-              Rubric v{item.rubricVersion} · {item.criteria.length} criteria ·{" "}
-              {item.criteria.map((criterion) => criterion.weight).join(" / ")} pts
-            </p>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
+/* ── the rail: this thread's drafts, then the thread list ───── */
 
 function ThreadDraftsPanel({ drafts, pendingProposals }: { drafts: PlanningDraftRef[]; pendingProposals: number }) {
   return (

@@ -5,6 +5,7 @@ import {
   agentSessions,
   assignments,
   changeProposals,
+  courseAiPolicies,
   enrollments,
   evidenceSpans,
   journeyReports,
@@ -564,8 +565,6 @@ export type PlanningDraftRef = {
 export type PlanningWorkRef = {
   assignmentId: string;
   name: string;
-  rubricVersion: number;
-  criteria: RubricCriterion[];
 };
 
 export type PlanningRoomView =
@@ -579,7 +578,7 @@ export type PlanningRoomView =
       active: { id: string; title: string; messages: UIMessage[] } | null;
       /** Drafts this thread produced, so reopened cards show today's status. */
       drafts: PlanningDraftRef[];
-      /** The course's work sessions with their CURRENT rubric, the rail's ground truth. */
+      /** The course's AI assignments by name, for grounded conversation openers. */
       work: PlanningWorkRef[];
       pendingProposals: number;
     };
@@ -642,12 +641,9 @@ export async function loadPlanningRoom(
     .select({
       assignmentId: sessionAssignments.assignmentId,
       name: assignments.name,
-      rubricVersion: rubrics.version,
-      rubricCriteria: rubrics.criteria,
     })
     .from(sessionAssignments)
     .innerJoin(assignments, eq(assignments.id, sessionAssignments.assignmentId))
-    .innerJoin(rubrics, eq(rubrics.id, sessionAssignments.rubricId))
     .where(and(eq(sessionAssignments.orgId, orgId), eq(sessionAssignments.courseId, course.id)))
     .orderBy(asc(assignments.position));
 
@@ -669,12 +665,123 @@ export async function loadPlanningRoom(
       summary: row.summary,
       createdAt: row.createdAt.toISOString(),
     })),
-    work: workRows.map((row) => ({
-      assignmentId: row.assignmentId,
-      name: row.name,
-      rubricVersion: row.rubricVersion,
-      criteria: parseRubricCriteria(row.rubricCriteria) ?? [],
-    })),
+    work: workRows.map((row) => ({ assignmentId: row.assignmentId, name: row.name })),
     pendingProposals: pendingRows.length,
+  };
+}
+
+/* ── the AI assignments tab (the type's operational lens) ───── */
+
+export type AiAssignmentIndexRow = {
+  assignmentId: string;
+  name: string;
+  dueAt: string | null;
+  pointsPossible: number | null;
+  published: boolean;
+  durationMinutes: number;
+  personalRecordSideNotes: boolean;
+  rubricVersion: number;
+  criteriaCount: number;
+  /** Null for drafts (unpublished work has no sessions by construction). */
+  counts: JourneyGridCounts | null;
+};
+
+export type AiAssignmentPolicyFacts = {
+  explanationDepth: "hint" | "guided" | "full";
+  allowExplain: boolean;
+  allowPractice: boolean;
+  allowQuestions: boolean;
+  citationsRequired: boolean;
+  studentDailyLimit: number;
+};
+
+export type AiAssignmentIndexView =
+  | { problem: CockpitProblem }
+  | {
+      problem?: undefined;
+      course: CockpitCourse;
+      rows: AiAssignmentIndexRow[];
+      /** The course-wide AI policy as plain facts; edited in Settings. */
+      policy: AiAssignmentPolicyFacts | null;
+      /** Assignments in the course not yet run as AI assignments (creation picks from these). */
+      availableAssignments: Array<{ id: string; name: string }>;
+    };
+
+/**
+ * The AI assignments tab: every AI assignment in the course with its facts
+ * and class status, the course AI policy stated plainly, and the assignments
+ * still available to convert. Read-only like everything in this file; the
+ * grade view stays one canonical page reached from here AND from Work.
+ */
+export async function loadAiAssignmentIndex(actor?: Actor | null): Promise<AiAssignmentIndexView> {
+  const scoped = await scopedCourse(actor);
+  if ("problem" in scoped) return { problem: scoped.problem };
+  const { course } = scoped;
+  const orgId = actor!.orgId!;
+
+  const configRows = await db
+    .select({
+      assignmentId: sessionAssignments.assignmentId,
+      durationMinutes: sessionAssignments.durationMinutes,
+      personalRecordSideNotes: sessionAssignments.personalRecordSideNotes,
+      name: assignments.name,
+      dueAt: assignments.dueAt,
+      pointsPossible: assignments.pointsPossible,
+      published: assignments.published,
+      rubricVersion: rubrics.version,
+      rubricCriteria: rubrics.criteria,
+    })
+    .from(sessionAssignments)
+    .innerJoin(assignments, eq(assignments.id, sessionAssignments.assignmentId))
+    .innerJoin(rubrics, eq(rubrics.id, sessionAssignments.rubricId))
+    .where(and(eq(sessionAssignments.orgId, orgId), eq(sessionAssignments.courseId, course.id)))
+    .orderBy(asc(assignments.position), asc(assignments.createdAt));
+
+  const rows: AiAssignmentIndexRow[] = [];
+  for (const config of configRows) {
+    let counts: JourneyGridCounts | null = null;
+    if (config.published) {
+      const bundle = await loadSessionAssignmentBundle(orgId, config.assignmentId);
+      if (bundle) counts = (await loadJourneyGrid(orgId, course.id, bundle)).counts;
+    }
+    rows.push({
+      assignmentId: config.assignmentId,
+      name: config.name,
+      dueAt: config.dueAt ? config.dueAt.toISOString() : null,
+      pointsPossible: config.pointsPossible,
+      published: config.published,
+      durationMinutes: config.durationMinutes,
+      personalRecordSideNotes: config.personalRecordSideNotes,
+      rubricVersion: config.rubricVersion,
+      criteriaCount: parseRubricCriteria(config.rubricCriteria)?.length ?? 0,
+      counts,
+    });
+  }
+
+  const [policyRow] = await db
+    .select({
+      explanationDepth: courseAiPolicies.explanationDepth,
+      allowExplain: courseAiPolicies.allowExplain,
+      allowPractice: courseAiPolicies.allowPractice,
+      allowQuestions: courseAiPolicies.allowQuestions,
+      citationsRequired: courseAiPolicies.citationsRequired,
+      studentDailyLimit: courseAiPolicies.studentDailyLimit,
+    })
+    .from(courseAiPolicies)
+    .where(and(eq(courseAiPolicies.orgId, orgId), eq(courseAiPolicies.courseId, course.id)))
+    .limit(1);
+
+  const configured = new Set(configRows.map((row) => row.assignmentId));
+  const assignmentRows = await db
+    .select({ id: assignments.id, name: assignments.name })
+    .from(assignments)
+    .where(and(eq(assignments.orgId, orgId), eq(assignments.courseId, course.id)))
+    .orderBy(asc(assignments.position), asc(assignments.createdAt));
+
+  return {
+    course,
+    rows,
+    policy: policyRow ?? null,
+    availableAssignments: assignmentRows.filter((row) => !configured.has(row.id)),
   };
 }

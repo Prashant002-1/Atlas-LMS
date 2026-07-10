@@ -104,7 +104,7 @@ export function JourneyGrid({ rows }: { rows: JourneyGridRow[] }) {
         return row.submissionId ? (
           <Link
             key={row.userId}
-            href={`/teach/atlas/journey/${row.submissionId}`}
+            href={`/teach/ai-assignments/journey/${row.submissionId}`}
             className="rounded-panel focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
           >
             {card}

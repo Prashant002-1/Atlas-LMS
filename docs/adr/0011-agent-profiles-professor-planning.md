@@ -124,6 +124,18 @@ hierarchy now says what the product means:
   agent lives inside each assignment, and the study agent will live on the
   student side. An agent earns a nav item only when it grows a real,
   distinct surface.
+- **The record type gets its own lens, the agent does not carry it.** A
+  second founder round added the AI assignments tab to the Atlas group
+  (Atlas, AI assignments, Review, Settings), so the group reads as the AI
+  lane of the course: talk to the agent, manage the governed work, decide
+  drafts, hold the keys. The tab lists every AI assignment with its facts
+  and class status, states the course AI policy plainly (edited in
+  Settings), and creates new AI assignments directly from existing work
+  (starter four-criterion rubric, reshaped on the grade view or with
+  Atlas). The grade view and drill-in moved under
+  `/teach/ai-assignments/*` so the URL says what the page is; `/teach/atlas`
+  is only ever the conversation, and the chat rail carries no record lists.
+  One canonical grade view, two doors: the Work record and the tab.
 
 ## Consequences
 

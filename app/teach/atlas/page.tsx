@@ -8,9 +8,9 @@ import { PlanningRoom } from "@/components/planning/planning-room";
  * Atlas is the conversation. Opening this page opens the professor's agent:
  * a persistent, course-scoped thread that works from the record and prepares
  * changes as drafts behind Review. Threads switch in place (?thread=), and
- * the rail carries the record context the conversation stands on. AI
- * assignments themselves live with the rest of the graded course under Work;
- * this surface is for talking to the agent, not for showcasing records.
+ * the rail carries only what is conversation-native. The records live on
+ * their own tabs (Work, AI assignments); this surface is for talking to the
+ * agent, never for showcasing records.
  */
 export default async function TeachAtlasPage({
   searchParams,

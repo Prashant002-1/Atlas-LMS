@@ -29,7 +29,7 @@ export function ProposalCard({ proposal, compact = false }: { proposal: Instruct
                   <RubricCard title={block.title} criteria={block.criteria} />
                   <p className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[0.71875rem] leading-4 text-[var(--color-faint)]">
                     <span>Applying writes the next rubric version for its AI assignment; grades already given stay pinned.</span>
-                    <TextLink href={`/teach/atlas/${block.assignmentId}`} className="text-[0.71875rem]">
+                    <TextLink href={`/teach/ai-assignments/${block.assignmentId}`} className="text-[0.71875rem]">
                       Open the AI assignment
                     </TextLink>
                   </p>

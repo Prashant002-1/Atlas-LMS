@@ -8,6 +8,7 @@
  * Sign in afterwards: instructor@demo.edu / student@demo.edu (password atlas1234,
  * same for every account in the package).
  */
+import "./env-loader";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";

@@ -112,6 +112,24 @@ export const sessionRubricBlockSchema = z.object({
   criteria: rubricCriteriaSchema,
 });
 
+/**
+ * A whole AI assignment as a proposal payload: the contract (brief, duration,
+ * transcript policy, side-notes toggle) and the rubric that grades it, both
+ * targeting an existing assignment. Creation happens in conversation with
+ * Atlas and lands here; applying writes the next rubric version and the
+ * session-assignment row in one transaction. The tab only sees and governs.
+ */
+export const aiAssignmentBlockSchema = z.object({
+  type: z.literal("ai_assignment"),
+  assignmentId: z.string().uuid(),
+  title: z.string().min(3).max(200),
+  instructions: z.string().min(10).max(2000),
+  durationMinutes: z.number().int().min(5).max(240),
+  transcriptPolicy: z.string().min(3).max(200),
+  personalRecordSideNotes: z.boolean(),
+  criteria: rubricCriteriaSchema,
+});
+
 /* ── student-facing response blocks (cue surface) ────────────── */
 
 export const explanationBlockSchema = z.object({
@@ -159,6 +177,7 @@ export const proposalBlockSchemas = {
   practice_set: practiceSetBlockSchema,
   rubric: rubricBlockSchema,
   session_rubric: sessionRubricBlockSchema,
+  ai_assignment: aiAssignmentBlockSchema,
 } as const;
 
 export const blockSchema = z.discriminatedUnion("type", [
@@ -170,6 +189,7 @@ export const blockSchema = z.discriminatedUnion("type", [
   practiceSetBlockSchema,
   rubricBlockSchema,
   sessionRubricBlockSchema,
+  aiAssignmentBlockSchema,
   explanationBlockSchema,
   answerBlockSchema,
 ]);
@@ -184,6 +204,7 @@ export type AnnouncementBlock = z.infer<typeof announcementBlockSchema>;
 export type PracticeSetBlock = z.infer<typeof practiceSetBlockSchema>;
 export type RubricBlock = z.infer<typeof rubricBlockSchema>;
 export type SessionRubricBlock = z.infer<typeof sessionRubricBlockSchema>;
+export type AiAssignmentBlock = z.infer<typeof aiAssignmentBlockSchema>;
 export type ExplanationBlock = z.infer<typeof explanationBlockSchema>;
 export type AnswerBlock = z.infer<typeof answerBlockSchema>;
 

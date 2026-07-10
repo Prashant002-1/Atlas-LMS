@@ -220,6 +220,50 @@ async function applyBlock(
     return { itemType: "quiz", itemId: created.id, title: block.title };
   }
 
+  if (block.type === "ai_assignment") {
+    // Create the AI assignment: the next rubric version and the contract row
+    // in one pass, targeting an existing assignment. If the assignment is
+    // gone or already runs as an AI assignment, nothing is written.
+    const [target] = await tx
+      .select({ assignmentId: assignments.id, assignmentName: assignments.name })
+      .from(assignments)
+      .where(and(eq(assignments.orgId, orgId), eq(assignments.courseId, courseId), eq(assignments.id, block.assignmentId)))
+      .limit(1);
+    if (!target) return null;
+
+    const [existing] = await tx
+      .select({ id: sessionAssignments.id })
+      .from(sessionAssignments)
+      .where(and(eq(sessionAssignments.orgId, orgId), eq(sessionAssignments.assignmentId, block.assignmentId)))
+      .limit(1);
+    if (existing) return null;
+
+    const criteria = rubricCriteriaSchema.safeParse(block.criteria);
+    if (!criteria.success) return null;
+
+    const [{ maxVersion }] = await tx
+      .select({ maxVersion: sql<number>`coalesce(max(${rubrics.version}), 0)` })
+      .from(rubrics)
+      .where(and(eq(rubrics.orgId, orgId), eq(rubrics.courseId, courseId)));
+    const [rubric] = await tx
+      .insert(rubrics)
+      .values({ orgId, courseId, version: Number(maxVersion) + 1, criteria: criteria.data })
+      .returning({ id: rubrics.id });
+
+    await tx.insert(sessionAssignments).values({
+      orgId,
+      courseId,
+      assignmentId: block.assignmentId,
+      rubricId: rubric.id,
+      instructions: block.instructions,
+      durationMinutes: block.durationMinutes,
+      transcriptPolicy: block.transcriptPolicy,
+      personalRecordSideNotes: block.personalRecordSideNotes,
+    });
+
+    return { itemType: "assignment", itemId: block.assignmentId, title: `${block.title} (${target.assignmentName})` };
+  }
+
   if (block.type === "session_rubric") {
     // The v0 rubric, natively: a NEW rubric version for the course, repointed
     // on the target work session. Grades already given stay pinned to the

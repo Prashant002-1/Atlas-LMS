@@ -703,14 +703,13 @@ export type AiAssignmentIndexView =
       rows: AiAssignmentIndexRow[];
       /** The course-wide AI policy as plain facts; edited in Settings. */
       policy: AiAssignmentPolicyFacts | null;
-      /** Assignments in the course not yet run as AI assignments (creation picks from these). */
-      availableAssignments: Array<{ id: string; name: string }>;
     };
 
 /**
- * The AI assignments tab: every AI assignment in the course with its facts
- * and class status, the course AI policy stated plainly, and the assignments
- * still available to convert. Read-only like everything in this file; the
+ * The AI assignments tab: see, inspect, govern. Every AI assignment in the
+ * course with its facts and class status, and the course AI policy stated
+ * plainly. Creation is not here; it happens in conversation with Atlas,
+ * through the Review gate. Read-only like everything in this file; the
  * grade view stays one canonical page reached from here AND from Work.
  */
 export async function loadAiAssignmentIndex(actor?: Actor | null): Promise<AiAssignmentIndexView> {
@@ -771,17 +770,9 @@ export async function loadAiAssignmentIndex(actor?: Actor | null): Promise<AiAss
     .where(and(eq(courseAiPolicies.orgId, orgId), eq(courseAiPolicies.courseId, course.id)))
     .limit(1);
 
-  const configured = new Set(configRows.map((row) => row.assignmentId));
-  const assignmentRows = await db
-    .select({ id: assignments.id, name: assignments.name })
-    .from(assignments)
-    .where(and(eq(assignments.orgId, orgId), eq(assignments.courseId, course.id)))
-    .orderBy(asc(assignments.position), asc(assignments.createdAt));
-
   return {
     course,
     rows,
     policy: policyRow ?? null,
-    availableAssignments: assignmentRows.filter((row) => !configured.has(row.id)),
   };
 }

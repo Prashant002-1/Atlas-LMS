@@ -98,6 +98,31 @@ type RecordsDraftOutput = {
   records: Array<{ type: string; title: string }>;
 };
 
+/** The propose_ai_assignment tool's output as it arrives in a message part. */
+type AiAssignmentDraftOutput = {
+  ok: true;
+  proposalId: string;
+  assignmentId: string;
+  assignmentName: string;
+  instructions: string;
+  durationMinutes: number;
+  transcriptPolicy: string;
+  personalRecordSideNotes: boolean;
+  criteria: RubricCriterion[];
+  usedStandardFrame: boolean;
+  note: string | null;
+};
+
+function aiAssignmentOutputFrom(part: LoosePart): AiAssignmentDraftOutput | { ok: false; error: string } | null {
+  const output = part.output as Record<string, unknown> | undefined;
+  if (!output || typeof output !== "object") return null;
+  if (output.ok === false && typeof output.error === "string") return { ok: false, error: output.error };
+  if (output.ok === true && Array.isArray(output.criteria) && typeof output.proposalId === "string") {
+    return output as unknown as AiAssignmentDraftOutput;
+  }
+  return null;
+}
+
 function rubricOutputFrom(part: LoosePart): RubricDraftOutput | { ok: false; error: string } | null {
   const output = part.output as Record<string, unknown> | undefined;
   if (!output || typeof output !== "object") return null;
@@ -195,8 +220,11 @@ export function PlanningRoom(props: PlanningRoomProps) {
                         onClick={(s) => sendMessage({ text: s })}
                       />
                     ) : null}
+                    <Suggestion
+                      suggestion="Set up one of my assignments as an AI assignment."
+                      onClick={(s) => sendMessage({ text: s })}
+                    />
                     <Suggestion suggestion="Draft a practice set on where the class is weakest." onClick={(s) => sendMessage({ text: s })} />
-                    <Suggestion suggestion="What is on the course record for next week?" onClick={(s) => sendMessage({ text: s })} />
                   </Suggestions>
                 </div>
               </ConversationEmptyState>
@@ -301,6 +329,20 @@ function PlanningMessageParts({
       return;
     }
 
+    if (type === "tool-propose_ai_assignment") {
+      const output = aiAssignmentOutputFrom(part);
+      if (!output) {
+        rendered.push(<DraftingLine key={index} label="Setting up the AI assignment" />);
+      } else if (!output.ok) {
+        rendered.push(<DraftProblemLine key={index} error={output.error} />);
+      } else {
+        rendered.push(
+          <AiAssignmentDraftCard key={index} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} />
+        );
+      }
+      return;
+    }
+
     if (type === "tool-propose_rubric") {
       const output = rubricOutputFrom(part);
       if (!output) {
@@ -393,6 +435,36 @@ function RubricDraftCard({ draft, status }: { draft: RubricDraftOutput; status: 
         criteria={draft.criteria}
         compare={{ version: draft.replacesVersion, criteria: draft.replacesCriteria }}
       />
+      {draft.note ? <p className="mt-1.5 text-[0.75rem] leading-5 text-[var(--color-muted)]">{draft.note}</p> : null}
+    </DraftFrame>
+  );
+}
+
+function AiAssignmentDraftCard({ draft, status }: { draft: AiAssignmentDraftOutput; status: PlanningDraftRef["status"] }) {
+  return (
+    <DraftFrame
+      eyebrow={`AI assignment draft · ${draft.assignmentName}`}
+      status={status}
+      reviewNote={
+        status === "applied"
+          ? "Applied: students take this assignment as a session with Atlas once it is published."
+          : "Applying creates the AI assignment with this contract and rubric."
+      }
+    >
+      <div className="overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3.5 py-2.5">
+          <p className="text-[0.8125rem] leading-5 text-[var(--color-ink)]">{draft.instructions}</p>
+          <p className="atlas-mono mt-1.5 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">
+            {draft.durationMinutes} min session · side notes {draft.personalRecordSideNotes ? "on" : "off"} · transcript:{" "}
+            {draft.transcriptPolicy}
+          </p>
+        </div>
+        <RubricCard
+          title={draft.usedStandardFrame ? "Rubric, the standard frame" : "Rubric"}
+          criteria={draft.criteria}
+          className="rounded-none border-0"
+        />
+      </div>
       {draft.note ? <p className="mt-1.5 text-[0.75rem] leading-5 text-[var(--color-muted)]">{draft.note}</p> : null}
     </DraftFrame>
   );

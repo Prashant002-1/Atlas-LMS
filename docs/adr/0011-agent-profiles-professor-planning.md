@@ -128,14 +128,26 @@ hierarchy now says what the product means:
   second founder round added the AI assignments tab to the Atlas group
   (Atlas, AI assignments, Review, Settings), so the group reads as the AI
   lane of the course: talk to the agent, manage the governed work, decide
-  drafts, hold the keys. The tab lists every AI assignment with its facts
-  and class status, states the course AI policy plainly (edited in
-  Settings), and creates new AI assignments directly from existing work
-  (starter four-criterion rubric, reshaped on the grade view or with
-  Atlas). The grade view and drill-in moved under
-  `/teach/ai-assignments/*` so the URL says what the page is; `/teach/atlas`
-  is only ever the conversation, and the chat rail carries no record lists.
-  One canonical grade view, two doors: the Work record and the tab.
+  drafts, hold the keys. The tab is SEE, INSPECT, GOVERN only: every AI
+  assignment with its facts and class status, and the course AI policy
+  stated plainly (edited in Settings). It carries no forms and no creation
+  module; the contract test pins that. The grade view and drill-in moved
+  under `/teach/ai-assignments/*` so the URL says what the page is;
+  `/teach/atlas` is only ever the conversation, and the chat rail carries
+  no record lists. One canonical grade view, two doors: the Work record
+  and the tab.
+- **Creation is a conversation, and only a conversation.** A third founder
+  round removed the tab's direct-creation form as off-thesis: you chat with
+  Atlas when you need an AI assignment. To make that true rather than
+  claimed, the professor profile gained `propose_ai_assignment`: the whole
+  AI assignment (brief, duration, transcript policy, side-notes toggle, and
+  the rubric, shaped in conversation or started from the standard
+  four-criterion frame) as ONE `ai_assignment` block behind Review.
+  Applying writes the next rubric version and the session-assignment row in
+  one transaction; dup guards refuse a second config or a second pending
+  draft for the same assignment. The card in the thread and in Review
+  renders the contract facts and the full rubric, the record it will
+  become.
 
 ## Consequences
 

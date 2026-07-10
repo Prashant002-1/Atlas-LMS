@@ -311,14 +311,19 @@ test("issue 27: the professor plans with Atlas across the profile boundary", () 
   assertSourceExcludes("app/teach/atlas/page.tsx", "Work sessions");
 
   // The type also has its own operational lens: the AI assignments tab in
-  // the Atlas group, with statuses, the policy facts, and direct creation.
-  // The chat rail stays conversation-native (no record list on the agent).
+  // the Atlas group. See, inspect, govern; the tab carries no forms and no
+  // creation module. An AI assignment is created only in conversation with
+  // Atlas, as ONE draft (contract + rubric) through the Review gate.
   assertSourceIncludes("app/teach/layout.tsx", '"/teach/ai-assignments"');
   assertSourceIncludes("app/teach/ai-assignments/page.tsx", "loadAiAssignmentIndex");
   assertSourceIncludes("app/teach/ai-assignments/page.tsx", "JourneyGridSummary");
-  assertSourceIncludes("app/teach/ai-assignments/page.tsx", "action={createAiAssignment}");
-  assertServerAction("lib/instructor/session-actions.ts", "createAiAssignment");
+  assertSourceExcludes("app/teach/ai-assignments/page.tsx", "<form");
+  assertSourceExcludes("app/teach/ai-assignments/page.tsx", "ActionButton");
+  assertSourceIncludes("lib/agent/professor-tools.ts", "propose_ai_assignment");
+  assertSourceIncludes("lib/agent/apply.ts", 'block.type === "ai_assignment"');
   assertSourceIncludes("lib/agent/rubric-proposal.ts", "export function starterRubricCriteria");
+  assertSourceExcludes("lib/instructor/session-actions.ts", "createAiAssignment");
+  assertSourceIncludes("components/teach/proposals.tsx", "ai_assignment");
   assertSourceExcludes("components/planning/planning-room.tsx", "WorkSessionsPanel");
 });
 

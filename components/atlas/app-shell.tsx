@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -19,13 +19,11 @@ import {
   Settings,
   SlidersHorizontal,
   Table2,
-  Telescope,
   UsersRound,
-  type LucideIcon,
 } from "lucide-react";
 import { signOutOfAtlas } from "@/lib/auth/actions";
 import { MotionPage } from "@/components/atlas/motion";
-import { AtlasMark } from "@/components/atlas/primitives";
+import { AtlasIcon } from "@/components/atlas/primitives";
 import { ThemeToggle } from "@/components/atlas/theme-switch";
 
 /**
@@ -36,9 +34,17 @@ import { ThemeToggle } from "@/components/atlas/theme-switch";
  * overview, where the course name already stands.
  */
 
+/** Nav icons share one contract; the Atlas icon is the mark, not a metaphor. */
+type NavIconComponent = ComponentType<{
+  size?: number;
+  strokeWidth?: number;
+  className?: string;
+  "aria-hidden"?: boolean;
+}>;
+
 const ICONS = {
   dashboard: LayoutDashboard,
-  atlas: Telescope,
+  atlas: AtlasIcon,
   review: ClipboardCheck,
   weeks: Layers3,
   work: Send,
@@ -51,7 +57,7 @@ const ICONS = {
   calendar: CalendarDays,
   announce: Megaphone,
   gradebook: Table2,
-} satisfies Record<string, LucideIcon>;
+} satisfies Record<string, NavIconComponent>;
 
 export type ShellNavChild = {
   href: string;
@@ -131,7 +137,7 @@ export function AppShell({
                 title="Atlas"
                 className="flex h-14 w-full items-center justify-center border-b border-[var(--color-border)] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
               >
-                <AtlasMark size={22} />
+                <AtlasIcon size={20} />
               </Link>
             ) : (
               /* Collapsed: the logo mark. On hover it crossfades into the
@@ -145,7 +151,7 @@ export function AppShell({
               >
                 <span className="relative flex size-5 items-center justify-center">
                   <span className="absolute inset-0 flex items-center justify-center opacity-100 transition-opacity duration-200 ease-out group-hover/brand:opacity-0">
-                    <AtlasMark size={20} />
+                    <AtlasIcon size={19} />
                   </span>
                   <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 ease-out group-hover/brand:opacity-100">
                     <PanelLeftOpen size={15} strokeWidth={2} aria-hidden />
@@ -161,9 +167,9 @@ export function AppShell({
               <Link
                 href="/"
                 aria-label="Atlas"
-                className="flex items-center gap-2.5 rounded-row focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+                className="flex items-center gap-2 rounded-row text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
               >
-                <AtlasMark size={24} />
+                <AtlasIcon size={20} />
                 <span className="atlas-serif text-[1.0625rem] font-medium">Atlas</span>
               </Link>
               <button
@@ -207,17 +213,11 @@ export function AppShell({
                               : "text-[var(--color-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"
                           }`}
                         >
-                          {active ? (
-                            <span
-                              className="absolute left-0 top-1/2 h-5 w-[2.5px] -translate-y-1/2 rounded-full bg-[var(--color-indigo)]"
-                              aria-hidden
-                            />
-                          ) : null}
                           <Icon size={16} strokeWidth={2} aria-hidden className="shrink-0" />
                           {!shellCollapsed ? <span className="truncate">{item.label}</span> : null}
                         </Link>
                         {showChildren ? (
-                          <div className="ml-[1.3125rem] mt-0.5 space-y-0.5 border-l border-[var(--color-border)] pl-2.5">
+                          <div className="ml-[1.3125rem] mt-0.5 space-y-0.5 pl-2.5">
                             {item.children!.map((child) => {
                               const childActive = isActive(child);
                               return (

@@ -12,7 +12,7 @@ The tokens in `app/globals.css` are the source of truth. This note describes the
 
 ## Mark
 
-A course aperture: measured top ticks, converging paths, and a single point of orientation, drawn in white on a very dark hunter green tile. The same asset is used for the sidebar mark, wordmark lockup, session surfaces, and browser icon. Asset at `public/brand/atlas-mark.svg`; rendered by `BrandMark` and `AtlasMark` in `components/atlas/primitives.tsx`.
+A course aperture: measured top ticks, converging paths, and a single point of orientation, drawn in white on a very dark hunter green tile. The tiled logo (`public/brand/atlas-mark.svg`, rendered by `BrandMark` and `AtlasMark`) is for logo contexts: sign-in, the browser icon. Everywhere Atlas appears as an icon rather than the logo, including the sidebar, use the icon-weight variant: the geometry alone in currentColor (`public/brand/atlas-icon.svg`, rendered by `AtlasIcon` in `components/atlas/primitives.tsx`).
 
 ## Surfaces
 

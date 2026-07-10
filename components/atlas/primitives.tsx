@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, ReactNode, SVGAttributes } from "react";
 import type { LucideProps } from "lucide-react";
 import { ArrowLeft, ArrowRight, ChevronRight } from "lucide-react";
 
@@ -38,6 +38,31 @@ export function AtlasMark({ size = 28, className }: { size?: number; className?:
       aria-hidden="true"
       className={`flex-none ${className ?? ""}`}
     />
+  );
+}
+
+/**
+ * The Atlas icon: the mark's geometry alone, no tile, in currentColor, so it
+ * sits in text and navigation like any other icon. This is how Atlas appears
+ * everywhere it is not the logo; the asset copy lives at
+ * public/brand/atlas-icon.svg.
+ */
+export function AtlasIcon({
+  size = 16,
+  className,
+  ...rest
+}: { size?: number; className?: string } & SVGAttributes<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" className={className} {...rest}>
+      <path d="M12 1.9v2.3" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
+      <path d="M6.9 3.3v1.5M17.1 3.3v1.5" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" />
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 5.4 L20.6 20 L3.4 20 Z M12 5.4 L16.3 20 L7.7 20 Z M12 5.4 L13.8 20 L10.2 20 Z"
+      />
+    </svg>
   );
 }
 

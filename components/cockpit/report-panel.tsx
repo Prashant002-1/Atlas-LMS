@@ -1,94 +1,72 @@
 import { BadgeCheck, Quote, RotateCcw } from "lucide-react";
 import { finalizeJourneyReport, regradeJourneyReport } from "@/lib/instructor/session-actions";
-import { StatusBadge } from "@/components/atlas/primitives";
+import { cn } from "@/lib/utils";
 import type { DrillInReport } from "@/lib/instructor/cockpit";
 
-/**
- * The professor's read of a journey report: levels with the rubric's own
- * points, rationales, and evidence quotes that JUMP to their exact place in
- * the transcript below. Finalize is the publish moment (draft -> final ->
- * gradebook, stamped with who and when); Regrade reruns the rubric on a
- * draft and never touches a published grade.
- */
-
-const levelTone = {
-  Exceeds: "good",
-  Meets: "accent",
-  Developing: "warn",
-  Missing: "danger",
+const levelColor = {
+  Exceeds: "text-[var(--color-good)]",
+  Meets: "text-[var(--color-accent-strong)]",
+  Developing: "text-[var(--color-warn)]",
+  Missing: "text-[var(--color-danger)]",
 } as const;
 
 export function ProfessorReportPanel({ report, submissionId }: { report: DrillInReport; submissionId: string }) {
   return (
-    <section
-      aria-label="Journey report"
-      className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <section aria-labelledby="grade-heading">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Journey report</p>
-          <p className="mt-1 text-[1.375rem] font-semibold leading-none">
+          <h2 id="grade-heading" className="text-[1.125rem] font-semibold text-[var(--color-ink)]">Grade</h2>
+          <p className="mt-2 text-[2rem] font-semibold leading-none tabular-nums text-[var(--color-ink)]">
             {Math.round(report.overallScore)}
-            <span className="text-[0.8125rem] font-normal text-[var(--color-muted)]"> / {Math.round(report.maxScore)}</span>
+            <span className="text-[0.875rem] font-normal text-[var(--color-muted)]"> / {Math.round(report.maxScore)}</span>
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {report.reviewRequestedAt && report.status === "draft" ? (
-            <StatusBadge tone="warn">Review requested</StatusBadge>
-          ) : null}
-          <StatusBadge tone={report.status === "final" ? "good" : "accent"}>
-            {report.status === "final" ? "Final" : "Draft"}
-          </StatusBadge>
+        <div className="text-right text-[0.75rem] leading-5 text-[var(--color-muted)]">
+          <p>{report.status === "final" ? "Posted to the gradebook" : "Draft grade"}</p>
+          {report.reviewRequestedAt && report.status === "draft" ? <p className="text-[var(--color-warn)]">Student requested review</p> : null}
         </div>
       </div>
 
-      <div className="mt-3 space-y-2.5">
+      <div className="mt-5 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
         {report.criteria.map((criterion) => (
-          <article key={criterion.key} className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">
-                {criterion.name}
-                <span className="ml-1.5 text-[0.6875rem] font-normal text-[var(--color-faint)]">{criterion.weight}%</span>
-              </p>
-              <div className="flex items-center gap-2">
-                <span className="text-[0.75rem] tabular-nums text-[var(--color-muted)]">
-                  {criterion.score}/{criterion.maxScore}
-                </span>
-                <StatusBadge tone={levelTone[criterion.level]}>{criterion.level}</StatusBadge>
+          <article key={criterion.key} className="grid gap-3 py-4 lg:grid-cols-[minmax(11rem,0.36fr)_minmax(0,1fr)]">
+            <div>
+              <div className="flex flex-wrap items-baseline justify-between gap-2 lg:block">
+                <h3 className="text-[0.84375rem] font-semibold text-[var(--color-ink)]">{criterion.name}</h3>
+                <p className="mt-1 text-[0.75rem] tabular-nums text-[var(--color-muted)]">{criterion.score} / {criterion.maxScore} points</p>
               </div>
+              <p className={cn("mt-1 text-[0.78125rem] font-medium", levelColor[criterion.level])}>{criterion.level}</p>
             </div>
-            <p className="mt-1.5 text-[0.78125rem] leading-5 text-[var(--color-muted)]">{criterion.rationale}</p>
-            {criterion.evidence.length > 0 ? (
-              <ul className="mt-2 space-y-1">
-                {criterion.evidence.map((evidence) => (
-                  <li key={evidence.id}>
-                    <a
-                      href={`#turn-${evidence.turnId}`}
-                      className="group flex items-start gap-1.5 rounded-row text-[0.78125rem] leading-5 text-[var(--color-ink)] transition hover:text-[var(--color-accent-strong)]"
-                    >
-                      <Quote size={11} className="mt-1 shrink-0 text-[var(--color-accent-strong)]" aria-hidden />
-                      <span className="italic">&ldquo;{evidence.quote}&rdquo;</span>
-                      <span className="atlas-mono ml-auto shrink-0 text-[0.625rem] uppercase tracking-[0.06em] text-[var(--color-faint)] group-hover:text-[var(--color-accent-strong)]">
-                        jump
-                      </span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-2 text-[0.71875rem] text-[var(--color-faint)]">No verifiable evidence; graded Missing pending your review.</p>
-            )}
+            <div>
+              <p className="text-[0.8125rem] leading-6 text-[var(--color-muted)]">{criterion.rationale}</p>
+              {criterion.evidence.length > 0 ? (
+                <ul className="mt-2.5 space-y-2">
+                  {criterion.evidence.map((evidence) => (
+                    <li key={evidence.id}>
+                      <a
+                        href={`#turn-${evidence.turnId}`}
+                        className="group flex items-start gap-2 rounded-row text-[0.78125rem] leading-5 text-[var(--color-ink)] transition hover:text-[var(--color-accent-strong)]"
+                      >
+                        <Quote size={12} className="mt-1 shrink-0 text-[var(--color-accent-strong)]" aria-hidden />
+                        <span className="italic">&ldquo;{evidence.quote}&rdquo;</span>
+                        <span className="ml-auto shrink-0 text-[0.6875rem] not-italic text-[var(--color-faint)] group-hover:text-[var(--color-accent-strong)]">View in transcript</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-[0.75rem] text-[var(--color-faint)]">No verified evidence for this criterion.</p>
+              )}
+            </div>
           </article>
         ))}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] pt-3">
-        <p className="atlas-mono text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[0.71875rem] text-[var(--color-muted)]">
           {report.status === "final"
-            ? `Published ${report.finalizedAt ? new Date(report.finalizedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : ""}${report.finalizedByName ? ` by ${report.finalizedByName}` : ""}`
-            : report.graderLabel && report.graderLabel !== "seed"
-              ? `Drafted by ${report.graderLabel}`
-              : "Drafted from the seeded record"}
+            ? `Posted ${report.finalizedAt ? new Date(report.finalizedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : ""}${report.finalizedByName ? ` by ${report.finalizedByName}` : ""}`
+            : "Not yet in the gradebook"}
         </p>
 
         {report.status === "draft" ? (
@@ -97,20 +75,20 @@ export function ProfessorReportPanel({ report, submissionId }: { report: DrillIn
               <input type="hidden" name="submissionId" value={submissionId} />
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 rounded-control border border-[var(--color-border-strong)] px-3 py-1.5 text-[0.78125rem] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-[var(--color-border-strong)] px-3 text-[0.78125rem] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]"
               >
                 <RotateCcw size={12} aria-hidden />
-                Regrade
+                Grade again
               </button>
             </form>
             <form action={finalizeJourneyReport}>
               <input type="hidden" name="reportId" value={report.id} />
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 py-1.5 text-[0.78125rem] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 text-[0.78125rem] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
               >
                 <BadgeCheck size={13} aria-hidden />
-                Finalize and write gradebook
+                Post grade
               </button>
             </form>
           </div>

@@ -63,11 +63,12 @@ test("regular assignment submissions use the same searchable review table", () =
   assert.ok(page.includes("SubmissionReviewTable"));
   assert.ok(table.includes("Search students"));
   assert.ok(table.includes("Filter submissions"));
-  assert.ok(table.includes("Select visible students"));
   assert.ok(table.includes("Student response"));
   assert.ok(table.includes("Update grade"));
   assert.ok(table.includes("appearance-none"));
   assert.ok(table.includes("right-3.5"));
+  assert.equal(table.includes('type="checkbox"'), false);
+  assert.equal(table.includes('value: "selected"'), false);
   assert.equal(page.includes("StatusBadge"), false);
   assert.equal(page.includes("<Panel"), false);
 });

@@ -27,15 +27,6 @@ import { MotionPage } from "@/components/atlas/motion";
 import { AtlasIcon, AtlasMark } from "@/components/atlas/primitives";
 import { ThemeToggle } from "@/components/atlas/theme-switch";
 
-/**
- * The app frame: a grouped sidebar and a content column. The sidebar carries
- * the wordmark, the navigation in labeled sections, and one identity row at
- * the bottom: the account menu (identity, theme, sign out) with a sign out
- * button beside the name. Course and term switching live on the teaching
- * overview, where the course name already stands.
- */
-
-/** Nav icons share one contract; the Atlas icon is the mark, not a metaphor. */
 type NavIconComponent = ComponentType<{
   size?: number;
   strokeWidth?: number;
@@ -64,7 +55,6 @@ const ICONS = {
 export type ShellNavChild = {
   href: string;
   label: string;
-  /** Exact match only (for a course home that prefixes its sibling routes). */
   exact?: boolean;
 };
 
@@ -72,9 +62,7 @@ export type NavItem = {
   href: string;
   label: string;
   icon: keyof typeof ICONS;
-  /** Exact match only (for index routes that prefix every other route). */
   exact?: boolean;
-  /** Sub-destinations revealed while this item is the active context. */
   children?: ShellNavChild[];
 };
 
@@ -86,17 +74,17 @@ export type NavSection = {
 export function AppShell({
   sections,
   children,
+  institutionName,
   userName,
   userEmail,
 }: {
   sections: NavSection[];
   children: ReactNode;
+  institutionName: string;
   userName?: string | null;
   userEmail?: string | null;
 }) {
   const pathname = usePathname();
-  // null until hydrated: the server renders expanded, the stored preference
-  // applies on the first client frame, and only then do transitions turn on.
   const [stored, setStored] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -107,7 +95,6 @@ export function AppShell({
   }, []);
 
   const ready = stored !== null;
-  // One shell everywhere: the sidebar state is the user's, never a route's.
   const shellCollapsed = stored ?? false;
 
   function toggle() {
@@ -129,10 +116,7 @@ export function AppShell({
         } ${shellCollapsed ? "w-[3.75rem]" : "w-[15.5rem]"}`}
       >
         <div className="flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-surface-sidebar)]">
-          {/* Brand header */}
           {shellCollapsed ? (
-            /* Collapsed: the logo mark. On hover it crossfades into the
-               expand icon. Clicking toggles the sidebar open. */
             <button
               type="button"
               onClick={toggle}
@@ -150,17 +134,18 @@ export function AppShell({
               </span>
             </button>
           ) : (
-            /* Expanded: logo + wordmark on the left, toggle on the right. The
-               right padding matches the identity block below, so the collapse
-               button and the sign out button share one right rail. */
             <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--color-border)] pl-4 pr-2">
               <Link
                 href="/"
-                aria-label="Atlas"
-                className="flex items-center gap-2.5 rounded-row focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+                aria-label={`${institutionName} home`}
+                title={institutionName}
+                className="flex min-w-0 flex-1 flex-col rounded-row pr-2 leading-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
               >
-                <AtlasMark size={24} />
-                <span className="atlas-serif text-[1.0625rem] font-medium">Atlas</span>
+                <span className="truncate text-[0.8125rem] font-semibold text-[var(--color-ink)]">{institutionName}</span>
+                <span className="mt-0.5 flex items-center gap-1 text-[0.625rem] font-medium text-[var(--color-faint)]">
+                  <AtlasMark size={10} />
+                  Powered by Atlas
+                </span>
               </Link>
               <button
                 type="button"
@@ -174,7 +159,6 @@ export function AppShell({
             </div>
           )}
 
-          {/* Navigation, grouped: global context first, course context below. */}
           <nav className="flex-1 overflow-y-auto px-3 py-3" aria-label="Main">
             {sections.map((section, index) => (
               <div key={section.label ?? `section-${index}`} className={index > 0 ? "mt-5" : undefined}>
@@ -235,11 +219,14 @@ export function AppShell({
             ))}
           </nav>
 
-          {/* The identity row: the account menu behind the name, sign out
-              beside it. Nothing else. */}
           <div className="shrink-0 border-t border-[var(--color-border)] p-2">
             <div className="flex items-center gap-1">
-              <AccountMenu collapsed={shellCollapsed} name={userName} email={userEmail} />
+              <AccountMenu
+                collapsed={shellCollapsed}
+                name={userName}
+                email={userEmail}
+                institutionName={institutionName}
+              />
               {!shellCollapsed ? (
                 <form action={signOutOfAtlas}>
                   <button
@@ -266,18 +253,16 @@ export function AppShell({
   );
 }
 
-/**
- * The account menu: the signed-in identity as a plain row that opens a small
- * menu holding the identity, the theme choice, and sign out.
- */
 function AccountMenu({
   collapsed,
   name,
   email,
+  institutionName,
 }: {
   collapsed: boolean;
   name?: string | null;
   email?: string | null;
+  institutionName: string;
 }) {
   const [open, setOpen] = useState(false);
   const displayName = name?.trim() || email?.trim() || "Account";
@@ -288,9 +273,7 @@ function AccountMenu({
 
   return (
     <div className="relative min-w-0 flex-1">
-      {open ? (
-        <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-30 cursor-default" onClick={() => setOpen(false)} />
-      ) : null}
+      {open ? <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-30 cursor-default" onClick={() => setOpen(false)} /> : null}
 
       {open ? (
         <div
@@ -301,16 +284,12 @@ function AccountMenu({
             <p className="truncate text-[0.8125rem] font-medium text-[var(--color-ink)]">{displayName}</p>
             {email && name ? <p className="truncate text-[0.6875rem] text-[var(--color-faint)]">{email}</p> : null}
           </div>
-
           <div className="mx-1 my-1 h-px bg-[var(--color-border)]" aria-hidden />
-
           <div className="flex items-center justify-between gap-3 px-2.5 py-1.5">
             <span className="text-[0.8125rem] font-medium text-[var(--color-muted)]">Theme</span>
             <ThemeToggle />
           </div>
-
           <div className="mx-1 my-1 h-px bg-[var(--color-border)]" aria-hidden />
-
           <form action={signOutOfAtlas}>
             <button type="submit" role="menuitem" className={menuRow}>
               <LogOut size={14} strokeWidth={2} aria-hidden />
@@ -337,7 +316,7 @@ function AccountMenu({
         {!collapsed ? (
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[0.8125rem] font-medium text-[var(--color-ink)]">{displayName}</span>
-            <span className="block text-[0.6875rem] text-[var(--color-faint)]">Account</span>
+            <span className="block truncate text-[0.6875rem] text-[var(--color-faint)]">{institutionName}</span>
           </span>
         ) : null}
       </button>

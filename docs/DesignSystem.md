@@ -12,7 +12,9 @@ The tokens in `app/globals.css` are the source of truth. This note describes the
 
 ## Mark
 
-A course aperture: measured top ticks, converging paths, and a single point of orientation, drawn in white on a very dark hunter green tile. The same asset is used for the sidebar mark, wordmark lockup, session surfaces, and browser icon. Asset at `public/brand/atlas-mark.svg`; rendered by `BrandMark` and `AtlasMark` in `components/atlas/primitives.tsx`.
+A course aperture: measured top ticks, converging paths, and a single point of orientation, drawn in white on a very dark hunter green tile. The same asset is used for the collapsed sidebar, powered-by lockup, session surfaces, and browser icon. Asset at `public/brand/atlas-mark.svg`; rendered by `BrandMark` and `AtlasMark` in `components/atlas/primitives.tsx`.
+
+The institution is the primary licensed-product identity. In the expanded shell, lead with the organization name and keep `Powered by Atlas` as a small subordinate line inside the existing header height. Repeat the organization name beneath the signed-in person's name. Do not make the institution compete with a large Atlas wordmark.
 
 The mark's geometry is fixed. Where Atlas appears as an icon among interface icons, use the single-shade copy: the exact same artwork rendered as a currentColor stencil, never a redesign (`public/brand/atlas-icon.svg`, rendered by `AtlasIcon`).
 

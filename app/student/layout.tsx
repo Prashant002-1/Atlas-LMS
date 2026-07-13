@@ -4,37 +4,31 @@ import { and, asc, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { courses, enrollments } from "@/lib/db/schema";
+import { loadInstitutionName } from "@/lib/workspace/institution";
 import { AppShell, type NavSection } from "@/components/atlas/app-shell";
 
-/**
- * The study shell: the global views first (home, calendar), then every
- * enrolled course. The course in view opens into its own record navigation:
- * Home, Modules, Assignments, Grades.
- */
 export default async function StudentLayout({ children }: { children: ReactNode }) {
   const session = await auth();
-  if (!session?.user) {
-    redirect("/sign-in?role=student");
-  }
-  if (session.user.role !== "student") {
-    redirect("/teach");
-  }
+  if (!session?.user) redirect("/sign-in?role=student");
+  if (session.user.role !== "student") redirect("/teach");
+  if (!session.user.orgId) redirect("/sign-in?role=student");
 
-  const rows = session.user.orgId
-    ? await db
-        .select({ courseId: enrollments.courseId, code: courses.code })
-        .from(enrollments)
-        .innerJoin(courses, eq(enrollments.courseId, courses.id))
-        .where(
-          and(
-            eq(enrollments.orgId, session.user.orgId),
-            eq(enrollments.userId, session.user.id),
-            eq(enrollments.role, "student"),
-            eq(enrollments.state, "active")
-          )
+  const [rows, institutionName] = await Promise.all([
+    db
+      .select({ courseId: enrollments.courseId, code: courses.code })
+      .from(enrollments)
+      .innerJoin(courses, eq(enrollments.courseId, courses.id))
+      .where(
+        and(
+          eq(enrollments.orgId, session.user.orgId),
+          eq(enrollments.userId, session.user.id),
+          eq(enrollments.role, "student"),
+          eq(enrollments.state, "active")
         )
-        .orderBy(asc(courses.code))
-    : [];
+      )
+      .orderBy(asc(courses.code)),
+    loadInstitutionName(session.user.orgId),
+  ]);
 
   const sections: NavSection[] = [
     {
@@ -64,7 +58,12 @@ export default async function StudentLayout({ children }: { children: ReactNode 
   ];
 
   return (
-    <AppShell sections={sections} userName={session.user.name} userEmail={session.user.email}>
+    <AppShell
+      sections={sections}
+      institutionName={institutionName}
+      userName={session.user.name}
+      userEmail={session.user.email}
+    >
       {children}
     </AppShell>
   );

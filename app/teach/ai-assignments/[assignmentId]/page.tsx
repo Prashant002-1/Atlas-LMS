@@ -2,17 +2,14 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { loadAssignmentCockpit } from "@/lib/instructor/cockpit";
 import { PageHeader } from "@/components/teach/page-header";
-import { BackLink } from "@/components/atlas/primitives";
-import { JourneyGrid, JourneyGridSummary } from "@/components/cockpit/journey-grid";
+import { BackLink, ButtonLink } from "@/components/atlas/primitives";
+import { SessionTable } from "@/components/cockpit/session-table";
 import { ClassInsight } from "@/components/cockpit/class-insight";
-import { ContractPanel, RubricEditor } from "@/components/cockpit/contract-rubric";
+import { AssignmentSettings, RubricSummary } from "@/components/cockpit/contract-rubric";
 
 /**
- * One AI assignment's grading view: the contract and rubric on the right rail
- * (what the professor governs), the journey grid and class insight in the
- * main column (what the class did). Every number renders from stored rows.
- * Reached from the assignment itself under Work, like any other grading
- * surface; this is a normal part of the course, not a showcase.
+ * One AI assignment: class sessions first, analysis second, setup on demand.
+ * JourneyGrid was replaced by the filterable SessionTable.
  */
 export default async function AssignmentCockpitPage({ params }: { params: Promise<{ assignmentId: string }> }) {
   const session = await auth();
@@ -32,43 +29,72 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
   }
 
   const criterionNames = Object.fromEntries(view.rubric.criteria.map((criterion) => [criterion.key, criterion.name]));
+  const maxScore = view.rubric.criteria.reduce(
+    (sum, criterion) => sum + criterion.levels.reduce((max, level) => Math.max(max, level.score), 0),
+    0
+  );
+  const draftGrades = view.counts.draft + view.counts.reviewRequested;
 
   return (
     <>
-      <BackLink href={`/teach/work/${view.assignment.id}`}>{view.assignment.name}</BackLink>
+      <BackLink href="/teach/ai-assignments">AI assignments</BackLink>
 
       <div className="mt-3">
-        <PageHeader title={view.assignment.name} course={`${view.course.code} / AI assignment`} />
+        <PageHeader
+          title={view.assignment.name}
+          course={`${view.course.code} / AI assignment`}
+          action={<ButtonLink href={`/teach/work/${view.assignment.id}`} variant="secondary" size="sm">Open assignment</ButtonLink>}
+        />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="min-w-0 space-y-4">
-          <section aria-label="Journeys" className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Journeys</p>
-              <JourneyGridSummary counts={view.counts} />
-            </div>
-            <JourneyGrid rows={view.grid} />
-          </section>
+      <div className="-mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[0.78125rem] text-[var(--color-muted)]">
+        {view.assignment.dueAt ? <span>Due {shortDate(view.assignment.dueAt)}</span> : null}
+        {view.assignment.pointsPossible ? <span>{Math.round(view.assignment.pointsPossible)} points</span> : null}
+        <span>{view.contract.durationMinutes} minute session</span>
+        <span>Personal record notes {view.contract.personalRecordSideNotes ? "on" : "off"}</span>
+      </div>
 
-          <ClassInsight
-            insight={view.insight}
-            assignmentId={view.assignment.id}
-            criterionNames={criterionNames}
-            pendingPracticeProposals={view.pendingPracticeProposals}
-          />
+      <section aria-label="Assignment setup" className="mt-8 grid gap-7 border-y border-[var(--color-border)] py-6 lg:grid-cols-2 lg:gap-0">
+        <div className="lg:pr-8">
+          <AssignmentSettings assignmentId={view.assignment.id} contract={view.contract} />
         </div>
+        <div className="border-t border-[var(--color-border)] pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+          <RubricSummary criteria={view.rubric.criteria} version={view.rubric.version} />
+        </div>
+      </section>
 
-        <div className="flex w-full flex-col gap-4 self-start xl:sticky xl:top-4">
-          <ContractPanel assignmentId={view.assignment.id} contract={view.contract} />
-          <RubricEditor
-            assignmentId={view.assignment.id}
-            criteria={view.rubric.criteria}
-            version={view.rubric.version}
-            hasReports={view.rubric.hasReports}
-          />
-        </div>
+      <dl className="mt-8 grid border-y border-[var(--color-border)] sm:grid-cols-2 lg:grid-cols-4">
+        <SummaryFact label="Submitted" value={`${view.counts.submitted} / ${view.counts.students}`} />
+        <SummaryFact label="Draft grades" value={String(draftGrades)} />
+        <SummaryFact label="Graded" value={String(view.counts.final)} />
+        <SummaryFact label="Class average" value={view.insight ? String(Math.round(view.insight.stats.overallAverage)) : "-"} />
+      </dl>
+
+      <div className="mt-8">
+        <SessionTable rows={view.grid} maxScore={maxScore} />
+      </div>
+
+      <div className="mt-10">
+        <ClassInsight
+          insight={view.insight}
+          assignmentId={view.assignment.id}
+          criterionNames={criterionNames}
+          pendingPracticeProposals={view.pendingPracticeProposals}
+        />
       </div>
     </>
   );
+}
+
+function SummaryFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border-b border-[var(--color-border)] px-4 py-4 first:pl-0 last:border-b-0 lg:border-b-0 lg:border-r lg:last:border-r-0">
+      <dt className="text-[0.75rem] text-[var(--color-muted)]">{label}</dt>
+      <dd className="mt-1 text-[1.25rem] font-semibold tabular-nums text-[var(--color-ink)]">{value}</dd>
+    </div>
+  );
+}
+
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }

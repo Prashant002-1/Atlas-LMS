@@ -1,107 +1,66 @@
 import { Quote } from "lucide-react";
 import { requestJourneyReview } from "@/lib/student/actions";
-import { StatusBadge } from "@/components/atlas/primitives";
+import { cn } from "@/lib/utils";
 import type { StudentJourneyReportView } from "@/lib/student/session-view";
 
-/**
- * Journey report, the student's instant payoff after Submit. Four criteria,
- * each with its level, the rubric's own points, a short rationale, and the
- * VERIFIED evidence quotes behind it (with the surrounding exchange one
- * click away). Scores without receipts are just vibes; this panel is the
- * receipts.
- */
-
-const levelTone = {
-  Exceeds: "good",
-  Meets: "accent",
-  Developing: "warn",
-  Missing: "danger",
+const levelColor = {
+  Exceeds: "text-[var(--color-good)]",
+  Meets: "text-[var(--color-accent-strong)]",
+  Developing: "text-[var(--color-warn)]",
+  Missing: "text-[var(--color-danger)]",
 } as const;
 
 export function JourneyReportPanel({ report, assignmentId }: { report: StudentJourneyReportView; assignmentId: string }) {
   return (
-    <section
-      aria-label="Journey report"
-      className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <section aria-labelledby="student-grade-heading" className="border-y border-[var(--color-border)] py-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Journey report</p>
-          <p className="mt-1.5 text-[1.5rem] font-semibold leading-none">
+          <h2 id="student-grade-heading" className="text-[1.125rem] font-semibold text-[var(--color-ink)]">Grade</h2>
+          <p className="mt-2 text-[1.75rem] font-semibold leading-none tabular-nums text-[var(--color-ink)]">
             {Math.round(report.overallScore)}
             <span className="text-[0.875rem] font-normal text-[var(--color-muted)]"> / {Math.round(report.maxScore)}</span>
           </p>
-          <p className="mt-1.5 text-[0.75rem] leading-5 text-[var(--color-muted)]">
-            {report.status === "final"
-              ? "Confirmed by your professor."
-              : "Draft grade from the rubric reading your session; your professor reviews it before it counts."}
-          </p>
         </div>
-        <StatusBadge tone={report.status === "final" ? "good" : "accent"}>
-          {report.status === "final" ? "Final" : "Draft"}
-        </StatusBadge>
+        <p className="text-[0.75rem] text-[var(--color-muted)]">{report.status === "final" ? "Posted by your professor" : "Draft grade"}</p>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
+      <div className="mt-5 divide-y divide-[var(--color-border)] border-t border-[var(--color-border)]">
         {report.criteria.map((criterion) => (
-          <article
-            key={criterion.key}
-            className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3.5"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">
-                {criterion.name}
-                <span className="ml-1.5 text-[0.6875rem] font-normal text-[var(--color-faint)]">{criterion.weight}%</span>
-              </p>
-              <StatusBadge tone={levelTone[criterion.level]}>{criterion.level}</StatusBadge>
+          <article key={criterion.key} className="grid gap-3 py-4 md:grid-cols-[minmax(11rem,0.36fr)_minmax(0,1fr)]">
+            <div>
+              <h3 className="text-[0.84375rem] font-semibold text-[var(--color-ink)]">{criterion.name}</h3>
+              <p className="mt-1 text-[0.75rem] tabular-nums text-[var(--color-muted)]">{criterion.score} / {criterion.maxScore} points</p>
+              <p className={cn("mt-1 text-[0.78125rem] font-medium", levelColor[criterion.level])}>{criterion.level}</p>
             </div>
-            <p className="mt-1 text-[0.75rem] tabular-nums text-[var(--color-muted)]">
-              {criterion.score} / {criterion.maxScore} points
-            </p>
-            <p className="mt-2 text-[0.78125rem] leading-5 text-[var(--color-muted)]">{criterion.rationale}</p>
-
-            {criterion.evidence.length > 0 ? (
-              <div className="mt-2.5 space-y-2 border-t border-[var(--color-border)] pt-2.5">
-                {criterion.evidence.map((evidence) => (
-                  <details key={evidence.id} className="group">
-                    <summary className="flex cursor-pointer list-none items-start gap-1.5 text-[0.78125rem] leading-5 text-[var(--color-ink)]">
-                      <Quote size={11} className="mt-1 shrink-0 text-[var(--color-accent-strong)]" aria-hidden />
-                      <span className="italic">&ldquo;{evidence.quote}&rdquo;</span>
-                    </summary>
-                    <div className="mt-1.5 space-y-1 pl-5 text-[0.71875rem] leading-4 text-[var(--color-faint)]">
-                      {evidence.before ? (
-                        <p>
-                          <span className="atlas-mono uppercase tracking-[0.06em]">before ({evidence.before.role}) </span>
-                          {evidence.before.text}
-                        </p>
-                      ) : null}
-                      {evidence.after ? (
-                        <p>
-                          <span className="atlas-mono uppercase tracking-[0.06em]">after ({evidence.after.role}) </span>
-                          {evidence.after.text}
-                        </p>
-                      ) : null}
-                    </div>
-                  </details>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-2.5 border-t border-[var(--color-border)] pt-2.5 text-[0.71875rem] text-[var(--color-faint)]">
-                No verifiable evidence was found for this criterion.
-              </p>
-            )}
+            <div>
+              <p className="text-[0.8125rem] leading-6 text-[var(--color-muted)]">{criterion.rationale}</p>
+              {criterion.evidence.length > 0 ? (
+                <div className="mt-2.5 space-y-2">
+                  {criterion.evidence.map((evidence) => (
+                    <details key={evidence.id} className="group">
+                      <summary className="flex cursor-pointer list-none items-start gap-2 text-[0.78125rem] leading-5 text-[var(--color-ink)]">
+                        <Quote size={12} className="mt-1 shrink-0 text-[var(--color-accent-strong)]" aria-hidden />
+                        <span className="italic">&ldquo;{evidence.quote}&rdquo;</span>
+                      </summary>
+                      <div className="mt-2 space-y-1 pl-5 text-[0.71875rem] leading-5 text-[var(--color-faint)]">
+                        {evidence.before ? <p><span className="font-medium">Before: </span>{evidence.before.text}</p> : null}
+                        {evidence.after ? <p><span className="font-medium">After: </span>{evidence.after.text}</p> : null}
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-[0.75rem] text-[var(--color-faint)]">No verified evidence for this criterion.</p>
+              )}
+            </div>
           </article>
         ))}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--color-border)] pt-3">
-        <p className="atlas-mono text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">
-          Every quote above is string-verified against your transcript
-          {report.graderLabel && report.graderLabel !== "seed" ? ` · graded by ${report.graderLabel}` : ""}
-        </p>
+      <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
         {report.reviewRequestedAt ? (
           <p className="text-[0.75rem] text-[var(--color-muted)]">
-            Professor review requested {new Date(report.reviewRequestedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}.
+            Professor review requested {new Date(report.reviewRequestedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </p>
         ) : (
           <form action={requestJourneyReview}>
@@ -109,7 +68,7 @@ export function JourneyReportPanel({ report, assignmentId }: { report: StudentJo
             <input type="hidden" name="assignmentId" value={assignmentId} />
             <button
               type="submit"
-              className="rounded-row border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3.5 py-1.5 text-[0.75rem] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]"
+              className="inline-flex min-h-9 items-center rounded-control border border-[var(--color-border-strong)] px-3 text-[0.78125rem] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]"
             >
               Request professor review
             </button>

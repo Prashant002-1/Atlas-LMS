@@ -36,17 +36,6 @@ import { ArtifactPanel, type ArtifactRevision } from "@/components/session/artif
 import { RubricPanel } from "@/components/session/rubric-panel";
 import { SideNoteCardView } from "@/components/session/side-note-card";
 
-/**
- * Session room, the student's assessed work session. Left: the conversation,
- * where side-note cards land in the flow as flagged margin annotations.
- * Right: the live contract (timer, grounding, transcript policy), the
- * evolving artifact with revision diffs, the rubric, and Submit.
- *
- * All conversation state is server-owned: the transcript hydrates from rows,
- * the client sends only its latest message, and a refresh mid-session costs
- * at most the reply that was streaming.
- */
-
 export type SessionRoomProps = {
   assignmentId: string;
   assignmentName: string;
@@ -66,13 +55,6 @@ export type SessionRoomProps = {
 
 const TURN_ID_PATTERN = /^turn-(\d+)$/;
 
-/**
- * Wrapper handling the fresh-run affordance: a submitted session is a frozen
- * record, but the student may start a new run on the same assignment. The
- * server already scopes turns to the newest UNSUBMITTED session, so a fresh
- * run is just the room remounted empty; the first message creates the new
- * session row.
- */
 export function SessionRoom(props: SessionRoomProps) {
   const [freshRun, setFreshRun] = useState(false);
 
@@ -101,23 +83,18 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
     messages: props.initialMessages,
     transport: new DefaultChatTransport({
       api: `/api/session/${props.assignmentId}`,
-      prepareSendMessagesRequest: ({ messages: outgoing }) => ({
-        body: { message: outgoing[outgoing.length - 1] },
-      }),
+      prepareSendMessagesRequest: ({ messages: outgoing }) => ({ body: { message: outgoing[outgoing.length - 1] } }),
     }),
   });
 
   const busy = status === "submitted" || status === "streaming";
   const started = messages.length > 0;
 
-  /* Artifact revisions: live tool parts first, seeded rows as the fallback. */
   const liveRevisions = useMemo(() => {
     const out: ArtifactRevision[] = [];
     for (const message of messages) {
       if (message.role !== "assistant") continue;
-      for (const update of artifactUpdatesFromParts(message.parts)) {
-        out.push({ state: update.state });
-      }
+      for (const update of artifactUpdatesFromParts(message.parts)) out.push({ state: update.state });
     }
     return out;
   }, [messages]);
@@ -133,8 +110,6 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
 
   const revisions = liveRevisions.length > 0 ? liveRevisions : seededRevisions;
 
-  /* Side notes carried in message parts render in-flow; stored rows that are
-     not in any part (seeded sessions) attach after their turn's message. */
   const inlineNoteIds = useMemo(() => {
     const ids = new Set<string>();
     for (const message of messages) {
@@ -170,12 +145,11 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                 <div className="max-w-md space-y-4">
                   <p className="text-[0.875rem] font-medium leading-6 text-[var(--color-ink)]">{props.brief}</p>
                   <p className="text-[0.8125rem] leading-6 text-[var(--color-muted)]">
-                    Work it out loud with Atlas. Your reasoning is what gets assessed, and the rubric on the right
-                    is open the whole time.
+                    Work it out loud with Atlas. Your session is assessed against the rubric shown on the right.
                   </p>
                   <Suggestions className="justify-center">
-                    <Suggestion suggestion="I'm ready to start." onClick={(s) => sendMessage({ text: s })} />
-                    <Suggestion suggestion="What does doing well look like here?" onClick={(s) => sendMessage({ text: s })} />
+                    <Suggestion suggestion="I'm ready to start." onClick={(suggestion) => sendMessage({ text: suggestion })} />
+                    <Suggestion suggestion="What does doing well look like here?" onClick={(suggestion) => sendMessage({ text: suggestion })} />
                   </Suggestions>
                 </div>
               </ConversationEmptyState>
@@ -184,15 +158,10 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                 <div key={message.id} className="flex flex-col gap-3">
                   <Message from={message.role === "user" ? "user" : "assistant"}>
                     <MessageContent>
-                      <MessageParts
-                        message={message}
-                        streaming={busy && index === messages.length - 1 && message.role === "assistant"}
-                      />
+                      <MessageParts message={message} streaming={busy && index === messages.length - 1 && message.role === "assistant"} />
                     </MessageContent>
                   </Message>
-                  {(seededNotesByTurn.get(turnIndexOf(message.id)) ?? []).map((note) => (
-                    <SideNoteCardView key={note.id} note={note} />
-                  ))}
+                  {(seededNotesByTurn.get(turnIndexOf(message.id)) ?? []).map((note) => <SideNoteCardView key={note.id} note={note} />)}
                 </div>
               ))
             )}
@@ -214,7 +183,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                 <p className="text-[0.84375rem] font-medium text-[var(--color-ink)]">Session submitted</p>
                 <p className="mt-0.5 text-[0.78125rem] leading-5 text-[var(--color-muted)]">
                   {props.submittedAt ? `Frozen ${formatStamp(props.submittedAt)}. ` : ""}
-                  The transcript and your final design are on your record; grading reads the journey next.
+                  The transcript and final work are saved for grading.
                 </p>
                 {props.onStartFresh ? (
                   <button
@@ -222,7 +191,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                     onClick={props.onStartFresh}
                     className="mt-2 rounded-control border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-1.5 text-[0.78125rem] font-medium text-[var(--color-ink)] transition hover:border-[var(--color-ink)]"
                   >
-                    Start a fresh run
+                    Start a fresh session
                   </button>
                 ) : null}
               </div>
@@ -230,9 +199,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
           ) : (
             <>
               {error ? (
-                <p className="mb-2 text-[0.78125rem] text-[var(--color-danger)]">
-                  {error.message || "The session hit an error. Your transcript is saved; try again."}
-                </p>
+                <p className="mb-2 text-[0.78125rem] text-[var(--color-danger)]">{error.message || "The session hit an error. Your transcript is saved; try again."}</p>
               ) : null}
               <PromptInput
                 onSubmit={(message, event) => {
@@ -245,16 +212,10 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                   if (field) field.style.height = "auto";
                 }}
               >
-                <PromptInputTextarea
-                  placeholder={started ? "Make your next move." : "Frame the problem to begin."}
-                  disabled={busy}
-                  autoFocus
-                />
+                <PromptInputTextarea placeholder={started ? "Make your next move." : "Frame the problem to begin."} disabled={busy} autoFocus />
                 <PromptInputToolbar>
                   <PromptInputTools>
-                    <span className="px-1.5 text-[0.71875rem] text-[var(--color-faint)]">
-                      Assessed session. Your moves are the deliverable.
-                    </span>
+                    <span className="px-1.5 text-[0.71875rem] text-[var(--color-faint)]">Assessed session</span>
                   </PromptInputTools>
                   <PromptInputSubmit status={status} disabled={busy} />
                 </PromptInputToolbar>
@@ -274,8 +235,6 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
   );
 }
 
-/* ── message part rendering ─────────────────────────────────── */
-
 function MessageParts({ message, streaming }: { message: UIMessage; streaming: boolean }) {
   const parts = message.parts ?? [];
   const rendered: ReactNode[] = [];
@@ -283,26 +242,16 @@ function MessageParts({ message, streaming }: { message: UIMessage; streaming: b
   parts.forEach((part, index) => {
     const type = String(part.type ?? "");
     if (type === "text" && "text" in part && typeof part.text === "string") {
-      rendered.push(
-        <Response key={index} streaming={streaming && index === parts.length - 1}>
-          {part.text}
-        </Response>
-      );
+      rendered.push(<Response key={index} streaming={streaming && index === parts.length - 1}>{part.text}</Response>);
       return;
     }
     if (type === "tool-update_artifact") {
-      rendered.push(
-        <p key={index} className="atlas-mono flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-[0.07em] text-[var(--color-accent-strong)]">
-          Design captured to the panel
-        </p>
-      );
+      rendered.push(<p key={index} className="flex items-center gap-1.5 text-[0.75rem] font-medium text-[var(--color-accent-strong)]">Final work updated</p>);
       return;
     }
     if (type === "data-side-note") {
       const notes = sideNotesFromParts([part]);
-      for (const note of notes) {
-        rendered.push(<SideNoteCardView key={`${index}-${note.id}`} note={note} />);
-      }
+      for (const note of notes) rendered.push(<SideNoteCardView key={`${index}-${note.id}`} note={note} />);
     }
   });
 
@@ -315,42 +264,32 @@ function turnIndexOf(messageId: string): number {
 }
 
 function formatStamp(iso: string): string {
-  const date = new Date(iso);
-  return date.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
-
-/* ── the session contract card (timer + policy transparency) ── */
 
 function SessionContractCard(props: SessionRoomProps & { started: boolean }) {
   return (
-    <section
-      aria-label="Session contract"
-      className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
-    >
+    <section aria-label="Session settings" className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
       <div className="flex items-center justify-between gap-2">
-        <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Session</p>
-        <SessionTimer
-          startedAt={props.sessionStartedAt}
-          durationMinutes={props.durationMinutes}
-          running={props.started && !props.submitted}
-        />
+        <p className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Session</p>
+        <SessionTimer startedAt={props.sessionStartedAt} durationMinutes={props.durationMinutes} running={props.started && !props.submitted} />
       </div>
       <p className="mt-2 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{props.brief}</p>
       <dl className="mt-3 space-y-1.5 text-[0.75rem] leading-5">
         {props.groundingScope.length > 0 ? (
           <div className="flex gap-2">
-            <dt className="atlas-mono shrink-0 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">Grounded on</dt>
+            <dt className="shrink-0 font-medium text-[var(--color-faint)]">Course material</dt>
             <dd className="text-[var(--color-muted)]">{props.groundingScope.join(", ")}</dd>
           </div>
         ) : null}
         <div className="flex gap-2">
-          <dt className="atlas-mono shrink-0 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">Transcript</dt>
+          <dt className="shrink-0 font-medium text-[var(--color-faint)]">Transcript</dt>
           <dd className="text-[var(--color-muted)]">{props.transcriptPolicy}</dd>
         </div>
         {props.personalRecordSideNotes ? (
           <div className="flex items-center gap-1.5 pt-0.5 text-[var(--color-muted)]">
             <ShieldCheck size={12} className="text-[var(--color-accent-strong)]" aria-hidden />
-            Personal-record side notes are on, approved by your professor.
+            Personal record notes are on
           </div>
         ) : null}
       </dl>
@@ -358,18 +297,7 @@ function SessionContractCard(props: SessionRoomProps & { started: boolean }) {
   );
 }
 
-function SessionTimer({
-  startedAt,
-  durationMinutes,
-  running,
-}: {
-  startedAt: string | null;
-  durationMinutes: number;
-  running: boolean;
-}) {
-  // The clock lives entirely in interval callbacks: the first tick both
-  // establishes the local start (when the server has none yet) and starts
-  // the readout, keeping render pure.
+function SessionTimer({ startedAt, durationMinutes, running }: { startedAt: string | null; durationMinutes: number; running: boolean }) {
   const [now, setNow] = useState<number | null>(null);
   const [localStart, setLocalStart] = useState<number | null>(null);
 
@@ -377,7 +305,7 @@ function SessionTimer({
     if (!running) return;
     const tick = () => {
       setNow(Date.now());
-      if (!startedAt) setLocalStart((prev) => prev ?? Date.now());
+      if (!startedAt) setLocalStart((previous) => previous ?? Date.now());
     };
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
@@ -387,12 +315,7 @@ function SessionTimer({
   const total = durationMinutes * 60;
 
   if (!running || startMs === null || now === null) {
-    return (
-      <span className="atlas-mono flex items-center gap-1 text-[0.71875rem] text-[var(--color-faint)]">
-        <Clock3 size={11.5} aria-hidden />
-        {durationMinutes} min
-      </span>
-    );
+    return <span className="flex items-center gap-1 text-[0.71875rem] text-[var(--color-faint)]"><Clock3 size={11.5} aria-hidden />{durationMinutes} min</span>;
   }
 
   const remaining = Math.max(0, total - Math.floor((now - startMs) / 1000));
@@ -402,56 +325,34 @@ function SessionTimer({
 
   return (
     <span
-      className={cn(
-        "atlas-mono flex items-center gap-1 text-[0.71875rem] tabular-nums",
-        low ? "text-[var(--color-warn)]" : "text-[var(--color-muted)]"
-      )}
+      className={cn("flex items-center gap-1 text-[0.71875rem] tabular-nums", low ? "text-[var(--color-warn)]" : "text-[var(--color-muted)]")}
       aria-label={remaining === 0 ? "Time is up" : `${minutes} minutes ${seconds} seconds left`}
     >
       <Clock3 size={11.5} aria-hidden />
-      {remaining === 0 ? "Time - wrap up and submit" : `${minutes}:${String(seconds).padStart(2, "0")}`}
+      {remaining === 0 ? "Time is up" : `${minutes}:${String(seconds).padStart(2, "0")}`}
     </span>
   );
 }
 
-/* ── submit ─────────────────────────────────────────────────── */
-
 function SubmitSessionControl({ assignmentId }: { assignmentId: string }) {
   const [armed, setArmed] = useState(false);
-
   return (
-    <section
-      aria-label="Submit session"
-      className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
-    >
+    <section aria-label="Submit session" className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
       {!armed ? (
-        <>
-          <button
-            type="button"
-            onClick={() => setArmed(true)}
-            className="w-full rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3.5 py-2 text-[0.84375rem] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
-          >
-            Submit session
-          </button>
-          <p className="mt-2 text-[0.71875rem] leading-4 text-[var(--color-faint)]">
-            Submitting freezes the transcript and your final design for grading.
-          </p>
-        </>
+        <button
+          type="button"
+          onClick={() => setArmed(true)}
+          className="w-full rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3.5 py-2 text-[0.84375rem] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
+        >
+          Submit session
+        </button>
       ) : (
         <form action={submitSession} className="space-y-2">
           <input type="hidden" name="assignmentId" value={assignmentId} />
-          <p className="text-[0.78125rem] leading-5 text-[var(--color-muted)]">
-            Submit and freeze this session? You will not be able to add turns afterward.
-          </p>
+          <p className="text-[0.78125rem] leading-5 text-[var(--color-muted)]">Submit this session? You cannot add more turns afterward.</p>
           <div className="flex gap-2">
             <ConfirmSubmitButton />
-            <button
-              type="button"
-              onClick={() => setArmed(false)}
-              className="rounded-control border border-[var(--color-border)] px-3 py-1.5 text-[0.78125rem] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)]"
-            >
-              Keep working
-            </button>
+            <button type="button" onClick={() => setArmed(false)} className="rounded-control border border-[var(--color-border)] px-3 py-1.5 text-[0.78125rem] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)]">Keep working</button>
           </div>
         </form>
       )}

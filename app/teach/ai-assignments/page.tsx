@@ -1,18 +1,14 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { loadAiAssignmentIndex } from "@/lib/instructor/cockpit";
 import { PageHeader } from "@/components/teach/page-header";
-import { StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { ButtonLink, TextLink } from "@/components/atlas/primitives";
 import { EmptyState } from "@/components/atlas/record";
-import { JourneyGridSummary } from "@/components/cockpit/journey-grid";
-import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 /**
- * The AI assignments tab: see, inspect, govern. Every AI assignment in the
- * course with its facts and class status, and the course AI policy stated
- * plainly. Nothing is created here; creation is a conversation with Atlas,
- * which drafts the whole AI assignment behind Review. Rows open the same
- * grade view Work leads to; one canonical page, two doors.
+ * The course's AI assignments as records to inspect and govern.
+ * JourneyGridSummary was replaced by explicit table columns in this redesign.
  */
 export default async function TeachAiAssignmentsPage() {
   const session = await auth();
@@ -29,86 +25,64 @@ export default async function TeachAiAssignmentsPage() {
 
   return (
     <>
-      <PageHeader title="AI assignments" course={`${view.course.code} / ${view.course.name}`} />
+      <PageHeader
+        title="AI assignments"
+        course={`${view.course.code} / ${view.course.name}`}
+        action={<ButtonLink href="/teach/settings" variant="secondary" size="sm">AI settings</ButtonLink>}
+      />
 
       {view.rows.length > 0 ? (
-        <StaggerGrid className="space-y-3" stagger={0.04}>
-          {view.rows.map((row) => (
-            <MotionItem key={row.assignmentId}>
-              <Link
-                href={`/teach/ai-assignments/${row.assignmentId}`}
-                className="block rounded-panel focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
-              >
-                <article className="atlas-card-hover rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-[0.9375rem] font-semibold text-[var(--color-ink)]">{row.name}</p>
-                    <div className="flex items-center gap-2">
-                      {row.counts && row.counts.reviewRequested > 0 ? (
-                        <StatusBadge tone="warn">
-                          {row.counts.reviewRequested} review request{row.counts.reviewRequested === 1 ? "" : "s"}
-                        </StatusBadge>
-                      ) : null}
-                      {row.counts && row.counts.draft > 0 ? (
-                        <StatusBadge tone="accent">{row.counts.draft} draft grades</StatusBadge>
-                      ) : null}
-                      <StatusBadge tone={row.published ? "good" : "neutral"}>{row.published ? "Live" : "Draft"}</StatusBadge>
-                    </div>
-                  </div>
-                  <p className="atlas-mono mt-1 text-[0.6875rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">
-                    {row.dueAt
-                      ? `Due ${new Date(row.dueAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · `
-                      : ""}
-                    {row.pointsPossible ? `${Math.round(row.pointsPossible)} pts · ` : ""}
-                    {row.durationMinutes} min session · rubric v{row.rubricVersion} ({row.criteriaCount} criteria)
-                    {row.personalRecordSideNotes ? " · side notes on" : " · side notes off"}
-                  </p>
-                  {row.counts ? (
-                    <div className="mt-3">
-                      <JourneyGridSummary counts={row.counts} />
-                    </div>
-                  ) : null}
-                </article>
-              </Link>
-            </MotionItem>
-          ))}
-        </StaggerGrid>
+        <div className="overflow-hidden border-y border-[var(--color-border)]">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[48rem] border-collapse text-left">
+              <thead>
+                <tr className="text-[0.71875rem] text-[var(--color-muted)]">
+                  <th scope="col" className="px-3 py-2.5 font-medium">Assignment</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">Due</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">Session</th>
+                  <th scope="col" className="px-3 py-2.5 text-right font-medium">Submitted</th>
+                  <th scope="col" className="px-3 py-2.5 text-right font-medium">Draft grades</th>
+                  <th scope="col" className="px-3 py-2.5 text-right font-medium">Graded</th>
+                  <th scope="col" className="w-12 px-3 py-2.5"><span className="sr-only">Open</span></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border)]">
+                {view.rows.map((row) => {
+                  const draftGrades = row.counts ? row.counts.draft + row.counts.reviewRequested : null;
+                  const href = `/teach/ai-assignments/${row.assignmentId}`;
+                  return (
+                    <tr key={row.assignmentId} className="text-[0.8125rem] transition hover:bg-[var(--color-surface-muted)]">
+                      <th scope="row" className="px-3 py-3.5 font-medium text-[var(--color-ink)]">
+                        <Link href={href} className="rounded-row underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">{row.name}</Link>
+                        {!row.published ? <span className="ml-2 text-[0.71875rem] font-normal text-[var(--color-muted)]">Draft</span> : null}
+                      </th>
+                      <td className="px-3 py-3.5 tabular-nums text-[var(--color-muted)]">{row.dueAt ? shortDate(row.dueAt) : "-"}</td>
+                      <td className="px-3 py-3.5 text-[var(--color-muted)]">{row.durationMinutes} min</td>
+                      <td className="px-3 py-3.5 text-right tabular-nums text-[var(--color-ink)]">{row.counts?.submitted ?? "-"}</td>
+                      <td className="px-3 py-3.5 text-right tabular-nums text-[var(--color-ink)]">{draftGrades ?? "-"}</td>
+                      <td className="px-3 py-3.5 text-right tabular-nums text-[var(--color-ink)]">{row.counts?.final ?? "-"}</td>
+                      <td className="px-3 py-3.5 text-right">
+                        <Link href={href} aria-label={`Open ${row.name}`} className="inline-flex rounded-row text-[var(--color-faint)] transition hover:translate-x-0.5 hover:text-[var(--color-ink)]"><ChevronRight size={15} aria-hidden /></Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       ) : (
-        <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-          <EmptyState
-            art="atlas"
-            title="No AI assignments yet"
-            detail="Ask Atlas to set one up from an existing assignment; the draft lands in Review."
-            action={
-              <TextLink href="/teach/atlas" className="text-[0.8125rem]">
-                Open Atlas
-              </TextLink>
-            }
-          />
-        </div>
+        <EmptyState
+          art="atlas"
+          title="No AI assignments"
+          detail="Set one up in a conversation with Atlas."
+          action={<TextLink href="/teach/atlas" className="text-[0.8125rem]">Open Atlas</TextLink>}
+        />
       )}
-
-      <section
-        aria-label="Course AI policy"
-        className="mt-5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]"
-      >
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Course AI policy</p>
-          <TextLink href="/teach/settings" className="text-[0.75rem]">
-            Edit in Settings
-          </TextLink>
-        </div>
-        {view.policy ? (
-          <p className="mt-2 text-[0.8125rem] leading-6 text-[var(--color-muted)]">
-            Explanations {view.policy.explanationDepth} · explain {view.policy.allowExplain ? "on" : "off"} · practice{" "}
-            {view.policy.allowPractice ? "on" : "off"} · questions {view.policy.allowQuestions ? "on" : "off"} · citations{" "}
-            {view.policy.citationsRequired ? "required" : "optional"} · {view.policy.studentDailyLimit} asks per student per day
-          </p>
-        ) : (
-          <p className="mt-2 text-[0.8125rem] leading-6 text-[var(--color-muted)]">
-            No course policy is set yet; students get the defaults until you set one in Settings.
-          </p>
-        )}
-      </section>
     </>
   );
+}
+
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }

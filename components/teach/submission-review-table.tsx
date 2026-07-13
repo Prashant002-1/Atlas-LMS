@@ -6,6 +6,7 @@ import { gradeSubmission, markSubmissionMissing } from "@/lib/instructor/actions
 import { cn } from "@/lib/utils";
 
 export type SubmissionReviewRow = {
+  rowId: string;
   studentId: string | null;
   studentName: string;
   standing: string;
@@ -55,9 +56,9 @@ export function SubmissionReviewTable({
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const visibleRows = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase();
+    const normalizedQuery = query.trim().toLowerCase();
     return rows.filter((row) => {
-      const matchesName = !normalizedQuery || row.studentName.toLocaleLowerCase().includes(normalizedQuery);
+      const matchesName = !normalizedQuery || row.studentName.toLowerCase().includes(normalizedQuery);
       const matchesFilter = filter === "all" || row.status === filter;
       return matchesName && matchesFilter;
     });
@@ -219,7 +220,7 @@ function SubmissionReview({
 }
 
 function rowKey(row: SubmissionReviewRow): string {
-  return row.studentId ?? row.studentName;
+  return row.rowId;
 }
 
 function responsePreview(body: string | null): string {
@@ -231,7 +232,9 @@ function responsePreview(body: string | null): string {
 function gradeLabel(row: SubmissionReviewRow, pointsPossible: number | null): string {
   if (row.grade) return row.grade;
   if (row.score === null) return "-";
-  return pointsPossible ? `${Math.round(row.score)} / ${Math.round(pointsPossible)}` : String(Math.round(row.score));
+  return typeof pointsPossible === "number"
+    ? `${Math.round(row.score)} / ${Math.round(pointsPossible)}`
+    : String(Math.round(row.score));
 }
 
 function shortDate(iso: string): string {

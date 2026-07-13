@@ -83,6 +83,18 @@ test("status filters reserve clean space for their dropdown icons", () => {
   }
 });
 
+test("student filtering and row identity are deterministic", () => {
+  const page = read("app/teach/work/[assignmentId]/page.tsx");
+  const sessionTable = read("components/cockpit/session-table.tsx");
+  const submissionTable = read("components/teach/submission-review-table.tsx");
+
+  assert.equal(sessionTable.includes("toLocaleLowerCase"), false);
+  assert.equal(submissionTable.includes("toLocaleLowerCase"), false);
+  assert.ok(page.includes("rowId:"));
+  assert.ok(submissionTable.includes("return row.rowId"));
+  assert.ok(submissionTable.includes('typeof pointsPossible === "number"'));
+});
+
 test("the design doctrine pins direct nouns and table-first management", () => {
   const designSystem = read("docs/DesignSystem.md");
   assert.ok(designSystem.includes("An assignment is an assignment"));

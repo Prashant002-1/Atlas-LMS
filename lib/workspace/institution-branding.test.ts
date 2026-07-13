@@ -23,9 +23,11 @@ test("the shell leads with the institution and keeps Atlas subordinate", () => {
   const shell = read("components/atlas/app-shell.tsx");
 
   assert.ok(shell.includes("{institutionName}</span>"));
-  assert.ok(shell.includes("Powered by Atlas"));
+  assert.ok(shell.includes("<AtlasMark size={24} />"));
+  assert.ok(shell.includes(">Atlas</span>"));
   assert.ok(shell.includes("institutionName={institutionName}"));
   assert.ok(shell.includes('className="flex h-14 shrink-0'));
-  assert.equal(shell.includes('>Atlas</span>'), false);
+  assert.equal(shell.includes("Powered by Atlas"), false);
+  assert.ok(shell.includes("py-1.5 text-left text-[0.75rem]"));
   assert.equal(shell.includes('>Account</span>'), false);
 });

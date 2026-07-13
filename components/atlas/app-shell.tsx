@@ -139,12 +139,12 @@ export function AppShell({
                 href="/"
                 aria-label={`${institutionName} home`}
                 title={institutionName}
-                className="flex min-w-0 flex-1 flex-col rounded-row pr-2 leading-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
+                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-row pr-2 leading-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
               >
-                <span className="truncate text-[0.8125rem] font-semibold text-[var(--color-ink)]">{institutionName}</span>
-                <span className="mt-0.5 flex items-center gap-1 text-[0.625rem] font-medium text-[var(--color-faint)]">
-                  <AtlasMark size={10} />
-                  Powered by Atlas
+                <AtlasMark size={24} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[0.8125rem] font-semibold text-[var(--color-ink)]">{institutionName}</span>
+                  <span className="mt-0.5 block text-[0.625rem] font-medium text-[var(--color-faint)]">Atlas</span>
                 </span>
               </Link>
               <button
@@ -269,7 +269,7 @@ function AccountMenu({
   const initial = displayName.charAt(0).toUpperCase();
 
   const menuRow =
-    "flex w-full items-center gap-2.5 rounded-row px-2.5 py-2 text-left text-[0.8125rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]";
+    "flex w-full items-center gap-2 rounded-row px-2.5 py-1.5 text-left text-[0.75rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]";
 
   return (
     <div className="relative min-w-0 flex-1">
@@ -292,7 +292,7 @@ function AccountMenu({
           <div className="mx-1 my-1 h-px bg-[var(--color-border)]" aria-hidden />
           <form action={signOutOfAtlas}>
             <button type="submit" role="menuitem" className={menuRow}>
-              <LogOut size={14} strokeWidth={2} aria-hidden />
+              <LogOut size={12.5} strokeWidth={2} aria-hidden />
               Sign out
             </button>
           </form>

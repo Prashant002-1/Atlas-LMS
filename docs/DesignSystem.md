@@ -12,9 +12,9 @@ The tokens in `app/globals.css` are the source of truth. This note describes the
 
 ## Mark
 
-A course aperture: measured top ticks, converging paths, and a single point of orientation, drawn in white on a very dark hunter green tile. The same asset is used for the collapsed sidebar, powered-by lockup, session surfaces, and browser icon. Asset at `public/brand/atlas-mark.svg`; rendered by `BrandMark` and `AtlasMark` in `components/atlas/primitives.tsx`.
+A course aperture: measured top ticks, converging paths, and a single point of orientation, drawn in white on a very dark hunter green tile. The same full-size asset is used in the expanded and collapsed sidebar, session surfaces, and browser icon. Asset at `public/brand/atlas-mark.svg`; rendered by `BrandMark` and `AtlasMark` in `components/atlas/primitives.tsx`.
 
-The institution is the primary licensed-product identity. In the expanded shell, lead with the organization name and keep `Powered by Atlas` as a small subordinate line inside the existing header height. Repeat the organization name beneath the signed-in person's name. Do not make the institution compete with a large Atlas wordmark.
+The institution is the primary licensed-product identity. In the expanded shell, keep the full-size Atlas mark on the left and place the organization name with a small `Atlas` label beneath it on the right, all inside the existing header height. Repeat the organization name beneath the signed-in person's name. Do not add `Powered by` copy.
 
 The mark's geometry is fixed. Where Atlas appears as an icon among interface icons, use the single-shade copy: the exact same artwork rendered as a currentColor stencil, never a redesign (`public/brand/atlas-icon.svg`, rendered by `AtlasIcon`).
 
@@ -37,6 +37,7 @@ Show the record and direct controls. Do not assign work to the user, narrate the
 - Do not use dashboard language such as `Needs action`, `Next`, `To do`, `course health`, generic `insights`, or tutorial hints.
 - A status is a fact, not decoration. Prefer quiet text and a small signal over repeated badge boxes. Reserve badges for exceptional states that must interrupt scanning.
 - Do not add row selection unless the selected records have a clear available action. Selection without an operation is false affordance.
+- Learning-objective codes and coverage stay internal. Do not show `LO1`, `LO2`, objective chips, objective counts, coverage meters, or objective-selection controls in professor or student interfaces.
 - Name things what they are: course, work, module, announcement, grades. Doctrine words like `course record` belong to the docs; the interface says course.
 - No explainer sentences on controls everyone knows. The action label should carry its meaning. Do not repeat the Review gate below every proposal button.
 - Atlas is represented by the mark or a plain label, never sparkle or wand iconography.

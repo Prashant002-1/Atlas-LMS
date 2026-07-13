@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { JourneyGridCounts, JourneyGridRow, JourneyState } from "@/lib/instructor/cockpit";
 
@@ -83,15 +83,16 @@ export function SessionTable({ rows, maxScore }: { rows: JourneyGridRow[]; maxSc
               className="min-h-9 w-full rounded-control border border-[var(--color-border)] bg-[var(--color-surface)] pl-9 pr-3 text-[0.8125rem] text-[var(--color-ink)] outline-none transition placeholder:text-[var(--color-faint)] focus:border-[var(--color-accent-strong)] sm:w-52"
             />
           </label>
-          <label>
+          <label className="relative block">
             <span className="sr-only">Filter session status</span>
             <select
               value={filter}
               onChange={(event) => setFilter(event.target.value as "all" | JourneyState)}
-              className="min-h-9 w-full rounded-control border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[0.8125rem] text-[var(--color-ink)] outline-none transition focus:border-[var(--color-accent-strong)] sm:w-44"
+              className="min-h-9 w-full appearance-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface)] pl-3 pr-10 text-[0.8125rem] text-[var(--color-ink)] outline-none transition focus:border-[var(--color-accent-strong)] sm:w-44"
             >
               {filters.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
+            <ChevronDown size={14} aria-hidden className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
           </label>
         </div>
       </div>

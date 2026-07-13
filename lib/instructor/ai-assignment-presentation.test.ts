@@ -19,15 +19,17 @@ test("AI assignment students render as a searchable filterable table", () => {
   assert.equal(table.includes("StatusBadge"), false);
 });
 
-test("assignment settings and rubric are read first and opened on demand", () => {
+test("assignment settings and rubric are visible before class activity and edit on demand", () => {
   const page = read("app/teach/ai-assignments/[assignmentId]/page.tsx");
   const setup = read("components/cockpit/contract-rubric.tsx");
 
   assert.ok(page.includes("AssignmentSettings"));
   assert.ok(page.includes("RubricSummary"));
-  assert.ok(setup.includes("<details"));
-  assert.ok(setup.includes("Assignment settings"));
-  assert.ok(setup.includes("Change rubric with Atlas"));
+  assert.ok(page.indexOf('aria-label="Assignment setup"') < page.indexOf("<SummaryFact"));
+  assert.ok(setup.includes("Session settings"));
+  assert.ok(setup.includes("Edit settings"));
+  assert.ok(setup.includes("View level descriptions"));
+  assert.ok(setup.includes("Change with Atlas"));
   assert.equal(page.includes("RubricEditor"), false);
   assert.equal(setup.includes("updateRubricWeights"), false);
   assert.equal(setup.includes("Weights must sum"), false);
@@ -52,6 +54,32 @@ test("redundant proposal narration stays out of the class results surface", () =
   assert.ok(source.includes("Propose practice set"));
   assert.equal(source.includes("Drafted from these results"), false);
   assert.equal(source.includes("nothing reaches students"), false);
+});
+
+test("regular assignment submissions use the same searchable review table", () => {
+  const page = read("app/teach/work/[assignmentId]/page.tsx");
+  const table = read("components/teach/submission-review-table.tsx");
+
+  assert.ok(page.includes("SubmissionReviewTable"));
+  assert.ok(table.includes("Search students"));
+  assert.ok(table.includes("Filter submissions"));
+  assert.ok(table.includes("Select visible students"));
+  assert.ok(table.includes("Student response"));
+  assert.ok(table.includes("Update grade"));
+  assert.ok(table.includes("appearance-none"));
+  assert.ok(table.includes("right-3.5"));
+  assert.equal(page.includes("StatusBadge"), false);
+  assert.equal(page.includes("<Panel"), false);
+});
+
+test("status filters reserve clean space for their dropdown icons", () => {
+  const sessionTable = read("components/cockpit/session-table.tsx");
+  const submissionTable = read("components/teach/submission-review-table.tsx");
+  for (const source of [sessionTable, submissionTable]) {
+    assert.ok(source.includes("appearance-none"));
+    assert.ok(source.includes("pr-10"));
+    assert.ok(source.includes("right-3.5"));
+  }
 });
 
 test("the design doctrine pins direct nouns and table-first management", () => {

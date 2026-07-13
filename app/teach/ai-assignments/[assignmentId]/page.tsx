@@ -54,7 +54,16 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
         <span>Personal record notes {view.contract.personalRecordSideNotes ? "on" : "off"}</span>
       </div>
 
-      <dl className="mt-7 grid border-y border-[var(--color-border)] sm:grid-cols-2 lg:grid-cols-4">
+      <section aria-label="Assignment setup" className="mt-8 grid gap-7 border-y border-[var(--color-border)] py-6 lg:grid-cols-2 lg:gap-0">
+        <div className="lg:pr-8">
+          <AssignmentSettings assignmentId={view.assignment.id} contract={view.contract} />
+        </div>
+        <div className="border-t border-[var(--color-border)] pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+          <RubricSummary criteria={view.rubric.criteria} version={view.rubric.version} />
+        </div>
+      </section>
+
+      <dl className="mt-8 grid border-y border-[var(--color-border)] sm:grid-cols-2 lg:grid-cols-4">
         <SummaryFact label="Submitted" value={`${view.counts.submitted} / ${view.counts.students}`} />
         <SummaryFact label="Draft grades" value={String(draftGrades)} />
         <SummaryFact label="Graded" value={String(view.counts.final)} />
@@ -73,12 +82,6 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
           pendingPracticeProposals={view.pendingPracticeProposals}
         />
       </div>
-
-      <section aria-labelledby="assignment-setup-heading" className="mt-10 max-w-4xl">
-        <h2 id="assignment-setup-heading" className="mb-3 text-[1.125rem] font-semibold text-[var(--color-ink)]">Assignment setup</h2>
-        <AssignmentSettings assignmentId={view.assignment.id} contract={view.contract} />
-        <RubricSummary criteria={view.rubric.criteria} version={view.rubric.version} />
-      </section>
     </>
   );
 }

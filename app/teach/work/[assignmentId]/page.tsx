@@ -37,7 +37,8 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
 
   const assignment = workspace.assignment;
   const progress = workspace.progress;
-  const rows: SubmissionReviewRow[] = workspace.submissions.map((submission) => ({
+  const rows: SubmissionReviewRow[] = workspace.submissions.map((submission, index) => ({
+    rowId: submission.studentId ?? `roster-${index}`,
     studentId: submission.studentId ?? null,
     studentName: submission.studentName,
     standing: submission.standing,

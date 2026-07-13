@@ -50,9 +50,9 @@ export function SessionTable({ rows, maxScore }: { rows: JourneyGridRow[]; maxSc
   const [filter, setFilter] = useState<"all" | JourneyState>("all");
 
   const visibleRows = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase();
+    const normalizedQuery = query.trim().toLowerCase();
     return rows.filter((row) => {
-      const matchesName = !normalizedQuery || row.studentName.toLocaleLowerCase().includes(normalizedQuery);
+      const matchesName = !normalizedQuery || row.studentName.toLowerCase().includes(normalizedQuery);
       const matchesStatus = filter === "all" || row.state === filter;
       return matchesName && matchesStatus;
     });

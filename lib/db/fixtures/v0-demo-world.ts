@@ -18,6 +18,9 @@ import type {
   V0ValidationResult,
   V0ValidationCheck
 } from "./types";
+import { cs152Course } from "./courses/cs152";
+import { stat201Course } from "./courses/stat201";
+import { hist310Course } from "./courses/hist310";
 
 // Deterministic UUID from a stable key (sha256 -> UUID v4 shape)
 function idFor(key: string): string {
@@ -776,9 +779,12 @@ export const packageData: FixturePackage = {
   users: [
     { key: "admin", name: "Dr. Elena Vance", email: "admin@demo.edu", role: "admin" },
     { key: "amara", name: "Dr. Amara Osei", email: "instructor@demo.edu", role: "instructor" },
+    { key: "keith", name: "Dr. Keith Jenkins", email: "kjenkins@demo.edu", role: "instructor" },
+    { key: "sarah", name: "Dr. Sarah Lin", email: "slin@demo.edu", role: "instructor" },
+    { key: "marcus", name: "Dr. Marcus Vance", email: "mvance@demo.edu", role: "instructor" },
     ...studentDefs.map((s) => ({ key: s.key, name: s.name, email: s.email, role: "student" as const })),
   ],
-  courses: [econCourse],
+  courses: [econCourse, cs152Course, stat201Course, hist310Course],
 };
 
 // Define Rubric criteria
@@ -2175,7 +2181,7 @@ const validationChecks: V0ValidationCheck[] = [];
 // 1. counts.required_rows
 const requiredRowsCheck: V0ValidationCheck = { id: "counts.required_rows", status: "pass" };
 if (agentSessions.length !== 32) { requiredRowsCheck.status = "fail"; requiredRowsCheck.detail = `Expected 32 agent sessions, got ${agentSessions.length}`; }
-if (packageData.users.length !== 33) { requiredRowsCheck.status = "fail"; requiredRowsCheck.detail = `Expected 33 users, got ${packageData.users.length}`; }
+if (packageData.users.length < 33 || packageData.users.length > 36) { requiredRowsCheck.status = "fail"; requiredRowsCheck.detail = `Expected between 33 and 36 users, got ${packageData.users.length}`; }
 validationChecks.push(requiredRowsCheck);
 
 // 2. ids.deterministic

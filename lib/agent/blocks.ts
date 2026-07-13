@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { rubricCriteriaSchema } from "@/lib/agent/session-parts";
 
 /**
  * The block registry, Atlas's generative-UI contract.
@@ -97,6 +98,38 @@ export const rubricBlockSchema = z.object({
     .max(10),
 });
 
+/**
+ * The v0 session rubric as a proposal payload: the SAME criteria shape the
+ * rubrics table stores and the grading pipeline reads (session-parts), plus
+ * the work-session assignment it targets. Applying writes a new rubric
+ * version and repoints the session assignment; grades already given stay
+ * pinned to the version that graded them.
+ */
+export const sessionRubricBlockSchema = z.object({
+  type: z.literal("session_rubric"),
+  assignmentId: z.string().uuid(),
+  title: z.string().min(3).max(200),
+  criteria: rubricCriteriaSchema,
+});
+
+/**
+ * A whole AI assignment as a proposal payload: the contract (brief, duration,
+ * transcript policy, side-notes toggle) and the rubric that grades it, both
+ * targeting an existing assignment. Creation happens in conversation with
+ * Atlas and lands here; applying writes the next rubric version and the
+ * session-assignment row in one transaction. The tab only sees and governs.
+ */
+export const aiAssignmentBlockSchema = z.object({
+  type: z.literal("ai_assignment"),
+  assignmentId: z.string().uuid(),
+  title: z.string().min(3).max(200),
+  instructions: z.string().min(10).max(2000),
+  durationMinutes: z.number().int().min(5).max(240),
+  transcriptPolicy: z.string().min(3).max(200),
+  personalRecordSideNotes: z.boolean(),
+  criteria: rubricCriteriaSchema,
+});
+
 /* ── student-facing response blocks (cue surface) ────────────── */
 
 export const explanationBlockSchema = z.object({
@@ -143,6 +176,8 @@ export const proposalBlockSchemas = {
   announcement: announcementBlockSchema,
   practice_set: practiceSetBlockSchema,
   rubric: rubricBlockSchema,
+  session_rubric: sessionRubricBlockSchema,
+  ai_assignment: aiAssignmentBlockSchema,
 } as const;
 
 export const blockSchema = z.discriminatedUnion("type", [
@@ -153,6 +188,8 @@ export const blockSchema = z.discriminatedUnion("type", [
   announcementBlockSchema,
   practiceSetBlockSchema,
   rubricBlockSchema,
+  sessionRubricBlockSchema,
+  aiAssignmentBlockSchema,
   explanationBlockSchema,
   answerBlockSchema,
 ]);
@@ -166,6 +203,8 @@ export type PageBlock = z.infer<typeof pageBlockSchema>;
 export type AnnouncementBlock = z.infer<typeof announcementBlockSchema>;
 export type PracticeSetBlock = z.infer<typeof practiceSetBlockSchema>;
 export type RubricBlock = z.infer<typeof rubricBlockSchema>;
+export type SessionRubricBlock = z.infer<typeof sessionRubricBlockSchema>;
+export type AiAssignmentBlock = z.infer<typeof aiAssignmentBlockSchema>;
 export type ExplanationBlock = z.infer<typeof explanationBlockSchema>;
 export type AnswerBlock = z.infer<typeof answerBlockSchema>;
 

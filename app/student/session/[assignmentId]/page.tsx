@@ -35,7 +35,7 @@ export default async function StudentSessionPage({ params }: { params: Promise<{
       <div className="mt-3">
         <PageHeader
           title={view.assignment.name}
-          course={`${view.course.code} / Work session`}
+          course={`${view.course.code} / AI assignment`}
           action={
             view.submitted ? (
               <StatusBadge tone="good">Submitted</StatusBadge>

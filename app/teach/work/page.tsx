@@ -3,16 +3,11 @@ import { auth } from "@/lib/auth";
 import { loadInstructorWorkspace, type InstructorWorkspace } from "@/lib/instructor/workspace";
 import { createAssignmentRecord, publishAssignment } from "@/lib/instructor/actions";
 import { PageHeader } from "@/components/teach/page-header";
-import { ActionButton, CodeList, StatusBadge, TextLink } from "@/components/atlas/primitives";
-import { EmptyState, ObjectiveChecklist } from "@/components/atlas/record";
+import { ActionButton, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { EmptyState } from "@/components/atlas/record";
 import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
-/** Graded work: one row per item, grading state up front, direct add below. */
-export default async function TeachWorkPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ new?: string }>;
-}) {
+export default async function TeachWorkPage({ searchParams }: { searchParams: Promise<{ new?: string }> }) {
   const session = await auth();
   const [workspace, params] = await Promise.all([loadInstructorWorkspace(session?.user), searchParams]);
   const openNew = params.new === "1";
@@ -50,31 +45,16 @@ export default async function TeachWorkPage({
         </div>
       )}
 
-      <details
-        id="new"
-        open={openNew}
-        className="mt-5 scroll-mt-24 rounded-panel border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-4 shadow-[var(--shadow-panel)]"
-      >
+      <details id="new" open={openNew} className="mt-5 scroll-mt-24 rounded-panel border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-4 shadow-[var(--shadow-panel)]">
         <summary className="cursor-pointer text-[0.875rem] font-semibold transition hover:text-[var(--color-accent-strong)]">Add work</summary>
         <form action={createAssignmentRecord} className="mt-4 grid max-w-xl gap-3">
           <label className="grid gap-1.5 text-[0.75rem] font-medium">
             Title
-            <input
-              name="title"
-              type="text"
-              required
-              placeholder="Problem Set 6: Regression diagnostics"
-              className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
-            />
+            <input name="title" type="text" required placeholder="Problem Set 6: Regression diagnostics" className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
           </label>
           <label className="grid gap-1.5 text-[0.75rem] font-medium">
             Instructions
-            <textarea
-              name="description"
-              rows={3}
-              placeholder="The task, the deliverable, and what good work looks like."
-              className="resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[0.875rem] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
-            />
+            <textarea name="description" rows={3} placeholder="The task, the deliverable, and what good work looks like." className="resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[0.875rem] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="grid gap-1.5 text-[0.75rem] font-medium">
@@ -86,12 +66,8 @@ export default async function TeachWorkPage({
               <input name="points" type="number" min={1} defaultValue={100} className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
             </label>
           </div>
-          <ObjectiveChecklist objectives={workspace.objectives} selectedCodes={[]} />
           <div>
-            <ActionButton>
-              <Plus size={14} strokeWidth={2} aria-hidden="true" />
-              <span className="ml-1.5">Add work</span>
-            </ActionButton>
+            <ActionButton><Plus size={14} strokeWidth={2} aria-hidden /><span className="ml-1.5">Add work</span></ActionButton>
           </div>
         </form>
       </details>
@@ -123,9 +99,6 @@ function WorkRow({
           {aiAssignment ? " / AI assignment" : ""}
         </p>
       </div>
-      <div className="hidden shrink-0 sm:block">
-        <CodeList codes={assignment.objectiveCodes} />
-      </div>
       {waiting > 0 ? <StatusBadge tone="warn">{waiting} ungraded</StatusBadge> : null}
       {approved ? (
         <StatusBadge tone="good">Live</StatusBadge>
@@ -134,8 +107,7 @@ function WorkRow({
           <input type="hidden" name="assignmentId" value={assignment.id} />
           <input type="hidden" name="returnTo" value="/teach/work" />
           <ActionButton variant="secondary" ariaLabel={`Publish ${assignment.title}`} title="Publish">
-            <Check size={13} strokeWidth={2} aria-hidden="true" />
-            <span className="ml-1">Publish</span>
+            <Check size={13} strokeWidth={2} aria-hidden /><span className="ml-1">Publish</span>
           </ActionButton>
         </form>
       )}

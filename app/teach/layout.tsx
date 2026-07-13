@@ -2,13 +2,9 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
+import { loadInstitutionName } from "@/lib/workspace/institution";
 import { AppShell, type NavSection } from "@/components/atlas/app-shell";
 
-/**
- * The teaching shell: the overview first, then the course itself, then the
- * Atlas surfaces. Course and term switching live on the overview header;
- * the account menu closes the column.
- */
 const teacherSections: NavSection[] = [
   {
     items: [{ href: "/teach", label: "Overview", icon: "dashboard", exact: true }],
@@ -38,18 +34,19 @@ const teacherSections: NavSection[] = [
 
 export default async function TeachLayout({ children }: { children: ReactNode }) {
   const session = await auth();
-  if (!session?.user) {
-    redirect("/sign-in");
-  }
-  if (!isInstructorLike(session.user.role)) {
-    redirect("/student");
-  }
-  if (!session.user.orgId) {
-    redirect("/sign-in");
-  }
+  if (!session?.user) redirect("/sign-in");
+  if (!isInstructorLike(session.user.role)) redirect("/student");
+  if (!session.user.orgId) redirect("/sign-in");
+
+  const institutionName = await loadInstitutionName(session.user.orgId);
 
   return (
-    <AppShell sections={teacherSections} userName={session.user.name} userEmail={session.user.email}>
+    <AppShell
+      sections={teacherSections}
+      institutionName={institutionName}
+      userName={session.user.name}
+      userEmail={session.user.email}
+    >
       {children}
     </AppShell>
   );

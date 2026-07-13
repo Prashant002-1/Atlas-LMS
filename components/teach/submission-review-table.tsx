@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import { gradeSubmission, markSubmissionMissing } from "@/lib/instructor/actions";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +17,7 @@ export type SubmissionReviewRow = {
   body: string | null;
 };
 
-type SubmissionFilter = "all" | SubmissionReviewRow["status"] | "selected";
+type SubmissionFilter = "all" | SubmissionReviewRow["status"];
 
 const statusLabel: Record<SubmissionReviewRow["status"], string> = {
   graded: "Graded",
@@ -39,7 +39,6 @@ const filterOptions: Array<{ value: SubmissionFilter; label: string }> = [
   { value: "graded", label: "Graded" },
   { value: "missing", label: "Missing" },
   { value: "open", label: "Not submitted" },
-  { value: "selected", label: "Selected" },
 ];
 
 export function SubmissionReviewTable({
@@ -53,39 +52,16 @@ export function SubmissionReviewTable({
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<SubmissionFilter>("all");
-  const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const visibleRows = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
     return rows.filter((row) => {
-      const key = rowKey(row);
       const matchesName = !normalizedQuery || row.studentName.toLocaleLowerCase().includes(normalizedQuery);
-      const matchesFilter = filter === "all" || (filter === "selected" ? selected.has(key) : row.status === filter);
+      const matchesFilter = filter === "all" || row.status === filter;
       return matchesName && matchesFilter;
     });
-  }, [filter, query, rows, selected]);
-
-  const visibleKeys = visibleRows.map(rowKey);
-  const allVisibleSelected = visibleKeys.length > 0 && visibleKeys.every((key) => selected.has(key));
-
-  function toggleSelected(key: string) {
-    setSelected((current) => {
-      const next = new Set(current);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }
-
-  function toggleAllVisible() {
-    setSelected((current) => {
-      const next = new Set(current);
-      if (allVisibleSelected) visibleKeys.forEach((key) => next.delete(key));
-      else visibleKeys.forEach((key) => next.add(key));
-      return next;
-    });
-  }
+  }, [filter, query, rows]);
 
   if (rows.length === 0) {
     return <p className="py-6 text-[0.84375rem] text-[var(--color-muted)]">No students are enrolled.</p>;
@@ -125,22 +101,11 @@ export function SubmissionReviewTable({
         </div>
       </div>
 
-      {selected.size > 0 ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-[0.75rem] text-[var(--color-muted)]">
-          <span>{selected.size} selected</span>
-          <button type="button" onClick={() => setFilter("selected")} className="font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_30%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">Show selected</button>
-          <button type="button" onClick={() => { setSelected(new Set()); if (filter === "selected") setFilter("all"); }} className="inline-flex items-center gap-1 font-medium text-[var(--color-muted)] hover:text-[var(--color-ink)]"><X size={12} aria-hidden />Clear</button>
-        </div>
-      ) : null}
-
       <div className="mt-4 overflow-hidden border-y border-[var(--color-border)]">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[58rem] border-collapse text-left">
+          <table className="w-full min-w-[54rem] border-collapse text-left">
             <thead>
               <tr className="text-[0.71875rem] text-[var(--color-muted)]">
-                <th scope="col" className="w-10 px-3 py-2.5">
-                  <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="Select visible students" className="size-4 accent-[var(--color-accent-strong)]" />
-                </th>
                 <th scope="col" className="px-3 py-2.5 font-medium">Student</th>
                 <th scope="col" className="px-3 py-2.5 font-medium">Response</th>
                 <th scope="col" className="px-3 py-2.5 font-medium">Status</th>
@@ -156,9 +121,6 @@ export function SubmissionReviewTable({
                 return (
                   <Fragment key={key}>
                     <tr className={cn("text-[0.8125rem] transition", open ? "bg-[var(--color-surface-muted)]" : "hover:bg-[var(--color-surface-muted)]")}>
-                      <td className="px-3 py-3.5">
-                        <input type="checkbox" checked={selected.has(key)} onChange={() => toggleSelected(key)} aria-label={`Select ${row.studentName}`} className="size-4 accent-[var(--color-accent-strong)]" />
-                      </td>
                       <th scope="row" className="px-3 py-3.5 font-medium text-[var(--color-ink)]">
                         {row.studentName}
                         <span className="mt-0.5 block text-[0.71875rem] font-normal text-[var(--color-faint)]">{row.standing}</span>
@@ -177,7 +139,7 @@ export function SubmissionReviewTable({
                     </tr>
                     {open ? (
                       <tr className="bg-[var(--color-surface-muted)]">
-                        <td colSpan={7} className="px-3 pb-5 pt-1">
+                        <td colSpan={6} className="px-3 pb-5 pt-1">
                           <SubmissionReview
                             assignmentId={assignmentId}
                             pointsPossible={pointsPossible}

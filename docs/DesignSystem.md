@@ -34,6 +34,7 @@ Show the record and direct controls. Do not assign work to the user, narrate the
 - A teacher should not need to infer what an object, status, or action means.
 - Do not use dashboard language such as `Needs action`, `Next`, `To do`, `course health`, generic `insights`, or tutorial hints.
 - A status is a fact, not decoration. Prefer quiet text and a small signal over repeated badge boxes. Reserve badges for exceptional states that must interrupt scanning.
+- Do not add row selection unless the selected records have a clear available action. Selection without an operation is false affordance.
 - Name things what they are: course, work, module, announcement, grades. Doctrine words like `course record` belong to the docs; the interface says course.
 - No explainer sentences on controls everyone knows. The action label should carry its meaning. Do not repeat the Review gate below every proposal button.
 - Atlas is represented by the mark or a plain label, never sparkle or wand iconography.

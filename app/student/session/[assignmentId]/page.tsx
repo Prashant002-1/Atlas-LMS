@@ -6,11 +6,7 @@ import { BackLink, StatusBadge } from "@/components/atlas/primitives";
 import { SessionRoom } from "@/components/session/session-room";
 import { JourneyReportPanel } from "@/components/session/journey-report-panel";
 
-/**
- * The work session surface. The assignment IS this session: a governed
- * conversation with the course agent, an evolving artifact, side notes from
- * the student's own record, and Submit freezing it all into the gradebook.
- */
+/** The assignment session, including the submitted session's grade when available. */
 export default async function StudentSessionPage({ params }: { params: Promise<{ assignmentId: string }> }) {
   const session = await auth();
   if (!session?.user) {
@@ -36,28 +32,19 @@ export default async function StudentSessionPage({ params }: { params: Promise<{
         <PageHeader
           title={view.assignment.name}
           course={`${view.course.code} / AI assignment`}
-          action={
-            view.submitted ? (
-              <StatusBadge tone="good">Submitted</StatusBadge>
-            ) : (
-              <StatusBadge tone="accent">Live</StatusBadge>
-            )
-          }
+          action={<StatusBadge tone={view.submitted ? "good" : "accent"}>{view.submitted ? "Submitted" : "Live"}</StatusBadge>}
         />
       </div>
 
       {view.report ? (
-        <div className="mb-4">
+        <div className="mb-6">
           <JourneyReportPanel report={view.report} assignmentId={view.assignment.id} />
         </div>
       ) : view.gradingPending ? (
-        <div className="mb-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
-          <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Journey report</p>
-          <p className="mt-1.5 text-[0.8125rem] leading-6 text-[var(--color-muted)]">
-            Grading is pending for this session. The rubric reads your transcript once a model key is configured; your
-            submission is safely frozen either way.
-          </p>
-        </div>
+        <section aria-labelledby="pending-grade-heading" className="mb-6 border-y border-[var(--color-border)] py-4">
+          <h2 id="pending-grade-heading" className="text-[0.875rem] font-semibold text-[var(--color-ink)]">Grade pending</h2>
+          <p className="mt-1 text-[0.8125rem] text-[var(--color-muted)]">Your submitted session is saved and waiting to be graded.</p>
+        </section>
       ) : null}
 
       <SessionRoom

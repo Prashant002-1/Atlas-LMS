@@ -9,12 +9,10 @@ import { ActionButton, BackLink, ButtonLink, CodeList, StatusBadge, TextLink } f
 const tone = { graded: "good", submitted: "accent", open: "neutral", missing: "warn" } as const;
 const label = { graded: "Done", submitted: "Submitted", open: "Open", missing: "Missing" } as const;
 
-/** One piece of work: the brief, the material behind it, your response. */
+/** One piece of work: the brief, the material behind it, and the student's response. */
 export default async function StudentWorkPage({ params }: { params: Promise<{ assignmentId: string }> }) {
   const session = await auth();
-  if (!session?.user) {
-    redirect("/sign-in?role=student");
-  }
+  if (!session?.user) redirect("/sign-in?role=student");
   const { assignmentId } = await params;
   const workspace = await loadStudentAssignmentWorkspace(session.user, assignmentId);
 
@@ -40,11 +38,7 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
       <BackLink href={`/student/course/${workspace.course.id}`}>{workspace.course.code}</BackLink>
 
       <div className="mt-3">
-        <PageHeader
-          title={assignment.name}
-          course={meta(assignment)}
-          action={<StatusBadge tone={tone[assignment.status]}>{label[assignment.status]}</StatusBadge>}
-        />
+        <PageHeader title={assignment.name} course={meta(assignment)} action={<StatusBadge tone={tone[assignment.status]}>{label[assignment.status]}</StatusBadge>} />
       </div>
 
       <section className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
@@ -53,21 +47,15 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
         ) : (
           <p className="text-[0.875rem] text-[var(--color-muted)]">No instructions are attached.</p>
         )}
-        {assignment.objectiveCodes.length > 0 ? (
-          <div className="mt-4">
-            <CodeList codes={assignment.objectiveCodes} />
-          </div>
-        ) : null}
+        {assignment.objectiveCodes.length > 0 ? <div className="mt-4"><CodeList codes={assignment.objectiveCodes} /></div> : null}
 
         {workspace.relatedMaterials.length > 0 ? (
           <div className="mt-5 border-t border-[var(--color-border)] pt-4">
-            <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Material behind this</p>
+            <p className="text-[0.75rem] font-medium text-[var(--color-muted)]">Course material</p>
             <div className="mt-2 space-y-1">
               {workspace.relatedMaterials.map((material) => (
                 <p key={material.id} className="text-[0.84375rem]">
-                  <TextLink href={`/student/material/${material.id}`}>
-                    Week {material.week}: {material.title}
-                  </TextLink>
+                  <TextLink href={`/student/material/${material.id}`}>Week {material.week}: {material.title}</TextLink>
                 </p>
               ))}
             </div>
@@ -76,16 +64,14 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
       </section>
 
       {sessionBundle ? (
-        <section className="mt-4 rounded-panel border border-[color-mix(in_oklch,var(--color-accent)_35%,var(--color-border))] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
-          <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-accent-strong)]">AI assignment</p>
-          <p className="mt-2 max-w-3xl text-[0.875rem] leading-6 text-[var(--color-muted)]">
-            This assignment is taken as a live session: you work the problem out loud with Atlas, your design evolves in
-            a side panel, and the reasoning journey itself is what gets graded. About {sessionBundle.config.durationMinutes}{" "}
-            minutes.
+        <section className="mt-4 border-y border-[var(--color-border)] py-5">
+          <p className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">AI assignment</p>
+          <p className="mt-1 max-w-3xl text-[0.8125rem] leading-6 text-[var(--color-muted)]">
+            Complete this assignment in a live session with Atlas. Your session transcript and final work are graded against the rubric. Allow about {sessionBundle.config.durationMinutes} minutes.
           </p>
-          <div className="mt-4">
-            <ButtonLink href={`/student/session/${assignment.id}`}>
-              {assignment.status === "open" || assignment.status === "missing" ? "Open the session" : "View your session"}
+          <div className="mt-3">
+            <ButtonLink href={`/student/session/${assignment.id}`} size="sm">
+              {assignment.status === "open" || assignment.status === "missing" ? "Open session" : "View session"}
             </ButtonLink>
           </div>
         </section>
@@ -93,7 +79,7 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
 
       {assignment.status === "graded" ? (
         <section className="mt-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
-          <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Result</p>
+          <p className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Grade</p>
           <p className="mt-2 text-[1.25rem] font-semibold">
             {typeof assignment.score === "number" ? Math.round(assignment.score) : ""}
             {assignment.points ? ` / ${Math.round(assignment.points)}` : ""}
@@ -104,7 +90,7 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
 
       {assignment.response ? (
         <section className="mt-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
-          <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Your response</p>
+          <p className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Your response</p>
           <p className="mt-2 max-w-3xl whitespace-pre-wrap text-[0.875rem] leading-6">{assignment.response}</p>
         </section>
       ) : null}
@@ -115,9 +101,7 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
           <form action={submitAssignment} className="mt-3 grid max-w-3xl gap-3">
             <input type="hidden" name="assignmentId" value={assignment.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
-            <label className="sr-only" htmlFor="response-body">
-              Response
-            </label>
+            <label className="sr-only" htmlFor="response-body">Response</label>
             <textarea
               id="response-body"
               name="body"
@@ -128,9 +112,7 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
               placeholder="Write your response here."
               className="w-full resize-y rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[0.875rem] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
-            <div>
-              <ActionButton>{canRevise ? "Update response" : "Submit response"}</ActionButton>
-            </div>
+            <div><ActionButton>{canRevise ? "Update response" : "Submit response"}</ActionButton></div>
           </form>
         </section>
       ) : null}

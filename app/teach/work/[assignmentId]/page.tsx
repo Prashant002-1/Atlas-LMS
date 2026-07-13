@@ -54,14 +54,14 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
           <InstructorWorkRecord workspace={workspace} />
           {sessionBundle ? (
             <section className="mt-4 rounded-panel border border-[color-mix(in_oklch,var(--color-accent)_35%,var(--color-border))] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
-              <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-accent-strong)]">Work session</p>
+              <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-accent-strong)]">AI assignment</p>
               <p className="mt-2 max-w-3xl text-[0.875rem] leading-6 text-[var(--color-muted)]">
-                Students take this assignment as a live session with Atlas and are graded on the reasoning journey. The
-                journey grid, class insight, and grading live in the session cockpit; the gradebook below reflects what
-                you finalize there.
+                Students take this assignment as a live session with Atlas and are graded on the reasoning journey.
+                Student journeys, the rubric, and class insight are one page in; the gradebook below reflects what you
+                finalize there.
               </p>
               <div className="mt-4">
-                <ButtonLink href={`/teach/atlas/${assignmentId}`}>Open session cockpit</ButtonLink>
+                <ButtonLink href={`/teach/ai-assignments/${assignmentId}`}>Journeys and rubric</ButtonLink>
               </div>
             </section>
           ) : null}

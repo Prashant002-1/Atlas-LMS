@@ -70,7 +70,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ ass
 
   const bundle = await loadSessionAssignmentBundle(user.orgId, assignmentId);
   if (!bundle) {
-    return NextResponse.json({ error: "This assignment is not a work session." }, { status: 404 });
+    return NextResponse.json({ error: "This assignment is not an AI assignment." }, { status: 404 });
   }
 
   const enrollment = await activeStudentEnrollment(user.orgId, bundle.assignment.courseId, user.id);

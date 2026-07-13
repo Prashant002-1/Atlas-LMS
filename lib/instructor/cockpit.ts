@@ -1,13 +1,16 @@
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import type { UIMessage } from "ai";
 import { db } from "@/lib/db";
 import {
   agentSessions,
-  agentTurns,
+  assignments,
   changeProposals,
+  courseAiPolicies,
   enrollments,
   evidenceSpans,
   journeyReports,
   classRollups,
+  rubrics,
   sessionAssignments,
   sessionSubmissions,
   users,
@@ -20,12 +23,15 @@ import {
   loadSessionAssignmentBundle,
   listArtifactStates,
   listSideNotes,
+  loadFullSessionTurns,
   type SessionAssignmentBundle,
 } from "@/lib/agent/session-store";
+import { listCommandSessions, loadCommandSession, turnsToUIMessages, type CommandSessionSummary } from "@/lib/agent/session";
 import { turnsFromSubmissionTranscript } from "@/lib/agent/grading";
-import { splitTextBySpans, turnPlainText, type TextSegment } from "@/lib/agent/transcript";
+import { splitTextBySpans, type TextSegment } from "@/lib/agent/transcript";
 import {
   parseJourneyScores,
+  parseRubricCriteria,
   type RubricCriterion,
   type RubricLevelName,
   type SideNoteCard,
@@ -87,34 +93,6 @@ export type JourneyGridCounts = {
 };
 
 /* ── views ──────────────────────────────────────────────────── */
-
-export type CockpitAssignmentSummary = {
-  id: string;
-  name: string;
-  dueAt: string | null;
-  durationMinutes: number;
-  personalRecordSideNotes: boolean;
-  rubricVersion: number;
-  counts: JourneyGridCounts;
-};
-
-export type PlanningSessionView = {
-  id: string;
-  title: string;
-  summary: string | null;
-  updatedAt: string;
-  turns: Array<{ role: string; text: string }>;
-};
-
-export type CockpitIndexView =
-  | { problem: CockpitProblem }
-  | {
-      problem?: undefined;
-      course: CockpitCourse;
-      assignments: CockpitAssignmentSummary[];
-      planningSessions: PlanningSessionView[];
-      pendingProposals: number;
-    };
 
 export type ClassInsightView = {
   stats: ClassRollupStats;
@@ -216,94 +194,6 @@ async function scopedCourse(actor?: Actor | null): Promise<{ course: CockpitCour
     };
   }
   return { course: { id: scope.course.id, code: scope.course.code, name: scope.course.name, term: scope.course.term } };
-}
-
-/** Every session assignment in the course, with grid counts, one pass each. */
-export async function loadCockpitIndex(actor?: Actor | null): Promise<CockpitIndexView> {
-  const scoped = await scopedCourse(actor);
-  if ("problem" in scoped) return { problem: scoped.problem };
-  const { course } = scoped;
-  const orgId = actor!.orgId!;
-
-  const configRows = await db
-    .select({
-      assignmentId: sessionAssignments.assignmentId,
-      durationMinutes: sessionAssignments.durationMinutes,
-      personalRecordSideNotes: sessionAssignments.personalRecordSideNotes,
-      rubricId: sessionAssignments.rubricId,
-    })
-    .from(sessionAssignments)
-    .where(and(eq(sessionAssignments.orgId, orgId), eq(sessionAssignments.courseId, course.id)));
-
-  const assignments: CockpitAssignmentSummary[] = [];
-  for (const config of configRows) {
-    const bundle = await loadSessionAssignmentBundle(orgId, config.assignmentId);
-    if (!bundle) continue;
-    const { counts } = await loadJourneyGrid(orgId, course.id, bundle);
-    assignments.push({
-      id: bundle.assignment.id,
-      name: bundle.assignment.name,
-      dueAt: bundle.assignment.dueAt ? bundle.assignment.dueAt.toISOString() : null,
-      durationMinutes: config.durationMinutes,
-      personalRecordSideNotes: config.personalRecordSideNotes,
-      rubricVersion: bundle.rubric.version,
-      counts,
-    });
-  }
-  assignments.sort((a, b) => (a.dueAt ?? "").localeCompare(b.dueAt ?? ""));
-
-  const planningRows = await db
-    .select({
-      id: agentSessions.id,
-      title: agentSessions.title,
-      summary: agentSessions.summary,
-      updatedAt: agentSessions.updatedAt,
-    })
-    .from(agentSessions)
-    .where(
-      and(
-        eq(agentSessions.orgId, orgId),
-        eq(agentSessions.courseId, course.id),
-        eq(agentSessions.surface, "command")
-      )
-    )
-    .orderBy(desc(agentSessions.updatedAt))
-    .limit(3);
-
-  const planningTurnRows = planningRows.length
-    ? await db
-        .select({ sessionId: agentTurns.sessionId, turnIndex: agentTurns.turnIndex, role: agentTurns.role, parts: agentTurns.parts })
-        .from(agentTurns)
-        .where(
-          and(
-            eq(agentTurns.orgId, orgId),
-            inArray(
-              agentTurns.sessionId,
-              planningRows.map((row) => row.id)
-            )
-          )
-        )
-        .orderBy(asc(agentTurns.turnIndex))
-    : [];
-
-  const planningSessions: PlanningSessionView[] = planningRows.map((row) => ({
-    id: row.id,
-    title: row.title ?? "Planning session",
-    summary: row.summary,
-    updatedAt: row.updatedAt.toISOString(),
-    turns: planningTurnRows
-      .filter((turn) => turn.sessionId === row.id)
-      .map((turn) => ({ role: turn.role, text: turnPlainText(turn.parts) })),
-  }));
-
-  const pendingRows = await db
-    .select({ id: changeProposals.id })
-    .from(changeProposals)
-    .where(
-      and(eq(changeProposals.orgId, orgId), eq(changeProposals.courseId, course.id), eq(changeProposals.status, "pending"))
-    );
-
-  return { course, assignments, planningSessions, pendingProposals: pendingRows.length };
 }
 
 /**
@@ -657,5 +547,232 @@ function buildDrillInReport(
     finalizedByName,
     createdAt: report.createdAt.toISOString(),
     criteria,
+  };
+}
+
+/* ── the planning room (professor profile threads) ──────────── */
+
+export type PlanningThreadRef = CommandSessionSummary;
+
+export type PlanningDraftRef = {
+  proposalId: string;
+  status: "pending" | "approved" | "rejected" | "applied";
+  kind: string;
+  summary: string;
+  createdAt: string;
+};
+
+export type PlanningWorkRef = {
+  assignmentId: string;
+  name: string;
+};
+
+export type PlanningRoomView =
+  | { problem: CockpitProblem }
+  | {
+      problem?: undefined;
+      course: CockpitCourse;
+      /** Every planning thread in the course, newest first. */
+      threads: PlanningThreadRef[];
+      /** The thread on screen, hydrated from rows; null renders a fresh room. */
+      active: { id: string; title: string; messages: UIMessage[] } | null;
+      /** Drafts this thread produced, so reopened cards show today's status. */
+      drafts: PlanningDraftRef[];
+      /** The course's AI assignments by name, for grounded conversation openers. */
+      work: PlanningWorkRef[];
+      pendingProposals: number;
+    };
+
+/**
+ * The planning room, read-only like everything in this file: threads come
+ * from the professor profile's session address (command surface, course
+ * anchor, this instructor, this course), the active thread hydrates from
+ * stored turns, and the rail reads the live session-work contracts. The
+ * requested thread must be the instructor's own in the course in view;
+ * anything else is a problem, never someone else's thread.
+ */
+export async function loadPlanningRoom(
+  actor: Actor | null | undefined,
+  requestedThreadId?: string
+): Promise<PlanningRoomView> {
+  const scoped = await scopedCourse(actor);
+  if ("problem" in scoped) return { problem: scoped.problem };
+  const { course } = scoped;
+  const orgId = actor!.orgId!;
+  const threadScope = { orgId, userId: actor!.id, courseId: course.id };
+
+  const threads = await listCommandSessions(threadScope);
+
+  let active: { id: string; title: string; messages: UIMessage[] } | null = null;
+  if (requestedThreadId && requestedThreadId !== "new") {
+    const thread = await loadCommandSession(threadScope, requestedThreadId);
+    if (!thread) {
+      return { problem: { title: "Thread unavailable", detail: "This planning thread is not yours in the course in view." } };
+    }
+    const turnRows = await loadFullSessionTurns(orgId, thread.id);
+    active = { id: thread.id, title: thread.title ?? "Planning thread", messages: turnsToUIMessages(turnRows) };
+  } else if (!requestedThreadId && threads.length > 0) {
+    const newest = threads[0];
+    const turnRows = await loadFullSessionTurns(orgId, newest.id);
+    active = { id: newest.id, title: newest.title, messages: turnsToUIMessages(turnRows) };
+  }
+
+  const draftRows = active
+    ? await db
+        .select({
+          id: changeProposals.id,
+          status: changeProposals.status,
+          kind: changeProposals.kind,
+          summary: changeProposals.summary,
+          createdAt: changeProposals.createdAt,
+        })
+        .from(changeProposals)
+        .where(
+          and(
+            eq(changeProposals.orgId, orgId),
+            eq(changeProposals.courseId, course.id),
+            eq(changeProposals.sessionId, active.id)
+          )
+        )
+        .orderBy(desc(changeProposals.createdAt))
+    : [];
+
+  const workRows = await db
+    .select({
+      assignmentId: sessionAssignments.assignmentId,
+      name: assignments.name,
+    })
+    .from(sessionAssignments)
+    .innerJoin(assignments, eq(assignments.id, sessionAssignments.assignmentId))
+    .where(and(eq(sessionAssignments.orgId, orgId), eq(sessionAssignments.courseId, course.id)))
+    .orderBy(asc(assignments.position));
+
+  const pendingRows = await db
+    .select({ id: changeProposals.id })
+    .from(changeProposals)
+    .where(
+      and(eq(changeProposals.orgId, orgId), eq(changeProposals.courseId, course.id), eq(changeProposals.status, "pending"))
+    );
+
+  return {
+    course,
+    threads,
+    active,
+    drafts: draftRows.map((row) => ({
+      proposalId: row.id,
+      status: row.status,
+      kind: row.kind,
+      summary: row.summary,
+      createdAt: row.createdAt.toISOString(),
+    })),
+    work: workRows.map((row) => ({ assignmentId: row.assignmentId, name: row.name })),
+    pendingProposals: pendingRows.length,
+  };
+}
+
+/* ── the AI assignments tab (the type's operational lens) ───── */
+
+export type AiAssignmentIndexRow = {
+  assignmentId: string;
+  name: string;
+  dueAt: string | null;
+  pointsPossible: number | null;
+  published: boolean;
+  durationMinutes: number;
+  personalRecordSideNotes: boolean;
+  rubricVersion: number;
+  criteriaCount: number;
+  /** Null for drafts (unpublished work has no sessions by construction). */
+  counts: JourneyGridCounts | null;
+};
+
+export type AiAssignmentPolicyFacts = {
+  explanationDepth: "hint" | "guided" | "full";
+  allowExplain: boolean;
+  allowPractice: boolean;
+  allowQuestions: boolean;
+  citationsRequired: boolean;
+  studentDailyLimit: number;
+};
+
+export type AiAssignmentIndexView =
+  | { problem: CockpitProblem }
+  | {
+      problem?: undefined;
+      course: CockpitCourse;
+      rows: AiAssignmentIndexRow[];
+      /** The course-wide AI policy as plain facts; edited in Settings. */
+      policy: AiAssignmentPolicyFacts | null;
+    };
+
+/**
+ * The AI assignments tab: see, inspect, govern. Every AI assignment in the
+ * course with its facts and class status, and the course AI policy stated
+ * plainly. Creation is not here; it happens in conversation with Atlas,
+ * through the Review gate. Read-only like everything in this file; the
+ * grade view stays one canonical page reached from here AND from Work.
+ */
+export async function loadAiAssignmentIndex(actor?: Actor | null): Promise<AiAssignmentIndexView> {
+  const scoped = await scopedCourse(actor);
+  if ("problem" in scoped) return { problem: scoped.problem };
+  const { course } = scoped;
+  const orgId = actor!.orgId!;
+
+  const configRows = await db
+    .select({
+      assignmentId: sessionAssignments.assignmentId,
+      durationMinutes: sessionAssignments.durationMinutes,
+      personalRecordSideNotes: sessionAssignments.personalRecordSideNotes,
+      name: assignments.name,
+      dueAt: assignments.dueAt,
+      pointsPossible: assignments.pointsPossible,
+      published: assignments.published,
+      rubricVersion: rubrics.version,
+      rubricCriteria: rubrics.criteria,
+    })
+    .from(sessionAssignments)
+    .innerJoin(assignments, eq(assignments.id, sessionAssignments.assignmentId))
+    .innerJoin(rubrics, eq(rubrics.id, sessionAssignments.rubricId))
+    .where(and(eq(sessionAssignments.orgId, orgId), eq(sessionAssignments.courseId, course.id)))
+    .orderBy(asc(assignments.position), asc(assignments.createdAt));
+
+  const rows: AiAssignmentIndexRow[] = [];
+  for (const config of configRows) {
+    let counts: JourneyGridCounts | null = null;
+    if (config.published) {
+      const bundle = await loadSessionAssignmentBundle(orgId, config.assignmentId);
+      if (bundle) counts = (await loadJourneyGrid(orgId, course.id, bundle)).counts;
+    }
+    rows.push({
+      assignmentId: config.assignmentId,
+      name: config.name,
+      dueAt: config.dueAt ? config.dueAt.toISOString() : null,
+      pointsPossible: config.pointsPossible,
+      published: config.published,
+      durationMinutes: config.durationMinutes,
+      personalRecordSideNotes: config.personalRecordSideNotes,
+      rubricVersion: config.rubricVersion,
+      criteriaCount: parseRubricCriteria(config.rubricCriteria)?.length ?? 0,
+      counts,
+    });
+  }
+
+  const [policyRow] = await db
+    .select({
+      explanationDepth: courseAiPolicies.explanationDepth,
+      allowExplain: courseAiPolicies.allowExplain,
+      allowPractice: courseAiPolicies.allowPractice,
+      allowQuestions: courseAiPolicies.allowQuestions,
+      citationsRequired: courseAiPolicies.citationsRequired,
+      studentDailyLimit: courseAiPolicies.studentDailyLimit,
+    })
+    .from(courseAiPolicies)
+    .where(and(eq(courseAiPolicies.orgId, orgId), eq(courseAiPolicies.courseId, course.id)))
+    .limit(1);
+
+  return {
+    course,
+    rows,
+    policy: policyRow ?? null,
   };
 }

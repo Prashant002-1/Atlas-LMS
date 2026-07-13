@@ -42,7 +42,7 @@ export default async function JourneyDrillInPage({ params }: { params: Promise<{
 
   return (
     <>
-      <BackLink href={`/teach/atlas/${view.assignment.id}`}>{view.assignment.name}</BackLink>
+      <BackLink href={`/teach/ai-assignments/${view.assignment.id}`}>{view.assignment.name}</BackLink>
 
       <div className="mt-3">
         <PageHeader

@@ -9,6 +9,7 @@ import {
   enrollments,
   learningObjectives,
   modules,
+  sessionAssignments,
   submissions,
   users,
 } from "@/lib/db/schema";
@@ -158,6 +159,8 @@ export type InstructorWorkspace = {
   objectives: Objective[];
   modules: ModuleDraft[];
   assignments: InstructorAssignment[];
+  /** Assignments taken as an AI assignment (a governed session with Atlas). */
+  aiAssignmentIds: string[];
   students: InstructorStudentProgress[];
   workProgress: InstructorWorkProgress[];
   notices: InstructorCourseNotice[];
@@ -270,6 +273,13 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
         : [];
 
     const assignmentIds = assignmentRows.map((assignment) => assignment.id);
+
+    // Which of these are AI assignments (taken as a governed session with
+    // Atlas): a plain fact on the work rows, not a separate showcase.
+    const aiAssignmentRows = await db
+      .select({ assignmentId: sessionAssignments.assignmentId })
+      .from(sessionAssignments)
+      .where(and(eq(sessionAssignments.orgId, actor.orgId), eq(sessionAssignments.courseId, course.id)));
     const assignmentAlignmentRows =
       assignmentIds.length > 0
         ? await db
@@ -446,6 +456,7 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
       objectives: toObjectives(objectiveRows, moduleRows, assignmentRows, [...moduleAlignmentRows, ...assignmentAlignmentRows]),
       modules: toModuleDrafts(moduleRows, moduleAlignmentRows, objectiveRows),
       assignments: toAssignmentDrafts(assignmentRows, assignmentAlignmentRows, objectiveRows),
+      aiAssignmentIds: aiAssignmentRows.map((row) => row.assignmentId),
       students: toStudentProgress(studentEnrollmentRows, studentRows, assignmentRows, submissionRows),
       workProgress: toWorkProgress(assignmentRows, assignmentAlignmentRows, objectiveRows, submissionRows, studentEnrollmentRows.length),
       notices: noticeRows,
@@ -1034,6 +1045,7 @@ function unavailableWorkspace(title: string, detail: string, scope?: WorkspaceSc
     objectives: [],
     modules: [],
     assignments: [],
+    aiAssignmentIds: [],
     students: [],
     workProgress: [],
     notices: [],

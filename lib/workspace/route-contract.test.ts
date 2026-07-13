@@ -29,6 +29,10 @@ const requiredRoutes = [
   "/api/session/[assignmentId]",
   "/teach",
   "/teach/atlas",
+  "/api/atlas/planning",
+  "/teach/ai-assignments",
+  "/teach/ai-assignments/[assignmentId]",
+  "/teach/ai-assignments/journey/[submissionId]",
   "/teach/review",
   "/teach/weeks",
   "/teach/work",
@@ -41,8 +45,6 @@ const requiredRoutes = [
   "/teach/student/[studentId]",
   "/teach/week/[moduleId]",
   "/teach/work/[assignmentId]",
-  "/teach/atlas/[assignmentId]",
-  "/teach/atlas/journey/[submissionId]",
 ];
 
 test("required routes exist in the App Router tree", () => {
@@ -106,8 +108,9 @@ test("phase 0 clears the obsolete command, cue, and second-runtime surfaces", ()
   assertSourceExcludes("proxy.ts", '"/eve"');
   assertSourceExcludes(".env.example", "ATLAS_COMMAND_RUNTIME");
   assertSourceExcludes("app/teach/atlas/page.tsx", "CommandConsole");
-  // Phase 0 left a shell here; Phase 4 mounts the session cockpit in its place.
-  assertSourceIncludes("app/teach/atlas/page.tsx", "loadCockpitIndex");
+  // Phase 0 left a shell here; Phase 4 mounted the cockpit index; issue 27
+  // round 2 makes the agent itself the surface (chat first, records in Work).
+  assertSourceIncludes("app/teach/atlas/page.tsx", "loadPlanningRoom");
 });
 
 test("active source carries no old runtime references", () => {
@@ -222,7 +225,6 @@ test("phase 3 makes the rubric read the transcript", () => {
 
 test("phase 4 closes the loop on the professor side", () => {
   // The cockpit is a read layer over stored rows; mutations live in actions.
-  assertSourceIncludes("lib/instructor/cockpit.ts", "export async function loadCockpitIndex");
   assertSourceIncludes("lib/instructor/cockpit.ts", "export async function loadAssignmentCockpit");
   assertSourceIncludes("lib/instructor/cockpit.ts", "export async function loadJourneyDrillIn");
   assertSourceExcludes("lib/instructor/cockpit.ts", "recomputeClassRollup");
@@ -250,11 +252,79 @@ test("phase 4 closes the loop on the professor side", () => {
 
   // The drill-in shows receipts: evidence highlighted in the frozen transcript.
   assertSourceIncludes("lib/agent/transcript.ts", "export function splitTextBySpans");
-  assertSourceIncludes("app/teach/atlas/journey/[submissionId]/page.tsx", "TranscriptView");
-  assertSourceIncludes("app/teach/atlas/journey/[submissionId]/page.tsx", "ProfessorReportPanel");
-  assertSourceIncludes("app/teach/atlas/[assignmentId]/page.tsx", "JourneyGrid");
-  assertSourceIncludes("app/teach/atlas/[assignmentId]/page.tsx", "ClassInsight");
-  assertSourceIncludes("app/teach/work/[assignmentId]/page.tsx", "Open session cockpit");
+  assertSourceIncludes("app/teach/ai-assignments/journey/[submissionId]/page.tsx", "TranscriptView");
+  assertSourceIncludes("app/teach/ai-assignments/journey/[submissionId]/page.tsx", "ProfessorReportPanel");
+  assertSourceIncludes("app/teach/ai-assignments/[assignmentId]/page.tsx", "JourneyGrid");
+  assertSourceIncludes("app/teach/ai-assignments/[assignmentId]/page.tsx", "ClassInsight");
+  assertSourceIncludes("app/teach/work/[assignmentId]/page.tsx", "Journeys and rubric");
+});
+
+test("issue 27: the professor plans with Atlas across the profile boundary", () => {
+  // The profile registry is the boundary contract, and the stores read the
+  // session addresses from it instead of carrying their own literals.
+  assertSourceIncludes("lib/agent/profiles.ts", "export const agentProfiles");
+  assertSourceIncludes("lib/agent/profiles.ts", "professor:");
+  assertSourceIncludes("lib/agent/profiles.ts", "session:");
+  assertSourceIncludes("lib/agent/profiles.ts", "study:");
+  assertSourceIncludes("lib/agent/session-store.ts", "agentProfiles.session");
+  assertSourceIncludes("lib/agent/session.ts", "agentProfiles.professor");
+
+  // The planning runtime rides the same durability seam as the student
+  // session (ADR-0010): the professor's turn is a row before any generation.
+  assertSourceIncludes("lib/agent/professor-runtime.ts", "export async function runProfessorTurn");
+  assertSourceIncludes("lib/agent/professor-runtime.ts", 'persistSessionTurn(session, "user"');
+  assertSourceIncludes("lib/agent/professor-runtime.ts", "createUIMessageStream");
+
+  // The endpoint fails closed: instructor role, course in view, org model key.
+  assertSourceIncludes("app/api/atlas/planning/route.ts", "isInstructorLike");
+  assertSourceIncludes("app/api/atlas/planning/route.ts", "resolveModelForOrg");
+  assertSourceIncludes("app/api/atlas/planning/route.ts", "loadCommandSession");
+
+  // The one door: planning tools draft proposals with session provenance and
+  // never mutate a live course record; applying stays Review's job.
+  assertSourceIncludes("lib/agent/professor-tools.ts", "changeProposals");
+  assertSourceIncludes("lib/agent/professor-tools.ts", "sessionId");
+  assertSourceExcludes("lib/agent/professor-tools.ts", ".update(");
+  assertSourceExcludes("lib/agent/professor-tools.ts", "applyProposal");
+
+  // The rubric draft round-trips the apply gate's own block schema, and the
+  // gate materializes it as a NEW rubric version on the work session.
+  assertSourceIncludes("lib/agent/rubric-proposal.ts", "parseStoredBlock");
+  assertSourceIncludes("lib/agent/blocks.ts", "session_rubric");
+  assertSourceIncludes("lib/agent/apply.ts", 'block.type === "session_rubric"');
+
+  // The agent IS the Atlas surface: opening /teach/atlas opens the
+  // conversation, threads switch in place, and the shell never locks or
+  // strips itself for a route (the old immersive mode is gone for good).
+  assertSourceIncludes("lib/instructor/cockpit.ts", "export async function loadPlanningRoom");
+  assertSourceIncludes("app/teach/atlas/page.tsx", "PlanningRoom");
+  assertSourceExcludes("components/atlas/app-shell.tsx", "immersive");
+  assertSourceIncludes("components/planning/planning-room.tsx", "useChat");
+  assertSourceIncludes("components/planning/planning-room.tsx", "RubricCard");
+  assertSourceIncludes("components/planning/rubric-card.tsx", "diffRubrics");
+  assertSourceIncludes("components/teach/proposals.tsx", "session_rubric");
+
+  // AI assignments are ordinary course records: named plainly, entered from
+  // the graded Work area, never showcased as a special list on the agent page.
+  assertSourceIncludes("app/teach/work/page.tsx", "AI assignment");
+  assertSourceIncludes("app/teach/work/[assignmentId]/page.tsx", "AI assignment");
+  assertSourceExcludes("app/teach/atlas/page.tsx", "Work sessions");
+
+  // The type also has its own operational lens: the AI assignments tab in
+  // the Atlas group. See, inspect, govern; the tab carries no forms and no
+  // creation module. An AI assignment is created only in conversation with
+  // Atlas, as ONE draft (contract + rubric) through the Review gate.
+  assertSourceIncludes("app/teach/layout.tsx", '"/teach/ai-assignments"');
+  assertSourceIncludes("app/teach/ai-assignments/page.tsx", "loadAiAssignmentIndex");
+  assertSourceIncludes("app/teach/ai-assignments/page.tsx", "JourneyGridSummary");
+  assertSourceExcludes("app/teach/ai-assignments/page.tsx", "<form");
+  assertSourceExcludes("app/teach/ai-assignments/page.tsx", "ActionButton");
+  assertSourceIncludes("lib/agent/professor-tools.ts", "propose_ai_assignment");
+  assertSourceIncludes("lib/agent/apply.ts", 'block.type === "ai_assignment"');
+  assertSourceIncludes("lib/agent/rubric-proposal.ts", "export function starterRubricCriteria");
+  assertSourceExcludes("lib/instructor/session-actions.ts", "createAiAssignment");
+  assertSourceIncludes("components/teach/proposals.tsx", "ai_assignment");
+  assertSourceExcludes("components/planning/planning-room.tsx", "WorkSessionsPanel");
 });
 
 test("legacy blocks remain persisted but not rendered by the removed registry UI", () => {

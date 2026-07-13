@@ -67,7 +67,8 @@ async function requireCourse(actor: { id: string; orgId: string; role: "superadm
 
 function revalidateCockpit(assignmentId: string, studentId?: string) {
   revalidatePath("/teach/atlas");
-  revalidatePath(`/teach/atlas/${assignmentId}`);
+  revalidatePath("/teach/ai-assignments");
+  revalidatePath(`/teach/ai-assignments/${assignmentId}`);
   revalidatePath("/teach");
   revalidatePath(`/teach/work/${assignmentId}`);
   revalidatePath("/student");
@@ -175,8 +176,8 @@ export async function finalizeJourneyReport(formData: FormData) {
   });
 
   revalidateCockpit(row.report.assignmentId, row.report.userId);
-  revalidatePath(`/teach/atlas/journey/${row.submission.id}`);
-  redirect(`/teach/atlas/journey/${row.submission.id}`);
+  revalidatePath(`/teach/ai-assignments/journey/${row.submission.id}`);
+  redirect(`/teach/ai-assignments/journey/${row.submission.id}`);
 }
 
 /* ── regrade: rerun the pipeline on a draft ─────────────────── */
@@ -226,8 +227,8 @@ export async function regradeJourneyReport(formData: FormData) {
   });
 
   revalidateCockpit(submission.assignmentId);
-  revalidatePath(`/teach/atlas/journey/${submissionId}`);
-  redirect(`/teach/atlas/journey/${submissionId}`);
+  revalidatePath(`/teach/ai-assignments/journey/${submissionId}`);
+  redirect(`/teach/ai-assignments/journey/${submissionId}`);
 }
 
 /* ── class insight ──────────────────────────────────────────── */
@@ -250,9 +251,9 @@ export async function refreshClassRollup(formData: FormData) {
     narrator: resolved?.model,
   });
 
-  revalidatePath(`/teach/atlas/${assignmentId}`);
-  revalidatePath("/teach/atlas");
-  redirect(`/teach/atlas/${assignmentId}`);
+  revalidatePath(`/teach/ai-assignments/${assignmentId}`);
+  revalidatePath("/teach/ai-assignments");
+  redirect(`/teach/ai-assignments/${assignmentId}`);
 }
 
 /**
@@ -358,7 +359,7 @@ export async function proposePracticeSet(formData: FormData) {
   });
 
   revalidatePath("/teach/review");
-  revalidatePath(`/teach/atlas/${assignmentId}`);
+  revalidatePath(`/teach/ai-assignments/${assignmentId}`);
   redirect("/teach/review");
 }
 
@@ -403,7 +404,7 @@ export async function updateSessionContract(formData: FormData) {
     .where(and(eq(sessionAssignments.orgId, actor.orgId), eq(sessionAssignments.assignmentId, assignmentId)));
 
   revalidateCockpit(assignmentId);
-  redirect(`/teach/atlas/${assignmentId}`);
+  redirect(`/teach/ai-assignments/${assignmentId}`);
 }
 
 /* ── rubric weights (honest versioning) ─────────────────────── */
@@ -446,7 +447,7 @@ export async function updateRubricWeights(formData: FormData) {
 
   const changed = criteria.some((criterion) => nextWeights.get(criterion.key) !== criterion.weight);
   if (!changed) {
-    redirect(`/teach/atlas/${assignmentId}`);
+    redirect(`/teach/ai-assignments/${assignmentId}`);
   }
 
   const rescaled = criteria.map((criterion) => rescaleCriterionToWeight(criterion, nextWeights.get(criterion.key)!));
@@ -485,5 +486,5 @@ export async function updateRubricWeights(formData: FormData) {
   });
 
   revalidateCockpit(assignmentId);
-  redirect(`/teach/atlas/${assignmentId}`);
+  redirect(`/teach/ai-assignments/${assignmentId}`);
 }

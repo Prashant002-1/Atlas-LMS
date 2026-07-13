@@ -4,7 +4,7 @@ import { submitAssignment } from "@/lib/student/actions";
 import { loadStudentAssignmentWorkspace, type StudentAssignment } from "@/lib/student/workspace";
 import { loadSessionAssignmentBundle } from "@/lib/agent/session-store";
 import { PageHeader } from "@/components/teach/page-header";
-import { ActionButton, BackLink, ButtonLink, CodeList, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { ActionButton, BackLink, ButtonLink, StatusBadge, TextLink } from "@/components/atlas/primitives";
 
 const tone = { graded: "good", submitted: "accent", open: "neutral", missing: "warn" } as const;
 const label = { graded: "Done", submitted: "Submitted", open: "Open", missing: "Missing" } as const;
@@ -47,8 +47,6 @@ export default async function StudentWorkPage({ params }: { params: Promise<{ as
         ) : (
           <p className="text-[0.875rem] text-[var(--color-muted)]">No instructions are attached.</p>
         )}
-        {assignment.objectiveCodes.length > 0 ? <div className="mt-4"><CodeList codes={assignment.objectiveCodes} /></div> : null}
-
         {workspace.relatedMaterials.length > 0 ? (
           <div className="mt-5 border-t border-[var(--color-border)] pt-4">
             <p className="text-[0.75rem] font-medium text-[var(--color-muted)]">Course material</p>

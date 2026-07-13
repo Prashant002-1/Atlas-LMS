@@ -2,17 +2,14 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { loadStudentMaterialWorkspace } from "@/lib/student/workspace";
 import { PageHeader } from "@/components/teach/page-header";
-import { BackLink, CodeList, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { BackLink, StatusBadge, TextLink } from "@/components/atlas/primitives";
 
 const tone = { graded: "good", submitted: "accent", open: "neutral", missing: "warn" } as const;
 const label = { graded: "Done", submitted: "Submitted", open: "Open", missing: "Missing" } as const;
 
-/** One week of material, with the work it leads to and the cues to go deeper. */
 export default async function StudentMaterialPage({ params }: { params: Promise<{ moduleId: string }> }) {
   const session = await auth();
-  if (!session?.user) {
-    redirect("/sign-in?role=student");
-  }
+  if (!session?.user) redirect("/sign-in?role=student");
   const { moduleId } = await params;
   const workspace = await loadStudentMaterialWorkspace(session.user, moduleId);
 
@@ -32,10 +29,7 @@ export default async function StudentMaterialPage({ params }: { params: Promise<
   return (
     <>
       <BackLink href={`/student/course/${workspace.course.id}`}>{workspace.course.code}</BackLink>
-
-      <div className="mt-3">
-        <PageHeader title={material.title} course={`Week ${material.week}`} />
-      </div>
+      <div className="mt-3"><PageHeader title={material.title} course={`Week ${material.week}`} /></div>
 
       <section className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
         {material.summary ? (
@@ -43,18 +37,11 @@ export default async function StudentMaterialPage({ params }: { params: Promise<
         ) : (
           <p className="text-[0.875rem] text-[var(--color-muted)]">No summary is attached to this material.</p>
         )}
-        {material.objectiveCodes.length > 0 ? (
-          <div className="mt-4">
-            <CodeList codes={material.objectiveCodes} />
-          </div>
-        ) : null}
       </section>
 
       {workspace.relatedAssignments.length > 0 ? (
         <section className="mt-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-          <p className="atlas-mono border-b border-[var(--color-border)] px-5 py-3 text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">
-            Work this leads to
-          </p>
+          <p className="border-b border-[var(--color-border)] px-5 py-3 text-[0.75rem] font-medium text-[var(--color-muted)]">Related work</p>
           <div className="divide-y divide-[var(--color-border)]">
             {workspace.relatedAssignments.map((assignment) => (
               <div key={assignment.id} className="flex items-center justify-between gap-3 px-5 py-3">

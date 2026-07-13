@@ -1,7 +1,6 @@
 import { Check } from "lucide-react";
 import { redirect } from "next/navigation";
-import { ActionButton, BackLink, ButtonLink, CodeList, TextLink } from "@/components/atlas/primitives";
-import { ObjectiveChecklist } from "@/components/atlas/record";
+import { ActionButton, BackLink, ButtonLink, TextLink } from "@/components/atlas/primitives";
 import { PageHeader } from "@/components/teach/page-header";
 import { SubmissionReviewTable, type SubmissionReviewRow } from "@/components/teach/submission-review-table";
 import { auth } from "@/lib/auth";
@@ -65,7 +64,6 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
         <span>{assignment.status === "approved" ? "Live" : "Draft"}</span>
         {assignment.dueAt ? <span>Due {formatShortDate(assignment.dueAt)}</span> : null}
         {assignment.points ? <span>{Math.round(assignment.points)} points</span> : null}
-        {assignment.objectiveCodes.length > 0 ? <CodeList codes={assignment.objectiveCodes} /> : null}
       </div>
 
       {assignment.detail ? <p className="mt-6 max-w-4xl whitespace-pre-wrap text-[0.90625rem] leading-7 text-[var(--color-ink)]">{assignment.detail}</p> : null}
@@ -82,7 +80,7 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
         </div>
       ) : null}
 
-      {assignment.id ? <AssignmentEditForm assignment={assignment} objectives={workspace.courseObjectives} /> : null}
+      {assignment.id ? <AssignmentEditForm assignment={assignment} /> : null}
 
       <dl className="mt-8 grid border-y border-[var(--color-border)] sm:grid-cols-2 lg:grid-cols-4">
         <SummaryFact label="Submitted" value={`${progress?.submitted ?? 0} / ${workspace.submissions.length}`} />
@@ -126,7 +124,7 @@ function AssignmentMaterials({ materials }: { materials: InstructorAssignmentWor
   );
 }
 
-function AssignmentEditForm({ assignment, objectives }: { assignment: InstructorAssignment; objectives: InstructorAssignmentWorkspace["courseObjectives"] }) {
+function AssignmentEditForm({ assignment }: { assignment: InstructorAssignment }) {
   if (!assignment.id) return null;
   return (
     <details className="group mt-4 max-w-4xl">
@@ -134,7 +132,7 @@ function AssignmentEditForm({ assignment, objectives }: { assignment: Instructor
       <form action={updateAssignmentRecord} className="mt-4 grid gap-3 border-t border-[var(--color-border)] pt-4">
         <input type="hidden" name="assignmentId" value={assignment.id} />
         <input type="hidden" name="returnTo" value={`/teach/work/${assignment.id}`} />
-        <ObjectiveChecklist objectives={objectives} selectedCodes={assignment.objectiveCodes} />
+        {assignment.objectiveCodes.map((code) => <input key={code} type="hidden" name="objectiveCode" value={code} />)}
         <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Title
           <input name="title" type="text" defaultValue={assignment.title} required className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />

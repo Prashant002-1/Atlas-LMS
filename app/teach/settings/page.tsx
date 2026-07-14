@@ -52,7 +52,16 @@ export default async function TeachSettingsPage() {
       .from(sessionAssignments)
       .innerJoin(assignments, eq(assignments.id, sessionAssignments.assignmentId))
       .innerJoin(rubrics, eq(rubrics.id, sessionAssignments.rubricId))
-      .where(and(eq(sessionAssignments.orgId, session.user.orgId), eq(sessionAssignments.courseId, course.id)))
+      .where(
+        and(
+          eq(sessionAssignments.orgId, session.user.orgId),
+          eq(sessionAssignments.courseId, course.id),
+          eq(assignments.orgId, session.user.orgId),
+          eq(assignments.courseId, course.id),
+          eq(rubrics.orgId, session.user.orgId),
+          eq(rubrics.courseId, course.id)
+        )
+      )
       .orderBy(asc(assignments.position), asc(assignments.createdAt)),
     listOrgProviderKeys(session.user.orgId),
     resolveModelForOrg(session.user.orgId),

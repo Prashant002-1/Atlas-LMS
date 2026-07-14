@@ -108,6 +108,11 @@ test("creation and edits open as deliberate dialogs", () => {
   assert.equal(moduleDetail.includes("ModuleSwitcher"), true);
   assert.equal(moduleDetail.includes("EditModuleDialog"), true);
   assert.equal(moduleDetail.includes('Panel title="Work"'), false);
+  const switcher = source("components/teach/module-switcher.tsx");
+  assert.equal(switcher.includes("onMouseEnter"), true);
+  assert.equal(switcher.includes("ChevronDown"), false);
+  assert.equal(switcher.includes("Scroll to switch modules"), false);
+  assert.equal(switcher.includes("overflow-y-auto"), false);
   assert.equal(assignmentDetail.includes("AssignmentEditDialog"), true);
   assert.equal(assignmentDetail.includes("<details"), false);
 });

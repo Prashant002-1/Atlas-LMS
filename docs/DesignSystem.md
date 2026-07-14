@@ -28,7 +28,7 @@ Management surfaces are table-first when people need to compare, filter, or scan
 
 Creation starts from a visible page-header action. The form opens in a focused dialog and never sits permanently in the record list. Editing follows the same rule: show the record first, then open a deliberate edit surface. Do not place a large textbox panel above or below a management list.
 
-Announcements read like a professional message archive: searchable rows, author, subject, message preview, exact timestamp, and a clickable full-message view. Module detail may use a compact previous/current/next switcher with a scrollable week list so moving through the course never requires returning to the index.
+Announcements read like a professional message archive: searchable rows, author, subject, message preview, exact timestamp, and a clickable full-message view. Module detail may use a compact previous/current/next switcher whose current-week control opens a complete clickable week menu on hover or click, so moving through the course never requires returning to the index.
 
 Configuration is read-first. Show the facts needed for the task, then put forms behind a clear Edit control. Rubrics are viewed as rubrics and changed through Atlas and Review; grading pages do not ask professors to rebalance point arithmetic inline.
 

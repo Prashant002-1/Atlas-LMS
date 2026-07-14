@@ -38,14 +38,14 @@ test("published is quiet while draft and review remain visible", () => {
     assert.equal(source(file).includes('>Live<'), false, `${file} should not label the normal state Live`);
   }
 
-  assert.equal(source("app/teach/work/page.tsx").includes("Publish"), true);
+  assert.equal(source("components/teach/work-table.tsx").includes("Publish"), true);
   assert.equal(source("app/teach/weeks/page.tsx").includes("Review"), true);
   assert.equal(source("app/teach/work/[assignmentId]/page.tsx").includes("Draft"), true);
 });
 
 test("publish and sign out use the quiet text scale", () => {
   for (const file of [
-    "app/teach/work/page.tsx",
+    "components/teach/work-table.tsx",
     "app/teach/weeks/page.tsx",
     "app/teach/week/[moduleId]/page.tsx",
     "app/teach/work/[assignmentId]/page.tsx",
@@ -64,21 +64,52 @@ test("publish and sign out use the quiet text scale", () => {
   assert.equal(shell.includes("<LogOut size={12}"), false);
 });
 
-test("gradebook is an explicit comparison table", () => {
+test("gradebook is an explicit searchable comparison table", () => {
   const page = source("app/teach/gradebook/page.tsx");
+  const table = source("components/teach/gradebook-table.tsx");
+  assert.equal(page.includes("GradebookTable"), true);
   for (const expected of [
     "Course grades",
-    "students /",
-    "assignments",
+    "Search students",
+    "Filter assignment",
+    "Filter grade status",
     "sticky left-0",
     "sticky right-0",
     "assignmentMeta",
     "Submitted",
     "Missing",
   ]) {
-    assert.equal(page.includes(expected), true, `gradebook should include ${expected}`);
+    assert.equal(table.includes(expected), true, `gradebook should include ${expected}`);
   }
   assert.equal(page.includes('from "lucide-react"'), false);
+});
+
+test("teacher work states are dated and filterable", () => {
+  const page = source("app/teach/work/page.tsx");
+  const table = source("components/teach/work-table.tsx");
+  assert.equal(page.includes("WorkTable"), true);
+  for (const expected of ["Past due", "Upcoming", "No due date", "Draft", "Search assignments", "Filter assignments", "Not submitted"]) {
+    assert.equal(table.includes(expected), true, `Work should include ${expected}`);
+  }
+});
+
+test("creation and edits open as deliberate dialogs", () => {
+  const announcements = source("app/teach/announcements/page.tsx");
+  const modules = source("app/teach/weeks/page.tsx");
+  const moduleDetail = source("app/teach/week/[moduleId]/page.tsx");
+  const assignmentDetail = source("app/teach/work/[assignmentId]/page.tsx");
+
+  assert.equal(announcements.includes("NewAnnouncementDialog"), true);
+  assert.equal(announcements.includes("AnnouncementList"), true);
+  assert.equal(announcements.includes("Post to course"), false);
+  assert.equal(source("app/teach/announcements/[announcementId]/page.tsx").includes("Markdown"), true);
+  assert.equal(modules.includes("NewModuleDialog"), true);
+  assert.equal(modules.includes("<details"), false);
+  assert.equal(moduleDetail.includes("ModuleSwitcher"), true);
+  assert.equal(moduleDetail.includes("EditModuleDialog"), true);
+  assert.equal(moduleDetail.includes('Panel title="Work"'), false);
+  assert.equal(assignmentDetail.includes("AssignmentEditDialog"), true);
+  assert.equal(assignmentDetail.includes("<details"), false);
 });
 
 test("settings reflects the real Atlas control scopes", () => {

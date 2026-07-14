@@ -49,7 +49,8 @@ export default async function TeachOverviewPage() {
             <Plus size={13} strokeWidth={2} aria-hidden className="mr-1.5" />
             New module
           </ButtonLink>
-          <ButtonLink href="/teach/announcements#new" variant="secondary" size="sm" icon={false}>
+          {/* /teach/announcements#new remains the legacy deep-link marker; the dialog uses ?new=1. */}
+          <ButtonLink href="/teach/announcements?new=1" variant="secondary" size="sm" icon={false}>
             <Plus size={13} strokeWidth={2} aria-hidden className="mr-1.5" />
             New announcement
           </ButtonLink>
@@ -131,7 +132,7 @@ export default async function TeachOverviewPage() {
                   art="atlas"
                   title="No announcements"
                   detail="Nothing has been posted to this course yet."
-                  action={<TextLink href="/teach/announcements#new" className="text-[0.8125rem]">New announcement</TextLink>}
+                  action={<TextLink href="/teach/announcements?new=1" className="text-[0.8125rem]">New announcement</TextLink>}
                 />
               )}
             </Panel>

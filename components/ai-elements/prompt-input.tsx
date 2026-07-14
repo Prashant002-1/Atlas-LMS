@@ -10,13 +10,6 @@ import {
 import { ArrowUpIcon, Loader2Icon, SquareIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/**
- * PromptInput (AI SDK Elements). A composer: a bordered surface with an
- * auto-resizing textarea (Enter submits, Shift+Enter newlines) and a toolbar
- * holding tools and a status-aware submit/stop button. Faithful to the registry
- * API surface Atlas uses (PromptInput / PromptInputTextarea / PromptInputToolbar
- * / PromptInputTools / PromptInputButton / PromptInputSubmit) on Atlas tokens.
- */
 export type PromptInputMessage = { text: string; files?: File[] };
 export type ChatStatus = "submitted" | "streaming" | "ready" | "error";
 
@@ -70,7 +63,7 @@ export function PromptInputTextarea({
         }
       }}
       className={cn(
-        "max-h-[12.5rem] w-full resize-none bg-transparent px-3.5 pt-3 pb-1 text-[0.875rem] leading-6 text-[var(--color-ink)] outline-none placeholder:text-[var(--color-faint)] disabled:opacity-60",
+        "max-h-[12.5rem] w-full resize-none bg-transparent px-3.5 pb-1 pt-3 text-[0.875rem] leading-6 text-[var(--color-ink)] outline-none placeholder:text-[var(--color-faint)] disabled:opacity-60",
         className
       )}
       {...props}
@@ -105,26 +98,29 @@ export function PromptInputSubmit({
   status = "ready",
   disabled,
   className,
+  onStop,
 }: {
   status?: ChatStatus;
   disabled?: boolean;
   className?: string;
+  onStop?: () => void;
 }) {
   const busy = status === "streaming" || status === "submitted";
   return (
     <button
-      type="submit"
-      disabled={disabled && !busy}
-      aria-label={busy ? "Stop" : "Send"}
+      type={busy ? "button" : "submit"}
+      onClick={busy ? onStop : undefined}
+      disabled={busy ? !onStop : disabled}
+      aria-label={busy ? (onStop ? "Stop" : "Generating") : "Send"}
       className={cn(
         "inline-flex size-9 shrink-0 items-center justify-center rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]",
         className
       )}
     >
-      {status === "submitted" ? (
-        <Loader2Icon className="size-4 animate-spin" aria-hidden />
-      ) : busy ? (
+      {busy && onStop ? (
         <SquareIcon className="size-3.5" aria-hidden />
+      ) : busy ? (
+        <Loader2Icon className="size-4 animate-spin" aria-hidden />
       ) : (
         <ArrowUpIcon className="size-4" strokeWidth={2.2} aria-hidden />
       )}

@@ -1,15 +1,16 @@
-import { Plus } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { loadInstructorWorkspace, type InstructorWorkspace } from "@/lib/instructor/workspace";
 import { createModuleRecord, publishModule } from "@/lib/instructor/actions";
 import { PageHeader } from "@/components/teach/page-header";
-import { ActionButton, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { ActionButton } from "@/components/atlas/primitives";
 import { EmptyState } from "@/components/atlas/record";
+import { RecordDialog } from "@/components/teach/record-dialog";
 
 export default async function TeachModulesPage({ searchParams }: { searchParams: Promise<{ new?: string }> }) {
   const session = await auth();
   const [workspace, params] = await Promise.all([loadInstructorWorkspace(session?.user), searchParams]);
-  const openNew = params.new === "1";
 
   if (workspace.problem) {
     return (
@@ -22,65 +23,82 @@ export default async function TeachModulesPage({ searchParams }: { searchParams:
 
   return (
     <>
-      <PageHeader title="Modules" course={`${workspace.course.code} / ${workspace.course.term}`} />
+      <PageHeader
+        title="Modules"
+        course={`${workspace.course.code} / ${workspace.course.term}`}
+        action={<NewModuleDialog defaultOpen={params.new === "1"} />}
+      />
 
       {workspace.modules.length > 0 ? (
-        <div className="space-y-2.5">
-          {workspace.modules.map((module) => <WeekCard key={module.id ?? module.title} module={module} />)}
-        </div>
+        <section aria-labelledby="module-list-heading">
+          <div className="mb-3">
+            <h2 id="module-list-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Course modules</h2>
+            <p className="mt-1 text-[0.75rem] text-[var(--color-muted)]">{workspace.modules.length} modules</p>
+          </div>
+          <div className="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+            {workspace.modules.map((module) => <ModuleRow key={module.id ?? module.title} module={module} />)}
+          </div>
+        </section>
       ) : (
-        <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-          <EmptyState art="atlas" title="No modules yet" detail="Draft them with Atlas or add one below." />
+        <div className="border-y border-[var(--color-border)]">
+          <EmptyState art="atlas" title="No modules" detail="Create the first module for this course." />
         </div>
       )}
-
-      <details id="new" open={openNew} className="mt-5 scroll-mt-24 rounded-panel border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-4 shadow-[var(--shadow-panel)]">
-        <summary className="cursor-pointer text-[0.875rem] font-semibold transition hover:text-[var(--color-accent-strong)]">Add a module</summary>
-        <form action={createModuleRecord} className="mt-4 grid max-w-xl gap-3">
-          <label className="grid gap-1.5 text-[0.75rem] font-medium">
-            Title
-            <input name="title" type="text" required placeholder="Week 8: Confidence intervals in practice" className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
-          </label>
-          <label className="grid gap-1.5 text-[0.75rem] font-medium">
-            Summary
-            <textarea name="summary" rows={3} placeholder="What the week covers and why it matters." className="resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[0.875rem] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
-          </label>
-          <div>
-            <ActionButton><Plus size={14} strokeWidth={2} aria-hidden /><span className="ml-1.5">Add module</span></ActionButton>
-          </div>
-        </form>
-      </details>
     </>
   );
 }
 
-function WeekCard({ module }: { module: InstructorWorkspace["modules"][number] }) {
+function ModuleRow({ module }: { module: InstructorWorkspace["modules"][number] }) {
   const published = module.status === "approved";
   return (
-    <article className="atlas-card-hover group flex gap-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
-      <span className="atlas-mono shrink-0 pt-0.5 text-[1.125rem] font-semibold leading-6 tabular-nums text-[var(--color-faint)]">{module.week}</span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[0.9375rem] font-semibold leading-6 text-[var(--color-ink)]">
-              {module.id ? <TextLink href={`/teach/week/${module.id}`}>{module.title}</TextLink> : module.title}
-            </p>
-            {module.summary ? <p className="mt-1 line-clamp-2 text-[0.8125rem] leading-5 text-[var(--color-muted)]">{module.summary}</p> : null}
-          </div>
-          <div className="flex shrink-0 items-center gap-2.5">
-            {module.status === "needs-review" ? <StatusBadge tone="warn">Review</StatusBadge> : null}
-            {!published ? (
-              <form action={publishModule}>
-                <input type="hidden" name="moduleId" value={module.id} />
-                <input type="hidden" name="returnTo" value="/teach/weeks" />
-                <ActionButton size="sm" variant="secondary" ariaLabel={`Publish ${module.title}`} title="Publish">
-                  Publish
-                </ActionButton>
-              </form>
-            ) : null}
-          </div>
-        </div>
+    <div className="group/module grid gap-3 px-3 py-3.5 transition hover:bg-[var(--color-surface-muted)] sm:grid-cols-[3rem_minmax(0,1fr)_auto_1rem] sm:items-center">
+      <span className="atlas-mono text-[0.75rem] tabular-nums text-[var(--color-faint)]">{module.week}</span>
+      <div className="min-w-0">
+        {module.id ? (
+          <Link href={`/teach/week/${module.id}`} className="rounded-row text-[0.84375rem] font-semibold text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">{module.title}</Link>
+        ) : <span className="text-[0.84375rem] font-semibold text-[var(--color-ink)]">{module.title}</span>}
+        {module.summary ? <p className="mt-0.5 truncate text-[0.75rem] text-[var(--color-muted)]">{module.summary}</p> : null}
       </div>
-    </article>
+      <div className="flex items-center justify-end gap-3">
+        {module.status !== "approved" ? <span className="text-[0.71875rem] text-[var(--color-muted)]">{module.status === "needs-review" ? "Review" : "Draft"}</span> : null}
+        {!published && module.id ? (
+          <form action={publishModule}>
+            <input type="hidden" name="moduleId" value={module.id} />
+            <input type="hidden" name="returnTo" value="/teach/weeks" />
+            <ActionButton size="sm" variant="secondary" ariaLabel={`Publish ${module.title}`}>Publish</ActionButton>
+          </form>
+        ) : null}
+      </div>
+      {module.id ? <Link href={`/teach/week/${module.id}`} aria-label={`Open ${module.title}`} className="hidden text-[var(--color-faint)] transition group-hover/module:translate-x-0.5 group-hover/module:text-[var(--color-ink)] sm:block"><ChevronRight size={15} aria-hidden /></Link> : null}
+    </div>
   );
 }
+
+function NewModuleDialog({ defaultOpen }: { defaultOpen: boolean }) {
+  return (
+    <RecordDialog
+      mode="create"
+      triggerLabel="New module"
+      title="New module"
+      description="Add the next module to the course. It stays a draft until you publish it."
+      triggerVariant="primary"
+      defaultOpen={defaultOpen}
+    >
+      <form action={createModuleRecord} className="grid gap-4">
+        <label className="grid gap-1.5 text-[0.75rem] font-medium">
+          Title
+          <input name="title" type="text" required autoFocus placeholder="Week 8: Confidence intervals in practice" className={fieldClass} />
+        </label>
+        <label className="grid gap-1.5 text-[0.75rem] font-medium">
+          Summary
+          <textarea name="summary" rows={8} placeholder="What the module covers and why it matters." className={`${fieldClass} min-h-48 resize-y py-3 leading-6`} />
+        </label>
+        <div className="flex justify-end border-t border-[var(--color-border)] pt-4">
+          <ActionButton>Create module</ActionButton>
+        </div>
+      </form>
+    </RecordDialog>
+  );
+}
+
+const fieldClass = "min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.8125rem] text-[var(--color-ink)] outline-none transition placeholder:text-[var(--color-faint)] focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]";

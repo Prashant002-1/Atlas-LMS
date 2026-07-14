@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { ActionButton, BackLink, ButtonLink, TextLink } from "@/components/atlas/primitives";
 import { PageHeader } from "@/components/teach/page-header";
 import { SubmissionReviewTable, type SubmissionReviewRow } from "@/components/teach/submission-review-table";
+import { RecordDialog } from "@/components/teach/record-dialog";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { publishAssignment, updateAssignmentRecord } from "@/lib/instructor/actions";
@@ -56,13 +57,18 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
         <PageHeader
           title={assignment.title}
           course={`${workspace.course.code} / Assignment`}
-          action={assignment.id && assignment.status !== "approved" ? <PublishControl assignmentId={assignment.id} /> : undefined}
+          action={assignment.id ? (
+            <div className="flex items-center gap-2">
+              {assignment.status !== "approved" ? <PublishControl assignmentId={assignment.id} /> : null}
+              <AssignmentEditDialog assignment={assignment} />
+            </div>
+          ) : undefined}
         />
       </div>
 
       <div className="-mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[0.78125rem] text-[var(--color-muted)]">
         {assignment.status !== "approved" ? <span>Draft</span> : null}
-        {assignment.dueAt ? <span>Due {formatShortDate(assignment.dueAt)}</span> : null}
+        {assignment.dueAt ? <span className={assignment.dueAt.getTime() < Date.now() ? "font-medium text-[var(--color-danger)]" : undefined}>{assignment.dueAt.getTime() < Date.now() ? "Past due" : "Upcoming"} / {formatShortDate(assignment.dueAt)}</span> : <span>No due date</span>}
         {assignment.points ? <span>{Math.round(assignment.points)} points</span> : null}
       </div>
 
@@ -79,8 +85,6 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
           <ButtonLink href={`/teach/ai-assignments/${assignmentId}`} variant="secondary" size="sm">Sessions and grades</ButtonLink>
         </div>
       ) : null}
-
-      {assignment.id ? <AssignmentEditForm assignment={assignment} /> : null}
 
       <dl className="mt-8 grid border-y border-[var(--color-border)] sm:grid-cols-2 lg:grid-cols-4">
         <SummaryFact label="Submitted" value={`${progress?.submitted ?? 0} / ${workspace.submissions.length}`} />
@@ -121,36 +125,35 @@ function AssignmentMaterials({ materials }: { materials: InstructorAssignmentWor
   );
 }
 
-function AssignmentEditForm({ assignment }: { assignment: InstructorAssignment }) {
+function AssignmentEditDialog({ assignment }: { assignment: InstructorAssignment }) {
   if (!assignment.id) return null;
   return (
-    <details className="group mt-4 max-w-4xl">
-      <summary className="cursor-pointer text-[0.78125rem] font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_30%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">Edit assignment</summary>
-      <form action={updateAssignmentRecord} className="mt-4 grid gap-3 border-t border-[var(--color-border)] pt-4">
+    <RecordDialog mode="edit" triggerLabel="Edit assignment" title="Edit assignment" description="Update the assignment without exposing an editing form in the grading workspace." triggerVariant="secondary">
+      <form action={updateAssignmentRecord} className="grid gap-4">
         <input type="hidden" name="assignmentId" value={assignment.id} />
         <input type="hidden" name="returnTo" value={`/teach/work/${assignment.id}`} />
         {assignment.objectiveCodes.map((code) => <input key={code} type="hidden" name="objectiveCode" value={code} />)}
         <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Title
-          <input name="title" type="text" defaultValue={assignment.title} required className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
+          <input name="title" type="text" defaultValue={assignment.title} required autoFocus className={fieldClass} />
         </label>
         <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Description
-          <textarea name="description" defaultValue={assignment.detail ?? ""} className="min-h-32 resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-[0.875rem] leading-6 text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
+          <textarea name="description" rows={10} defaultValue={assignment.detail ?? ""} className={`${fieldClass} min-h-56 resize-y py-3 leading-6`} />
         </label>
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px]">
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
           <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
             Due
-            <input name="dueDate" type="date" defaultValue={dateInputValue(assignment.dueAt)} className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
+            <input name="dueDate" type="date" defaultValue={dateInputValue(assignment.dueAt)} className={fieldClass} />
           </label>
           <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
             Points
-            <input name="points" type="number" min={0.01} step="0.01" defaultValue={assignment.points ?? ""} className="min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
+            <input name="points" type="number" min={0.01} step="0.01" defaultValue={assignment.points ?? ""} className={fieldClass} />
           </label>
         </div>
-        <div><ActionButton>Save assignment</ActionButton></div>
+        <div className="flex justify-end border-t border-[var(--color-border)] pt-4"><ActionButton>Save assignment</ActionButton></div>
       </form>
-    </details>
+    </RecordDialog>
   );
 }
 
@@ -170,3 +173,5 @@ function formatShortDate(value: Date) {
 function dateInputValue(value?: Date | null) {
   return value ? value.toISOString().slice(0, 10) : "";
 }
+
+const fieldClass = "min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.8125rem] text-[var(--color-ink)] outline-none transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]";

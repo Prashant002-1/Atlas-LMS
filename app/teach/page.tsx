@@ -9,10 +9,8 @@ import { EmptyState } from "@/components/atlas/record";
 import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 /**
- * The teaching overview is the course record at a glance: the work, the
- * modules, the announcements, and what changed recently, each as facts with
- * direct controls. It presents the record; it does not assign work or rank
- * attention. Results live with their own records.
+ * The teaching overview is the course at a glance: the work, modules,
+ * announcements, and recent changes, each as facts with direct controls.
  */
 export default async function TeachOverviewPage() {
   const session = await auth();
@@ -33,8 +31,6 @@ export default async function TeachOverviewPage() {
 
   return (
     <>
-      {/* The header is the course in view, and switching it happens right
-          here: the name is the menu. Same header bones as every other page. */}
       <header className="mb-7 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--color-border)] pb-5">
         <h1 className="sr-only">{workspace.course.name}</h1>
         <CourseSwitch
@@ -93,11 +89,7 @@ export default async function TeachOverviewPage() {
                     <RecordRow
                       key={module.id ?? module.title}
                       href={module.id ? `/teach/week/${module.id}` : "/teach/weeks"}
-                      aside={
-                        <StatusBadge tone={module.status === "approved" ? "good" : "neutral"}>
-                          {module.status === "approved" ? "Live" : "Draft"}
-                        </StatusBadge>
-                      }
+                      aside={module.status === "approved" ? undefined : <StatusBadge tone="neutral">Draft</StatusBadge>}
                     >
                       <span className="flex min-w-0 items-baseline gap-3">
                         <span className="atlas-mono w-5 shrink-0 text-[0.8125rem] tabular-nums text-[var(--color-faint)]">
@@ -122,10 +114,7 @@ export default async function TeachOverviewPage() {
 
         <div className="min-w-0 space-y-4">
           <MotionItem>
-            <Panel
-              title="Announcements"
-              action={<TextLink href="/teach/announcements" className="text-[0.8125rem]">All</TextLink>}
-            >
+            <Panel title="Announcements" action={<TextLink href="/teach/announcements" className="text-[0.8125rem]">All</TextLink>}>
               {workspace.notices.length > 0 ? (
                 <div className="space-y-4">
                   {workspace.notices.slice(0, 3).map((notice) => (
@@ -198,11 +187,7 @@ function WorkRecordRow({
   return (
     <RecordRow
       href={assignment.id ? `/teach/work/${assignment.id}` : "/teach/work"}
-      aside={
-        <StatusBadge tone={assignment.status === "approved" ? "good" : "neutral"}>
-          {assignment.status === "approved" ? "Live" : "Draft"}
-        </StatusBadge>
-      }
+      aside={assignment.status === "approved" ? undefined : <StatusBadge tone="neutral">Draft</StatusBadge>}
     >
       <span className="block truncate text-[0.875rem] font-medium">{assignment.title}</span>
       <span className="mt-0.5 block truncate text-[0.78125rem] text-[var(--color-muted)]">

@@ -3,7 +3,6 @@ import { loadInstructorWorkspace } from "@/lib/instructor/workspace";
 import { PageHeader } from "@/components/teach/page-header";
 import { ProposalCard } from "@/components/teach/proposals";
 import { EmptyState } from "@/components/atlas/record";
-import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 /**
  * Review: every draft Atlas has produced, waiting on a decision. Apply writes
@@ -30,13 +29,9 @@ export default async function TeachReviewPage() {
       <PageHeader title="Review" course={`${workspace.course.code} / ${workspace.course.term}`} />
 
       {open.length > 0 ? (
-        <StaggerGrid className="space-y-3" stagger={0.06}>
-          {open.map((proposal) => (
-            <MotionItem key={proposal.id}>
-              <ProposalCard proposal={proposal} />
-            </MotionItem>
-          ))}
-        </StaggerGrid>
+        <div className="space-y-3">
+          {open.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} />)}
+        </div>
       ) : (
         <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
           <EmptyState art="horizon" title="Nothing waiting" detail="Drafts from Atlas land here for your decision." />
@@ -46,13 +41,9 @@ export default async function TeachReviewPage() {
       {decided.length > 0 ? (
         <section className="mt-8">
           <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Recent decisions</h2>
-          <StaggerGrid className="mt-2.5 space-y-3" stagger={0.05} delay={0.1}>
-            {decided.map((proposal) => (
-              <MotionItem key={proposal.id}>
-                <ProposalCard proposal={proposal} compact />
-              </MotionItem>
-            ))}
-          </StaggerGrid>
+          <div className="mt-2.5 space-y-3">
+            {decided.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} compact />)}
+          </div>
         </section>
       ) : null}
     </>

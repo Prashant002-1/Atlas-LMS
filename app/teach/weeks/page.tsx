@@ -1,14 +1,10 @@
-import { Check, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { loadInstructorWorkspace, type InstructorWorkspace } from "@/lib/instructor/workspace";
 import { createModuleRecord, publishModule } from "@/lib/instructor/actions";
 import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { EmptyState } from "@/components/atlas/record";
-import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
-
-const statusTone = { approved: "good", draft: "neutral", "needs-review": "warn" } as const;
-const statusLabel = { approved: "Live", draft: "Draft", "needs-review": "Review" } as const;
 
 export default async function TeachModulesPage({ searchParams }: { searchParams: Promise<{ new?: string }> }) {
   const session = await auth();
@@ -29,9 +25,9 @@ export default async function TeachModulesPage({ searchParams }: { searchParams:
       <PageHeader title="Modules" course={`${workspace.course.code} / ${workspace.course.term}`} />
 
       {workspace.modules.length > 0 ? (
-        <StaggerGrid className="space-y-2.5" stagger={0.04}>
-          {workspace.modules.map((module) => <MotionItem key={module.id ?? module.title}><WeekCard module={module} /></MotionItem>)}
-        </StaggerGrid>
+        <div className="space-y-2.5">
+          {workspace.modules.map((module) => <WeekCard key={module.id ?? module.title} module={module} />)}
+        </div>
       ) : (
         <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
           <EmptyState art="atlas" title="No modules yet" detail="Draft them with Atlas or add one below." />
@@ -59,7 +55,7 @@ export default async function TeachModulesPage({ searchParams }: { searchParams:
 }
 
 function WeekCard({ module }: { module: InstructorWorkspace["modules"][number] }) {
-  const approved = module.status === "approved";
+  const published = module.status === "approved";
   return (
     <article className="atlas-card-hover group flex gap-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
       <span className="atlas-mono shrink-0 pt-0.5 text-[1.125rem] font-semibold leading-6 tabular-nums text-[var(--color-faint)]">{module.week}</span>
@@ -72,16 +68,16 @@ function WeekCard({ module }: { module: InstructorWorkspace["modules"][number] }
             {module.summary ? <p className="mt-1 line-clamp-2 text-[0.8125rem] leading-5 text-[var(--color-muted)]">{module.summary}</p> : null}
           </div>
           <div className="flex shrink-0 items-center gap-2.5">
-            <StatusBadge tone={statusTone[module.status]}>{statusLabel[module.status]}</StatusBadge>
-            {approved ? null : (
+            {module.status === "needs-review" ? <StatusBadge tone="warn">Review</StatusBadge> : null}
+            {!published ? (
               <form action={publishModule}>
                 <input type="hidden" name="moduleId" value={module.id} />
                 <input type="hidden" name="returnTo" value="/teach/weeks" />
-                <ActionButton variant="secondary" ariaLabel={`Publish ${module.title}`} title="Publish">
-                  <Check size={13} strokeWidth={2} aria-hidden /><span className="ml-1">Publish</span>
+                <ActionButton size="sm" variant="secondary" ariaLabel={`Publish ${module.title}`} title="Publish">
+                  Publish
                 </ActionButton>
               </form>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

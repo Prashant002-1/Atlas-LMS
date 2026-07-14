@@ -279,6 +279,7 @@ export function CodeList({ codes }: { codes: string[] }) {
 export function ActionButton({
   children,
   variant = "primary",
+  size = "md",
   type = "submit",
   className = "",
   ariaLabel,
@@ -286,6 +287,7 @@ export function ActionButton({
 }: {
   children: ReactNode;
   variant?: "primary" | "secondary" | "quiet" | "danger";
+  size?: "md" | "sm";
   type?: "button" | "submit";
   className?: string;
   ariaLabel?: string;
@@ -301,13 +303,17 @@ export function ActionButton({
     danger:
       "border-[color-mix(in_oklch,var(--color-danger)_38%,transparent)] bg-transparent text-[var(--color-danger)] hover:bg-[color-mix(in_oklch,var(--color-danger)_10%,transparent)]",
   };
+  const sizes = {
+    md: "min-h-9 px-3 text-[0.8125rem]",
+    sm: "min-h-8 px-2.5 text-[0.75rem]",
+  };
 
   return (
     <button
       type={type}
       aria-label={ariaLabel}
       title={title}
-      className={`atlas-card-hover inline-flex min-h-9 items-center justify-center rounded-control border px-3 text-[0.8125rem] font-medium active:translate-y-px ${focusStyle} ${styles[variant]} ${className}`}
+      className={`atlas-card-hover inline-flex items-center justify-center rounded-control border font-medium active:translate-y-px ${sizes[size]} ${focusStyle} ${styles[variant]} ${className}`}
     >
       {children}
     </button>

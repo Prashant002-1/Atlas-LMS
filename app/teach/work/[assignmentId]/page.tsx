@@ -1,4 +1,3 @@
-import { Check } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ActionButton, BackLink, ButtonLink, TextLink } from "@/components/atlas/primitives";
 import { PageHeader } from "@/components/teach/page-header";
@@ -62,7 +61,7 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
       </div>
 
       <div className="-mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[0.78125rem] text-[var(--color-muted)]">
-        <span>{assignment.status === "approved" ? "Live" : "Draft"}</span>
+        {assignment.status !== "approved" ? <span>Draft</span> : null}
         {assignment.dueAt ? <span>Due {formatShortDate(assignment.dueAt)}</span> : null}
         {assignment.points ? <span>{Math.round(assignment.points)} points</span> : null}
       </div>
@@ -102,10 +101,7 @@ function PublishControl({ assignmentId }: { assignmentId: string }) {
     <form action={publishAssignment}>
       <input type="hidden" name="assignmentId" value={assignmentId} />
       <input type="hidden" name="returnTo" value={`/teach/work/${assignmentId}`} />
-      <ActionButton>
-        <Check size={14} strokeWidth={2} aria-hidden />
-        <span className="ml-1.5">Publish</span>
-      </ActionButton>
+      <ActionButton size="sm">Publish</ActionButton>
     </form>
   );
 }

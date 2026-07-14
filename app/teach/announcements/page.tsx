@@ -10,7 +10,6 @@ import { createAnnouncementRecord } from "@/lib/instructor/actions";
 import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton, Panel } from "@/components/atlas/primitives";
 import { EmptyState } from "@/components/atlas/record";
-import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 /**
  * Announcements: one-way course posts, newest first. Each post is a record
@@ -19,20 +18,12 @@ import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
  */
 export default async function TeachAnnouncementsPage() {
   const session = await auth();
-  if (!session?.user) {
-    redirect("/sign-in");
-  }
-  if (!isInstructorLike(session.user.role)) {
-    redirect("/student");
-  }
-  if (!session.user.orgId) {
-    redirect("/teach");
-  }
+  if (!session?.user) redirect("/sign-in");
+  if (!isInstructorLike(session.user.role)) redirect("/student");
+  if (!session.user.orgId) redirect("/teach");
 
   const course = await findEditableCourse({ id: session.user.id, orgId: session.user.orgId, role: session.user.role });
-  if (!course) {
-    redirect("/teach");
-  }
+  if (!course) redirect("/teach");
 
   const rows = await db
     .select({
@@ -78,32 +69,26 @@ export default async function TeachAnnouncementsPage() {
 
       <section className="mt-6">
         {rows.length > 0 ? (
-          <StaggerGrid className="space-y-2.5" stagger={0.04}>
+          <div className="space-y-2.5">
             {rows.map((row) => (
-              <MotionItem key={row.id}>
-                <article className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4 shadow-[var(--shadow-panel)]">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <h2 className="text-[0.90625rem] font-semibold leading-6">{row.title}</h2>
-                    <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
-                      {row.postedAt
-                        ? `Posted ${row.postedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                        : "Draft"}
-                    </p>
-                  </div>
-                  {row.messageMd ? (
-                    <p className="mt-1.5 whitespace-pre-line text-[0.84375rem] leading-6 text-[var(--color-muted)]">{row.messageMd}</p>
-                  ) : null}
-                </article>
-              </MotionItem>
+              <article key={row.id} className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4 shadow-[var(--shadow-panel)]">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <h2 className="text-[0.90625rem] font-semibold leading-6">{row.title}</h2>
+                  <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                    {row.postedAt
+                      ? `Posted ${row.postedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                      : "Draft"}
+                  </p>
+                </div>
+                {row.messageMd ? (
+                  <p className="mt-1.5 whitespace-pre-line text-[0.84375rem] leading-6 text-[var(--color-muted)]">{row.messageMd}</p>
+                ) : null}
+              </article>
             ))}
-          </StaggerGrid>
+          </div>
         ) : (
           <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-            <EmptyState
-              art="atlas"
-              title="No announcements"
-              detail="Nothing has been posted to this course yet."
-            />
+            <EmptyState art="atlas" title="No announcements" detail="Nothing has been posted to this course yet." />
           </div>
         )}
       </section>

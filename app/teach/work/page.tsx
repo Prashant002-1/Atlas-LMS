@@ -1,11 +1,10 @@
-import { Check, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { loadInstructorWorkspace, type InstructorWorkspace } from "@/lib/instructor/workspace";
 import { createAssignmentRecord, publishAssignment } from "@/lib/instructor/actions";
 import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { EmptyState } from "@/components/atlas/record";
-import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 export default async function TeachWorkPage({ searchParams }: { searchParams: Promise<{ new?: string }> }) {
   const session = await auth();
@@ -28,17 +27,16 @@ export default async function TeachWorkPage({ searchParams }: { searchParams: Pr
       <PageHeader title="Work" course={`${workspace.course.code} / ${workspace.course.term}`} />
 
       {workspace.assignments.length > 0 ? (
-        <StaggerGrid className="space-y-2.5" stagger={0.04}>
+        <div className="space-y-2.5">
           {workspace.assignments.map((assignment) => (
-            <MotionItem key={assignment.id ?? assignment.title}>
-              <WorkRow
-                assignment={assignment}
-                progress={assignment.id ? progressById.get(assignment.id) : undefined}
-                aiAssignment={assignment.id ? workspace.aiAssignmentIds.includes(assignment.id) : false}
-              />
-            </MotionItem>
+            <WorkRow
+              key={assignment.id ?? assignment.title}
+              assignment={assignment}
+              progress={assignment.id ? progressById.get(assignment.id) : undefined}
+              aiAssignment={assignment.id ? workspace.aiAssignmentIds.includes(assignment.id) : false}
+            />
           ))}
-        </StaggerGrid>
+        </div>
       ) : (
         <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
           <EmptyState art="atlas" title="No work yet" detail="Draft it with Atlas or add it below." />
@@ -85,7 +83,7 @@ function WorkRow({
   aiAssignment?: boolean;
 }) {
   const waiting = progress ? Math.max(0, progress.submitted - progress.graded) : 0;
-  const approved = assignment.status === "approved";
+  const published = assignment.status === "approved";
 
   return (
     <article className="atlas-card-hover group flex items-center gap-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
@@ -100,17 +98,15 @@ function WorkRow({
         </p>
       </div>
       {waiting > 0 ? <StatusBadge tone="warn">{waiting} ungraded</StatusBadge> : null}
-      {approved ? (
-        <StatusBadge tone="good">Live</StatusBadge>
-      ) : (
+      {!published ? (
         <form action={publishAssignment}>
           <input type="hidden" name="assignmentId" value={assignment.id} />
           <input type="hidden" name="returnTo" value="/teach/work" />
-          <ActionButton variant="secondary" ariaLabel={`Publish ${assignment.title}`} title="Publish">
-            <Check size={13} strokeWidth={2} aria-hidden /><span className="ml-1">Publish</span>
+          <ActionButton size="sm" variant="secondary" ariaLabel={`Publish ${assignment.title}`} title="Publish">
+            Publish
           </ActionButton>
         </form>
-      )}
+      ) : null}
     </article>
   );
 }

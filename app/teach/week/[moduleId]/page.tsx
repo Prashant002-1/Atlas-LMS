@@ -1,4 +1,3 @@
-import { Check } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ActionButton, BackLink, Panel, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { EmptyRecord, RecordFact } from "@/components/atlas/record";
@@ -6,9 +5,6 @@ import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { publishModule, updateModuleRecord } from "@/lib/instructor/actions";
 import { loadInstructorModuleWorkspace, type InstructorAssignment, type InstructorModuleWorkspace } from "@/lib/instructor/workspace";
-
-const moduleTone = { approved: "good", draft: "neutral", "needs-review": "warn" } as const;
-const moduleLabel = { approved: "Live", draft: "Draft", "needs-review": "Review" } as const;
 
 export default async function InstructorWeekPage({ params }: { params: Promise<{ moduleId: string }> }) {
   const session = await auth();
@@ -38,9 +34,10 @@ export default async function InstructorWeekPage({ params }: { params: Promise<{
 function WeekRecord({ workspace }: { workspace: InstructorModuleWorkspace }) {
   const courseModule = workspace.module;
   if (!courseModule) return null;
+  const published = courseModule.status === "approved";
 
   return (
-    <Panel title={courseModule.title} action={<StatusBadge tone={moduleTone[courseModule.status]}>{moduleLabel[courseModule.status]}</StatusBadge>}>
+    <Panel title={courseModule.title} action={published ? undefined : <StatusBadge tone="neutral">Draft</StatusBadge>}>
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px]">
         <section className="min-w-0">
           <p className="text-[0.75rem] font-medium text-[var(--color-muted)]">Week {courseModule.week}</p>
@@ -52,13 +49,13 @@ function WeekRecord({ workspace }: { workspace: InstructorModuleWorkspace }) {
           {courseModule.id ? <WeekEditForm module={courseModule} /> : null}
         </section>
         <aside className="grid content-start gap-3 border-t border-[var(--color-border)] pt-4 text-[0.8125rem] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-          <RecordFact label="Status" value={moduleLabel[courseModule.status]} />
+          {!published ? <RecordFact label="Status" value="Draft" /> : null}
           <RecordFact label="Work" value={workspace.assignments.length} />
-          {courseModule.id && courseModule.status !== "approved" ? (
+          {courseModule.id && !published ? (
             <form action={publishModule}>
               <input type="hidden" name="moduleId" value={courseModule.id} />
               <input type="hidden" name="returnTo" value={`/teach/week/${courseModule.id}`} />
-              <ActionButton className="w-full"><Check size={14} strokeWidth={2} aria-hidden /><span className="ml-1.5">Publish</span></ActionButton>
+              <ActionButton size="sm" className="w-full">Publish</ActionButton>
             </form>
           ) : null}
         </aside>
@@ -115,7 +112,7 @@ function AssignmentLine({ assignment }: { assignment: InstructorAssignment }) {
           {assignment.detail ? <p className="mt-2 text-[0.8125rem] leading-5 text-[var(--color-muted)]">{assignment.detail}</p> : null}
           {assignment.points ? <p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">{Math.round(assignment.points)} points</p> : null}
         </div>
-        <StatusBadge tone={assignment.status === "approved" ? "good" : "neutral"}>{assignment.status === "approved" ? "Live" : "Draft"}</StatusBadge>
+        {assignment.status === "approved" ? null : <StatusBadge tone="neutral">Draft</StatusBadge>}
       </div>
     </article>
   );

@@ -46,31 +46,31 @@ export function ModuleSwitcher({ modules, currentId }: { modules: ModuleSwitcher
       </div>
 
       <div
-        role="listbox"
-        aria-label="Switch module"
-        className={`absolute right-0 z-30 mt-2 w-[20rem] origin-top-right overflow-hidden rounded-panel border border-[var(--color-border-strong)] bg-[var(--color-surface)] py-1 shadow-[var(--shadow-floating)] transition-[opacity,transform,visibility] duration-150 ease-out ${
+        className={`absolute right-0 top-full z-30 w-[20rem] origin-top-right pt-2 transition-[opacity,transform,visibility] duration-150 ease-out ${
           open ? "visible translate-y-0 opacity-100" : "pointer-events-none invisible -translate-y-1 opacity-0"
         }`}
       >
-        {modules.map((module) => {
-          const active = module.id === currentId;
-          return (
-            <Link
-              key={module.id}
-              href={`/teach/week/${module.id}`}
-              role="option"
-              aria-selected={active}
-              className={`grid grid-cols-[2.75rem_minmax(0,1fr)_1rem] items-center gap-2 px-3 py-2.5 transition hover:bg-[var(--color-surface-muted)] ${active ? "bg-[var(--color-indigo-soft)]" : ""}`}
-            >
-              <span className="atlas-mono text-[0.6875rem] text-[var(--color-faint)]">{module.week}</span>
-              <span className="min-w-0">
-                <span className="block truncate text-[0.78125rem] font-medium text-[var(--color-ink)]">{module.title}</span>
-                {module.status !== "approved" ? <span className="mt-0.5 block text-[0.65625rem] text-[var(--color-muted)]">{module.status === "needs-review" ? "Review" : "Draft"}</span> : null}
-              </span>
-              {active ? <Check size={13} aria-hidden className="text-[var(--color-accent-strong)]" /> : null}
-            </Link>
-          );
-        })}
+        <div role="listbox" aria-label="Switch module" className="overflow-hidden rounded-panel border border-[var(--color-border-strong)] bg-[var(--color-surface)] py-1 shadow-[var(--shadow-floating)]">
+          {modules.map((module) => {
+            const active = module.id === currentId;
+            return (
+              <Link
+                key={module.id}
+                href={`/teach/week/${module.id}`}
+                role="option"
+                aria-selected={active}
+                className={`grid grid-cols-[2.75rem_minmax(0,1fr)_1rem] items-center gap-2 px-3 py-2.5 transition hover:bg-[var(--color-surface-muted)] ${active ? "bg-[var(--color-indigo-soft)]" : ""}`}
+              >
+                <span className="atlas-mono text-[0.6875rem] text-[var(--color-faint)]">{module.week}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[0.78125rem] font-medium text-[var(--color-ink)]">{module.title}</span>
+                  {module.status !== "approved" ? <span className="mt-0.5 block text-[0.65625rem] text-[var(--color-muted)]">{module.status === "needs-review" ? "Review" : "Draft"}</span> : null}
+                </span>
+                {active ? <Check size={13} aria-hidden className="text-[var(--color-accent-strong)]" /> : null}
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

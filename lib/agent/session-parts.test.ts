@@ -9,13 +9,6 @@ import {
 } from "./session-parts";
 import { v0DemoWorld } from "../db/fixtures/v0-demo-world";
 
-/**
- * Session stream contract tests. The zod schemas ARE the wire format between
- * the runtime, the persisted rows, and the client renderers, so the seeded
- * demo world must parse through them cleanly: Phase 1 data and the Phase 2
- * engine share one contract.
- */
-
 test("every seeded artifact state parses as a pricing artifact", () => {
   for (const state of v0DemoWorld.v0.artifactStates) {
     const parsed = pricingArtifactSchema.safeParse(state.state);
@@ -25,22 +18,19 @@ test("every seeded artifact state parses as a pricing artifact", () => {
 
 test("the seeded rubric parses through the criteria schema", () => {
   const criteria = parseRubricCriteria(v0DemoWorld.v0.rubric.criteria);
-  assert.ok(criteria, "rubric criteria must parse");
+  assert.ok(criteria);
   assert.equal(criteria.length, 4);
-  assert.equal(
-    criteria.reduce((sum, c) => sum + c.weight, 0),
-    100
-  );
+  assert.equal(criteria.reduce((sum, criterion) => sum + criterion.weight, 0), 100);
 });
 
 test("the seeded session assignment carries sanctioned side-note triggers", () => {
   const triggers = parseSideNoteTriggers(v0DemoWorld.v0.sessionAssignment.sideNoteTriggers);
   assert.ok(triggers.length >= 1);
-  const elasticity = triggers.find((t) => t.topic === "elasticity");
-  assert.ok(elasticity, "the demo trigger is the elasticity topic");
-  assert.ok(elasticity.keywords.includes("slope"), "the confused-with term arms the trigger");
+  const elasticity = triggers.find((trigger) => trigger.topic === "elasticity");
+  assert.ok(elasticity);
+  assert.ok(elasticity.keywords.includes("slope"));
   assert.equal(elasticity.sourcePageSlug, "elasticity-revenue-relation");
-  assert.ok(v0DemoWorld.v0.sessionAssignment.planningSessionId, "provenance link to the planning session");
+  assert.ok(v0DemoWorld.v0.sessionAssignment.planningSessionId);
 });
 
 test("artifact updates extract from tool parts and reject junk", () => {
@@ -63,7 +53,7 @@ test("side notes extract from data parts with validation", () => {
   const note = {
     id: "n1",
     topic: "elasticity",
-    text: "FLAG - From your course record: something factual.",
+    text: "From your course: something factual.",
     sourceRefs: ["record:x:elasticity"],
     sourcePageSlug: null,
     turnIndex: 5,
@@ -88,21 +78,19 @@ test("pricing artifact schema enforces sane bounds", () => {
   );
 });
 
-test("rescaling a criterion weight keeps level proportions and lands the top level exactly", async () => {
+test("rescaling a criterion weight keeps level proportions", async () => {
   const criteria = parseRubricCriteria(v0DemoWorld.v0.rubric.criteria);
   assert.ok(criteria);
-  const framing = criteria.find((c) => c.key === "framing");
-  assert.ok(framing); // Exceeds 20 / Meets 16 / Developing 10 / Missing 0
-
+  const framing = criteria.find((criterion) => criterion.key === "framing");
+  assert.ok(framing);
   const { rescaleCriterionToWeight } = await import("./session-parts");
   const rescaled = rescaleCriterionToWeight(framing, 25);
-  assert.equal(rescaled.weight, 25);
   const byLevel = Object.fromEntries(rescaled.levels.map((level) => [level.level, level.score]));
-  assert.equal(byLevel.Exceeds, 25, "top level lands exactly on the new weight");
-  assert.equal(byLevel.Meets, 20, "16/20 stays 80% of full credit");
-  assert.equal(byLevel.Developing, 13, "10/20 rounds to 13 of 25");
-  assert.equal(byLevel.Missing, 0, "zeros stay zero");
-
+  assert.equal(rescaled.weight, 25);
+  assert.equal(byLevel.Exceeds, 25);
+  assert.equal(byLevel.Meets, 20);
+  assert.equal(byLevel.Developing, 13);
+  assert.equal(byLevel.Missing, 0);
   assert.throws(() => rescaleCriterionToWeight(framing, 0));
   assert.throws(() => rescaleCriterionToWeight(framing, Number.NaN));
 });

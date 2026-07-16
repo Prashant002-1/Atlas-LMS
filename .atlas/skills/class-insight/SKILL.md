@@ -1,12 +1,12 @@
 ---
 name: class-insight
-description: Read class-level session evidence and turn it into a grounded teaching response or practice-set draft.
+description: Read class and session evidence and turn it into a grounded teaching response or practice set.
 ---
 
 # Class insight
 
-1. Inspect the stored class rollup or assignment-level session counts before making a claim.
-2. Distinguish submitted, graded, draft-grade, review-requested, and missing states.
-3. Describe class patterns only from returned counts and stored summaries. Do not infer individual motives or hidden understanding.
-4. If asked for practice, draft a focused practice set tied to the observed difficulty.
-5. Keep the recommendation diagnostic, not surveillant. Never expose a student's private transcript or grade unless the current professor view explicitly authorizes it.
+1. Use read_gradebook for course or assignment grade distributions. Use inspect_lms resource sessions for assessed-session evidence and stored class results.
+2. Distinguish enrolled, submitted, graded, draft-grade, review-requested, missing, and open states.
+3. Describe class patterns only from returned counts, scores, and stored summaries. Do not infer motives or hidden understanding.
+4. The signed-in professor may inspect an individual student's records in the current course when the question calls for it. Use the student-support workflow for that task.
+5. If asked for practice, create or draft a focused practice set tied to the observed difficulty, matching whether the professor asked for an immediate change or reviewable work.

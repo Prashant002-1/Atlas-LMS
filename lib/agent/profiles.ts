@@ -1,8 +1,8 @@
 /**
  * Agent profiles are state and authority boundaries, not personalities. Each
  * profile owns one address in agent_sessions, receives a scope-shaped context
- * loader, and gets a closed tool set. Prompt text may describe the boundary,
- * but routes, stores, schemas, and tool executors enforce it.
+ * loader, and gets a typed tool set. Prompt text describes the boundary, while
+ * routes, stores, schemas, and tool executors enforce it.
  */
 
 export type AgentProfileId = "professor" | "session" | "study";
@@ -32,19 +32,24 @@ export const agentProfiles: Record<AgentProfileId, AgentProfile> = {
     surface: "command",
     anchorType: "course",
     description:
-      "Works with the professor on the course in view: inspects current data and prepares assignments, rubrics, modules, pages, announcements, and practice sets.",
+      "Operates the professor's current course across roster, gradebook, submissions, sessions, content, policies, rubrics, drafts, and ordinary LMS actions.",
     boundaries: {
       reads: [
-        "the instructor view of the current course, including unpublished assignments and modules",
-        "AI assignment contracts, current rubric versions, and stored class-level results",
-        "its own professor threads and the drafts produced by those threads",
-        "allowlisted Atlas skill instructions loaded on demand",
+        "all LMS records in the current course, including unpublished content",
+        "the current roster and each enrolled student's grades, submissions, sessions, and academic standing",
+        "AI assignment contracts, rubric versions, class results, professor threads, and drafts",
+        "reviewed Atlas skill instructions loaded on demand",
       ],
-      writes: ["changeProposals + proposalBlocks rows through bounded draft tools, with Review and session provenance"],
+      writes: [
+        "scoped course records through typed LMS operations when the professor asks",
+        "changeProposals and proposalBlocks through reviewable draft tools",
+        "grades, missing states, session grading, draft decisions, policies, and publishing through explicit typed actions",
+      ],
       never: [
-        "mutate or publish the course directly",
-        "read another organization, course, or instructor's professor threads",
-        "grade, regrade, finalize, send, delete, browse the web, access a shell, or execute arbitrary code",
+        "read or write outside the signed-in organization and current course",
+        "read another instructor's private professor threads",
+        "expose secrets or provider credentials",
+        "run arbitrary SQL, shell commands, network requests, or general code",
       ],
     },
   },

@@ -46,13 +46,15 @@ test("boundaries are stated on every side", () => {
   }
 });
 
-test("the professor profile writes only through the Review gate", () => {
+test("the professor profile operates the LMS through typed course scope", () => {
+  const reads = agentProfiles.professor.boundaries.reads.join(" ");
+  assert.match(reads, /each enrolled student's grades/);
   const writes = agentProfiles.professor.boundaries.writes.join(" ");
+  assert.match(writes, /typed LMS operations/);
   assert.match(writes, /changeProposals/);
-  assert.match(writes, /Review/);
   const never = agentProfiles.professor.boundaries.never.join(" ");
-  assert.match(never, /mutate or publish the course directly/);
-  assert.match(never, /arbitrary code/);
+  assert.match(never, /outside the signed-in organization and current course/);
+  assert.match(never, /arbitrary SQL/);
 });
 
 test("the session profile can never cross students", () => {
@@ -64,5 +66,5 @@ test("colleague cards describe the others, not the self", () => {
   const forProfessor = describeColleagues("professor");
   assert.match(forProfessor, /AI assignment/i);
   assert.match(forProfessor, /study/i);
-  assert.doesNotMatch(forProfessor, /prepares assignments/);
+  assert.doesNotMatch(forProfessor, /Operates the professor's current course/);
 });

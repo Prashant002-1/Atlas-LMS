@@ -18,7 +18,7 @@ import {
   buildProfessorReference,
   type ProfessorScope,
 } from "@/lib/agent/professor-context";
-import { professorTools } from "@/lib/agent/professor-tools";
+import { professorOperatorTools } from "@/lib/agent/lms-operator";
 
 /**
  * One professor turn on the durable AI SDK seam. The professor's input is a row
@@ -73,7 +73,7 @@ export async function runProfessorTurn(args: {
   const modelMessages = currentMessage
     ? [...priorMessages, referenceMessage, currentMessage]
     : [referenceMessage];
-  const tools = professorTools({ scope, sessionId: session.id });
+  const tools = professorOperatorTools({ scope, sessionId: session.id, model: args.model });
 
   const stream = createUIMessageStream<ProfessorUIMessage>({
     execute: ({ writer }) => {
@@ -95,7 +95,7 @@ export async function runProfessorTurn(args: {
         instructions,
         messages: modelMessages,
         tools,
-        stopWhen: isStepCount(8),
+        stopWhen: isStepCount(16),
       });
       writer.merge(toUIMessageStream({ stream: result.stream }));
     },

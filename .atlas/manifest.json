@@ -36,7 +36,7 @@
     {
       "id": "course-operations",
       "name": "Course operations",
-      "description": "Carry out ordinary LMS operations across content, publishing, grading, policy, drafts, and course records.",
+      "description": "Carry out ordinary LMS operations across content, publishing, grading, policy, drafts, and course data.",
       "path": "skills/course-operations/SKILL.md"
     }
   ]

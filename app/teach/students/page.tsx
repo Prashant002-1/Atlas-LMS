@@ -3,7 +3,6 @@ import { loadInstructorWorkspace, type InstructorWorkspace } from "@/lib/instruc
 import { PageHeader } from "@/components/teach/page-header";
 import { StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { EmptyState } from "@/components/atlas/record";
-import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 /** The roster and where the work stands, plainly. */
 export default async function TeachStudentsPage() {
@@ -34,16 +33,12 @@ export default async function TeachStudentsPage() {
       <section>
         <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Work</h2>
         {active.length > 0 ? (
-          <StaggerGrid className="mt-2.5 space-y-2" stagger={0.04}>
-            {active.map((item) => (
-              <MotionItem key={item.assignmentId ?? item.title}>
-                <ProgressRow item={item} />
-              </MotionItem>
-            ))}
-          </StaggerGrid>
+          <div className="mt-2.5 space-y-2">
+            {active.map((item) => <ProgressRow key={item.assignmentId ?? item.title} item={item} />)}
+          </div>
         ) : (
           <div className="mt-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-            <EmptyState art="atlas" title="No live work" detail="Published work appears here with its submission state." />
+            <EmptyState art="atlas" title="No work" detail="Published assignments appear here with their submission state." />
           </div>
         )}
       </section>
@@ -53,24 +48,22 @@ export default async function TeachStudentsPage() {
           Roster ({workspace.students.length})
         </h2>
         {workspace.students.length > 0 ? (
-          <StaggerGrid className="mt-2.5 space-y-2" stagger={0.03}>
+          <div className="mt-2.5 space-y-2">
             {workspace.students.map((student) => (
-              <MotionItem key={student.id ?? student.name}>
-                <article className="atlas-card-hover group flex items-center gap-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[0.875rem] font-medium leading-6">
-                      {student.id ? <TextLink href={`/teach/student/${student.id}`}>{student.name}</TextLink> : student.name}
-                    </p>
-                    <p className="text-[0.78125rem] text-[var(--color-muted)]">
-                      {student.graded} graded / {student.submitted - student.graded > 0 ? `${student.submitted - student.graded} waiting / ` : ""}
-                      {student.open} open{student.missing > 0 ? ` / ${student.missing} missing` : ""}
-                    </p>
-                  </div>
-                  <StatusBadge tone={student.missing > 0 ? "warn" : "neutral"}>{student.standing}</StatusBadge>
-                </article>
-              </MotionItem>
+              <article key={student.id ?? student.name} className="atlas-card-hover group flex items-center gap-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[0.875rem] font-medium leading-6">
+                    {student.id ? <TextLink href={`/teach/student/${student.id}`}>{student.name}</TextLink> : student.name}
+                  </p>
+                  <p className="text-[0.78125rem] text-[var(--color-muted)]">
+                    {student.graded} graded / {student.submitted - student.graded > 0 ? `${student.submitted - student.graded} waiting / ` : ""}
+                    {student.open} open{student.missing > 0 ? ` / ${student.missing} missing` : ""}
+                  </p>
+                </div>
+                <StatusBadge tone={student.missing > 0 ? "warn" : "neutral"}>{student.standing}</StatusBadge>
+              </article>
             ))}
-          </StaggerGrid>
+          </div>
         ) : (
           <div className="mt-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
             <EmptyState art="atlas" title="No students" detail="No one is enrolled in this course yet." />

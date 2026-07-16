@@ -67,7 +67,7 @@ function StudentWorkList({ work }: { work: InstructorStudentWorkItem[] }) {
   return (
     <Panel title="Work" action={<StatusBadge tone="neutral">{work.length}</StatusBadge>}>
       <div className="divide-y divide-[var(--color-border)]">
-        {work.length > 0 ? work.map((item) => <StudentWorkRow key={item.assignmentId ?? item.title} item={item} />) : <EmptyRecord title="No work" detail="No work is live." />}
+        {work.length > 0 ? work.map((item) => <StudentWorkRow key={item.assignmentId ?? item.title} item={item} />) : <EmptyRecord title="No work" detail="No published assignments." />}
       </div>
     </Panel>
   );

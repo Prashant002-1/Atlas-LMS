@@ -22,7 +22,7 @@ export const DUR_FAST = 0.15;
 export const DUR = 0.22;
 export const DUR_SLOW = 0.34;
 
-/** Fade + small rise. The default entrance for content and list items. */
+/** Fade + small rise. Reserved for overview content and list items. */
 export const riseVariants: Variants = {
   hidden: { opacity: 0, y: 8 },
   visible: { opacity: 1, y: 0, transition: { duration: DUR, ease: EASE_ATLAS } },
@@ -37,11 +37,17 @@ export function makeStagger(stagger = 0.05, delay = 0): Variants {
 }
 
 /**
- * Route entrance: fades + rises on every navigation. Keyed on the pathname
- * so the inner tree remounts and replays the entrance when the route changes.
+ * Route entrance for the two overview pages only. Repeated operational routes
+ * render immediately so moving between tabs stays quiet during continuous use.
  */
 export function MotionPage({ children, className }: { children: ReactNode; className?: string }) {
   const pathname = usePathname();
+  const isOverview = pathname === "/teach" || pathname === "/student";
+
+  if (!isOverview) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       key={pathname}
@@ -56,8 +62,8 @@ export function MotionPage({ children, className }: { children: ReactNode; class
 }
 
 /**
- * Staggering container. Wrap a grid or list; its children should be
- * <MotionItem>. Children inherit the hidden/visible state from this parent.
+ * Staggering container for overview composition. Wrap a grid or list; its
+ * children should be <MotionItem>.
  */
 export function StaggerGrid({
   children,
@@ -82,7 +88,7 @@ export function StaggerGrid({
   );
 }
 
-/** A staggered child: fade + rise, inheriting timing from its parent. */
+/** A staggered overview child: fade + rise, inheriting timing from its parent. */
 export function MotionItem({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <motion.div className={className} variants={riseVariants}>

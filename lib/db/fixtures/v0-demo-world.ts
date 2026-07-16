@@ -1022,7 +1022,7 @@ const sideNotes: V0SideNoteCard[] = [
     sessionId: idFor(`agentSession:${courseKey}:maya`),
     turnIndex: 5,
     topic: "elasticity",
-    text: "FLAG - From your course record: Elasticity cost you 8 of 12 points on Exam 1, and it anchors the practice set Prof. Osei is planning for Exam 2. This problem is built on it. Worth slowing down here.",
+    text: "From your course: Elasticity cost you 8 of 12 points on Exam 1, and it anchors the practice set Prof. Osei is planning for Exam 2. This problem is built on it. Worth slowing down here.",
     createdAt: new Date("2026-06-09T10:05:00Z").toISOString(),
     sourceRefs: ["elasticity-revenue-relation"],
     sourcePageSlug: "elasticity-revenue-relation",

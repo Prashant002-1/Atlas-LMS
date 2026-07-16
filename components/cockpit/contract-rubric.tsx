@@ -25,9 +25,9 @@ export function AssignmentSettings({
 
       <dl className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2">
         <SettingFact label="Length" value={`${contract.durationMinutes} minutes`} />
-        <SettingFact label="Personal record notes" value={contract.personalRecordSideNotes ? "On" : "Off"} />
+        <SettingFact label="Personal notes" value={contract.personalRecordSideNotes ? "On" : "Off"} />
         <SettingFact label="Transcript" value={contract.transcriptPolicy} wide />
-        <SettingFact label="Course material" value={contract.groundingScope.length > 0 ? contract.groundingScope.join(", ") : "Course context"} wide />
+        <SettingFact label="Course material" value={contract.groundingScope.length > 0 ? contract.groundingScope.join(", ") : "Course"} wide />
       </dl>
       <p className="mt-4 max-w-2xl text-[0.8125rem] leading-6 text-[var(--color-muted)]">{contract.instructions}</p>
 
@@ -59,8 +59,8 @@ export function AssignmentSettings({
           <label className="flex items-start gap-2.5 text-[0.8125rem] text-[var(--color-ink)]">
             <input type="checkbox" name="personalRecordSideNotes" defaultChecked={contract.personalRecordSideNotes} className="mt-0.5 size-4 accent-[var(--color-accent-strong)]" />
             <span>
-              <span className="block font-medium">Personal record notes</span>
-              <span className="mt-0.5 block text-[0.75rem] leading-5 text-[var(--color-muted)]">Use the student&apos;s own course record when a professor-approved trigger is reached.</span>
+              <span className="block font-medium">Personal notes</span>
+              <span className="mt-0.5 block text-[0.75rem] leading-5 text-[var(--color-muted)]">Use the student&apos;s own past work when a professor-approved topic appears.</span>
             </span>
           </label>
           <div><ActionButton>Save settings</ActionButton></div>

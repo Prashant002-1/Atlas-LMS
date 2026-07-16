@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "agent": "agent.md",
+  "guardrails": "guardrails.md",
+  "skills": [
+    {
+      "id": "ai-assignment",
+      "name": "AI assignment",
+      "description": "Create or revise an AI assignment contract and rubric from an existing assignment.",
+      "path": "skills/ai-assignment/SKILL.md"
+    },
+    {
+      "id": "course-authoring",
+      "name": "Course authoring",
+      "description": "Draft modules, assignments, pages, announcements, and practice sets in the professor's course.",
+      "path": "skills/course-authoring/SKILL.md"
+    },
+    {
+      "id": "class-insight",
+      "name": "Class insight",
+      "description": "Read class-level session evidence and turn it into a grounded teaching response or practice-set draft.",
+      "path": "skills/class-insight/SKILL.md"
+    }
+  ]
+}

@@ -8,13 +8,6 @@ import {
   type StudentTopicRecord,
 } from "./side-notes";
 
-/**
- * Side-note trigger tests, pure logic only. The rule under test: a card fires
- * exactly when the professor toggle is on, a sanctioned trigger keyword lands
- * in the student's turn, the student's own record is weak on that topic, and
- * the topic has not fired before. Every number in the card is a record fact.
- */
-
 const mayaElasticity: StudentTopicRecord = {
   score: 4,
   max: 12,
@@ -50,27 +43,25 @@ test("fires on the confused-with keyword for a weak topic", () => {
   ]);
 });
 
-test("reproduces the canonical demo card from record facts", () => {
+test("reproduces the canonical demo card from course facts", () => {
   const note = evaluateSideNote(baseInput());
   assert.ok(note);
   assert.ok(note.text.includes("Elasticity cost you 8 of 12 points on Midterm Exam 1"), note.text);
   assert.ok(note.text.includes("Prof. Osei's Exam 2 Practice Set Planning"), note.text);
-  assert.ok(note.text.startsWith("FLAG - From your course record:"), note.text);
+  assert.ok(note.text.startsWith("From your course:"), note.text);
   assert.ok(note.text.includes("Worth slowing down here."), note.text);
 });
 
-test("professor toggle off means no card, ever", () => {
+test("professor toggle off means no card", () => {
   assert.equal(evaluateSideNote(baseInput({ personalRecordSideNotes: false })), null);
 });
 
 test("a strong student never sees the card", () => {
-  const strong: StudentTopicRecord = { ...mayaElasticity, score: 11 };
-  assert.equal(evaluateSideNote(baseInput({ topicRecords: { elasticity: strong } })), null);
+  assert.equal(evaluateSideNote(baseInput({ topicRecords: { elasticity: { ...mayaElasticity, score: 11 } } })), null);
 });
 
 test("exactly at half the topic max does not fire", () => {
-  const borderline: StudentTopicRecord = { ...mayaElasticity, score: 6 };
-  assert.equal(evaluateSideNote(baseInput({ topicRecords: { elasticity: borderline } })), null);
+  assert.equal(evaluateSideNote(baseInput({ topicRecords: { elasticity: { ...mayaElasticity, score: 6 } } })), null);
 });
 
 test("a topic fires once per session", () => {
@@ -86,15 +77,14 @@ test("keywords match whole words, not fragments", () => {
     evaluateSideNote(baseInput({ turnText: "The plasticity of the material is irrelevant here.", triggers: [{ topic: "elasticity", keywords: ["elasticity"] }] })),
     null
   );
-  const hit = evaluateSideNote(baseInput({ turnText: "Is elasticity the same as slope?" }));
-  assert.ok(hit);
+  assert.ok(evaluateSideNote(baseInput({ turnText: "Is elasticity the same as slope?" })));
 });
 
 test("a topic with no record row stays silent", () => {
   assert.equal(evaluateSideNote(baseInput({ topicRecords: {} })), null);
 });
 
-test("at most one card per turn; the remaining topic stays armed", () => {
+test("at most one card per turn", () => {
   const input = baseInput({
     triggers: [
       { topic: "elasticity", keywords: ["elasticity"] },
@@ -109,13 +99,12 @@ test("at most one card per turn; the remaining topic stays armed", () => {
   const first = evaluateSideNote(input);
   assert.ok(first);
   assert.equal(first.topic, "elasticity");
-
   const second = evaluateSideNote({ ...input, firedTopics: ["elasticity"] });
   assert.ok(second);
   assert.equal(second.topic, "market_power");
 });
 
-test("composition drops the planning clause when there is no planning provenance", () => {
+test("composition drops planning when there is no provenance", () => {
   const text = composeSideNoteText({ topic: "elasticity", record: mayaElasticity, professorHandle: null, planningTitle: null });
   assert.ok(text.includes("Elasticity cost you 8 of 12 points on Midterm Exam 1."), text);
   assert.equal(text.includes("planning"), false);

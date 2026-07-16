@@ -1,33 +1,30 @@
 import { and, eq, isNotNull } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { agentSessions, assignments, sessionSideNotes, submissions, users, courses, type AgentSession, type SessionAssignment } from "@/lib/db/schema";
+import {
+  agentSessions,
+  assignments,
+  sessionSideNotes,
+  submissions,
+  users,
+  courses,
+  type AgentSession,
+  type SessionAssignment,
+} from "@/lib/db/schema";
 import { parseSideNoteTriggers, type SideNoteCard, type SideNoteTrigger } from "@/lib/agent/session-parts";
 
 /**
- * Side notes, the context layer surfacing the student's own record.
- *
- * A card fires only when four independently-owned facts line up:
- *   1. the professor turned personal-record side notes ON for this assignment;
- *   2. a professor-sanctioned trigger's keywords appear in the student's turn;
- *   3. the student's own exam record is actually weak on that topic;
- *   4. the topic has not already produced a card in this session.
- *
- * The model never invents a side note. The server computes the card from
- * stored rows, persists it, and streams it as a `data-side-note` part. Every
- * number in the card text comes from the record, never from generation.
+ * Side notes surface facts from the student's own past work. A card fires only
+ * when the professor enables it, a sanctioned keyword lands in the student's
+ * turn, the student's stored score is weak on that topic, and the topic has not
+ * already fired in this session. The model never composes these facts.
  */
 
-/** A topic is "weak" when the student earned less than half its possible points. */
 const WEAK_TOPIC_RATIO = 0.5;
 
 export type StudentTopicRecord = {
-  /** The student's own points on the topic. */
   score: number;
-  /** The topic's possible points on that work (from the stored breakdown). */
   max: number;
-  /** Which graded work produced the record, e.g. "Midterm Exam 1". */
   examLabel: string;
-  /** Deterministic provenance ref for the record row. */
   sourceRef: string;
 };
 
@@ -41,17 +38,11 @@ export type SideNoteComposition = {
 export type SideNoteEvaluationInput = {
   personalRecordSideNotes: boolean;
   triggers: SideNoteTrigger[];
-  /** Topics that already produced a card in this session. */
   firedTopics: string[];
-  /** The student's text for the turn under evaluation. */
   turnText: string;
-  /** The student's record, keyed by topic. */
   topicRecords: Record<string, StudentTopicRecord>;
-  /** "Prof. Osei" style display handle; null drops the planning clause. */
   professorHandle: string | null;
-  /** Title of the professor's planning session this assignment came out of. */
   planningTitle: string | null;
-  /** Provenance ref for the planning session. */
   planningRef: string | null;
 };
 
@@ -69,11 +60,6 @@ function titleCase(topic: string): string {
   return topic.charAt(0).toUpperCase() + topic.slice(1);
 }
 
-/**
- * Compose the card text from record facts. Shape mirrors the canonical demo
- * card: source label, the exact points lost, the professor's forward plan,
- * and a nudge, two sentences of structured record, zero generation.
- */
 export function composeSideNoteText(args: {
   topic: string;
   record: StudentTopicRecord;
@@ -81,7 +67,7 @@ export function composeSideNoteText(args: {
   planningTitle: string | null;
 }): string {
   const lost = Math.max(0, args.record.max - args.record.score);
-  const base = `FLAG - From your course record: ${titleCase(args.topic)} cost you ${lost} of ${args.record.max} points on ${args.record.examLabel}`;
+  const base = `From your course: ${titleCase(args.topic)} cost you ${lost} of ${args.record.max} points on ${args.record.examLabel}`;
   const planning =
     args.professorHandle && args.planningTitle
       ? `, and it anchors ${args.professorHandle}'s ${args.planningTitle}`
@@ -89,11 +75,6 @@ export function composeSideNoteText(args: {
   return `${base}${planning}. This problem is built on it. Worth slowing down here.`;
 }
 
-/**
- * Pure trigger evaluation: does this student turn fire a side note?
- * Returns at most ONE card per turn (the first matching trigger wins) so the
- * margin never floods; remaining topics stay armed for later turns.
- */
 export function evaluateSideNote(input: SideNoteEvaluationInput): SideNoteComposition | null {
   if (!input.personalRecordSideNotes) return null;
   if (!input.turnText.trim()) return null;
@@ -127,27 +108,19 @@ export function evaluateSideNote(input: SideNoteEvaluationInput): SideNoteCompos
   return null;
 }
 
-/* ── record assembly + orchestration (db side) ──────────────── */
-
-/** Stored breakdown shape on submissions.topic_scores: { topic: { score, max } }. */
 export type StoredTopicScores = Record<string, { score: number; max: number }>;
 
 function isStoredTopicScores(value: unknown): value is StoredTopicScores {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   return Object.values(value as Record<string, unknown>).every(
-    (v) =>
-      Boolean(v) &&
-      typeof v === "object" &&
-      typeof (v as { score?: unknown }).score === "number" &&
-      typeof (v as { max?: unknown }).max === "number"
+    (entry) =>
+      Boolean(entry) &&
+      typeof entry === "object" &&
+      typeof (entry as { score?: unknown }).score === "number" &&
+      typeof (entry as { max?: unknown }).max === "number"
   );
 }
 
-/**
- * Build the student's topic record from their OWN stored per-topic grades.
- * Only the student's rows are read; the class is never scanned. The breakdown
- * is self-describing (score + max per topic), so no ceiling is inferred.
- */
 export async function loadStudentTopicRecords(args: {
   orgId: string;
   courseId: string;
@@ -185,7 +158,6 @@ export async function loadStudentTopicRecords(args: {
   return records;
 }
 
-/** "Dr. Amara Osei" -> "Prof. Osei". */
 export function professorHandleFromName(name: string | null | undefined): string | null {
   const trimmed = name?.trim();
   if (!trimmed) return null;
@@ -193,11 +165,6 @@ export function professorHandleFromName(name: string | null | undefined): string
   return `Prof. ${pieces[pieces.length - 1]}`;
 }
 
-/**
- * Evaluate and persist a side note for a freshly-stored student turn.
- * Returns the card (for streaming) or null. Failures are contained: a broken
- * side-note path must never take down the session turn itself.
- */
 export async function fireSideNoteForTurn(args: {
   session: AgentSession;
   config: SessionAssignment;
@@ -214,7 +181,7 @@ export async function fireSideNoteForTurn(args: {
       .from(sessionSideNotes)
       .where(and(eq(sessionSideNotes.orgId, args.session.orgId), eq(sessionSideNotes.sessionId, args.session.id)));
     const firedTopics = fired.map((row) => row.topic);
-    if (triggers.every((t) => firedTopics.includes(t.topic))) return null;
+    if (triggers.every((trigger) => firedTopics.includes(trigger.topic))) return null;
 
     const topicRecords = await loadStudentTopicRecords({
       orgId: args.session.orgId,
@@ -278,7 +245,6 @@ export async function fireSideNoteForTurn(args: {
       turnIndex: args.turnIndex,
     };
   } catch {
-    // Side notes are an enrichment; the turn must proceed without one.
     return null;
   }
 }

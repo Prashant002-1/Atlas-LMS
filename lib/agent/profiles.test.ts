@@ -2,12 +2,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { agentProfiles, describeColleagues, profileForSession } from "@/lib/agent/profiles";
 
-/**
- * The profile registry is a boundary contract. These tests pin the shape the
- * stores and runtimes rely on: unique session addresses, the right principal
- * on each side, and boundary statements that actually say something.
- */
-
 test("every profile claims a unique session address", () => {
   const addresses = new Set<string>();
   for (const profile of Object.values(agentProfiles)) {
@@ -23,17 +17,15 @@ test("principals split the way the product does", () => {
   assert.equal(agentProfiles.study.principal, "student");
 });
 
-test("the live profiles are the professor chat and the work session", () => {
+test("the live profiles are the professor chat and the assignment session", () => {
   assert.equal(agentProfiles.professor.status, "live");
   assert.equal(agentProfiles.session.status, "live");
   assert.equal(agentProfiles.study.status, "planned");
 });
 
 test("session addresses match the stores", () => {
-  // The professor's planning threads are command-surface, course-anchored.
   assert.equal(agentProfiles.professor.surface, "command");
   assert.equal(agentProfiles.professor.anchorType, "course");
-  // Student work sessions are cue-surface, assignment-anchored.
   assert.equal(agentProfiles.session.surface, "cue");
   assert.equal(agentProfiles.session.anchorType, "assignment");
 });
@@ -59,7 +51,8 @@ test("the professor profile writes only through the Review gate", () => {
   assert.match(writes, /changeProposals/);
   assert.match(writes, /Review/);
   const never = agentProfiles.professor.boundaries.never.join(" ");
-  assert.match(never, /mutate a live course record directly/);
+  assert.match(never, /mutate or publish the course directly/);
+  assert.match(never, /arbitrary code/);
 });
 
 test("the session profile can never cross students", () => {
@@ -71,5 +64,5 @@ test("colleague cards describe the others, not the self", () => {
   const forProfessor = describeColleagues("professor");
   assert.match(forProfessor, /AI assignment/i);
   assert.match(forProfessor, /study/i);
-  assert.doesNotMatch(forProfessor, /drafts rubrics/);
+  assert.doesNotMatch(forProfessor, /prepares assignments/);
 });

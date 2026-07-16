@@ -548,9 +548,6 @@ async function readGradebook(scope: ProfessorScope, input: ReadGradebookInput): 
         .from(submissions)
         .where(and(eq(submissions.orgId, scope.orgId), eq(submissions.courseId, scope.courseId), inArray(submissions.userId, studentIds), inArray(submissions.assignmentId, assignmentIds)))
     : [];
-  const assignmentById = new Map(assignmentRows.map((assignment) => [assignment.id, assignment]));
-  const studentById = new Map(students.map((student) => [student.id, student]));
-
   if (input.view === "distribution") {
     const assignment = assignmentRows[0];
     if (!assignment) return { ok: false, error: "That assignment is not in this course." };
@@ -884,7 +881,7 @@ async function mutateLms(scope: ProfessorScope, model: LanguageModel, input: Mut
         studentDailyLimit: input.studentDailyLimit ?? existing?.studentDailyLimit ?? 40,
         shareStruggleSignal: input.shareStruggleSignal ?? existing?.shareStruggleSignal ?? false,
         updatedAt: new Date(),
-      };
+      } satisfies Partial<typeof courseAiPolicies.$inferInsert>;
       await db.insert(courseAiPolicies).values({ orgId: scope.orgId, courseId: scope.courseId, ...values }).onConflictDoUpdate({ target: [courseAiPolicies.courseId], set: values });
       return { ok: true, action: input.action, summary: "Updated the course AI policy." };
     }

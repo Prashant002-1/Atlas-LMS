@@ -358,7 +358,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
                     <p className="text-[0.75rem] font-medium text-[var(--color-accent-strong)]">{props.course.code}</p>
                     <h2 className="atlas-serif text-[1.75rem] font-semibold leading-tight text-[var(--color-ink)]">What should Atlas do?</h2>
                     <p className="max-w-[36rem] text-[0.875rem] leading-6 text-[var(--color-muted)]">
-                      Ask about any course record, student, grade, submission, or session, or ask Atlas to change the LMS.
+                      Ask about any assignment, student, grade, submission, session, or part of the course, or ask Atlas to change the LMS.
                     </p>
                   </div>
                   <Suggestions className="justify-start">

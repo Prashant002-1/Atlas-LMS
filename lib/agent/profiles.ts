@@ -41,7 +41,7 @@ export const agentProfiles: Record<AgentProfileId, AgentProfile> = {
         "reviewed Atlas skill instructions loaded on demand",
       ],
       writes: [
-        "scoped course records through typed LMS operations when the professor asks",
+        "scoped LMS data through typed course operations when the professor asks",
         "changeProposals and proposalBlocks through reviewable draft tools",
         "grades, missing states, session grading, draft decisions, policies, and publishing through explicit typed actions",
       ],

@@ -9,9 +9,8 @@ import { JourneyReportPanel } from "@/components/session/journey-report-panel";
 /** The assignment session, including the submitted session's grade when available. */
 export default async function StudentSessionPage({ params }: { params: Promise<{ assignmentId: string }> }) {
   const session = await auth();
-  if (!session?.user) {
-    redirect("/sign-in?role=student");
-  }
+  if (!session?.user) redirect("/sign-in?role=student");
+
   const { assignmentId } = await params;
   const view = await loadStudentSessionView(session.user, assignmentId);
 
@@ -32,7 +31,7 @@ export default async function StudentSessionPage({ params }: { params: Promise<{
         <PageHeader
           title={view.assignment.name}
           course={`${view.course.code} / AI assignment`}
-          action={<StatusBadge tone={view.submitted ? "good" : "accent"}>{view.submitted ? "Submitted" : "Live"}</StatusBadge>}
+          action={view.submitted ? <StatusBadge tone="good">Submitted</StatusBadge> : undefined}
         />
       </div>
 

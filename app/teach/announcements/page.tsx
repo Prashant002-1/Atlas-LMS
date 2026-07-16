@@ -1,112 +1,95 @@
 import { redirect } from "next/navigation";
-import { Megaphone } from "lucide-react";
 import { and, desc, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { announcements } from "@/lib/db/schema";
+import { announcements, users } from "@/lib/db/schema";
 import { findEditableCourse } from "@/lib/instructor/workspace";
 import { createAnnouncementRecord } from "@/lib/instructor/actions";
 import { PageHeader } from "@/components/teach/page-header";
-import { ActionButton, Panel } from "@/components/atlas/primitives";
+import { ActionButton } from "@/components/atlas/primitives";
 import { EmptyState } from "@/components/atlas/record";
-import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
+import { AnnouncementList, type AnnouncementListRow } from "@/components/teach/announcement-list";
+import { RecordDialog } from "@/components/teach/record-dialog";
 
-/**
- * Announcements: one-way course posts, newest first. Each post is a record
- * with its posted date; there is no inbox and no thread. Students read them
- * on the course home.
- */
-export default async function TeachAnnouncementsPage() {
+/** Clickable, timestamped course announcements, newest first. */
+export default async function TeachAnnouncementsPage({ searchParams }: { searchParams: Promise<{ new?: string }> }) {
   const session = await auth();
-  if (!session?.user) {
-    redirect("/sign-in");
-  }
-  if (!isInstructorLike(session.user.role)) {
-    redirect("/student");
-  }
-  if (!session.user.orgId) {
-    redirect("/teach");
-  }
+  if (!session?.user) redirect("/sign-in");
+  if (!isInstructorLike(session.user.role)) redirect("/student");
+  if (!session.user.orgId) redirect("/teach");
 
-  const course = await findEditableCourse({ id: session.user.id, orgId: session.user.orgId, role: session.user.role });
-  if (!course) {
-    redirect("/teach");
-  }
+  const [course, params] = await Promise.all([
+    findEditableCourse({ id: session.user.id, orgId: session.user.orgId, role: session.user.role }),
+    searchParams,
+  ]);
+  if (!course) redirect("/teach");
 
-  const rows = await db
+  const records = await db
     .select({
       id: announcements.id,
       title: announcements.title,
       messageMd: announcements.messageMd,
       postedAt: announcements.postedAt,
-      published: announcements.published,
+      authorName: users.name,
     })
     .from(announcements)
+    .leftJoin(users, and(eq(users.id, announcements.authorId), eq(users.orgId, session.user.orgId)))
     .where(and(eq(announcements.orgId, session.user.orgId), eq(announcements.courseId, course.id)))
     .orderBy(desc(announcements.postedAt));
 
-  const field =
-    "min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.875rem] text-[var(--color-ink)] transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]";
+  const rows: AnnouncementListRow[] = records.map((record) => ({
+    id: record.id,
+    title: record.title,
+    message: record.messageMd,
+    authorName: record.authorName ?? "Course staff",
+    postedAt: record.postedAt?.toISOString() ?? null,
+  }));
 
   return (
     <>
-      <PageHeader title="Announcements" course={`${course.code} / ${course.term ?? ""}`} />
+      <PageHeader
+        title="Announcements"
+        course={`${course.code} / ${course.term ?? ""}`}
+        action={<NewAnnouncementDialog defaultOpen={params.new === "1"} />}
+      />
 
-      <Panel title="New announcement" className="scroll-mt-24" id="new">
-        <form action={createAnnouncementRecord} className="grid max-w-2xl gap-3">
-          <label className="grid gap-1.5 text-[0.75rem] font-medium">
-            Title
-            <input name="title" type="text" required placeholder="Exam 2 covers through elasticity" className={field} />
-          </label>
-          <label className="grid gap-1.5 text-[0.75rem] font-medium">
-            Message
-            <textarea
-              name="message"
-              rows={4}
-              className="resize-none rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[0.875rem] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
-            />
-          </label>
-          <div>
-            <ActionButton>
-              <Megaphone size={14} strokeWidth={2} aria-hidden="true" />
-              <span className="ml-1.5">Post to course</span>
-            </ActionButton>
-          </div>
-        </form>
-      </Panel>
-
-      <section className="mt-6">
-        {rows.length > 0 ? (
-          <StaggerGrid className="space-y-2.5" stagger={0.04}>
-            {rows.map((row) => (
-              <MotionItem key={row.id}>
-                <article className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4 shadow-[var(--shadow-panel)]">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <h2 className="text-[0.90625rem] font-semibold leading-6">{row.title}</h2>
-                    <p className="atlas-mono text-[0.6875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
-                      {row.postedAt
-                        ? `Posted ${row.postedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                        : "Draft"}
-                    </p>
-                  </div>
-                  {row.messageMd ? (
-                    <p className="mt-1.5 whitespace-pre-line text-[0.84375rem] leading-6 text-[var(--color-muted)]">{row.messageMd}</p>
-                  ) : null}
-                </article>
-              </MotionItem>
-            ))}
-          </StaggerGrid>
-        ) : (
-          <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-            <EmptyState
-              art="atlas"
-              title="No announcements"
-              detail="Nothing has been posted to this course yet."
-            />
-          </div>
-        )}
-      </section>
+      {rows.length > 0 ? (
+        <AnnouncementList rows={rows} />
+      ) : (
+        <div className="border-y border-[var(--color-border)]">
+          <EmptyState art="atlas" title="No announcements" detail="Publish the first announcement for this course." />
+        </div>
+      )}
     </>
   );
 }
+
+function NewAnnouncementDialog({ defaultOpen }: { defaultOpen: boolean }) {
+  return (
+    <RecordDialog
+      mode="create"
+      triggerLabel="New announcement"
+      title="New announcement"
+      description="Publish a timestamped message to everyone in the course. Markdown is supported for longer updates."
+      triggerVariant="primary"
+      defaultOpen={defaultOpen}
+    >
+      <form action={createAnnouncementRecord} className="grid gap-4">
+        <label className="grid gap-1.5 text-[0.75rem] font-medium">
+          Subject
+          <input name="title" type="text" required autoFocus maxLength={200} placeholder="Exam 2 covers through elasticity" className={fieldClass} />
+        </label>
+        <label className="grid gap-1.5 text-[0.75rem] font-medium">
+          Message
+          <textarea name="message" rows={12} required maxLength={4000} placeholder="Write the announcement..." className={`${fieldClass} min-h-64 resize-y py-3 leading-6`} />
+        </label>
+        <div className="flex justify-end border-t border-[var(--color-border)] pt-4">
+          <ActionButton>Publish announcement</ActionButton>
+        </div>
+      </form>
+    </RecordDialog>
+  );
+}
+
+const fieldClass = "min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.8125rem] text-[var(--color-ink)] outline-none transition placeholder:text-[var(--color-faint)] focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]";

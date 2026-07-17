@@ -12,14 +12,32 @@
     {
       "id": "course-authoring",
       "name": "Course authoring",
-      "description": "Draft modules, assignments, pages, announcements, and practice sets in the professor's course.",
+      "description": "Create or revise modules, assignments, pages, announcements, and practice sets.",
       "path": "skills/course-authoring/SKILL.md"
     },
     {
       "id": "class-insight",
       "name": "Class insight",
-      "description": "Read class-level session evidence and turn it into a grounded teaching response or practice-set draft.",
+      "description": "Read assessed-session evidence and turn it into a grounded teaching response or practice set.",
       "path": "skills/class-insight/SKILL.md"
+    },
+    {
+      "id": "gradebook",
+      "name": "Gradebook",
+      "description": "Analyze class and assignment grade distributions and inspect grade records.",
+      "path": "skills/gradebook/SKILL.md"
+    },
+    {
+      "id": "student-support",
+      "name": "Student support",
+      "description": "Inspect one student's standing, grades, submissions, and assessed sessions to answer a professor's question.",
+      "path": "skills/student-support/SKILL.md"
+    },
+    {
+      "id": "course-operations",
+      "name": "Course operations",
+      "description": "Carry out ordinary LMS operations across content, publishing, grading, policy, drafts, and course data.",
+      "path": "skills/course-operations/SKILL.md"
     }
   ]
 }

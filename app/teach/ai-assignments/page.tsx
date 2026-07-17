@@ -32,7 +32,7 @@ export default async function TeachAiAssignmentsPage() {
       />
 
       {view.rows.length > 0 ? (
-        <div className="overflow-hidden border-y border-[var(--color-border)]">
+        <div className="overflow-hidden border-b border-[var(--color-border)]">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[48rem] border-collapse text-left">
               <thead>

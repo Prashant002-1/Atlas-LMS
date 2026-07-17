@@ -6,6 +6,13 @@ import path from "node:path";
 const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), "utf8");
 
+test("AI assignment index uses one divider between its header and records", () => {
+  const page = read("app/teach/ai-assignments/page.tsx");
+
+  assert.ok(page.includes('overflow-hidden border-b border-[var(--color-border)]'));
+  assert.equal(page.includes('overflow-hidden border-y border-[var(--color-border)]'), false);
+});
+
 test("AI assignment students render as a searchable filterable table", () => {
   const page = read("app/teach/ai-assignments/[assignmentId]/page.tsx");
   const table = read("components/cockpit/session-table.tsx");

@@ -144,6 +144,7 @@ test("the new schema and bounded upload path are deployment visible", () => {
   assert.match(read(".env.example"), /ATLAS_MATERIAL_INGEST_URL/);
   assert.match(read(".env.example"), /ATLAS_MATERIAL_CALLBACK_SECRET/);
   assert.match(read("docker-compose.yml"), /ATLAS_MATERIAL_CALLBACK_SECRET/);
+  assert.match(read("Dockerfile"), /FROM node:24-alpine/);
   assert.match(read("app/api/materials/ingestion/route.ts"), /timingSafeEqual/);
   assert.match(read("app/api/materials/ingestion/route.ts"), /ingestionJobId/);
   assert.match(read("app/api/materials/ingestion/route.ts"), /terminal state/);

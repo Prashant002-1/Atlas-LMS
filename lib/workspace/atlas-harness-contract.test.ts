@@ -15,15 +15,24 @@ test("the Atlas page is a full viewport operator with quiet streaming feedback",
   assert.match(room, /Threads/);
   assert.match(room, /Drafts/);
   assert.match(room, /PanelRightOpen/);
+  assert.match(room, /Attachments coming soon/);
   assert.match(room, /Voice input coming soon/);
+  assert.match(room, /min-h-\[3\.25rem\] flex-row items-end/);
   assert.match(room, /ThinkingIndicator/);
-  assert.match(room, /<Spinner/);
+  assert.match(room, /<Shimmer/);
+  assert.match(room, /PromptCheckpointRail/);
+  assert.match(room, /Prompt checkpoints/);
+  assert.match(room, /role="tooltip"/);
+  assert.match(room, /aria-describedby/);
+  assert.match(room, /scrollIntoView/);
   assert.match(room, /Checking the gradebook/);
   assert.match(room, /What is the grade distribution for this class\?/);
   assert.match(room, /How is Maya Patel doing\?/);
   assert.doesNotMatch(room, /Run trace/);
   assert.doesNotMatch(room, /TaskTrigger/);
   assert.doesNotMatch(room, /Starting the run/);
+  assert.doesNotMatch(room, /ConversationScrollButton/);
+  assert.doesNotMatch(room, /<Spinner/);
   assert.doesNotMatch(room, /course record/i);
 });
 

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { and, asc, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { loadAccountProfile } from "@/lib/auth/account";
 import { db } from "@/lib/db";
 import { courses, enrollments } from "@/lib/db/schema";
 import { loadInstitutionName } from "@/lib/workspace/institution";
@@ -13,7 +14,7 @@ export default async function StudentLayout({ children }: { children: ReactNode 
   if (session.user.role !== "student") redirect("/teach");
   if (!session.user.orgId) redirect("/sign-in?role=student");
 
-  const [rows, institutionName] = await Promise.all([
+  const [rows, institutionName, profile] = await Promise.all([
     db
       .select({ courseId: enrollments.courseId, code: courses.code })
       .from(enrollments)
@@ -28,6 +29,7 @@ export default async function StudentLayout({ children }: { children: ReactNode 
       )
       .orderBy(asc(courses.code)),
     loadInstitutionName(session.user.orgId),
+    loadAccountProfile(session.user.id),
   ]);
 
   const sections: NavSection[] = [
@@ -61,8 +63,10 @@ export default async function StudentLayout({ children }: { children: ReactNode 
     <AppShell
       sections={sections}
       institutionName={institutionName}
-      userName={session.user.name}
-      userEmail={session.user.email}
+      userName={profile?.name ?? session.user.name}
+      userEmail={profile?.email ?? session.user.email}
+      userImage={profile?.image ?? session.user.image}
+      accountHref="/student/account"
     >
       {children}
     </AppShell>

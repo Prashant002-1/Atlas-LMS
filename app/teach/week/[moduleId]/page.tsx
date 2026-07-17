@@ -43,38 +43,38 @@ export default async function InstructorWeekPage({ params }: { params: Promise<{
 }
 
 function ModuleRecord({ workspace }: { workspace: InstructorModuleWorkspace }) {
-  const module = workspace.module;
-  if (!module || !module.id) return null;
-  const published = module.status === "approved";
+  const courseModule = workspace.module;
+  if (!courseModule || !courseModule.id) return null;
+  const published = courseModule.status === "approved";
 
   return (
     <>
       <PageHeader
-        title={module.title}
-        course={`${workspace.course.code} / Module ${module.week}`}
+        title={courseModule.title}
+        course={`${workspace.course.code} / Module ${courseModule.week}`}
         action={
           <div className="flex items-center gap-2">
             {!published ? (
               <form action={publishModule}>
-                <input type="hidden" name="moduleId" value={module.id} />
-                <input type="hidden" name="returnTo" value={`/teach/week/${module.id}`} />
+                <input type="hidden" name="moduleId" value={courseModule.id} />
+                <input type="hidden" name="returnTo" value={`/teach/week/${courseModule.id}`} />
                 <ActionButton size="sm">Publish</ActionButton>
               </form>
             ) : null}
-            <EditModuleDialog module={module} />
+            <EditModuleDialog module={courseModule} />
           </div>
         }
       />
 
       <section aria-labelledby="module-summary-heading" className="max-w-4xl">
         <h2 id="module-summary-heading" className="sr-only">Module summary</h2>
-        {module.summary ? (
-          <p className="text-[0.9375rem] leading-7 text-[var(--color-ink)]">{module.summary}</p>
+        {courseModule.summary ? (
+          <p className="text-[0.9375rem] leading-7 text-[var(--color-ink)]">{courseModule.summary}</p>
         ) : (
           <p className="text-[0.8125rem] text-[var(--color-muted)]">No summary.</p>
         )}
         <dl className="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-y border-[var(--color-border)] py-3 text-[0.75rem] text-[var(--color-muted)]">
-          <div className="flex gap-1.5"><dt>Module</dt><dd className="font-medium text-[var(--color-ink)]">{module.week}</dd></div>
+          <div className="flex gap-1.5"><dt>Module</dt><dd className="font-medium text-[var(--color-ink)]">{courseModule.week}</dd></div>
           <div className="flex gap-1.5"><dt>Assignments</dt><dd className="font-medium text-[var(--color-ink)]">{workspace.assignments.length}</dd></div>
           {!published ? <div className="flex gap-1.5"><dt>Status</dt><dd className="font-medium text-[var(--color-ink)]">Draft</dd></div> : null}
         </dl>

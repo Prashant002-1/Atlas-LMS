@@ -8,8 +8,6 @@ import { v0DemoWorld } from "./v0-demo-world";
  * database, so a broken fixture fails CI before it reaches the seed.
  */
 
-const legacyCatalogCodes = ["STAT-201", "HIST-310", "CS-152", "BIO-110", "WRIT-105", "STAT-405"];
-
 test("exactly one current term, terms do not overlap", () => {
   const current = demoPackage.terms.filter((t) => t.current);
   assert.equal(current.length, 1, "exactly one term must be current");

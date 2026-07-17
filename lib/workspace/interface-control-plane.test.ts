@@ -60,7 +60,8 @@ test("publish and sign out use the quiet text scale", () => {
   assert.equal(primitives.includes('sm: "min-h-8 px-2.5 text-[0.75rem]"'), true);
 
   const shell = source("components/atlas/app-shell.tsx");
-  assert.equal(shell.includes('text-[0.6875rem] font-normal'), true);
+  assert.equal(shell.includes('text-[0.8125rem] font-medium'), true);
+  assert.equal(shell.includes("Sign out"), true);
   assert.equal(shell.includes("<LogOut size={12}"), false);
 });
 

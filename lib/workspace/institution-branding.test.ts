@@ -28,6 +28,7 @@ test("the shell leads with the institution and keeps Atlas subordinate", () => {
   assert.ok(shell.includes("institutionName={institutionName}"));
   assert.ok(shell.includes('className="flex h-14 shrink-0'));
   assert.equal(shell.includes("Powered by Atlas"), false);
-  assert.ok(shell.includes("py-1.5 text-left text-[0.75rem]"));
+  assert.ok(shell.includes("Account settings"));
+  assert.ok(shell.includes("UserAvatar"));
   assert.equal(shell.includes('>Account</span>'), false);
 });

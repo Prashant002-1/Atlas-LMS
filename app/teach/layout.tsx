@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
+import { loadAccountProfile } from "@/lib/auth/account";
 import { loadInstitutionName } from "@/lib/workspace/institution";
 import { AppShell, type NavSection } from "@/components/atlas/app-shell";
 
@@ -38,14 +39,19 @@ export default async function TeachLayout({ children }: { children: ReactNode })
   if (!isInstructorLike(session.user.role)) redirect("/student");
   if (!session.user.orgId) redirect("/sign-in");
 
-  const institutionName = await loadInstitutionName(session.user.orgId);
+  const [institutionName, profile] = await Promise.all([
+    loadInstitutionName(session.user.orgId),
+    loadAccountProfile(session.user.id),
+  ]);
 
   return (
     <AppShell
       sections={teacherSections}
       institutionName={institutionName}
-      userName={session.user.name}
-      userEmail={session.user.email}
+      userName={profile?.name ?? session.user.name}
+      userEmail={profile?.email ?? session.user.email}
+      userImage={profile?.image ?? session.user.image}
+      accountHref="/teach/account"
     >
       {children}
     </AppShell>

@@ -68,7 +68,7 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
 
       <div className="-mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[0.78125rem] text-[var(--color-muted)]">
         {assignment.status !== "approved" ? <span>Draft</span> : null}
-        {assignment.dueAt ? <span className={assignment.dueAt.getTime() < Date.now() ? "font-medium text-[var(--color-danger)]" : undefined}>{assignment.dueAt.getTime() < Date.now() ? "Past due" : "Upcoming"} / {formatShortDate(assignment.dueAt)}</span> : <span>No due date</span>}
+        {assignment.dueAt ? <span className={assignment.isPastDue ? "font-medium text-[var(--color-danger)]" : undefined}>{assignment.isPastDue ? "Past due" : "Upcoming"} / {formatShortDate(assignment.dueAt)}</span> : <span>No due date</span>}
         {assignment.points ? <span>{Math.round(assignment.points)} points</span> : null}
       </div>
 

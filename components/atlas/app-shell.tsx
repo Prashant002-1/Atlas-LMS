@@ -11,7 +11,6 @@ import {
   GraduationCap,
   Layers3,
   LayoutDashboard,
-  LogOut,
   Megaphone,
   MessagesSquare,
   PanelLeftClose,
@@ -20,12 +19,14 @@ import {
   Settings,
   SlidersHorizontal,
   Table2,
+  UserRound,
   UsersRound,
 } from "lucide-react";
 import { signOutOfAtlas } from "@/lib/auth/actions";
 import { MotionPage } from "@/components/atlas/motion";
 import { AtlasIcon, AtlasMark } from "@/components/atlas/primitives";
 import { ThemeToggle } from "@/components/atlas/theme-switch";
+import { UserAvatar } from "@/components/atlas/user-avatar";
 
 type NavIconComponent = ComponentType<{
   size?: number;
@@ -77,12 +78,16 @@ export function AppShell({
   institutionName,
   userName,
   userEmail,
+  userImage,
+  accountHref,
 }: {
   sections: NavSection[];
   children: ReactNode;
   institutionName: string;
   userName?: string | null;
   userEmail?: string | null;
+  userImage?: string | null;
+  accountHref: string;
 }) {
   const pathname = usePathname();
   const [stored, setStored] = useState<boolean | null>(null);
@@ -220,26 +225,14 @@ export function AppShell({
           </nav>
 
           <div className="shrink-0 border-t border-[var(--color-border)] p-2">
-            <div className="flex items-center gap-1">
-              <AccountMenu
-                collapsed={shellCollapsed}
-                name={userName}
-                email={userEmail}
-                institutionName={institutionName}
-              />
-              {!shellCollapsed ? (
-                <form action={signOutOfAtlas}>
-                  <button
-                    type="submit"
-                    aria-label="Sign out"
-                    title="Sign out"
-                    className="inline-flex size-7 shrink-0 items-center justify-center rounded-control text-[var(--color-faint)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
-                  >
-                    <LogOut size={14} strokeWidth={2} aria-hidden />
-                  </button>
-                </form>
-              ) : null}
-            </div>
+            <AccountMenu
+              collapsed={shellCollapsed}
+              name={userName}
+              email={userEmail}
+              image={userImage}
+              institutionName={institutionName}
+              accountHref={accountHref}
+            />
           </div>
         </div>
       </aside>
@@ -257,19 +250,22 @@ function AccountMenu({
   collapsed,
   name,
   email,
+  image,
   institutionName,
+  accountHref,
 }: {
   collapsed: boolean;
   name?: string | null;
   email?: string | null;
+  image?: string | null;
   institutionName: string;
+  accountHref: string;
 }) {
   const [open, setOpen] = useState(false);
   const displayName = name?.trim() || email?.trim() || "Account";
-  const initial = displayName.charAt(0).toUpperCase();
 
   const menuRow =
-    "flex w-full items-center rounded-row px-2.5 py-1.5 text-left text-[0.6875rem] font-normal text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]";
+    "flex min-h-9 w-full items-center gap-2.5 rounded-row px-2.5 text-left text-[0.8125rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]";
 
   return (
     <div className="relative min-w-0 flex-1">
@@ -278,23 +274,27 @@ function AccountMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute bottom-full left-0 z-40 mb-2 w-[14.5rem] rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-1 shadow-[var(--shadow-floating)]"
+          className="absolute bottom-full left-0 z-40 mb-2 w-[15rem] rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-[var(--shadow-floating)]"
         >
-          <div className="px-2.5 py-2">
-            <p className="truncate text-[0.8125rem] font-medium text-[var(--color-ink)]">{displayName}</p>
-            {email && name ? <p className="truncate text-[0.6875rem] text-[var(--color-faint)]">{email}</p> : null}
+          <div className="flex items-center gap-2.5 px-2.5 py-2.5">
+            <UserAvatar name={name} email={email} image={image} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[0.8125rem] font-medium text-[var(--color-ink)]">{displayName}</p>
+              {email && name ? <p className="truncate text-[0.6875rem] text-[var(--color-faint)]">{email}</p> : null}
+            </div>
           </div>
-          <div className="mx-1 my-1 h-px bg-[var(--color-border)]" aria-hidden />
-          <div className="flex items-center justify-between gap-3 px-2.5 py-1.5">
-            <span className="text-[0.8125rem] font-medium text-[var(--color-muted)]">Theme</span>
-            <ThemeToggle />
+          <div className="space-y-0.5">
+            <Link href={accountHref} role="menuitem" onClick={() => setOpen(false)} className={menuRow}>
+              <UserRound size={15} strokeWidth={2} aria-hidden className="shrink-0" />
+              Account settings
+            </Link>
+            <ThemeToggle variant="menu" />
+            <form action={signOutOfAtlas}>
+              <button type="submit" role="menuitem" className={menuRow}>
+                Sign out
+              </button>
+            </form>
           </div>
-          <div className="mx-1 my-1 h-px bg-[var(--color-border)]" aria-hidden />
-          <form action={signOutOfAtlas}>
-            <button type="submit" role="menuitem" className={menuRow}>
-              Sign out
-            </button>
-          </form>
         </div>
       ) : null}
 
@@ -309,9 +309,7 @@ function AccountMenu({
           collapsed ? "justify-center" : ""
         } ${open ? "bg-[var(--color-surface-muted)]" : "hover:bg-[var(--color-surface-muted)]"}`}
       >
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-indigo-soft)] text-[0.75rem] font-semibold text-[var(--color-accent-strong)]">
-          {initial}
-        </span>
+        <UserAvatar name={name} email={email} image={image} />
         {!collapsed ? (
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[0.8125rem] font-medium text-[var(--color-ink)]">{displayName}</span>

@@ -1,12 +1,12 @@
-# Direct write tool contract
+# Direct write tool contracts
 
-## `mutate_lms`
+## Exact action tools
 
-`mutate_lms` executes one typed action immediately. It is not the proposal path. The actions listed here write live database rows when they succeed.
+Each action listed below is a separate exact-schema tool that writes live database rows when it succeeds. These tools are not the proposal path.
 
 ### Request model
 
-The request is a Zod discriminated union on `action`. Exactly one action contract is supplied per tool call. The model does not supply organization, instructor, course, or model fields; the runtime closes over those server-resolved values.
+The model calls the action name directly and supplies only that action's fields. The server injects the tool name as the internal `action` discriminator, validates the reconstructed input against `mutateLmsSchema`, and delegates to the shared `mutateLms` executor. The model does not supply organization, instructor, course, or model fields; the runtime closes over those server-resolved values.
 
 ### Shared return
 
@@ -35,7 +35,7 @@ The LMS action failed. No further action was attempted.
 
 This catch does not make a sequence of separate statements transactional. The action-specific documents identify the branches that use an explicit database transaction.
 
-Proof: `mutateLmsSchema`, `LmsActionOutput`, and `mutateLms` in [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts).
+Proof: `mutateLmsSchema`, `directActionTools`, `LmsActionOutput`, and `mutateLms` in [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts).
 
 ## Action index
 
@@ -83,6 +83,6 @@ See [Review and deletion actions](write-review-delete-actions.md).
 
 ## UI result handling
 
-A successful `mutate_lms` result is rendered as one compact action receipt using `summary`. Completed read calls remain hidden. A failed action renders the tool error and input parameters.
+A successful direct action result is rendered as one compact action receipt using `summary`. Completed read calls remain hidden. A failed action renders the tool error and input parameters.
 
 Proof: `actionSummary`, `ActionReceipt`, and `ToolError` in [`components/planning/atlas-room.tsx`](../../components/planning/atlas-room.tsx).

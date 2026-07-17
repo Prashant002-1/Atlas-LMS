@@ -98,7 +98,7 @@ Ordering is resource-specific and implemented in SQL or after merge:
 
 ### What it does not calculate
 
-`inspect_lms` does not calculate a grade distribution. Use `read_gradebook` for that. `class_results` returns the stored `class_rollups.stats`; it does not recompute those stats. Recompute uses `mutate_lms` action `refresh_class_results`.
+`inspect_lms` does not calculate a grade distribution. Use `read_gradebook` for that. `class_results` returns the stored `class_rollups.stats`; it does not recompute those stats. Recompute uses the `refresh_class_results` tool.
 
 Proof: `inspectLmsSchema`, `inspectOverview`, `findStudents`, and `inspectLms` in [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts).
 

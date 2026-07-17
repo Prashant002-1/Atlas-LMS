@@ -4,7 +4,7 @@ This file documents structures reused by multiple tools.
 
 ## `PracticeQuestion`
 
-Used by `mutate_lms.create_practice_set` and `draft_course` practice-set blocks.
+Used by `create_practice_set` and `draft_course` practice-set blocks.
 
 ```ts
 {
@@ -150,7 +150,7 @@ Proof: [`lib/agent/gradebook-analysis.ts`](../../lib/agent/gradebook-analysis.ts
 
 ## Direct action result
 
-Every `mutate_lms` branch uses:
+Every direct action tool returns:
 
 ```ts
 | {

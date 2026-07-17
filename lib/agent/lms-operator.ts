@@ -727,6 +727,31 @@ const mutateLmsSchema = z.discriminatedUnion("action", [
 ]);
 
 type MutateLmsInput = z.infer<typeof mutateLmsSchema>;
+type MutateLmsAction = MutateLmsInput["action"];
+
+const DIRECT_ACTION_TOOL_DESCRIPTIONS = {
+  create_assignment: "Create a new ordinary LMS assignment.",
+  update_assignment: "Update an existing ordinary LMS assignment.",
+  publish_assignment: "Publish or unpublish an ordinary LMS assignment.",
+  create_module: "Create a course module.",
+  update_module: "Update a course module.",
+  publish_module: "Publish or unpublish a course module.",
+  create_page: "Create a course page.",
+  update_page: "Update a course page.",
+  post_announcement: "Post a course announcement.",
+  create_practice_set: "Create a course practice set.",
+  update_course: "Update the course name, description, or syllabus.",
+  update_course_policy: "Update the course AI policy.",
+  set_grade: "Set a student's grade for an assignment.",
+  mark_missing: "Mark or clear a student's assignment as missing.",
+  update_session_contract: "Update an AI assignment session contract.",
+  apply_draft: "Apply a reviewed Atlas draft proposal.",
+  dismiss_draft: "Dismiss a reviewed Atlas draft proposal.",
+  grade_session: "Run draft grading for a session submission.",
+  finalize_session_grade: "Finalize a reviewed session grade.",
+  refresh_class_results: "Recompute class results for an assignment.",
+  delete_record: "Delete an exactly confirmed course record.",
+} satisfies Record<MutateLmsAction, string>;
 
 export type LmsActionOutput =
   | { ok: true; action: string; summary: string; record?: unknown }
@@ -1026,6 +1051,30 @@ async function mutateLms(scope: ProfessorScope, model: LanguageModel, input: Mut
   }
 }
 
+function directActionTools(args: { scope: ProfessorScope; model: LanguageModel }) {
+  const entries = mutateLmsSchema.options.map((option) => {
+    const action = option.shape.action.value as MutateLmsAction;
+    const inputShape = { ...option.shape };
+    Reflect.deleteProperty(inputShape, "action");
+    const inputSchema = z.object(inputShape) as z.ZodType<Record<string, unknown>>;
+
+    return [
+      action,
+      tool<Record<string, unknown>, LmsActionOutput, Record<string, unknown>>({
+        description: DIRECT_ACTION_TOOL_DESCRIPTIONS[action],
+        inputSchema,
+        execute: async (input): Promise<LmsActionOutput> => {
+          const parsed = mutateLmsSchema.safeParse({ action, ...(input as Record<string, unknown>) });
+          if (!parsed.success) return { ok: false, error: "The LMS action input was invalid." };
+          return mutateLms(args.scope, args.model, parsed.data);
+        },
+      }),
+    ] as const;
+  });
+
+  return Object.fromEntries(entries);
+}
+
 export function professorOperatorTools(args: { scope: ProfessorScope; sessionId: string; model: LanguageModel }) {
   const legacy = professorTools({ scope: args.scope, sessionId: args.sessionId });
 
@@ -1047,12 +1096,6 @@ export function professorOperatorTools(args: { scope: ProfessorScope; sessionId:
     execute: async (input): Promise<LmsReadOutput> => searchCourse(args.scope, input),
   });
 
-  const mutate_lms = tool({
-    description: "Act on the LMS when the professor asks: create or edit records, publish, post, grade, mark missing, update policy or session contracts, apply or dismiss drafts, run or finalize session grading, refresh class results, or delete an exactly confirmed record.",
-    inputSchema: mutateLmsSchema,
-    execute: async (input): Promise<LmsActionOutput> => mutateLms(args.scope, args.model, input),
-  });
-
   const load_skill = tool({
     description: "Load one reviewed Atlas workflow when it matches the professor's request. Skills guide the work but do not grant authority beyond the typed tools.",
     inputSchema: z.object({ skillId: z.enum(["ai-assignment", "course-authoring", "class-insight", "gradebook", "student-support", "course-operations"]) }),
@@ -1063,12 +1106,14 @@ export function professorOperatorTools(args: { scope: ProfessorScope; sessionId:
     },
   });
 
+  const actions = directActionTools({ scope: args.scope, model: args.model });
+
   return {
     inspect_lms,
     read_gradebook,
     search_course,
-    mutate_lms,
     load_skill,
+    ...actions,
     draft_ai_assignment: legacy.draft_ai_assignment,
     draft_rubric: legacy.draft_rubric,
     draft_course: legacy.draft_course,

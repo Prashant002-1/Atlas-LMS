@@ -89,7 +89,7 @@ export async function loadAtlasSkill(skillId: string): Promise<{ skill: AtlasSki
 
 const ROLE_CONFUSION_PATTERNS = [
   /ignore\s+(?:all\s+)?(?:previous|prior|system|developer)\s+instructions?/i,
-  /(?:show|reveal|print|repeat|dump)\s+(?:your\s+)?(?:system|developer|hidden|privileged)\s+(?:prompt|instructions?)/i,
+  /(?:show|reveal|print|repeat|dump)\s+(?:your\s+)?(?:(?:hidden|privileged)\s+)?(?:system|developer)?\s*(?:prompt|instructions?)/i,
   /(?:you\s+are\s+not|stop\s+being|forget\s+you\s+are)\s+atlas/i,
   /(?:act|behave|pretend|switch|become).{0,32}(?:coding|software|general[- ]purpose)\s+agent/i,
 ];

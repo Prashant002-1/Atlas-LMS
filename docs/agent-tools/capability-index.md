@@ -19,28 +19,28 @@ This index answers "can Atlas do X?" for the professor agent in PR #34.
 | Read ordinary submissions and response bodies | Yes | `inspect_lms { resource: "submissions" }` |
 | Read assessed session submissions, reports, rubric scores, transcript, and final artifact | Yes | `inspect_lms { resource: "sessions" }`; transcript/artifact detail requires exact submission `ids` or assignment plus student |
 | Read stored class results for AI assignments | Yes | `inspect_lms { resource: "class_results" }` |
-| Recompute class results | Yes | `mutate_lms { action: "refresh_class_results" }` |
+| Recompute class results | Yes | `refresh_class_results` |
 | Read rubrics and AI assignment policies | Yes | `inspect_lms` resources `rubrics` and `policies` |
 | Read assignments, modules, module items, pages, files, announcements, quizzes, and practice sets | Yes | corresponding `inspect_lms` resource |
 | Search assignment, module, page, file, announcement, and student text | Yes | `search_course`; case-insensitive substring search |
 | Read calendar-relevant due and unlock dates | Yes | `inspect_lms { resource: "calendar" }` |
 | Read drafts and professor threads | Yes | `inspect_lms` resources `drafts` and `threads` |
-| Create, edit, publish, or unpublish an assignment | Yes | `mutate_lms` assignment actions |
-| Create, edit, publish, or unpublish a module | Yes | `mutate_lms` module actions |
-| Create or edit a page | Yes | `mutate_lms` page actions |
-| Post an announcement | Yes, immediate | `mutate_lms { action: "post_announcement" }` |
-| Create a practice set | Yes, immediate | `mutate_lms { action: "create_practice_set" }` |
-| Edit course name, description, or syllabus | Yes | `mutate_lms { action: "update_course" }` |
-| Edit course AI policy | Yes | `mutate_lms { action: "update_course_policy" }` |
-| Set or replace a student's grade | Yes | `mutate_lms { action: "set_grade" }`; upserts gradebook row and refreshes standing |
-| Mark or clear missing | Yes | `mutate_lms { action: "mark_missing" }` within its submission-state checks |
-| Edit AI assignment instructions, duration, grounding labels, transcript policy, or personal-note toggle | Yes | `mutate_lms { action: "update_session_contract" }` |
-| Grade or regrade an assessed session | Yes | `mutate_lms { action: "grade_session" }` |
-| Finalize a draft session grade into the classic gradebook | Yes | `mutate_lms { action: "finalize_session_grade" }` |
+| Create, edit, publish, or unpublish an assignment | Yes | `create_assignment`, `update_assignment`, `publish_assignment` |
+| Create, edit, publish, or unpublish a module | Yes | `create_module`, `update_module`, `publish_module` |
+| Create or edit a page | Yes | `create_page`, `update_page` |
+| Post an announcement | Yes, immediate | `post_announcement` |
+| Create a practice set | Yes, immediate | `create_practice_set` |
+| Edit course name, description, or syllabus | Yes | `update_course` |
+| Edit course AI policy | Yes | `update_course_policy` |
+| Set or replace a student's grade | Yes | `set_grade`; upserts gradebook row and refreshes standing |
+| Mark or clear missing | Yes | `mark_missing` within its submission-state checks |
+| Edit AI assignment instructions, duration, grounding labels, transcript policy, or personal-note toggle | Yes | `update_session_contract` |
+| Grade or regrade an assessed session | Yes | `grade_session` |
+| Finalize a draft session grade into the classic gradebook | Yes | `finalize_session_grade` |
 | Draft a new AI assignment | Yes, through Review | `draft_ai_assignment`, then `apply_draft` |
 | Draft a rubric revision | Yes, through Review | `draft_rubric`, then `apply_draft` |
 | Draft modules, assignments, pages, announcements, practice sets, or objectives | Yes, through Review | `draft_course`, then `apply_draft` |
-| Apply or dismiss a pending Atlas draft | Yes | `mutate_lms` actions `apply_draft` and `dismiss_draft` |
+| Apply or dismiss a pending Atlas draft | Yes | `apply_draft`, `dismiss_draft` |
 | Delete an assignment, module, page, announcement, or practice set | Yes, immediate | `delete_record` with exact current title confirmation |
 | Load a reviewed workflow | Yes | `load_skill` for one of six allowlisted skill ids |
 
@@ -68,9 +68,9 @@ This index answers "can Atlas do X?" for the professor agent in PR #34.
 | Read or manage `calendar_events` | No | calendar reads are derived from assignment due dates and module unlock dates |
 | Search semantically with embeddings | No | `search_course` uses SQL `ILIKE`; it does not call the embedding pipeline |
 | Run more than 16 model steps in one turn | No | `isStepCount(16)` ends the run |
-| Send one bulk mutation payload containing many actions | No | `mutate_lms` request is one discriminated action; the model may make multiple tool calls within the step ceiling |
-| Require human approval for every direct mutation | No | direct `mutate_lms` actions execute when called. Review applies only to the three draft tools |
-| Automatically revalidate Next.js routes after direct tool writes | No | `mutate_lms` performs database writes but does not call `revalidatePath` |
+| Send one bulk mutation payload containing many actions | No | Each direct action tool accepts one exact operation; the model may make multiple tool calls within the step ceiling |
+| Require human approval for every direct mutation | No | Direct action tools execute when called. Review applies only to the three draft tools |
+| Automatically revalidate Next.js routes after direct tool writes | No | Direct action tools perform database writes but do not call `revalidatePath` |
 | Expose the old `inspect_course` tool | No | it exists in `professorTools`, but the live operator registry does not return it |
 
 ## Important data-boundary details

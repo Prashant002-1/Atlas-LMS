@@ -7,4 +7,4 @@ Use this workflow for questions about class performance, grade distributions, as
 3. Use view student for one student's complete grade record. Resolve the student by name with studentQuery when an id is not known.
 4. State the denominator, graded count, ungraded count, average, median, range, and A/B/C/D/F counts when they matter.
 5. Distinguish course standing from an assignment score. Do not mix raw points with percentages.
-6. Use mutate_lms only when the professor explicitly asks to set a grade or mark work missing.
+6. Use set_grade or mark_missing only when the professor explicitly asks for that change.

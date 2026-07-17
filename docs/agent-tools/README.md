@@ -6,20 +6,26 @@ It describes executable code, not intended future behavior. Every capability sta
 
 ## Current tool registry
 
-The runtime exposes exactly eight tools:
+The runtime exposes exactly 28 tools. Twenty-one direct writes are separate exact-schema tools so providers do not need to accept a top-level union schema.
 
 | Tool | Kind | Purpose | Contract |
 | --- | --- | --- | --- |
 | `inspect_lms` | Read | Read scoped LMS data by resource | [Read tools](read-tools.md#inspect_lms) |
 | `read_gradebook` | Read and calculate | Read course, assignment, roster, or individual student grade data | [Read tools](read-tools.md#read_gradebook) |
 | `search_course` | Read | Case-insensitive text search across selected course data | [Read tools](read-tools.md#search_course) |
-| `mutate_lms` | Direct write | Execute one typed LMS action | [Write tools](write-tools.md#mutate_lms) |
 | `load_skill` | Filesystem read | Load one reviewed workflow from `.atlas/skills` | [Read tools](read-tools.md#load_skill) |
+| `create_assignment`, `update_assignment`, `publish_assignment` | Direct write | Create, edit, publish, or unpublish assignments | [Content actions](write-content-actions.md#assignment-actions) |
+| `create_module`, `update_module`, `publish_module` | Direct write | Create, edit, publish, or unpublish modules | [Content actions](write-content-actions.md#module-actions) |
+| `create_page`, `update_page`, `post_announcement`, `create_practice_set` | Direct write | Change ordinary course content immediately | [Content actions](write-content-actions.md) |
+| `update_course`, `update_course_policy` | Direct write | Change course configuration immediately | [Content actions](write-content-actions.md#course-action) |
+| `set_grade`, `mark_missing`, `update_session_contract` | Direct write | Change grades, submission state, or an AI assignment contract | [Grade and session actions](write-grade-session-actions.md) |
+| `grade_session`, `finalize_session_grade`, `refresh_class_results` | Direct write | Run assessed-session and class-result operations | [Grade and session actions](write-grade-session-actions.md) |
+| `apply_draft`, `dismiss_draft`, `delete_record` | Direct write | Decide a reviewed draft or delete an exactly confirmed record | [Review and deletion actions](write-review-delete-actions.md) |
 | `draft_ai_assignment` | Draft write | Store an AI assignment proposal for Review | [Draft tools](draft-tools.md#draft_ai_assignment) |
 | `draft_rubric` | Draft write | Store a rubric revision proposal for Review | [Draft tools](draft-tools.md#draft_rubric) |
 | `draft_course` | Draft write | Store up to six course-object proposals for Review | [Draft tools](draft-tools.md#draft_course) |
 
-Proof: `professorOperatorTools` in [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts) returns this registry. The three draft tools come from `professorTools` in [`lib/agent/professor-tools.ts`](../../lib/agent/professor-tools.ts).
+Proof: `professorOperatorTools` in [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts) returns this registry. `directActionTools` derives one exact tool from every internal mutation branch. The three draft tools come from `professorTools` in [`lib/agent/professor-tools.ts`](../../lib/agent/professor-tools.ts).
 
 `inspect_course` still exists inside `professorTools`, but `professorOperatorTools` does not return it. It is therefore not available to the live professor model.
 

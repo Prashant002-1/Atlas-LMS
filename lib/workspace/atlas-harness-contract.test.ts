@@ -6,49 +6,75 @@ import path from "node:path";
 const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), "utf8");
 
-test("the Atlas page is a full viewport harness with an optional rail", () => {
-  const room = read("components/planning/planning-room.tsx");
+test("the Atlas page is a full viewport operator with quiet streaming feedback", () => {
+  const room = read("components/planning/atlas-room.tsx");
+  const entry = read("components/planning/planning-room.tsx");
+  assert.match(entry, /atlas-room/);
   assert.match(room, /atlas-harness-root/);
   assert.match(room, /html:has\(\.atlas-harness-root\)/);
   assert.match(room, /Threads/);
   assert.match(room, /Drafts/);
   assert.match(room, /PanelRightOpen/);
+  assert.match(room, /Attachments coming soon/);
   assert.match(room, /Voice input coming soon/);
-  assert.match(room, /Run trace/);
-  assert.match(room, /ToolInput/);
-  assert.match(room, /PromptInputSubmit/);
-  assert.doesNotMatch(room, /Drafts land in Review/);
-  assert.doesNotMatch(room, /Nothing goes live/);
-  assert.doesNotMatch(room, /Applied to the course/);
+  assert.match(room, /min-h-\[3\.25rem\] flex-row items-end/);
+  assert.match(room, /ThinkingIndicator/);
+  assert.match(room, /<Shimmer/);
+  assert.match(room, /PromptCheckpointRail/);
+  assert.match(room, /Prompt checkpoints/);
+  assert.match(room, /role="tooltip"/);
+  assert.match(room, /aria-describedby/);
+  assert.match(room, /scrollIntoView/);
+  assert.match(room, /Checking the gradebook/);
+  assert.match(room, /What is the grade distribution for this class\?/);
+  assert.match(room, /How is Maya Patel doing\?/);
+  assert.doesNotMatch(room, /Run trace/);
+  assert.doesNotMatch(room, /TaskTrigger/);
+  assert.doesNotMatch(room, /Starting the run/);
+  assert.doesNotMatch(room, /ConversationScrollButton/);
+  assert.doesNotMatch(room, /<Spinner/);
   assert.doesNotMatch(room, /course record/i);
-  assert.doesNotMatch(read("lib/agent/side-notes.ts"), /course record/i);
-  assert.doesNotMatch(read("components/cockpit/contract-rubric.tsx"), /course record/i);
 });
 
-test("the professor runtime is fresh, durable, and traceable", () => {
+test("the professor runtime is fresh, durable, and uses the LMS operator", () => {
   const runtime = read("lib/agent/professor-runtime.ts");
   assert.match(runtime, /persistSessionTurn\(session, "user"/);
   assert.match(runtime, /buildProfessorPack\(scope\)/);
   assert.match(runtime, /loadAtlasHarness\(\)/);
+  assert.match(runtime, /professorOperatorTools/);
   assert.match(runtime, /data-run-context/);
   assert.match(runtime, /buildProfessorReference/);
   assert.match(runtime, /\.\.\.priorMessages, referenceMessage, currentMessage/);
+  assert.match(runtime, /isStepCount\(16\)/);
   assert.match(runtime, /persistSessionTurn\(session, "assistant"/);
   assert.match(runtime, /compactIfNeeded/);
 });
 
-test("the tool surface is domain bounded", () => {
-  const tools = read("lib/agent/professor-tools.ts");
-  for (const name of ["inspect_course", "load_skill", "draft_ai_assignment", "draft_rubric", "draft_course"]) {
+test("the professor can read the whole course and act on the LMS", () => {
+  const tools = read("lib/agent/lms-operator.ts");
+  for (const name of ["inspect_lms", "read_gradebook", "search_course", "mutate_lms", "load_skill"]) {
     assert.match(tools, new RegExp(`const ${name} = tool`));
   }
-  for (const forbidden of ["shell", "bash", "execute_code", "web_search", "http_request"]) {
-    assert.doesNotMatch(tools, new RegExp(`const ${forbidden} = tool`));
+  for (const resource of ["students", "submissions", "sessions", "rubrics", "files", "policies", "calendar"]) {
+    assert.match(tools, new RegExp(`"${resource}"`));
   }
-  assert.equal(tools.includes("applyProposal"), false);
-  assert.equal(tools.includes(".update("), false);
-  assert.match(tools, /eq\(assignments\.orgId, scope\.orgId\)/);
-  assert.match(tools, /eq\(changeProposals\.courseId, scope\.courseId\)/);
+  for (const action of ["create_assignment", "post_announcement", "set_grade", "mark_missing", "update_session_contract", "apply_draft", "grade_session", "finalize_session_grade", "delete_record"]) {
+    assert.match(tools, new RegExp(`literal\\("${action}"\\)`));
+  }
+  assert.match(tools, /summarizeGradeDistribution/);
+  assert.match(tools, /studentQuery/);
+  assert.match(tools, /eq\(enrollments\.courseId, scope\.courseId\)/);
+  assert.match(tools, /eq\(submissions\.orgId, scope\.orgId\)/);
+  assert.match(tools, /confirmTitle/);
+});
+
+test("the operator instructions require a real read before an unavailable claim", () => {
+  const instructions = read("lib/agent/professor-operator-context.ts");
+  assert.match(instructions, /read_gradebook/);
+  assert.match(instructions, /individual student's performance/);
+  assert.match(instructions, /Never claim data is unavailable without making the relevant read/);
+  assert.match(instructions, /use mutate_lms/);
+  assert.doesNotMatch(instructions, /class-level only/i);
 });
 
 test("the live endpoint fails closed and limits public traffic", () => {
@@ -67,7 +93,7 @@ test("agent Markdown cannot issue automatic remote image requests", () => {
   assert.doesNotMatch(markdown, /<img/);
 });
 
-test("the source-controlled Atlas authoring layer is bundled", () => {
+test("the source-controlled Atlas authoring layer includes operator workflows", () => {
   for (const file of [
     ".atlas/manifest.json",
     ".atlas/agent.md",
@@ -75,8 +101,12 @@ test("the source-controlled Atlas authoring layer is bundled", () => {
     ".atlas/skills/ai-assignment/SKILL.md",
     ".atlas/skills/course-authoring/SKILL.md",
     ".atlas/skills/class-insight/SKILL.md",
+    ".atlas/skills/gradebook/SKILL.md",
+    ".atlas/skills/student-support/SKILL.md",
+    ".atlas/skills/course-operations/SKILL.md",
   ]) {
     assert.equal(existsSync(path.join(root, file)), true, `${file} should exist`);
   }
+  assert.match(read(".atlas/manifest.json"), /"gradebook"/);
   assert.match(read("next.config.mjs"), /\.\/\.atlas\/\*\*\/\*/);
 });

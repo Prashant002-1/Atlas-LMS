@@ -16,8 +16,7 @@ services:
       timeout: 5s
       retries: 10
 
-  # The app image is optional for local dev (use `npm run dev` instead),
-  # but provided for parity with production / self-hosting.
+  # The app image is optional for local development.
   app:
     build: .
     restart: unless-stopped
@@ -30,6 +29,10 @@ services:
       AUTH_URL: ${AUTH_URL:-http://localhost:3000}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ATLAS_MATERIAL_INGEST_URL: ${ATLAS_MATERIAL_INGEST_URL:-}
+      ATLAS_MATERIAL_INGEST_TOKEN: ${ATLAS_MATERIAL_INGEST_TOKEN:-}
+      ATLAS_MATERIAL_CALLBACK_SECRET: ${ATLAS_MATERIAL_CALLBACK_SECRET:-}
+      ATLAS_PUBLIC_APP_URL: ${ATLAS_PUBLIC_APP_URL:-}
     ports:
       - "3000:3000"
     profiles: ["full"]

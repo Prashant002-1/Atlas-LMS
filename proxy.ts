@@ -2,15 +2,13 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Atlas is signed-in software. Nothing renders without a session except the
- * auth pages themselves — there is no public marketing surface inside the app.
- *
- * The proxy checks for the Auth.js session cookie (cheap, request-level);
- * every page and API route still does full session validation server-side.
+ * Atlas is signed-in software. Only authentication, health, and the signed
+ * material-ingestion callback enter without an Auth.js session. Every public
+ * machine endpoint performs its own authentication.
  */
 
 const PUBLIC_PATHS = new Set(["/sign-in", "/sign-up"]);
-const PUBLIC_PREFIXES = ["/api/auth", "/api/health"];
+const PUBLIC_PREFIXES = ["/api/auth", "/api/health", "/api/materials/ingestion"];
 
 function hasSessionCookie(req: NextRequest): boolean {
   return Boolean(
@@ -21,7 +19,7 @@ function hasSessionCookie(req: NextRequest): boolean {
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  const isPublic = PUBLIC_PATHS.has(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+  const isPublic = PUBLIC_PATHS.has(pathname) || PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
   const signedIn = hasSessionCookie(req);
 
   if (!isPublic && !signedIn) {
@@ -33,7 +31,6 @@ export function proxy(req: NextRequest) {
     return NextResponse.redirect(signIn);
   }
 
-  // Signed-in users have no business on the auth pages.
   if (signedIn && PUBLIC_PATHS.has(pathname)) {
     return NextResponse.redirect(new URL("/", req.url));
   }
@@ -42,6 +39,5 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Everything except static assets and files with extensions.
   matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|brand/|.*\\..*).*)", "/api/:path*"],
 };

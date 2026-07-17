@@ -166,7 +166,7 @@ The UI behavior is not another authority layer. It renders persisted stream part
 - while submitted with no assistant message: `Spinner` plus `Thinking`;
 - while a tool is active: `Spinner` plus a task-specific label;
 - completed read tools: hidden;
-- successful `mutate_lms`: one compact action receipt using its returned `summary`;
+- successful direct action tool: one compact action receipt using its returned `summary`;
 - draft tools: typed draft cards;
 - tool errors: expanded tool error with parameters and error text;
 - completed run trace: not rendered.

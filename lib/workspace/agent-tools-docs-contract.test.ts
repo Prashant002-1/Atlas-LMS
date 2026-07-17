@@ -21,17 +21,6 @@ const docs = [
   "capability-index.md",
 ];
 
-const tools = [
-  "inspect_lms",
-  "read_gradebook",
-  "search_course",
-  "mutate_lms",
-  "load_skill",
-  "draft_ai_assignment",
-  "draft_rubric",
-  "draft_course",
-];
-
 const resources = [
   "overview",
   "course",
@@ -78,6 +67,17 @@ const actions = [
   "delete_record",
 ];
 
+const tools = [
+  "inspect_lms",
+  "read_gradebook",
+  "search_course",
+  "load_skill",
+  ...actions,
+  "draft_ai_assignment",
+  "draft_rubric",
+  "draft_course",
+];
+
 const skills = [
   "ai-assignment",
   "course-authoring",
@@ -106,12 +106,14 @@ test("documented live tool registry matches professorOperatorTools", () => {
   const source = read("lib/agent/lms-operator.ts");
   const readme = read("docs/agent-tools/README.md");
   for (const name of tools) {
-    assert.match(readme, new RegExp(`\\`${name}\\``));
+    assert.equal(readme.includes("`" + name + "`"), true);
   }
-  for (const direct of tools.slice(0, 5)) {
+  for (const direct of ["inspect_lms", "read_gradebook", "search_course", "load_skill"]) {
     assert.match(source, new RegExp(`const ${direct} = tool`));
   }
-  for (const draft of tools.slice(5)) {
+  assert.match(source, /const actions = directActionTools/);
+  assert.match(source, /\.\.\.actions/);
+  for (const draft of ["draft_ai_assignment", "draft_rubric", "draft_course"]) {
     assert.match(source, new RegExp(`${draft}: legacy\\.${draft}`));
   }
   assert.doesNotMatch(source.slice(source.indexOf("return {", source.indexOf("export function professorOperatorTools"))), /inspect_course/);
@@ -123,23 +125,23 @@ test("documented inspect_lms resources match the Zod enum", () => {
   const found = [...block.matchAll(/^\s+"([a-z_]+)",$/gm)].map((match) => match[1]);
   assert.deepEqual(found, resources);
   const docsText = read("docs/agent-tools/read-tools.md");
-  for (const resource of resources) assert.match(docsText, new RegExp(`\\`${resource}\\``));
+  for (const resource of resources) assert.equal(docsText.includes("`" + resource + "`"), true);
 });
 
-test("documented mutate_lms actions match the discriminated union", () => {
+test("documented direct action tools match the internal discriminated union", () => {
   const source = read("lib/agent/lms-operator.ts");
   const block = source.slice(source.indexOf("const mutateLmsSchema"), source.indexOf("type MutateLmsInput"));
   const found = [...block.matchAll(/action: z\.literal\("([a-z_]+)"\)/g)].map((match) => match[1]);
   assert.deepEqual(found, actions);
   const docsText = read("docs/agent-tools/write-tools.md");
-  for (const action of actions) assert.match(docsText, new RegExp(`\\`${action}\\``));
+  for (const action of actions) assert.equal(docsText.includes("`" + action + "`"), true);
 });
 
 test("documented skill allowlist matches the Atlas manifest", () => {
   const manifest = JSON.parse(read(".atlas/manifest.json")) as { skills: Array<{ id: string }> };
   assert.deepEqual(manifest.skills.map((skill) => skill.id), skills);
   const docsText = read("docs/agent-tools/read-tools.md");
-  for (const skill of skills) assert.match(docsText, new RegExp(`\\`${skill}\\``));
+  for (const skill of skills) assert.equal(docsText.includes("`" + skill + "`"), true);
 });
 
 test("capability index states the important exclusions", () => {

@@ -52,9 +52,11 @@ test("the professor runtime is fresh, durable, and uses the LMS operator", () =>
 
 test("the professor can read the whole course and act on the LMS", () => {
   const tools = read("lib/agent/lms-operator.ts");
-  for (const name of ["inspect_lms", "read_gradebook", "search_course", "mutate_lms", "load_skill"]) {
+  for (const name of ["inspect_lms", "read_gradebook", "search_course", "load_skill"]) {
     assert.match(tools, new RegExp(`const ${name} = tool`));
   }
+  assert.match(tools, /const actions = directActionTools/);
+  assert.match(tools, /\.\.\.actions/);
   for (const resource of ["students", "submissions", "sessions", "rubrics", "files", "policies", "calendar"]) {
     assert.match(tools, new RegExp(`"${resource}"`));
   }
@@ -66,6 +68,7 @@ test("the professor can read the whole course and act on the LMS", () => {
   assert.match(tools, /eq\(enrollments\.courseId, scope\.courseId\)/);
   assert.match(tools, /eq\(submissions\.orgId, scope\.orgId\)/);
   assert.match(tools, /confirmTitle/);
+  assert.match(read("components/planning/atlas-room.tsx"), /isActionResult/);
 });
 
 test("the operator instructions require a real read before an unavailable claim", () => {
@@ -73,7 +76,7 @@ test("the operator instructions require a real read before an unavailable claim"
   assert.match(instructions, /read_gradebook/);
   assert.match(instructions, /individual student's performance/);
   assert.match(instructions, /Never claim data is unavailable without making the relevant read/);
-  assert.match(instructions, /use mutate_lms/);
+  assert.match(instructions, /matching direct action tool/);
   assert.doesNotMatch(instructions, /class-level only/i);
 });
 

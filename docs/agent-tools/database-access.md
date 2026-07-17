@@ -63,7 +63,7 @@ Proof: read executors in [`lib/agent/lms-operator.ts`](../../lib/agent/lms-opera
 
 ## Direct-write table matrix
 
-| `mutate_lms.action` | Tables read | Tables inserted | Tables updated | Tables deleted |
+| Direct action tool | Tables read | Tables inserted | Tables updated | Tables deleted |
 | --- | --- | --- | --- | --- |
 | `create_assignment` | `assignments` for max position | `assignments` | none | none |
 | `update_assignment` | `assignments` target | none | `assignments` | none |

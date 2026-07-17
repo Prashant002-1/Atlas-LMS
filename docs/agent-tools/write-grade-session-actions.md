@@ -1,6 +1,6 @@
 # Grade and session actions
 
-These are `mutate_lms` actions that change grade, missing, AI assignment contract, session grading, or class-result rows. See [Write tool overview](write-tools.md) for the shared request and return contract.
+These direct action tools change grade, missing, AI assignment contract, session grading, or class-result rows. See [Write tool overview](write-tools.md) for the shared request and return contract. The model does not send an `action` field; the server injects the tool name before shared execution.
 
 ## Grade action
 
@@ -10,7 +10,6 @@ Request:
 
 ```ts
 {
-  action: "set_grade";
   assignmentId: string; // UUID
   studentId: string;    // UUID
   score: number;        // minimum 0
@@ -55,7 +54,6 @@ Request:
 
 ```ts
 {
-  action: "mark_missing";
   assignmentId: string; // UUID
   studentId: string;    // UUID
   missing?: boolean;    // default true
@@ -84,7 +82,6 @@ Request:
 
 ```ts
 {
-  action: "update_session_contract";
   assignmentId: string; // UUID
   instructions?: string; // 10 to 2,000
   durationMinutes?: number; // integer 5 to 240
@@ -107,7 +104,6 @@ Request:
 
 ```ts
 {
-  action: "grade_session";
   submissionId: string; // session_submissions.id UUID
   force?: boolean;      // default false
 }
@@ -146,7 +142,6 @@ Request:
 
 ```ts
 {
-  action: "finalize_session_grade";
   reportId: string; // journey_reports.id UUID
 }
 ```
@@ -177,7 +172,6 @@ Request:
 
 ```ts
 {
-  action: "refresh_class_results";
   assignmentId: string; // UUID
 }
 ```
@@ -204,4 +198,3 @@ It builds a template narrative, optionally asks the current model to paraphrase 
 Return record is the computed stats object.
 
 Proof: `refresh_class_results` in [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts), and `recomputeClassRollup` in [`lib/agent/rollup.ts`](../../lib/agent/rollup.ts).
-

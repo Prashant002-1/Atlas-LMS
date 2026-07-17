@@ -119,7 +119,7 @@ export function CourseMaterialTable({ rows }: { rows: CourseMaterialRow[] }) {
 }
 
 function MaterialRow({ row }: { row: CourseMaterialRow }) {
-  const Icon = iconFor(row.materialKind);
+  const Icon = KIND_ICONS[row.materialKind] ?? File;
   const nextVisibility = row.visibility === "course" ? "instructors" : "course";
   return (
     <tr className="transition hover:bg-[var(--color-surface-muted)]">
@@ -209,10 +209,6 @@ const STATUS_LABELS: Record<string, string> = {
   queued: "Queued",
   failed: "Failed",
 };
-
-function iconFor(kind: string) {
-  return KIND_ICONS[kind] ?? File;
-}
 
 function materialKindLabel(kind: string) {
   return KIND_LABELS[kind] ?? "Material";

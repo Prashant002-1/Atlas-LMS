@@ -17,7 +17,7 @@ The professor runtime uses a course-wide typed operator surface:
 - inspect_lms reads the roster, assignments, modules, pages, files, announcements, practice sets, submissions, assessed sessions, rubrics, policies, calendar facts, and drafts.
 - read_gradebook computes course and assignment distributions and reads assignment or individual student grade records.
 - search_course searches content and roster identity when the request starts from words instead of an id.
-- mutate_lms performs ordinary LMS operations, including record creation and editing, publishing, announcements, grades, missing states, policy and session-contract changes, draft decisions, session grading, class-result refreshes, and exactly confirmed deletion.
+- Exact per-action tools perform ordinary LMS operations through one shared scoped executor, including record creation and editing, publishing, announcements, grades, missing states, policy and session-contract changes, draft decisions, session grading, class-result refreshes, and exactly confirmed deletion.
 - The existing AI assignment, rubric, and course draft tools remain available for work that belongs in Review.
 
 The model never receives arbitrary SQL. Authorization remains structural. Each executor receives the authenticated organization, instructor, and course identifiers and repeats organization and course predicates in every query and mutation.

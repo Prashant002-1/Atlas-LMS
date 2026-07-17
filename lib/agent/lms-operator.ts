@@ -714,7 +714,6 @@ const mutateLmsSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("post_announcement"), title: z.string().min(3).max(200), messageMd: z.string().min(1).max(4000) }),
   z.object({ action: z.literal("create_practice_set"), title: z.string().min(3).max(200), base: z.string().max(1200).optional(), questions: z.array(practiceQuestionSchema).min(1).max(12), published: z.boolean().default(true) }),
   z.object({ action: z.literal("update_course"), name: z.string().min(3).max(200).optional(), description: z.string().max(2000).nullable().optional(), syllabusMd: z.string().max(20_000).nullable().optional() }),
-  z.object({ action: z.literal("update_course_policy"), allowExplain: z.boolean().optional(), allowPractice: z.boolean().optional(), allowQuestions: z.boolean().optional(), explanationDepth: z.enum(["hint", "guided", "full"]).optional(), citationsRequired: z.boolean().optional(), personaName: z.string().max(80).nullable().optional(), personaStyle: z.string().max(600).nullable().optional(), customInstructions: z.string().max(2000).nullable().optional(), studentDailyLimit: z.number().int().min(1).max(500).optional(), shareStruggleSignal: z.boolean().optional() }),
   z.object({ action: z.literal("set_grade"), assignmentId: z.string().uuid(), studentId: z.string().uuid(), score: z.number().min(0), grade: z.string().max(24).nullable().optional() }),
   z.object({ action: z.literal("mark_missing"), assignmentId: z.string().uuid(), studentId: z.string().uuid(), missing: z.boolean().default(true) }),
   z.object({ action: z.literal("update_session_contract"), assignmentId: z.string().uuid(), instructions: z.string().min(10).max(2000).optional(), durationMinutes: z.number().int().min(5).max(240).optional(), groundingScope: z.array(z.string().min(1).max(200)).max(12).optional(), transcriptPolicy: z.string().min(3).max(200).optional(), personalRecordSideNotes: z.boolean().optional() }),
@@ -727,6 +726,30 @@ const mutateLmsSchema = z.discriminatedUnion("action", [
 ]);
 
 type MutateLmsInput = z.infer<typeof mutateLmsSchema>;
+type MutateLmsAction = MutateLmsInput["action"];
+
+const DIRECT_ACTION_TOOL_DESCRIPTIONS = {
+  create_assignment: "Create a new ordinary LMS assignment.",
+  update_assignment: "Update an existing ordinary LMS assignment.",
+  publish_assignment: "Publish or unpublish an ordinary LMS assignment.",
+  create_module: "Create a course module.",
+  update_module: "Update a course module.",
+  publish_module: "Publish or unpublish a course module.",
+  create_page: "Create a course page.",
+  update_page: "Update a course page.",
+  post_announcement: "Post a course announcement.",
+  create_practice_set: "Create a course practice set.",
+  update_course: "Update the course name, description, or syllabus.",
+  set_grade: "Set a student's grade for an assignment.",
+  mark_missing: "Mark or clear a student's assignment as missing.",
+  update_session_contract: "Update an AI assignment session contract.",
+  apply_draft: "Apply a reviewed Atlas draft proposal.",
+  dismiss_draft: "Dismiss a reviewed Atlas draft proposal.",
+  grade_session: "Run draft grading for a session submission.",
+  finalize_session_grade: "Finalize a reviewed session grade.",
+  refresh_class_results: "Recompute class results for an assignment.",
+  delete_record: "Delete an exactly confirmed course record.",
+} satisfies Record<MutateLmsAction, string>;
 
 export type LmsActionOutput =
   | { ok: true; action: string; summary: string; record?: unknown }
@@ -865,25 +888,6 @@ async function mutateLms(scope: ProfessorScope, model: LanguageModel, input: Mut
       if (input.syllabusMd !== undefined) set.syllabusMd = input.syllabusMd;
       await db.update(courses).set(set).where(and(eq(courses.id, scope.courseId), eq(courses.orgId, scope.orgId)));
       return { ok: true, action: input.action, summary: `Updated course ${input.name ?? course.name}.` };
-    }
-
-    if (input.action === "update_course_policy") {
-      const [existing] = await db.select().from(courseAiPolicies).where(and(eq(courseAiPolicies.orgId, scope.orgId), eq(courseAiPolicies.courseId, scope.courseId))).limit(1);
-      const values = {
-        allowExplain: input.allowExplain ?? existing?.allowExplain ?? true,
-        allowPractice: input.allowPractice ?? existing?.allowPractice ?? true,
-        allowQuestions: input.allowQuestions ?? existing?.allowQuestions ?? true,
-        explanationDepth: input.explanationDepth ?? existing?.explanationDepth ?? "guided",
-        citationsRequired: input.citationsRequired ?? existing?.citationsRequired ?? true,
-        personaName: input.personaName !== undefined ? input.personaName : existing?.personaName ?? null,
-        personaStyle: input.personaStyle !== undefined ? input.personaStyle : existing?.personaStyle ?? null,
-        customInstructions: input.customInstructions !== undefined ? input.customInstructions : existing?.customInstructions ?? null,
-        studentDailyLimit: input.studentDailyLimit ?? existing?.studentDailyLimit ?? 40,
-        shareStruggleSignal: input.shareStruggleSignal ?? existing?.shareStruggleSignal ?? false,
-        updatedAt: new Date(),
-      } satisfies Partial<typeof courseAiPolicies.$inferInsert>;
-      await db.insert(courseAiPolicies).values({ orgId: scope.orgId, courseId: scope.courseId, ...values }).onConflictDoUpdate({ target: [courseAiPolicies.courseId], set: values });
-      return { ok: true, action: input.action, summary: "Updated the course AI policy." };
     }
 
     if (input.action === "set_grade") {
@@ -1026,6 +1030,30 @@ async function mutateLms(scope: ProfessorScope, model: LanguageModel, input: Mut
   }
 }
 
+function directActionTools(args: { scope: ProfessorScope; model: LanguageModel }) {
+  const entries = mutateLmsSchema.options.map((option) => {
+    const action = option.shape.action.value as MutateLmsAction;
+    const inputShape = { ...option.shape };
+    Reflect.deleteProperty(inputShape, "action");
+    const inputSchema = z.object(inputShape) as z.ZodType<Record<string, unknown>>;
+
+    return [
+      action,
+      tool<Record<string, unknown>, LmsActionOutput, Record<string, unknown>>({
+        description: DIRECT_ACTION_TOOL_DESCRIPTIONS[action],
+        inputSchema,
+        execute: async (input): Promise<LmsActionOutput> => {
+          const parsed = mutateLmsSchema.safeParse({ action, ...(input as Record<string, unknown>) });
+          if (!parsed.success) return { ok: false, error: "The LMS action input was invalid." };
+          return mutateLms(args.scope, args.model, parsed.data);
+        },
+      }),
+    ] as const;
+  });
+
+  return Object.fromEntries(entries);
+}
+
 export function professorOperatorTools(args: { scope: ProfessorScope; sessionId: string; model: LanguageModel }) {
   const legacy = professorTools({ scope: args.scope, sessionId: args.sessionId });
 
@@ -1047,12 +1075,6 @@ export function professorOperatorTools(args: { scope: ProfessorScope; sessionId:
     execute: async (input): Promise<LmsReadOutput> => searchCourse(args.scope, input),
   });
 
-  const mutate_lms = tool({
-    description: "Act on the LMS when the professor asks: create or edit records, publish, post, grade, mark missing, update policy or session contracts, apply or dismiss drafts, run or finalize session grading, refresh class results, or delete an exactly confirmed record.",
-    inputSchema: mutateLmsSchema,
-    execute: async (input): Promise<LmsActionOutput> => mutateLms(args.scope, args.model, input),
-  });
-
   const load_skill = tool({
     description: "Load one reviewed Atlas workflow when it matches the professor's request. Skills guide the work but do not grant authority beyond the typed tools.",
     inputSchema: z.object({ skillId: z.enum(["ai-assignment", "course-authoring", "class-insight", "gradebook", "student-support", "course-operations"]) }),
@@ -1063,12 +1085,14 @@ export function professorOperatorTools(args: { scope: ProfessorScope; sessionId:
     },
   });
 
+  const actions = directActionTools({ scope: args.scope, model: args.model });
+
   return {
     inspect_lms,
     read_gradebook,
     search_course,
-    mutate_lms,
     load_skill,
+    ...actions,
     draft_ai_assignment: legacy.draft_ai_assignment,
     draft_rubric: legacy.draft_rubric,
     draft_course: legacy.draft_course,

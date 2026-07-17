@@ -33,14 +33,14 @@ Provider records are never returned to model-visible tools or teacher Settings.
 | `inspect_lms` | selected course tables by resource | none |
 | `read_gradebook` | `enrollments`, `users`, `assignments`, `submissions` as required by view | none |
 | `search_course` | selected course content tables and active roster | none |
-| `mutate_lms` | action-specific scoped rows | one typed action across content, grades, sessions, drafts, or deletion |
+| 20 direct action tools | action-specific scoped rows | one typed action across content, grades, sessions, drafts, or deletion |
 | `load_skill` | reviewed `.atlas` files | none |
 | `configure_agent` | `agent_sessions`, current `course_agent_configs` version | inserts one `course_agent_configs` row |
 | `draft_ai_assignment` | assignment and pending-draft rows | inserts `change_proposals`, `proposal_blocks` |
 | `draft_rubric` | assignment, session contract, rubric, and pending-draft rows | inserts `change_proposals`, `proposal_blocks` |
 | `draft_course` | validated in-memory draft | inserts `change_proposals`, `proposal_blocks` |
 
-The exact 21 `mutate_lms` actions are documented in [Write tools](write-tools.md). Their action-level data changes are documented in [content and policy actions](write-content-actions.md), [grade and session actions](write-grade-session-actions.md), and [review and deletion actions](write-review-delete-actions.md).
+The exact 20 direct action tools are documented in [Write tools](write-tools.md). Their action-level data changes are documented in [content actions](write-content-actions.md), [grade and session actions](write-grade-session-actions.md), and [review and deletion actions](write-review-delete-actions.md).
 
 ## Course agent configuration
 

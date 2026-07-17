@@ -18,6 +18,7 @@ const requiredRoutes = [
   "/sign-in",
   "/sign-up",
   "/student",
+  "/student/account",
   "/student/calendar",
   "/student/course/[courseId]",
   "/student/course/[courseId]/modules",
@@ -28,6 +29,7 @@ const requiredRoutes = [
   "/student/session/[assignmentId]",
   "/api/session/[assignmentId]",
   "/teach",
+  "/teach/account",
   "/teach/atlas",
   "/api/atlas/planning",
   "/teach/ai-assignments",
@@ -299,8 +301,8 @@ test("issue 27: the professor plans with Atlas across the profile boundary", () 
   assertSourceIncludes("lib/instructor/cockpit.ts", "export async function loadPlanningRoom");
   assertSourceIncludes("app/teach/atlas/page.tsx", "PlanningRoom");
   assertSourceExcludes("components/atlas/app-shell.tsx", "immersive");
-  assertSourceIncludes("components/planning/planning-room.tsx", "useChat");
-  assertSourceIncludes("components/planning/planning-room.tsx", "RubricCard");
+  assertSourceIncludes("components/planning/atlas-room.tsx", "useChat");
+  assertSourceIncludes("components/planning/atlas-room.tsx", "RubricCard");
   assertSourceIncludes("components/planning/rubric-card.tsx", "diffRubrics");
   assertSourceIncludes("components/teach/proposals.tsx", "session_rubric");
 
@@ -337,13 +339,16 @@ test("legacy blocks remain persisted but not rendered by the removed registry UI
 
 test("the app is pages behind one sidebar, not a monolith", () => {
   assertSourceIncludes("components/atlas/app-shell.tsx", "Collapse sidebar");
-  // The sidebar ends in one identity row: the account menu behind the name
-  // (identity, theme, sign out) plus a sign out button beside it. There is
-  // no account page and no chevron on the trigger.
+  // The sidebar ends in one identity row. Its menu owns profile settings,
+  // theme, and the single sign-out action, without adding another nav section.
   assertSourceIncludes("components/atlas/app-shell.tsx", 'aria-label="Account"');
-  assertSourceIncludes("components/atlas/app-shell.tsx", 'aria-label="Sign out"');
+  assertSourceIncludes("components/atlas/app-shell.tsx", "Account settings");
+  assertSourceIncludes("components/atlas/app-shell.tsx", "accountHref");
   assertSourceIncludes("components/atlas/app-shell.tsx", "signOutOfAtlas");
   assertSourceIncludes("components/atlas/app-shell.tsx", "ThemeToggle");
+  assertSourceIncludes("lib/auth/actions.ts", "updateAccountProfile");
+  assertSourceIncludes("app/teach/layout.tsx", 'accountHref="/teach/account"');
+  assertSourceIncludes("app/student/layout.tsx", 'accountHref="/student/account"');
   assertSourceExcludes("components/atlas/app-shell.tsx", "ChevronsUpDown");
   assertSourceExcludes("components/atlas/app-shell.tsx", "Course record");
   // Settings is an ordinary navigation item, and the teaching sidebar names
@@ -381,6 +386,12 @@ test("issue 26: the shell holds the sharp radius scale by construction", () => {
   // The interface reads full without browser zoom: the root scale is 110%
   // and text sizes are rem-based so they ride it.
   assertSourceIncludes("app/globals.css", "font-size: 110%");
+  const globalStyles = readSource("app/globals.css");
+  assert.doesNotMatch(
+    globalStyles,
+    /\bfont\s*:\s*inherit\b/,
+    "native controls must not override component typography with an unlayered font shorthand"
+  );
   const literalTextPx = /text-\[\d+(?:\.\d+)?px\]/;
   for (const file of sourceFiles(sourceDirs)) {
     const source = readFileSync(file, "utf8");

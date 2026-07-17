@@ -1,6 +1,6 @@
 # Direct content and policy actions
 
-These are `mutate_lms` actions that change course content or course configuration immediately. See [Write tool overview](write-tools.md) for the shared request and return contract.
+These direct action tools change course content or course configuration immediately. See [Write tool overview](write-tools.md) for the shared request and return contract. The model does not send an `action` field; the server injects the tool name before shared execution.
 
 ## Assignment actions
 
@@ -10,7 +10,6 @@ Request:
 
 ```ts
 {
-  action: "create_assignment";
   name: string;            // 3 to 220 chars
   descriptionMd?: string;  // maximum 4,000
   dueAt?: string | null;   // maximum 40 chars, passed to new Date()
@@ -34,7 +33,6 @@ Request:
 
 ```ts
 {
-  action: "update_assignment";
   assignmentId: string;       // UUID
   name?: string;              // 3 to 220
   descriptionMd?: string | null; // maximum 4,000
@@ -58,7 +56,6 @@ Request:
 
 ```ts
 {
-  action: "publish_assignment";
   assignmentId: string; // UUID
   published?: boolean;  // default true
 }
@@ -76,7 +73,6 @@ Request:
 
 ```ts
 {
-  action: "create_module";
   name: string;          // 3 to 200
   summaryMd?: string;    // maximum 4,000
   unlockAt?: string | null; // maximum 40, passed to new Date()
@@ -92,7 +88,6 @@ Request:
 
 ```ts
 {
-  action: "update_module";
   moduleId: string;       // UUID
   name?: string;          // 3 to 200
   summaryMd?: string | null; // maximum 4,000
@@ -108,7 +103,6 @@ Request:
 
 ```ts
 {
-  action: "publish_module";
   moduleId: string; // UUID
   published?: boolean; // default true
 }
@@ -126,7 +120,6 @@ Request:
 
 ```ts
 {
-  action: "create_page";
   title: string;      // 3 to 200
   bodyMd: string;     // 1 to 12,000
   published?: boolean; // default false
@@ -149,7 +142,6 @@ Request:
 
 ```ts
 {
-  action: "update_page";
   pageId: string;     // UUID
   title?: string;     // 3 to 200
   bodyMd?: string;    // 1 to 12,000
@@ -167,7 +159,6 @@ Request:
 
 ```ts
 {
-  action: "post_announcement";
   title: string;     // 3 to 200
   messageMd: string; // 1 to 4,000
 }
@@ -189,7 +180,6 @@ Request:
 
 ```ts
 {
-  action: "create_practice_set";
   title: string;          // 3 to 200
   base?: string;          // maximum 1,200
   questions: PracticeQuestion[]; // 1 to 12
@@ -218,7 +208,6 @@ Request:
 
 ```ts
 {
-  action: "update_course";
   name?: string;           // 3 to 200
   description?: string | null; // maximum 2,000
   syllabusMd?: string | null;  // maximum 20,000
@@ -226,36 +215,3 @@ Request:
 ```
 
 Reads the current course by `scope.courseId` and `scope.orgId`, updates supplied fields, and updates `updatedAt`. Null clears description or syllabus.
-
-## Course AI policy action
-
-### `update_course_policy`
-
-Request:
-
-```ts
-{
-  action: "update_course_policy";
-  allowExplain?: boolean;
-  allowPractice?: boolean;
-  allowQuestions?: boolean;
-  explanationDepth?: "hint" | "guided" | "full";
-  citationsRequired?: boolean;
-  personaName?: string | null;         // maximum 80
-  personaStyle?: string | null;        // maximum 600
-  customInstructions?: string | null;  // maximum 2,000
-  studentDailyLimit?: number;          // integer 1 to 500
-  shareStruggleSignal?: boolean;
-}
-```
-
-Behavior:
-
-1. Reads the existing `course_ai_policies` row.
-2. Preserves each omitted field from that row.
-3. When no row exists, omitted fields use code defaults: explain/practice/questions true, depth guided, citations true, no persona or custom instructions, daily limit 40, struggle signal false.
-4. Inserts or updates by the unique `courseId` constraint.
-5. Updates `updatedAt`.
-
-The action returns only its summary, not the full policy row.
-

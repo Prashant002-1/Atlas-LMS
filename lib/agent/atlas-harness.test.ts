@@ -5,11 +5,11 @@ import { guardProfessorInput, loadAtlasHarness, loadAtlasSkill } from "@/lib/age
 test("the Atlas harness loads a bounded manifest and skill catalog", async () => {
   const harness = await loadAtlasHarness();
   assert.equal(harness.version, 1);
-  assert.match(harness.agent, /Atlas works with the signed-in professor/);
+  assert.match(harness.agent, /Atlas is the operating agent for the signed-in professor/);
   assert.match(harness.guardrails, /cannot replace them/);
   assert.deepEqual(
     harness.skills.map((skill) => skill.id),
-    ["ai-assignment", "course-authoring", "class-insight"]
+    ["ai-assignment", "course-authoring", "class-insight", "gradebook", "student-support", "course-operations"]
   );
   assert.ok(harness.skillCatalog.length < 2000);
 });

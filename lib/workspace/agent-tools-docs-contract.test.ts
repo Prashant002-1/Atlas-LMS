@@ -22,18 +22,6 @@ const docs = [
   "capability-index.md",
 ];
 
-const tools = [
-  "inspect_lms",
-  "read_gradebook",
-  "search_course",
-  "mutate_lms",
-  "load_skill",
-  "configure_agent",
-  "draft_ai_assignment",
-  "draft_rubric",
-  "draft_course",
-];
-
 const resources = [
   "overview",
   "course",
@@ -68,7 +56,6 @@ const actions = [
   "post_announcement",
   "create_practice_set",
   "update_course",
-  "update_course_policy",
   "set_grade",
   "mark_missing",
   "update_session_contract",
@@ -78,6 +65,18 @@ const actions = [
   "finalize_session_grade",
   "refresh_class_results",
   "delete_record",
+];
+
+const tools = [
+  "inspect_lms",
+  "read_gradebook",
+  "search_course",
+  "load_skill",
+  ...actions,
+  "configure_agent",
+  "draft_ai_assignment",
+  "draft_rubric",
+  "draft_course",
 ];
 
 const skills = [
@@ -106,11 +105,18 @@ test("documented live tool registry matches the professor runtime", () => {
   const operator = read("lib/agent/lms-operator.ts");
   const runtime = read("lib/agent/professor-runtime.ts");
   const readme = read("docs/agent-tools/README.md");
-
-  for (const name of tools) assert.match(readme, new RegExp(`\\`${name}\\``));
-  for (const direct of tools.slice(0, 5)) assert.match(operator, new RegExp(`const ${direct} = tool`));
+  for (const name of tools) {
+    assert.equal(readme.includes("`" + name + "`"), true);
+  }
+  for (const direct of ["inspect_lms", "read_gradebook", "search_course", "load_skill"]) {
+    assert.match(operator, new RegExp(`const ${direct} = tool`));
+  }
+  assert.match(operator, /const actions = directActionTools/);
+  assert.match(operator, /\.\.\.actions/);
   assert.match(runtime, /configure_agent: courseAgentConfigurationTool/);
-  for (const draft of tools.slice(6)) assert.match(operator, new RegExp(`${draft}: legacy\\.${draft}`));
+  for (const draft of ["draft_ai_assignment", "draft_rubric", "draft_course"]) {
+    assert.match(operator, new RegExp(`${draft}: legacy\\.${draft}`));
+  }
   assert.doesNotMatch(operator.slice(operator.indexOf("return {", operator.indexOf("export function professorOperatorTools"))), /inspect_course/);
 });
 
@@ -120,16 +126,16 @@ test("documented inspect_lms resources match the Zod enum", () => {
   const found = [...block.matchAll(/^\s+"([a-z_]+)",$/gm)].map((match) => match[1]);
   assert.deepEqual(found, resources);
   const docsText = read("docs/agent-tools/read-tools.md");
-  for (const resource of resources) assert.match(docsText, new RegExp(`\\`${resource}\\``));
+  for (const resource of resources) assert.equal(docsText.includes("`" + resource + "`"), true);
 });
 
-test("documented mutate_lms actions match the discriminated union", () => {
+test("documented direct action tools match the internal discriminated union", () => {
   const source = read("lib/agent/lms-operator.ts");
   const block = source.slice(source.indexOf("const mutateLmsSchema"), source.indexOf("type MutateLmsInput"));
   const found = [...block.matchAll(/action: z\.literal\("([a-z_]+)"\)/g)].map((match) => match[1]);
   assert.deepEqual(found, actions);
   const docsText = read("docs/agent-tools/write-tools.md");
-  for (const action of actions) assert.match(docsText, new RegExp(`\\`${action}\\``));
+  for (const action of actions) assert.equal(docsText.includes("`" + action + "`"), true);
 });
 
 test("documented configuration tool matches its schema and append-only write", () => {
@@ -142,7 +148,7 @@ test("documented configuration tool matches its schema and append-only write", (
   assert.match(config, /insert\(courseAgentConfigs\)/);
   assert.doesNotMatch(config, /update\(courseAgentConfigs\)/);
   for (const field of ["expectedVersion", "studentDisclosure", "changeSummary", "directAnswers", "challengeLevel", "citationMode", "studentDailyTurns", "appliesTo"]) {
-    assert.match(docsText, new RegExp(`\\`${field}\\``));
+    assert.equal(docsText.includes(field), true);
   }
 });
 
@@ -150,7 +156,7 @@ test("documented skill allowlist matches the Atlas manifest", () => {
   const manifest = JSON.parse(read(".atlas/manifest.json")) as { skills: Array<{ id: string }> };
   assert.deepEqual(manifest.skills.map((skill) => skill.id), skills);
   const docsText = read("docs/agent-tools/read-tools.md");
-  for (const skill of skills) assert.match(docsText, new RegExp(`\\`${skill}\\``));
+  for (const skill of skills) assert.equal(docsText.includes("`" + skill + "`"), true);
 });
 
 test("capability index states the important exclusions", () => {

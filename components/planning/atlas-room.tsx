@@ -208,6 +208,11 @@ function actionSummary(part: LoosePart): string | null {
   return output?.ok === true && typeof output.summary === "string" ? output.summary : null;
 }
 
+function isActionResult(part: LoosePart): boolean {
+  const output = outputObject(part);
+  return output?.ok === true && typeof output.action === "string" && typeof output.summary === "string";
+}
+
 function isDraftTool(type: string) {
   return type === "tool-draft_ai_assignment" || type === "tool-draft_rubric" || type === "tool-draft_course";
 }
@@ -492,7 +497,7 @@ function PlanningMessageParts({ message, streaming, statusByProposal }: { messag
       return;
     }
 
-    if (type === "tool-mutate_lms" && state === "output-available") {
+    if (isActionResult(part) && state === "output-available") {
       const summary = actionSummary(part);
       if (summary) rendered.push(<ActionReceipt key={`action-${index}`} summary={summary} />);
       return;

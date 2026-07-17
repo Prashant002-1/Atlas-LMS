@@ -10,19 +10,19 @@ This index answers "can Atlas do X?" for the live professor agent.
 | Search assignments, modules, pages, files, announcements, and students | Yes | `search_course` |
 | Read course, assignment, roster, or individual-student grade data | Yes | `read_gradebook` |
 | Compute course or assignment grade distributions | Yes | `read_gradebook { view: "distribution" }` |
-| Create, edit, publish, or unpublish an assignment | Yes | `mutate_lms` assignment actions |
-| Create, edit, publish, or unpublish a module | Yes | `mutate_lms` module actions |
-| Create or edit a page | Yes | `mutate_lms` page actions |
-| Post an announcement | Yes | `mutate_lms { action: "post_announcement" }` |
-| Create a practice set | Yes | `mutate_lms { action: "create_practice_set" }` |
-| Edit course name, description, or syllabus | Yes | `mutate_lms { action: "update_course" }` |
-| Set or replace a student's grade | Yes | `mutate_lms { action: "set_grade" }` |
-| Mark or clear missing | Yes | `mutate_lms { action: "mark_missing" }` |
-| Edit an AI assignment contract | Yes | `mutate_lms { action: "update_session_contract" }` |
-| Grade or regrade an assessed session | Yes | `mutate_lms { action: "grade_session" }` |
-| Finalize a draft session grade | Yes | `mutate_lms { action: "finalize_session_grade" }` |
-| Recompute stored class results | Yes | `mutate_lms { action: "refresh_class_results" }` |
-| Apply or dismiss a pending draft | Yes | `mutate_lms` actions `apply_draft` and `dismiss_draft` |
+| Create, edit, publish, or unpublish an assignment | Yes | `create_assignment`, `update_assignment`, `publish_assignment` |
+| Create, edit, publish, or unpublish a module | Yes | `create_module`, `update_module`, `publish_module` |
+| Create or edit a page | Yes | `create_page`, `update_page` |
+| Post an announcement | Yes | `post_announcement` |
+| Create a practice set | Yes | `create_practice_set` |
+| Edit course name, description, or syllabus | Yes | `update_course` |
+| Set or replace a student's grade | Yes | `set_grade` |
+| Mark or clear missing | Yes | `mark_missing` |
+| Edit an AI assignment contract | Yes | `update_session_contract` |
+| Grade or regrade an assessed session | Yes | `grade_session` |
+| Finalize a draft session grade | Yes | `finalize_session_grade` |
+| Recompute stored class results | Yes | `refresh_class_results` |
+| Apply or dismiss a pending draft | Yes | `apply_draft`, `dismiss_draft` |
 | Delete a supported course record | Yes | `delete_record` with exact current title confirmation |
 | Configure the shared course agent's name, voice, teaching behavior, turn limit, boundaries, disclosure, and rules | Yes | `configure_agent`; append-only versioned write |
 | Draft a new AI assignment | Yes, through Review | `draft_ai_assignment`, then `apply_draft` |
@@ -51,9 +51,9 @@ Teacher Course Setup can also upload or link course material through its separat
 | Calculate weighted assignment-group course grades | No | grade distributions use stored course standing or raw assignment points |
 | Search semantically with embeddings | No | `search_course` uses SQL substring search |
 | Run more than 16 model steps in one turn | No | `isStepCount(16)` ends the run |
-| Send one bulk mutation payload containing many actions | No | each `mutate_lms` request is one discriminated action |
-| Automatically revalidate Next.js routes after direct tool writes | No | direct model-visible writes do not call `revalidatePath` |
-| Expose the old `inspect_course` tool | No | it exists in the legacy tool builder but is not returned by the live runtime |
+| Send one bulk mutation payload containing many actions | No | Each direct action tool accepts one exact operation; the model may make multiple tool calls within the step ceiling |
+| Automatically revalidate Next.js routes after direct tool writes | No | Direct action tools perform database writes but do not call `revalidatePath` |
+| Expose the old `inspect_course` tool | No | it exists in `professorTools`, but the live operator registry does not return it |
 
 ## Important boundaries
 

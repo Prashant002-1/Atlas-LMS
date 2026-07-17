@@ -1,6 +1,6 @@
 # Review and deletion actions
 
-These are `mutate_lms` actions that decide stored proposals or delete an exactly confirmed course row. See [Write tool overview](write-tools.md) for the shared request and return contract.
+These direct action tools decide stored proposals or delete an exactly confirmed course row. See [Write tool overview](write-tools.md) for the shared request and return contract. The model does not send an `action` field; the server injects the tool name before shared execution.
 
 ## Draft decision actions
 
@@ -10,7 +10,6 @@ Request:
 
 ```ts
 {
-  action: "apply_draft";
   proposalId: string; // UUID
 }
 ```
@@ -34,7 +33,6 @@ Request:
 
 ```ts
 {
-  action: "dismiss_draft";
   proposalId: string; // UUID
 }
 ```
@@ -58,7 +56,6 @@ Request:
 
 ```ts
 {
-  action: "delete_record";
   recordType: "assignment" | "module" | "page" | "announcement" | "practice_set";
   recordId: string;    // UUID
   confirmTitle: string; // 1 to 220

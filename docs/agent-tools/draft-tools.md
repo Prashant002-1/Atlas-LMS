@@ -1,6 +1,6 @@
 # Reviewable draft tool contracts
 
-The three tools in this document do not directly publish their proposed course objects. They write `change_proposals` and `proposal_blocks`. A later `mutate_lms` request with `action: "apply_draft"` or `action: "dismiss_draft"` decides the proposal.
+The three tools in this document do not directly publish their proposed course objects. They write `change_proposals` and `proposal_blocks`. A later `apply_draft` or `dismiss_draft` tool call decides the proposal.
 
 The live registry reuses these executors from `professorTools`, but does not expose that module's old `inspect_course` or three-skill `load_skill` tools.
 

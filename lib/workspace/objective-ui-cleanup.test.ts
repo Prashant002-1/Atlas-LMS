@@ -29,16 +29,16 @@ test("learning-objective UI stays out of professor and student surfaces", () => 
   }
 });
 
-test("settings describe topics and course material, not objective tracking", () => {
+test("settings describe course knowledge, not objective tracking", () => {
   const settings = read("app/teach/settings/page.tsx");
-  assert.ok(settings.includes("build practice from your course material"));
-  assert.ok(settings.includes("which topics the class asks about most"));
+  assert.ok(settings.includes("Course knowledge"));
+  assert.ok(settings.includes("Manage course materials"));
   assert.equal(settings.toLowerCase().includes("objectives"), false);
 });
 
 test("objective relationships may persist silently through ordinary edits", () => {
   const assignment = read("app/teach/work/[assignmentId]/page.tsx");
-  const module = read("app/teach/week/[moduleId]/page.tsx");
+  const courseModule = read("app/teach/week/[moduleId]/page.tsx");
   assert.ok(assignment.includes('type="hidden" name="objectiveCode"'));
-  assert.ok(module.includes('type="hidden" name="objectiveCode"'));
+  assert.ok(courseModule.includes('type="hidden" name="objectiveCode"'));
 });

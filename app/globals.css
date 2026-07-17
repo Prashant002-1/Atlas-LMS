@@ -179,12 +179,11 @@ select {
   outline-offset: 3px;
 }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
+/*
+ * Tailwind Preflight already normalizes native-control typography in its base
+ * layer. Keep that reset layered: an unlayered font shorthand here outranks
+ * text-size, weight, and line-height utilities on every form control.
+ */
 
 /* Serif for titles, statements, and reading. Mono for figures and labels. */
 .atlas-serif {

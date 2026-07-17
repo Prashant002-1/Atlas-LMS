@@ -18,8 +18,6 @@ Use this tool when the professor asks Atlas to change:
 - a persistent study or AI-assignment rule;
 - the student-facing disclosure.
 
-Do not use legacy `mutate_lms.update_course_policy` for these changes.
-
 ## Request
 
 ```ts

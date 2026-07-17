@@ -48,7 +48,7 @@ Proof: [`app/api/atlas/planning/route.ts`](../../app/api/atlas/planning/route.ts
 4. Rebuild the current course context and active course agent configuration.
 5. Load fixed reviewed `.atlas` agent and guardrail files.
 6. Place current course data, course agent configuration, and compacted history in a lower-authority reference message immediately before the current request.
-7. Run the nine-tool registry with a 16-step ceiling.
+7. Run the 28-tool registry with a 16-step ceiling.
 8. Persist the complete assistant response and tool parts.
 9. Compact only after the assistant turn completes.
 

@@ -26,6 +26,7 @@ export type InstructorAssignment = {
   detail?: string | null;
   points?: number | null;
   dueAt?: Date | null;
+  isPastDue?: boolean;
   objectiveCodes: string[];
   status: "draft" | "approved";
 };
@@ -1215,12 +1216,15 @@ function toAssignmentDrafts(
     codesByAssignment.set(alignment.itemId, Array.from(new Set(codes)));
   }
 
+  const now = Date.now();
+
   return assignmentRows.map((assignment) => ({
     id: assignment.id,
     title: assignment.name,
     detail: assignment.descriptionMd,
     points: assignment.pointsPossible,
     dueAt: assignment.dueAt,
+    isPastDue: assignment.dueAt ? assignment.dueAt.getTime() < now : false,
     objectiveCodes: codesByAssignment.get(assignment.id) ?? [],
     status: assignment.published ? "approved" : "draft",
   }));
@@ -1377,4 +1381,3 @@ function studentWorkOrder(status: InstructorAssignmentSubmission["status"]) {
 function submissionTime(submission: { submittedAt: Date | null; gradedAt: Date | null }) {
   return submission.gradedAt?.getTime() ?? submission.submittedAt?.getTime() ?? 0;
 }
-

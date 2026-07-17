@@ -289,8 +289,8 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
       );
     }
   } else if (scope.anchor?.type === "module") {
-    const module = moduleRows.find((row) => row.id === scope.anchor?.id);
-    if (module) push("anchor", `FOCUS MODULE, ${module.name} [id:${module.id}]\n${clip(module.summaryMd, 4000)}`);
+    const courseModule = moduleRows.find((row) => row.id === scope.anchor?.id);
+    if (courseModule) push("anchor", `FOCUS MODULE, ${courseModule.name} [id:${courseModule.id}]\n${clip(courseModule.summaryMd, 4000)}`);
   }
 
   if (scope.audience === "student") {

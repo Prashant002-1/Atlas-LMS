@@ -1,13 +1,19 @@
 "use server";
 
 import { AuthError } from "next-auth";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { signIn, signOut } from "@/lib/auth";
+import { auth, signIn, signOut } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 
 export type SignInState = {
+  error?: string;
+};
+
+export type AccountProfileState = {
   error?: string;
 };
 
@@ -41,4 +47,39 @@ async function signInFromForm(formData: FormData): Promise<SignInState> {
 
 export async function signOutOfAtlas() {
   await signOut({ redirectTo: "/sign-in" });
+}
+
+export async function updateAccountProfile(
+  _: AccountProfileState,
+  formData: FormData
+): Promise<AccountProfileState> {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/sign-in");
+
+  const name = String(formData.get("name") ?? "").replace(/\s+/g, " ").trim();
+  if (!name) return { error: "Enter your name." };
+  if (name.length > 100) return { error: "Name must be 100 characters or fewer." };
+
+  const imageValue = String(formData.get("image") ?? "").trim();
+  const image = profileImageUrl(imageValue);
+  if (imageValue && !image) return { error: "Enter a valid http or https photo URL." };
+
+  await db.update(users).set({ name, image }).where(eq(users.id, session.user.id));
+
+  const accountHref = isInstructorLike(session.user.role) ? "/teach/account" : "/student/account";
+  revalidatePath("/teach", "layout");
+  revalidatePath("/student", "layout");
+  revalidatePath(accountHref);
+  redirect(accountHref);
+}
+
+function profileImageUrl(value: string): string | null {
+  if (!value || value.length > 2048) return null;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }

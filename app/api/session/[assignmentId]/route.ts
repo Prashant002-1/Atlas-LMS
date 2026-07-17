@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { agentSessions, agentTurns } from "@/lib/db/schema";
 import { resolveModelForOrg } from "@/lib/agent/keys";
+import { loadActiveCourseAgentConfig } from "@/lib/agent/course-agent-config";
 import { runSessionTurn } from "@/lib/agent/session-runtime";
 import {
   activeStudentEnrollment,
@@ -9,23 +13,17 @@ import {
   resumeOrCreateLiveSession,
   studentDisplayName,
 } from "@/lib/agent/session-store";
-import { db } from "@/lib/db";
-import { courseAiPolicies } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
 
 /**
  * The live session turn endpoint. The client sends only its latest message;
  * the server owns history, policy, side notes, and persistence. Every check
- * here fails closed: wrong tenant, wrong role, unpublished assignment, or a
- * submitted (frozen) session all refuse before a token is generated.
+ * here fails closed before a token is generated.
  */
 
 export const maxDuration = 120;
-
-/** A session that runs away past this many stored turns refuses new ones. */
 const MAX_SESSION_TURNS = 400;
 
-type IncomingMessage = { parts?: Array<{ type?: string; text?: string }> ; text?: string };
+type IncomingMessage = { parts?: Array<{ type?: string; text?: string }>; text?: string };
 
 function textFromIncoming(message: IncomingMessage | null | undefined, fallback: unknown): string {
   if (typeof fallback === "string" && fallback.trim()) return fallback.trim();
@@ -39,6 +37,31 @@ function textFromIncoming(message: IncomingMessage | null | undefined, fallback:
       .trim();
   }
   return "";
+}
+
+async function withinStudentDailyTurnLimit(args: {
+  orgId: string;
+  courseId: string;
+  studentId: string;
+  limit: number;
+}) {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [usage] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(agentTurns)
+    .innerJoin(agentSessions, eq(agentSessions.id, agentTurns.sessionId))
+    .where(
+      and(
+        eq(agentTurns.orgId, args.orgId),
+        eq(agentTurns.role, "user"),
+        eq(agentSessions.orgId, args.orgId),
+        eq(agentSessions.courseId, args.courseId),
+        eq(agentSessions.userId, args.studentId),
+        eq(agentSessions.surface, "cue"),
+        gte(agentTurns.createdAt, since)
+      )
+    );
+  return Number(usage?.count ?? 0) < args.limit;
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ assignmentId: string }> }) {
@@ -78,6 +101,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ ass
     return NextResponse.json({ error: "You are not enrolled in this course." }, { status: 404 });
   }
 
+  const courseAgent = await loadActiveCourseAgentConfig(user.orgId, bundle.assignment.courseId);
+  if (
+    !(await withinStudentDailyTurnLimit({
+      orgId: user.orgId,
+      courseId: bundle.assignment.courseId,
+      studentId: user.id,
+      limit: courseAgent.configuration.limits.studentDailyTurns,
+    }))
+  ) {
+    return NextResponse.json(
+      { error: "You have reached the course agent turn limit for the last 24 hours." },
+      { status: 429, headers: { "Retry-After": "3600" } }
+    );
+  }
+
   const studentName = await studentDisplayName(user.orgId, user.id);
   const liveSession = await resumeOrCreateLiveSession({
     orgId: user.orgId,
@@ -98,21 +136,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ ass
   const resolved = await resolveModelForOrg(user.orgId);
   if (!resolved) {
     return NextResponse.json(
-      { error: "No model key is configured for this organization. Ask your instructor to connect one in Settings." },
+      { error: "Atlas is temporarily unavailable for this institution. Contact your administrator." },
       { status: 503 }
     );
   }
 
-  const [policy] = await db
-    .select()
-    .from(courseAiPolicies)
-    .where(and(eq(courseAiPolicies.orgId, user.orgId), eq(courseAiPolicies.courseId, bundle.assignment.courseId)))
-    .limit(1);
-
   return runSessionTurn({
     session: liveSession,
     bundle,
-    policy: policy ?? null,
+    courseAgent,
     model: resolved.model,
     userText,
   });

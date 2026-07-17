@@ -7,6 +7,7 @@ import {
   courseAiPolicies,
   courses,
   enrollments,
+  files as courseFiles,
   learningObjectives,
   modules,
   pages,
@@ -14,14 +15,13 @@ import {
   terms,
   type CourseAiPolicy,
 } from "@/lib/db/schema";
+import { courseMaterialRecords } from "@/lib/db/course-agent-schema";
 
 /**
- * Context assembly, the layer the whole product stands on.
- *
- * A context pack is a deterministic, budgeted rendering of the course record:
- * same course state → same pack, section order fixed (stable prompt-cache
- * prefixes), every line traceable to a row. The agent reasons over the pack and
- * cites record ids from it; it never free-associates about the course.
+ * Context assembly, the layer the product stands on. A context pack is a
+ * deterministic, budgeted rendering of current course rows. Material content
+ * is included only when processing is ready. Student packs also require course
+ * visibility.
  */
 
 export type ContextSection = {
@@ -38,23 +38,21 @@ export type ContextPack = {
   policy: CourseAiPolicy | null;
 };
 
-/** chars/3.8, a serviceable estimate for mixed prose + JSON. */
+/** chars/3.8, a serviceable estimate for mixed prose and JSON. */
 export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 3.8);
 }
 
-const clip = (s: string | null | undefined, max: number) =>
-  !s ? "" : s.length <= max ? s : `${s.slice(0, max)}…`;
+const clip = (value: string | null | undefined, max: number) =>
+  !value ? "" : value.length <= max ? value : `${value.slice(0, max)}…`;
 
-const fmtDate = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : "-");
+const fmtDate = (date: Date | null | undefined) => (date ? date.toISOString().slice(0, 10) : "-");
 
 type PackScope = {
   orgId: string;
   courseId: string;
-  /** Student packs carry the student's own work state; instructor packs carry class state. */
   audience: "instructor" | "student";
   userId: string;
-  /** Optional anchor, the record a cue is pressed on gets fuller treatment. */
   anchor?: { type: "assignment" | "module" | "page"; id: string } | null;
 };
 
@@ -136,6 +134,31 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
     .where(and(eq(pages.courseId, course.id), eq(pages.orgId, scope.orgId)))
     .orderBy(asc(pages.slug));
 
+  const materialRows = await db
+    .select({
+      id: courseFiles.id,
+      displayName: courseFiles.displayName,
+      filename: courseFiles.filename,
+      contentType: courseFiles.contentType,
+      extractedText: courseFiles.extractedText,
+      materialKind: courseMaterialRecords.materialKind,
+      ingestionSource: courseMaterialRecords.ingestionSource,
+      processingStatus: courseMaterialRecords.processingStatus,
+      visibility: courseMaterialRecords.visibility,
+    })
+    .from(courseFiles)
+    .leftJoin(
+      courseMaterialRecords,
+      and(
+        eq(courseMaterialRecords.fileId, courseFiles.id),
+        eq(courseMaterialRecords.orgId, scope.orgId),
+        eq(courseMaterialRecords.courseId, course.id)
+      )
+    )
+    .where(and(eq(courseFiles.courseId, course.id), eq(courseFiles.orgId, scope.orgId)))
+    .orderBy(asc(courseFiles.displayName))
+    .limit(40);
+
   const announcementRows = await db
     .select({ id: announcements.id, title: announcements.title, messageMd: announcements.messageMd, postedAt: announcements.postedAt })
     .from(announcements)
@@ -143,7 +166,7 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
     .orderBy(desc(announcements.postedAt))
     .limit(5);
 
-  const itemIds = [...moduleRows.map((m) => m.id), ...assignmentRows.map((a) => a.id), ...pageRows.map((p) => p.id)];
+  const itemIds = [...moduleRows.map((module) => module.id), ...assignmentRows.map((assignment) => assignment.id), ...pageRows.map((page) => page.id)];
   const alignmentRows = itemIds.length
     ? await db
         .select({
@@ -155,19 +178,25 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
         .where(and(eq(contentAlignments.orgId, scope.orgId), inArray(contentAlignments.itemId, itemIds)))
     : [];
 
-  const codeByObjectiveId = new Map(objectiveRows.map((o) => [o.id, o.code]));
+  const codeByObjectiveId = new Map(objectiveRows.map((objective) => [objective.id, objective.code]));
   const codesForItem = (id: string) =>
     alignmentRows
-      .filter((a) => a.itemId === id)
-      .map((a) => codeByObjectiveId.get(a.objectiveId))
+      .filter((alignment) => alignment.itemId === id)
+      .map((alignment) => codeByObjectiveId.get(alignment.objectiveId))
       .filter(Boolean)
       .sort()
       .join(",");
 
-  /* Student packs only see published records; instructors see drafts marked. */
-  const visibleModules = scope.audience === "student" ? moduleRows.filter((m) => m.published) : moduleRows;
-  const visibleAssignments = scope.audience === "student" ? assignmentRows.filter((a) => a.published) : assignmentRows;
-  const visiblePages = scope.audience === "student" ? pageRows.filter((p) => p.published) : pageRows;
+  const visibleModules = scope.audience === "student" ? moduleRows.filter((module) => module.published) : moduleRows;
+  const visibleAssignments = scope.audience === "student" ? assignmentRows.filter((assignment) => assignment.published) : assignmentRows;
+  const visiblePages = scope.audience === "student" ? pageRows.filter((page) => page.published) : pageRows;
+  const eligibleMaterials = materialRows.filter((material) => {
+    const status = material.processingStatus ?? "ready";
+    const visibility = material.visibility ?? "course";
+    if (status !== "ready") return scope.audience === "instructor";
+    return scope.audience === "instructor" || visibility === "course";
+  });
+  const visibleMaterials = eligibleMaterials.slice(0, scope.audience === "student" ? 12 : 24);
 
   const sections: ContextSection[] = [];
   const push = (name: string, content: string) => {
@@ -179,7 +208,7 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
     "course",
     [
       `COURSE ${course.code}, ${course.name} [id:${course.id}]`,
-      `Term: ${term?.name ?? course.term ?? "-"}${term?.current ? " (current)" : ""} · Status: ${course.status}`,
+      `Term: ${term?.name ?? course.term ?? "-"}${term?.current ? " (current)" : ""} / Status: ${course.status}`,
       course.description ? clip(course.description, 600) : "",
       course.syllabusMd ? `SYLLABUS\n${clip(course.syllabusMd, 2400)}` : "",
     ]
@@ -190,10 +219,10 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
   push(
     "objectives",
     [
-      "OBJECTIVES (code · bloom · assessed weight · description)",
+      "OBJECTIVES (code / bloom / assessed weight / description)",
       ...objectiveRows.map(
-        (o) =>
-          `${o.code} · ${o.bloomLevel ?? "-"} · ${o.assessmentWeight != null ? Math.round(o.assessmentWeight * 100) + "%" : "-"} · ${clip(o.description, 240)} [id:${o.id}]`
+        (objective) =>
+          `${objective.code} / ${objective.bloomLevel ?? "-"} / ${objective.assessmentWeight != null ? Math.round(objective.assessmentWeight * 100) + "%" : "-"} / ${clip(objective.description, 240)} [id:${objective.id}]`
       ),
     ].join("\n")
   );
@@ -201,10 +230,10 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
   push(
     "modules",
     [
-      "MODULES (position · objectives · state)",
+      "MODULES (position / objectives / state)",
       ...visibleModules.map(
-        (m) =>
-          `${m.position ?? "-"}. ${m.name} · [${codesForItem(m.id) || "unaligned"}] · ${m.published ? "live" : "draft"} [id:${m.id}]\n   ${clip(m.summaryMd, 320)}`
+        (module) =>
+          `${module.position ?? "-"}. ${module.name} / [${codesForItem(module.id) || "unaligned"}] / ${module.published ? "published" : "draft"} [id:${module.id}]\n   ${clip(module.summaryMd, 320)}`
       ),
     ].join("\n")
   );
@@ -212,10 +241,10 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
   push(
     "work",
     [
-      "WORK (due · points · objectives · state)",
+      "WORK (due / points / objectives / state)",
       ...visibleAssignments.map(
-        (a) =>
-          `${a.name} · due ${fmtDate(a.dueAt)} · ${a.pointsPossible ?? "-"}pts · [${codesForItem(a.id) || "unaligned"}] · ${a.published ? "live" : "draft"} [id:${a.id}]\n   ${clip(a.descriptionMd, 280)}`
+        (assignment) =>
+          `${assignment.name} / due ${fmtDate(assignment.dueAt)} / ${assignment.pointsPossible ?? "-"}pts / [${codesForItem(assignment.id) || "unaligned"}] / ${assignment.published ? "published" : "draft"} [id:${assignment.id}]\n   ${clip(assignment.descriptionMd, 280)}`
       ),
     ].join("\n")
   );
@@ -224,32 +253,46 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
     "pages",
     [
       "PAGES",
-      ...visiblePages.map((p) => `${p.title} [id:${p.id}]\n   ${clip(p.bodyMd, scope.anchor?.type === "page" && scope.anchor.id === p.id ? 4000 : 360)}`),
+      ...visiblePages.map((page) => `${page.title} [id:${page.id}]\n   ${clip(page.bodyMd, scope.anchor?.type === "page" && scope.anchor.id === page.id ? 4000 : 360)}`),
     ].join("\n")
   );
 
   push(
-    "announcements",
-    ["RECENT NOTES", ...announcementRows.map((n) => `${fmtDate(n.postedAt)} · ${n.title}: ${clip(n.messageMd, 240)} [id:${n.id}]`)].join("\n")
+    "materials",
+    [
+      "COURSE MATERIALS (type / processing / access / source)",
+      ...visibleMaterials.map((material) => {
+        const status = material.processingStatus ?? "ready";
+        const visibility = material.visibility ?? "course";
+        const kind = material.materialKind ?? "document";
+        const source = material.ingestionSource ?? "lms_import";
+        const text = status === "ready" ? clip(material.extractedText, 1400) : "Text is not ready.";
+        return `${material.displayName} [id:${material.id}] / ${kind} / ${status} / ${visibility} / ${source}\n   ${text}`;
+      }),
+      eligibleMaterials.length > visibleMaterials.length
+        ? `[${eligibleMaterials.length - visibleMaterials.length} more materials omitted from this turn context]`
+        : "",
+    ].filter(Boolean).join("\n")
   );
 
-  /* Anchor detail, the record the user is acting on, in full. */
+  push(
+    "announcements",
+    ["RECENT NOTES", ...announcementRows.map((note) => `${fmtDate(note.postedAt)} / ${note.title}: ${clip(note.messageMd, 240)} [id:${note.id}]`)].join("\n")
+  );
+
   if (scope.anchor?.type === "assignment") {
-    const a = assignmentRows.find((row) => row.id === scope.anchor?.id);
-    if (a) {
+    const assignment = assignmentRows.find((row) => row.id === scope.anchor?.id);
+    if (assignment) {
       push(
         "anchor",
-        `FOCUS WORK, ${a.name} [id:${a.id}]\nDue ${fmtDate(a.dueAt)} · ${a.pointsPossible ?? "-"}pts · objectives [${codesForItem(a.id) || "unaligned"}]\n${clip(a.descriptionMd, 4000)}`
+        `FOCUS WORK, ${assignment.name} [id:${assignment.id}]\nDue ${fmtDate(assignment.dueAt)} / ${assignment.pointsPossible ?? "-"}pts / objectives [${codesForItem(assignment.id) || "unaligned"}]\n${clip(assignment.descriptionMd, 4000)}`
       );
     }
   } else if (scope.anchor?.type === "module") {
-    const m = moduleRows.find((row) => row.id === scope.anchor?.id);
-    if (m) {
-      push("anchor", `FOCUS MODULE, ${m.name} [id:${m.id}]\n${clip(m.summaryMd, 4000)}`);
-    }
+    const module = moduleRows.find((row) => row.id === scope.anchor?.id);
+    if (module) push("anchor", `FOCUS MODULE, ${module.name} [id:${module.id}]\n${clip(module.summaryMd, 4000)}`);
   }
 
-  /* Work state: the student's own record, or the class's, never both. */
   if (scope.audience === "student") {
     const myWork = await db
       .select({
@@ -261,14 +304,14 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
       })
       .from(submissions)
       .where(and(eq(submissions.orgId, scope.orgId), eq(submissions.courseId, course.id), eq(submissions.userId, scope.userId)));
-    const nameById = new Map(assignmentRows.map((a) => [a.id, a.name]));
+    const nameById = new Map(assignmentRows.map((assignment) => [assignment.id, assignment.name]));
     push(
       "my_work",
       [
         "MY WORK STATE",
-        ...myWork.map((w) => {
-          const state = w.missing ? "missing" : w.gradedAt ? `graded ${w.score ?? "-"}` : w.submittedAt ? "submitted" : "open";
-          return `${nameById.get(w.assignmentId) ?? w.assignmentId}: ${state}`;
+        ...myWork.map((work) => {
+          const state = work.missing ? "missing" : work.gradedAt ? `graded ${work.score ?? "-"}` : work.submittedAt ? "submitted" : "open";
+          return `${nameById.get(work.assignmentId) ?? work.assignmentId}: ${state}`;
         }),
       ].join("\n")
     );
@@ -284,31 +327,31 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
       .from(submissions)
       .where(and(eq(submissions.orgId, scope.orgId), eq(submissions.courseId, course.id)));
     const byAssignment = new Map<string, { submitted: number; graded: number; missing: number }>();
-    for (const w of classWork) {
-      const agg = byAssignment.get(w.assignmentId) ?? { submitted: 0, graded: 0, missing: 0 };
-      if (w.missing) agg.missing += 1;
-      else if (w.gradedAt) agg.graded += 1;
-      else if (w.submittedAt) agg.submitted += 1;
-      byAssignment.set(w.assignmentId, agg);
+    for (const work of classWork) {
+      const aggregate = byAssignment.get(work.assignmentId) ?? { submitted: 0, graded: 0, missing: 0 };
+      if (work.missing) aggregate.missing += 1;
+      else if (work.gradedAt) aggregate.graded += 1;
+      else if (work.submittedAt) aggregate.submitted += 1;
+      byAssignment.set(work.assignmentId, aggregate);
     }
-    const nameById = new Map(assignmentRows.map((a) => [a.id, a.name]));
+    const nameById = new Map(assignmentRows.map((assignment) => [assignment.id, assignment.name]));
     push(
       "class_state",
       [
         `CLASS STATE (${counts?.students ?? 0} students)`,
         ...[...byAssignment.entries()].map(
-          ([id, agg]) => `${nameById.get(id) ?? id}: ${agg.graded} graded · ${agg.submitted} waiting · ${agg.missing} missing`
+          ([id, aggregate]) => `${nameById.get(id) ?? id}: ${aggregate.graded} graded / ${aggregate.submitted} waiting / ${aggregate.missing} missing`
         ),
       ].join("\n")
     );
   }
 
-  const content = sections.map((s) => `<<${s.name}>>\n${s.content}`).join("\n\n");
+  const content = sections.map((section) => `<<${section.name}>>\n${section.content}`).join("\n\n");
   return {
     courseId: course.id,
     sections,
     content,
-    tokenEstimate: sections.reduce((sum, s) => sum + s.tokenEstimate, 0),
+    tokenEstimate: sections.reduce((sum, section) => sum + section.tokenEstimate, 0),
     policy: policy ?? null,
   };
 }

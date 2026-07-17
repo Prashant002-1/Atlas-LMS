@@ -113,7 +113,10 @@ export async function POST(request: Request) {
 
   const resolved = await resolveModelForOrg(user.orgId);
   if (!resolved) {
-    return NextResponse.json({ error: "Connect a model in Settings before using Atlas." }, { status: 503 });
+    return NextResponse.json(
+      { error: "Atlas is temporarily unavailable for this institution. Contact your administrator." },
+      { status: 503 }
+    );
   }
 
   const threadScope = { orgId: user.orgId, userId: user.id, courseId: scope.course.id };

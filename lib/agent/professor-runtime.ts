@@ -19,6 +19,7 @@ import {
   type ProfessorScope,
 } from "@/lib/agent/professor-context";
 import { professorOperatorTools } from "@/lib/agent/lms-operator";
+import { courseAgentConfigurationTool } from "@/lib/agent/course-agent-tool";
 
 /**
  * One professor turn on the durable AI SDK seam. The professor's input is a row
@@ -73,7 +74,10 @@ export async function runProfessorTurn(args: {
   const modelMessages = currentMessage
     ? [...priorMessages, referenceMessage, currentMessage]
     : [referenceMessage];
-  const tools = professorOperatorTools({ scope, sessionId: session.id, model: args.model });
+  const tools = {
+    ...professorOperatorTools({ scope, sessionId: session.id, model: args.model }),
+    configure_agent: courseAgentConfigurationTool({ scope, sessionId: session.id }),
+  };
 
   const stream = createUIMessageStream<ProfessorUIMessage>({
     execute: ({ writer }) => {

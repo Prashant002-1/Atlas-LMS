@@ -14,7 +14,6 @@ import {
 } from "@/lib/instructor/course-material-actions";
 import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton, TextLink } from "@/components/atlas/primitives";
-import { Markdown } from "@/components/agent/markdown";
 import { RecordDialog } from "@/components/teach/record-dialog";
 import {
   CourseMaterialTable,
@@ -180,31 +179,25 @@ export default async function TeachCourseSetupPage() {
 
       <section aria-labelledby="syllabus-heading" className="py-8">
         <div className="mb-4 flex items-baseline justify-between gap-4">
-          <div>
-            <h2 id="syllabus-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Syllabus</h2>
-            <p className="mt-1 text-[0.75rem] text-[var(--color-muted)]">The student-facing course syllabus.</p>
-          </div>
+          <h2 id="syllabus-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Syllabus</h2>
           <span className="text-[0.6875rem] text-[var(--color-faint)]">Updated {longDate(course.updatedAt)}</span>
         </div>
-        {course.syllabusMd?.trim() ? (
-          <div className="max-w-4xl border-y border-[var(--color-border)] py-5">
-            <Markdown className="text-[0.84375rem] leading-7">{course.syllabusMd}</Markdown>
-          </div>
-        ) : (
-          <p className="border-y border-[var(--color-border)] py-6 text-[0.8125rem] text-[var(--color-muted)]">No syllabus has been added.</p>
-        )}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 border-y border-[var(--color-border)] px-3 py-3.5">
+          <p className="text-[0.8125rem] text-[var(--color-muted)]">{syllabusFact(course.syllabusMd)}</p>
+          <TextLink href="/teach/syllabus" className="text-[0.78125rem]">Open the syllabus</TextLink>
+        </div>
       </section>
     </>
   );
 }
 
-function EditCourseDialog({ course }: { course: { name: string; description: string | null; syllabusMd: string | null } }) {
+function EditCourseDialog({ course }: { course: { name: string; description: string | null } }) {
   return (
     <RecordDialog
       mode="edit"
       triggerLabel="Edit course"
       title="Edit course"
-      description="Update the student-facing course name, description, and syllabus. Offering dates and course codes are managed by the institution."
+      description="Update the student-facing course name and description. Offering dates and course codes are managed by the institution."
       triggerVariant="secondary"
     >
       <form action={updateCourseDetails} className="grid gap-4">
@@ -215,10 +208,6 @@ function EditCourseDialog({ course }: { course: { name: string; description: str
         <label className="grid gap-1.5 text-[0.75rem] font-medium">
           Description
           <textarea name="description" rows={4} maxLength={2000} defaultValue={course.description ?? ""} className={`${fieldClass} min-h-24 resize-y py-2.5 leading-6`} />
-        </label>
-        <label className="grid gap-1.5 text-[0.75rem] font-medium">
-          Syllabus
-          <textarea name="syllabus" rows={16} maxLength={20000} defaultValue={course.syllabusMd ?? ""} className={`${fieldClass} atlas-mono min-h-80 resize-y py-3 text-[0.75rem] leading-6`} />
         </label>
         <div className="flex justify-end border-t border-[var(--color-border)] pt-4">
           <ActionButton>Save course</ActionButton>
@@ -335,6 +324,13 @@ function safeMaterialUrl(value: string | null) {
   } catch {
     return null;
   }
+}
+
+function syllabusFact(syllabusMd: string | null): string {
+  const text = syllabusMd?.trim();
+  if (!text) return "No syllabus text yet.";
+  const words = text.split(/\s+/).length;
+  return `${words.toLocaleString("en-US")} ${words === 1 ? "word" : "words"}`;
 }
 
 function longDate(date: Date): string {

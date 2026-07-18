@@ -31,19 +31,6 @@ export default async function TeachStudentsPage() {
       <PageHeader title="Students" course={`${workspace.course.code} / ${workspace.course.term}`} />
 
       <section>
-        <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Work</h2>
-        {active.length > 0 ? (
-          <div className="mt-2.5 space-y-2">
-            {active.map((item) => <ProgressRow key={item.assignmentId ?? item.title} item={item} />)}
-          </div>
-        ) : (
-          <div className="mt-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-            <EmptyState art="atlas" title="No work" detail="Published assignments appear here with their submission state." />
-          </div>
-        )}
-      </section>
-
-      <section className="mt-8">
         <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">
           Roster ({workspace.students.length})
         </h2>
@@ -67,6 +54,19 @@ export default async function TeachStudentsPage() {
         ) : (
           <div className="mt-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
             <EmptyState art="atlas" title="No students" detail="No one is enrolled in this course yet." />
+          </div>
+        )}
+      </section>
+
+      <section className="mt-8">
+        <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Work</h2>
+        {active.length > 0 ? (
+          <div className="mt-2.5 space-y-2">
+            {active.map((item) => <ProgressRow key={item.assignmentId ?? item.title} item={item} />)}
+          </div>
+        ) : (
+          <div className="mt-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+            <EmptyState art="atlas" title="No work" detail="Published assignments appear here with their submission state." />
           </div>
         )}
       </section>

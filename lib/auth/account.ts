@@ -11,6 +11,9 @@ export async function loadAccountProfile(userId: string) {
       email: users.email,
       image: users.image,
       role: users.role,
+      title: users.title,
+      officeLocation: users.officeLocation,
+      officeHours: users.officeHours,
     })
     .from(users)
     .where(eq(users.id, userId))

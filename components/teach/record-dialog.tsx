@@ -11,6 +11,7 @@ export function RecordDialog({
   children,
   triggerVariant = "secondary",
   defaultOpen = false,
+  wide = false,
 }: {
   mode: "create" | "edit";
   triggerLabel: string;
@@ -19,6 +20,8 @@ export function RecordDialog({
   children: ReactNode;
   triggerVariant?: "primary" | "secondary" | "quiet";
   defaultOpen?: boolean;
+  /** A wider panel for long-form editing such as the syllabus. */
+  wide?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const Icon = mode === "create" ? Plus : Pencil;
@@ -60,7 +63,9 @@ export function RecordDialog({
             role="dialog"
             aria-modal="true"
             aria-labelledby="record-dialog-title"
-            className="relative z-10 flex max-h-[calc(100vh-3rem)] w-full max-w-2xl flex-col overflow-hidden rounded-panel border border-[var(--color-border-strong)] bg-[var(--color-surface)] shadow-[var(--shadow-floating)]"
+            className={`relative z-10 flex max-h-[calc(100vh-3rem)] w-full flex-col overflow-hidden rounded-panel border border-[var(--color-border-strong)] bg-[var(--color-surface)] shadow-[var(--shadow-floating)] ${
+              wide ? "max-w-4xl" : "max-w-2xl"
+            }`}
           >
             <header className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] px-5 py-4">
               <div>

@@ -19,6 +19,7 @@ const teacherSections: NavSection[] = [
       { href: "/teach/calendar", label: "Calendar", icon: "calendar" },
       { href: "/teach/gradebook", label: "Gradebook", icon: "gradebook" },
       { href: "/teach/students", label: "Students", icon: "students" },
+      { href: "/teach/syllabus", label: "Syllabus", icon: "course" },
       { href: "/teach/course", label: "Course setup", icon: "setup" },
     ],
   },

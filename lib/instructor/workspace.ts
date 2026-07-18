@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
+  agentSessions,
   announcements,
   assignments,
   changeProposals,
@@ -141,6 +142,8 @@ export type InstructorProposal = {
   blocks: Block[];
   /** After apply: links to the records the blocks created. */
   appliedRecords: InstructorProposalAppliedRecord[];
+  /** The Atlas thread this draft was made in, for reopening the conversation. */
+  thread: { id: string; title: string | null } | null;
 };
 
 /** One record change, stated as a fact: what record, what happened, when. */
@@ -363,6 +366,7 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
         status: changeProposals.status,
         summary: changeProposals.summary,
         diff: changeProposals.diff,
+        sessionId: changeProposals.sessionId,
         createdAt: changeProposals.createdAt,
         decidedAt: changeProposals.decidedAt,
       })
@@ -370,6 +374,24 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
       .where(and(eq(changeProposals.orgId, actor.orgId), eq(changeProposals.courseId, course.id)))
       .orderBy(desc(changeProposals.createdAt))
       .limit(10);
+
+    /* The Atlas threads the drafts came from, course-scoped, titles only. */
+    const proposalSessionIds = [
+      ...new Set(proposalRows.map((row) => row.sessionId).filter((value): value is string => value !== null)),
+    ];
+    const proposalThreadRows = proposalSessionIds.length
+      ? await db
+          .select({ id: agentSessions.id, title: agentSessions.title })
+          .from(agentSessions)
+          .where(
+            and(
+              eq(agentSessions.orgId, actor.orgId),
+              eq(agentSessions.courseId, course.id),
+              inArray(agentSessions.id, proposalSessionIds)
+            )
+          )
+      : [];
+    const proposalThreadById = new Map(proposalThreadRows.map((row) => [row.id, row.title]));
 
     const noticeRows = await db
       .select({
@@ -405,6 +427,10 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
           .filter((e) => e.row.status === "applied" && e.row.appliedItemId)
           .map((e) => appliedRecordLink(e.row.appliedItemType, e.row.appliedItemId!))
           .filter((r): r is InstructorProposalAppliedRecord => r !== null),
+        thread:
+          row.sessionId && proposalThreadById.has(row.sessionId)
+            ? { id: row.sessionId, title: proposalThreadById.get(row.sessionId) ?? null }
+            : null,
       });
     }
 

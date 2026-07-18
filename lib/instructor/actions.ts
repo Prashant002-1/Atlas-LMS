@@ -680,9 +680,9 @@ export async function createAnnouncementRecord(formData: FormData) {
 }
 
 /**
- * Course setup: the roster-facing course details. Name, description, and the
- * syllabus text students read. Atlas policy and model keys live in Settings,
- * deliberately not here.
+ * Course setup: the roster-facing course details. Name and description only;
+ * the syllabus text has its own action on the Syllabus page, and Atlas policy
+ * and model keys live in Settings, deliberately not here.
  */
 export async function updateCourseDetails(formData: FormData) {
   const user = await requireInstructorActor();
@@ -693,16 +693,37 @@ export async function updateCourseDetails(formData: FormData) {
 
   const name = compactField(formData.get("name"), "Course name is required.", 200);
   const description = optionalLongField(formData.get("description"), 2000);
-  const syllabusMd = optionalLongField(formData.get("syllabus"), 20000);
 
   await db
     .update(courses)
-    .set({ name, description, syllabusMd, updatedAt: new Date() })
+    .set({ name, description, updatedAt: new Date() })
     .where(and(eq(courses.orgId, user.orgId), eq(courses.id, course.id)));
 
   revalidatePath("/teach");
+  revalidatePath("/teach/syllabus");
   revalidatePath("/student");
   redirect("/teach/course");
+}
+
+/** The syllabus text, edited from the Syllabus page it renders on. */
+export async function updateCourseSyllabus(formData: FormData) {
+  const user = await requireInstructorActor();
+  const course = await findEditableCourse({ id: user.id, orgId: user.orgId, role: user.role });
+  if (!course) {
+    throw new Error("No editable course found for this instructor.");
+  }
+
+  const syllabusMd = optionalLongField(formData.get("syllabus"), 80000);
+
+  await db
+    .update(courses)
+    .set({ syllabusMd, updatedAt: new Date() })
+    .where(and(eq(courses.orgId, user.orgId), eq(courses.id, course.id)));
+
+  revalidatePath("/teach/syllabus");
+  revalidatePath("/teach/course");
+  revalidatePath("/student");
+  redirect("/teach/syllabus");
 }
 
 async function requireInstructorActor() {

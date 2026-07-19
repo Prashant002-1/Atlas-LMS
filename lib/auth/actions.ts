@@ -64,13 +64,28 @@ export async function updateAccountProfile(
   const image = profileImageUrl(imageValue);
   if (imageValue && !image) return { error: "Enter a valid http or https photo URL." };
 
-  await db.update(users).set({ name, image }).where(eq(users.id, session.user.id));
+  const values: Partial<typeof users.$inferInsert> = { name, image };
+
+  // Instructor profile facts: a title, an office, and office hours. They
+  // render on the account page and in the syllabus instructor block.
+  if (isInstructorLike(session.user.role)) {
+    values.title = profileField(formData.get("title"), 120);
+    values.officeLocation = profileField(formData.get("officeLocation"), 160);
+    values.officeHours = profileField(formData.get("officeHours"), 240);
+  }
+
+  await db.update(users).set(values).where(eq(users.id, session.user.id));
 
   const accountHref = isInstructorLike(session.user.role) ? "/teach/account" : "/student/account";
   revalidatePath("/teach", "layout");
   revalidatePath("/student", "layout");
   revalidatePath(accountHref);
   redirect(accountHref);
+}
+
+function profileField(value: FormDataEntryValue | null, maxLength: number): string | null {
+  const text = typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+  return text ? text.slice(0, maxLength) : null;
 }
 
 function profileImageUrl(value: string): string | null {

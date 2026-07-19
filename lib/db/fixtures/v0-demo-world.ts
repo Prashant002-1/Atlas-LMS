@@ -368,6 +368,210 @@ const studentDefs: Array<{
   }
 ];
 
+type EconomicsWritingNote = {
+  opening: string;
+  concept: string;
+  revision: string;
+  caveat: string;
+};
+
+/** Subject-specific voice notes used to keep seeded ECON session work human. */
+const economicsWritingNotes: Record<string, EconomicsWritingNote> = {
+  maya: {
+    opening: "I started with the fact that the flat increase lost 18% of subscribers, but I am not sure yet whether the problem is the price itself or that one price treats different viewers the same.",
+    concept: "I keep wanting to use the slope because the line looks steeper at the part where people leave. I know that is probably the exact confusion from Exam 1, so I am going to write the percentage change before I decide what the graph means.",
+    revision: "I think the basic tier needs ads and one screen, otherwise a regular household can just move down and keep almost everything it values.",
+    caveat: "I would want actual viewing and churn data before saying these prices are optimal. For now the point is that the tiers have different jobs.",
+  },
+  amina: {
+    opening: "The 18% drop makes me think the flat price was too blunt. I want to separate people who watch occasionally from households that use several screens before I choose a number.",
+    concept: "I was about to say the slope is constant so sensitivity is constant, but that does not fit the percentage change story. At the higher price, the same dollar movement is a bigger share of the customer's budget.",
+    revision: "I would put ads and one screen on the entry tier, keep the middle tier ad-free, and reserve downloads for the top tier so the features do some segmentation work.",
+    caveat: "The middle tier is the part I am least sure about. If it is too close to premium, people may not see its point.",
+  },
+  zara: {
+    opening: "I am looking at the lost subscribers as different groups rather than one big average. The people who only watch a few shows probably react differently from a family using four screens.",
+    concept: "The line can have one slope while elasticity changes along it. I had to say that out loud because I keep treating a steep-looking section as proof of high elasticity.",
+    revision: "For the cheap option I would accept ads and 720p, then make the standard plan ad-free with two screens. Premium needs something more useful than a higher price, probably 4K or offline viewing.",
+    caveat: "I am assuming people notice the difference between the plans. A fence that nobody cares about will not stop a downgrade.",
+  },
+  liam: {
+    opening: "The 18% subscriber loss after the price move is consistent with demand being elastic in that interval, but I would not infer a complete demand curve from one observation.",
+    concept: "Elasticity is a percentage response, whereas slope is an absolute derivative. A linear demand curve can therefore have constant slope and changing elasticity as price and quantity change.",
+    revision: "I would use ad tolerance, screen count, and offline access as behavioral fences because they map more closely to usage than a self-reported customer label.",
+    caveat: "The revenue claim needs a segment table or experiment. I can defend the mechanism, not a precise lift from the information given.",
+  },
+  clara: {
+    opening: "The pricing problem is not simply that $15 is high. It is that VidStack used one price for customers with different willingness to pay and different substitutes.",
+    concept: "The slope of a linear demand function is constant, but elasticity is not. I would price away from the elastic region only after checking what the segment-level quantities look like.",
+    revision: "I would use ads on Basic, two screens and 1080p on Standard, then 4K and downloads on Premium. Those fences make the menu a choice rather than three labels on the same product.",
+    caveat: "A polished tier table can still fail if the fences feel arbitrary, so I would test which feature customers actually value.",
+  },
+  hiro: {
+    opening: "The initial price move appears to have crossed a sensitive part of the demand curve. I want to keep the calculation separate from the story until I check the units.",
+    concept: "Slope gives the change in quantity for a unit change in price. Elasticity rescales both changes, so the same slope can describe different responsiveness at different points.",
+    revision: "Basic should be limited to one screen and 720p with ads. Standard can carry the ordinary household use case, while Premium needs offline access rather than just a larger screen count.",
+    caveat: "My design is mechanically clear but it still needs evidence about whether heavy users actually use offline downloads.",
+  },
+  yusuf: {
+    opening: "I read the subscriber loss as a warning that the platform was charging into an elastic segment. The next question is how to recover casual users without giving away the value heavy users will pay for.",
+    concept: "The marginal-revenue condition helps with the firm decision, but I should not use it as a replacement for elasticity. The two ideas answer related questions at different points in the model.",
+    revision: "I would keep offline downloads out of Basic and probably Standard, but I would not use a made-up demographic label to identify heavy users. Usage features are a better fence.",
+    caveat: "A premium feature only works as a fence if the target group values it enough to stay. I would watch downgrades after launch.",
+  },
+  aravind: {
+    opening: "VidStack has high fixed content costs and a low marginal cost per additional stream, so losing volume matters even if the service can serve another user cheaply.",
+    concept: "The relevant question is elasticity at each price point, not the visual steepness of the curve. I am treating the flat hike as a move into a region where quantity responds more than proportionally.",
+    revision: "Advertising tolerance is a useful fence for price-sensitive users, but the plan also needs a quality difference so Premium is not just a tax on the same service.",
+    caveat: "The fixed-cost story supports volume, but it does not tell us the exact price or whether the content mix gives the platform real pricing power.",
+  },
+  mei: {
+    opening: "I want to know whether the 18% loss came from a broad reaction or a smaller group with easy substitutes. That distinction changes whether the answer is a lower entry price or a different menu.",
+    concept: "A constant slope does not imply constant elasticity because the percentage denominators change along the demand curve. I wrote that down before looking at the tier table.",
+    revision: "I would make Basic cheaper with ads, keep Standard useful for most viewers, and make Premium about simultaneous use and downloads rather than stacking random features.",
+    caveat: "I would not call the design successful until we can see which tier people choose and whether existing users move down.",
+  },
+  derek: {
+    opening: "The flat hike seems to have pushed some customers past what they were willing to pay. I am trying to separate those customers from people who would pay more for a better plan.",
+    concept: "I first wrote that the demand curve got steeper, but the course page says to compare percentage changes. That makes elasticity the better language here.",
+    revision: "Basic at a lower price with ads seems reasonable, and I would cap it at one screen. I need to think more about what Standard gives someone besides no ads.",
+    caveat: "I have the general shape of the tiers, but the middle option is still a weak part of my proposal.",
+  },
+  priya: {
+    opening: "I think the price change affected casual viewers more than people who use VidStack every day. I want to write down the groups before I assume the whole market has one elasticity.",
+    concept: "I can explain that elasticity uses percentage change and slope uses absolute change, but I still have to slow down when I use the terms in a graph.",
+    revision: "I would use ads as the first fence and reserve extra screens for the higher plans. I would also keep the Premium price close enough to the old price that it does not look like another shock.",
+    caveat: "The numbers are a starting point. The plan needs a test because I do not know how many current users care about 4K.",
+  },
+  jose: {
+    opening: "The simple explanation is that $15 was too much for some people, but that does not tell us what to do for people who were already willing to pay more.",
+    concept: "Slope is the change in one variable over the other, while elasticity compares percentages. I had the idea but skipped the calculation in my first note.",
+    revision: "I would give casual viewers a basic ad plan and make the higher plans different by screens and downloads. That seems better than asking people to name their own segment.",
+    caveat: "I still need to show why the Standard price is not just an arbitrary midpoint.",
+  },
+  anna: {
+    opening: "Before setting tiers I want to know whether the people who left were light viewers, students, or households with another service. The same churn number could hide different reasons.",
+    concept: "The slope versus elasticity distinction is about absolute versus percentage response. I understand it in the formula but I need to make sure my graph labels say the same thing.",
+    revision: "I would make student or casual access cheaper only with a clear eligibility or feature fence. For the general plan, ads and screen limits are more defensible than asking customers to self-identify.",
+    caveat: "A discount can bring people back and still reduce revenue if existing users switch, so I would track that separately.",
+  },
+  malik: {
+    opening: "The flat price hike probably hit people who were already close to leaving. I am trying to keep the recommendation tied to the actual 18% loss instead of just making a cheap tier.",
+    concept: "I keep wanting to call a steep line elastic. The percentage-change definition is the check I need before making that claim.",
+    revision: "Basic with ads and one screen gives casual users a reason to stay, while Standard should have enough convenience that families do not immediately downgrade.",
+    caveat: "I have not worked out the revenue comparison yet, so the prices are provisional.",
+  },
+  chen: {
+    opening: "I made a table with casual, regular, and heavy viewers because the flat price hides the different use cases. The missing piece is evidence for how large each group is.",
+    concept: "The line's slope stays the same in the linear example, but elasticity changes because it uses percentages. That is the distinction I need to carry into the pricing recommendation.",
+    revision: "I would keep Basic to one screen with ads and give Standard two screens without ads. Premium gets downloads and 4K, which gives the top price a concrete reason.",
+    caveat: "I would test the menu with a small group before treating the segments as stable facts.",
+  },
+  rachel: {
+    opening: "I am thinking about the customer experience as well as revenue. Some people may leave because the price feels out of proportion to how often they watch, not because they dislike VidStack.",
+    concept: "Elasticity is the percentage reaction, not just the shape of the line. I wrote that next to my graph so I do not use slope as a shortcut again.",
+    revision: "A basic ad-supported tier could keep occasional viewers. I would make the fence visible in the plan comparison so the lower price is a real trade rather than a hidden downgrade.",
+    caveat: "Too many ads could create another form of churn, so the fence has a customer-experience cost.",
+  },
+  noah: {
+    opening: "The price increase may have reduced the number of people who subscribe, even if the remaining customers pay more. I want to compare revenue and not stop at the churn percentage.",
+    concept: "I checked the elasticity formula after my first calculation used the dollar change only. That was a slope calculation, not the percentage responsiveness the problem asks for.",
+    revision: "I would try Basic with ads, Standard with two screens, and Premium with offline access. I am not sure whether resolution or downloads is the stronger fence.",
+    caveat: "The proposal needs a simple experiment so we can see whether the lower tier recovers people without pulling down Standard users.",
+  },
+  isabel: {
+    opening: "A single price makes the service easy to explain but ignores different willingness to pay. The 18% drop is a sign that the flat structure left no gentle way for a casual viewer to stay.",
+    concept: "Elasticity compares relative changes, while slope compares absolute changes. I am using that distinction to explain why a linear graph can still have different sensitivity at different prices.",
+    revision: "Ads and 720p make Basic meaningfully different, Standard is two-screen and ad-free, and Premium adds 4K and downloads. Each fence matches a use case rather than an arbitrary label.",
+    caveat: "The final defense should acknowledge that fairness and privacy concerns can limit how finely the firm segments customers.",
+  },
+  sam: {
+    opening: "I drew the customer groups first because the price hike is the same for everyone but the reaction was not. I think the service needs an option for people who watch only occasionally.",
+    concept: "The graph can keep one slope while elasticity changes. The picture helped me see why I cannot use the word steep as the whole explanation.",
+    revision: "Ads, screen limits, and resolution give us three possible fences. I would start with ads on Basic and keep Premium about real simultaneous use rather than just a higher number.",
+    caveat: "I need to make the Standard plan more specific before I call the table finished.",
+  },
+  elena: {
+    opening: "I wrote down the old and new prices before making a recommendation. The 18% loss suggests that some customers were already near their reservation price.",
+    concept: "Elasticity is percentage responsiveness and slope is absolute steepness. I can use both, but they should not be treated as interchangeable evidence.",
+    revision: "I would use ads as the entry fence and two screens for Standard, then add offline downloads to Premium. That leaves the family use case in the middle instead of making Premium the only practical option.",
+    caveat: "The table still assumes that ad tolerance is different across customers. I would want to test that assumption.",
+  },
+  mateo: {
+    opening: "I keep coming back to the idea that a single flat rate asks casual and heavy viewers to make the same decision. That seems like the reason the price hike lost people rather than simply lowering total demand.",
+    concept: "The slope can be constant even though elasticity is high in one part of a linear demand curve and low in another. I needed the example from the page to make that stick.",
+    revision: "I would use ads and one screen on Basic, then offline downloads as a reason not to move down from Standard. I am still deciding whether 4K is enough for Premium by itself.",
+    caveat: "My prices are rough and the rationale is better than the revenue estimate right now.",
+  },
+  fatima: {
+    opening: "I first thought the answer was just put the price back at $12.99, because that is where people were subscribing before. I know that gives everyone the same price again, so I am trying to see who the tiers are for.",
+    concept: "I still get slope and elasticity mixed up. I think elasticity is the percent change, but I need to write the numerator and denominator instead of guessing from the picture.",
+    revision: "I would put ads on the cheap tier, but I am not sure what the screen limit should be. Without a fence, I think everyone would pick the cheapest one.",
+    caveat: "I do not have a confident revenue argument yet. My next step is to compare the plan features with the customer groups.",
+  },
+  oscar: {
+    opening: "I understand that raising the price made some subscribers leave, but I am not sure how to tell whether they were casual users or people who found another service.",
+    concept: "I wrote that a steeper demand line means more elasticity, then noticed the page separates slope from percentage changes. I need to stop using the visual shortcut.",
+    revision: "I have two tiers in the draft because three feels like too much before I understand the fences. Basic could have ads and Standard could have more screens, but I have not solved the middle case.",
+    caveat: "The pricing table is incomplete. I would rather say that than pretend the two prices solve cannibalization.",
+  },
+  chloe: {
+    opening: "I am stuck on how to split the users. A discount might bring people back, but it could also make current subscribers pay less without changing anything.",
+    concept: "I know the formula says elasticity is a percentage comparison and slope is a dollar or unit comparison. The graph still makes me hesitate, so I wrote both definitions beside it.",
+    revision: "If Basic has ads and one screen, at least there is a reason for the lower price. I am not sure whether Standard needs better resolution or more screens to keep people from moving down.",
+    caveat: "The fence idea is clearer than my final prices. I need another pass before the proposal is ready.",
+  },
+  leila: {
+    opening: "I thought heavy and casual users might as well pay the same price because the product is the same. Then I looked at willingness to pay and saw why that leaves some people out.",
+    concept: "I described slope as the change in price over quantity and called elasticity another word for it. That is not right, but I can see that the percentage part changes the interpretation.",
+    revision: "I would start with Basic at a lower price and use ads or a screen limit. I need help making Premium different without just adding features nobody asked for.",
+    caveat: "The design is still a draft. I know what problem the fence is supposed to solve, but not yet whether my feature is a good fence.",
+  },
+  nina: {
+    opening: "The subscriber loss is high, but I do not know which customers to segment. I wrote casual, regular, and heavy on the page and then realized those labels need evidence.",
+    concept: "I am confused about slope and price elasticity of demand. I think the percentage change is why the same line can have different elasticity, but I want to check that with an example.",
+    revision: "Maybe Basic can have a time or screen limit, but I do not know if limiting hours would make people leave instead. I have not finished the fences.",
+    caveat: "My table is a partial attempt. I would ask about the segment evidence before recommending the prices.",
+  },
+  tariq: {
+    opening: "The subscriber drop makes sense as a price problem, but I need to draw the customers before I can say what the new plans should be.",
+    concept: "I keep seeing slope and elasticity as two ways to say demand changes. The percentage versus absolute distinction is the part I am trying to hold onto.",
+    revision: "I can imagine Basic with ads and one screen, then Standard for regular viewers. I am not sure what Premium should fence besides 4K, and I do not want to invent a feature just to fill the row.",
+    caveat: "The diagram is more complete than my explanation. My next pass should connect each feature to a willingness-to-pay reason.",
+  },
+  lucas: {
+    opening: "I thought raising the price should increase revenue because each subscriber pays more. The 18% loss means I need to compare the price effect with the quantity effect.",
+    concept: "I assumed a steeper slope always meant more elastic demand. The example shows why that is not enough, but I am still translating it into the case.",
+    revision: "I have Basic and Standard prices, but I do not have a good fence yet. Saying people will choose a plan because it is premium is not really an explanation.",
+    caveat: "The current table is not ready to defend. I need to connect the tiers to actual usage instead of repeating the labels.",
+  },
+  kenji: {
+    opening: "I was going to ask the agent to write the whole analysis because I mostly want the final prices. I know that would leave me unable to explain why the table works.",
+    concept: "I do not want to calculate elasticity, but I can at least say that the price response is a percentage question and not just the slope of the line.",
+    revision: "I am tempted to leave the fences out and submit the two prices, even though I understand that people could all choose the cheaper plan.",
+    caveat: "My current design is thin because I stopped before testing the downgrade risk.",
+  },
+  santiago: {
+    opening: "I wanted the agent to generate the pricing structure because I was not sure where to start. The flat price problem seems to be about different customer groups, not one magic price.",
+    concept: "I do not want to calculate the elasticity, but I understand that the percentage response is what tells us whether the hike lost too much quantity.",
+    revision: "I am fine with whatever fences the agent recommends, which is probably a sign that I have not done this part myself. I can at least say the cheap tier needs a cost to choosing it.",
+    caveat: "The table is a placeholder until I write the reason for each feature and price.",
+  },
+};
+
+function economicsWritingFor(studentKey: string): EconomicsWritingNote {
+  return economicsWritingNotes[studentKey] ?? {
+    opening: "I am still working out which customer groups the flat price treats the same.",
+    concept: "I need to separate elasticity from slope before making the pricing claim.",
+    revision: "I would add a concrete feature fence instead of relying on the tier name.",
+    caveat: "The price is provisional until I can explain the tradeoff.",
+  };
+}
+
+function economicsStudentName(studentKey: string): string {
+  return studentDefs.find((student) => student.key === studentKey)?.name ?? studentKey;
+}
+
 // Verify we have 31 students, and map their keys
 const studentKeys = studentDefs.map((s) => s.key);
 const studentsMap = new Map(studentDefs.map((s) => [s.key, s]));
@@ -438,14 +642,14 @@ const policy = {
 
 // Modules
 const modulesList = [
-  { key: "week-1", name: "Markets, demand, and supply", summaryMd: "Week 1 lays down the foundational tools of supply and demand curve analysis, market equilibrium, and shifts.", objectiveCodes: ["LO1"], week: 1, published: true },
-  { key: "week-2", name: "Consumer choice and willingness to pay", summaryMd: "Week 2 introduces marginal benefit, consumer choices, willingness to pay, and consumer surplus.", objectiveCodes: ["LO2"], week: 2, published: true },
-  { key: "week-3", name: "Costs, revenue, and profit", summaryMd: "Week 3 introduces cost functions, fixed cost vs marginal cost, and revenue calculations for firm optimization.", objectiveCodes: ["LO3"], week: 3, published: true },
-  { key: "week-4", name: "Elasticity and incidence", summaryMd: "Week 4 studies the price elasticity of demand, calculating percentage changes, and comparing elasticity with the slope.", objectiveCodes: ["LO4"], week: 4, published: true },
-  { key: "week-5", name: "Market power and pricing mistakes", summaryMd: "Week 5 analyzes monopoly pricing, markup choices, churn, and the financial impact of overpricing.", objectiveCodes: ["LO5"], week: 5, published: true },
-  { key: "week-6", name: "Price discrimination and tier design", summaryMd: "Week 6 covers price discrimination, consumer segmentation, and preventing tier cannibalization.", objectiveCodes: ["LO6"], week: 6, published: true },
-  { key: "week-7", name: "Interactive Pricing Session", summaryMd: "Week 7 is the final interactive pricing case study session assignment.", objectiveCodes: ["LO6"], week: 7, published: true },
-  { key: "week-8", name: "Oligopoly and Game Theory", summaryMd: "Week 8 introduces strategic interaction, Nash equilibrium, and game theory pricing strategies.", objectiveCodes: ["LO5"], week: 8, published: false },
+  { key: "week-1", name: "Markets, demand, and supply", summaryMd: "Begin with equilibrium as a story about two decisions meeting. Work through a VidStack demand schedule, draw the original market, then separate a movement along demand from a shift caused by preferences or server costs. Problem Set 1 checks whether the graph can support the written explanation.", objectiveCodes: ["LO1"], week: 1, published: true },
+  { key: "week-2", name: "Consumer choice and willingness to pay", summaryMd: "Move from a market curve to individual reservation values. Use a six-customer streaming schedule to calculate marginal benefit and consumer surplus, then ask who is priced out after a rate change. Problem Set 2 asks for both the calculation and the distributional interpretation.", objectiveCodes: ["LO2"], week: 2, published: true },
+  { key: "week-3", name: "Costs, revenue, and profit", summaryMd: "Build the firm's side of the model: fixed content costs, near-zero marginal serving costs, revenue, and profit at different subscriber counts. The worked examples distinguish average cost from the cost of one more user before Problem Set 3 asks for the firm's output decision.", objectiveCodes: ["LO3"], week: 3, published: true },
+  { key: "week-4", name: "Elasticity and incidence", summaryMd: "Use percentage changes to explain why a price hike can raise the amount paid by each remaining subscriber while reducing total revenue. The central warning is that a linear curve can have constant slope and changing elasticity. Exam 1 returns to this distinction explicitly.", objectiveCodes: ["LO4"], week: 4, published: true },
+  { key: "week-5", name: "Market power and pricing mistakes", summaryMd: "Study what a firm with market power gives up when it chases a higher price without modeling churn. Compare markup, marginal revenue, marginal cost, and retention outcomes in the monopoly case before deciding whether the high-price option actually improves the firm's position.", objectiveCodes: ["LO5"], week: 5, published: true },
+  { key: "week-6", name: "Price discrimination and tier design", summaryMd: "Turn willingness to pay into a menu rather than a single price. Segment by observable use cases, choose features that act as real fences, and test whether a customer can keep the same value by moving down. The interactive case uses cannibalization as its stress test.", objectiveCodes: ["LO6"], week: 6, published: true },
+  { key: "week-7", name: "Interactive Pricing Session", summaryMd: "Apply Weeks 4 through 6 to VidStack's 18% subscriber loss. The session records the student's framing, concept check, revision under challenge, and final tier table, so the instructor can respond to the reasoning rather than only the final prices.", objectiveCodes: ["LO6"], week: 7, published: true },
+  { key: "week-8", name: "Oligopoly and Game Theory", summaryMd: "The unpublished next module extends the pricing conversation to competitors. We will study strategic interaction, Nash equilibrium, and the ways a rival's response can change a firm's best price. It remains hidden while the class completes the current case.", objectiveCodes: ["LO5"], week: 8, published: false },
 ];
 
 // Pages with 300-800 words of real text containing tagged concept keywords
@@ -602,6 +806,53 @@ const pagesList = [
   }
 ];
 
+const mayaEconomicsResponses: Record<string, string> = {
+  ps1: `I used a two-market example to show what happens when a streaming service gets a sudden increase in content costs. In the first version I moved along the demand curve when I meant to shift it, so I redrew the graph and explained the difference in words. My equilibrium calculation is fine now, but I still need to be more careful about saying which assumption changed before I describe the new price and quantity.`,
+  ps2: `For the consumer-surplus question I treated the demand schedule as a set of willingness-to-pay values rather than just a line to shade. The first customer gets more surplus than the last one because the same price is below their different reservation values. I connected that to a streaming plan by saying that a flat price leaves some value with heavy users. I am less sure about the sentence on fairness and would want to separate the efficiency point from the distribution point.`,
+  ps3: `I calculated total revenue before comparing the two prices, which helped me see that a higher price does not automatically mean more revenue. The marginal-cost part was where I made the biggest mistake: I used average cost in the first draft. I corrected it by writing the change in total cost for one additional subscriber and then checked the profit at the proposed quantity.`,
+  exam: `The elasticity question was the weak part of my exam. I used the slope of the line as if it were the same thing as percentage responsiveness, which is why I lost points. I did better on consumer surplus and monopoly markup. Looking back, I should have written the percentage-change formula before looking at the graph instead of relying on the visual steepness.`,
+  session: `I started with the customer groups instead of choosing three prices first. VidStack needs a way to keep casual viewers after the $15 increase, but a cheap tier cannot be so attractive that every current subscriber downgrades.
+
+Recommended Pricing Tiers
+- Basic: $7.99 with ads for casual viewers
+- Standard: $12.99 with two screens for regular households
+- Premium: $19.99 with 4K and offline downloads for heavy users
+
+I revised the fences after thinking through cannibalization: Standard keeps the family use case, while Premium is for people who actually value simultaneous screens and offline viewing. I am not claiming the prices are optimal without demand data. The point is that each tier has a different job and I can say what evidence I would look for next.`,
+};
+
+function economicsSubmissionBody(studentKey: string, assignmentKey: string): string {
+  if (studentKey === "maya" && mayaEconomicsResponses[assignmentKey]) {
+    return mayaEconomicsResponses[assignmentKey];
+  }
+
+  const note = economicsWritingFor(studentKey);
+  const name = economicsStudentName(studentKey);
+  if (assignmentKey === "ps1") {
+    return `${name}: ${note.opening}\n\n${note.concept}`;
+  }
+  if (assignmentKey === "ps2") {
+    return `${name}: I used willingness to pay and consumer surplus to work through the case. ${note.concept}\n\n${note.caveat}`;
+  }
+  if (assignmentKey === "ps3") {
+    return `${name}: I compared total revenue, total cost, and the marginal decision before choosing a price. ${note.opening}\n\n${note.caveat}`;
+  }
+  if (assignmentKey === "exam-1") {
+    return `${name}: The elasticity question is the part I had to slow down on. ${note.concept}\n\n${note.caveat}`;
+  }
+  return `${name}: ${note.opening}\n\n${note.revision}\n\n${note.caveat}`;
+}
+
+function economicsSessionBody(studentKey: string, final: boolean): string {
+  if (studentKey === "maya") {
+    return mayaEconomicsResponses.session;
+  }
+  const note = economicsWritingFor(studentKey);
+  const name = economicsStudentName(studentKey);
+  const statusNote = final ? "I revised the table after considering cannibalization." : "I am still deciding whether the middle tier has a clear reason to exist.";
+  return `${name}\n\nPricing Strategy Session\n\nRecommended Pricing Tiers\n- Basic: $7.99 with ads for casual viewers\n- Standard: $12.99 with two screens\n- Premium: $19.99 with 4K and offline downloads\n\n${note.revision} ${statusNote} ${note.caveat}`;
+}
+
 // Graded submissions for 31 students
 const submissionsList: FixtureCourse["submissions"] = [];
 // Graded assignments: ps1 (due week 2), ps2 (due week 3), ps3 (due week 4), exam-1 (due week 5), session-assignment (due week 7)
@@ -615,7 +866,7 @@ for (const stud of studentDefs) {
     dayOffsetFromDue: -1,
     score: stud.archetype === "Strong" ? 95 : stud.archetype === "Steady" ? 82 : stud.archetype === "Recoverer" ? 78 : stud.archetype === "Delegator" ? 72 : 64,
     grade: stud.archetype === "Strong" ? "A" : stud.archetype === "Steady" ? "B" : stud.archetype === "Recoverer" ? "C" : stud.archetype === "Delegator" ? "C" : "D",
-    body: `Problem Set 1 submission by ${stud.name}. Answered all questions on supply and demand shifts. Derivation of equilibrium points is shown.`,
+    body: economicsSubmissionBody(stud.key, "ps1"),
   });
 
   // PS2
@@ -626,7 +877,7 @@ for (const stud of studentDefs) {
     dayOffsetFromDue: 0,
     score: stud.archetype === "Strong" ? 98 : stud.archetype === "Steady" ? 85 : stud.archetype === "Recoverer" ? 80 : stud.archetype === "Delegator" ? 74 : 60,
     grade: stud.archetype === "Strong" ? "A" : stud.archetype === "Steady" ? "B" : stud.archetype === "Recoverer" ? "B" : stud.archetype === "Delegator" ? "C" : "D",
-    body: `Problem Set 2 submission by ${stud.name}. Explains willingness to pay and consumer surplus calculations. Marginal benefit graphs included.`,
+    body: economicsSubmissionBody(stud.key, "ps2"),
   });
 
   // PS3
@@ -637,7 +888,7 @@ for (const stud of studentDefs) {
     dayOffsetFromDue: -2,
     score: stud.archetype === "Strong" ? 94 : stud.archetype === "Steady" ? 80 : stud.archetype === "Recoverer" ? 75 : stud.archetype === "Delegator" ? 70 : 58,
     grade: stud.archetype === "Strong" ? "A" : stud.archetype === "Steady" ? "B" : stud.archetype === "Recoverer" ? "C" : stud.archetype === "Delegator" ? "C" : "F",
-    body: `Problem Set 3 submission by ${stud.name}. Computes fixed cost, variable cost, and marginal cost for firm optimization.`,
+    body: economicsSubmissionBody(stud.key, "ps3"),
   });
 
   // Exam 1
@@ -649,7 +900,7 @@ for (const stud of studentDefs) {
     dayOffsetFromDue: 0,
     score: examScoreObj.totalScore,
     grade: examScoreObj.grade,
-    body: `Midterm Exam 1 submission by ${stud.name}. Total score of ${examScoreObj.totalScore} recorded across all topics. Elasticity score: ${examScoreObj.topicScores.elasticity}/12.`,
+    body: economicsSubmissionBody(stud.key, "exam-1"),
     topicScores: Object.fromEntries(
       Object.entries(examScoreObj.topicScores).map(([topic, score]) => [
         topic,
@@ -696,7 +947,7 @@ for (const stud of studentDefs) {
       dayOffsetFromDue: 0,
       score: finalScore,
       grade: finalGrade,
-      body: `Pricing Strategy Session final submission by ${stud.name}. Recommended Pricing Tiers:\n- Basic (Ads): $7.99\n- Standard: $12.99\n- Premium: $19.99 (with 4K and offline downloads fence).\nRationale based on segment elasticity and cannibalization risks.`,
+      body: economicsSessionBody(stud.key, true),
     });
   } else if (submittedKeys.includes(stud.key)) {
     submissionsList.push({
@@ -704,7 +955,7 @@ for (const stud of studentDefs) {
       studentKey: stud.key,
       state: "submitted",
       dayOffsetFromDue: 0,
-      body: `Pricing Strategy Session draft submission by ${stud.name}. Tiers draft:\n- Basic: $7.50\n- Standard: $12.50\n- Premium: $18.50. Need feedback on fences.`,
+      body: economicsSessionBody(stud.key, false),
     });
   } else {
     // missing
@@ -723,19 +974,33 @@ export const econCourse: FixtureCourse = {
   termSlug,
   description: "Study of consumer choices, cost structures, monopoly power, and pricing strategies with interactive platforms.",
   syllabusMd: `# Syllabus: ECON-241 Intermediate Microeconomics
-  
-  Welcome to Intermediate Microeconomics. This course provides an in-depth treatment of consumer and firm behavior, market power, and game theory applications.
-  
-  ## Instructor
-  Prof. Amara Osei (email: instructor@demo.edu)
-  
-  ## Learning Objectives
-  - LO1: Supply and demand equilibrium.
-  - LO2: Consumer willingness to pay and surplus.
-  - LO3: Marginal and fixed costs.
-  - LO4: Price elasticity.
-  - LO5: Markup, monopoly, and pricing errors.
-  - LO6: Price discrimination and tiers.`,
+
+Intermediate Microeconomics studies how consumers and firms make choices when resources, information, and alternatives are limited. In this section we move from competitive markets to firms with pricing power, then use the same tools to examine a live platform problem. The aim is not to memorize a graph in isolation. It is to explain what changed, whose decision changed, and how the result affects quantity, surplus, revenue, and welfare.
+
+## Instructor and course rhythm
+
+Dr. Amara Osei (instructor@demo.edu) teaches ECON-241. A normal week includes a course page, a worked example, a short problem set or discussion, and a class conversation about what the model leaves out. Bring a calculation and an interpretation to office hours. If the graph and the story disagree, that disagreement is the question to investigate.
+
+## Learning objectives
+
+- LO1: Define equilibrium and predict how a change in demand, supply, or a market intervention affects price and quantity.
+- LO2: Explain willingness to pay, marginal benefit, and consumer surplus using schedules, graphs, and ordinary examples.
+- LO3: Calculate fixed cost, variable cost, marginal cost, revenue, and profit, then use them to locate a firm's decision.
+- LO4: Analyze price elasticity of demand and distinguish percentage responsiveness from the slope of a curve.
+- LO5: Evaluate monopoly pricing, markup choices, churn, and the cost of setting a price above what customers will accept.
+- LO6: Design a price-discrimination or tiered-pricing scheme with defensible segments and fences.
+
+## Assessment
+
+Problem Set 1 works through equilibrium and shifts in the streaming market. Problem Set 2 uses willingness-to-pay schedules and consumer-surplus areas. Problem Set 3 separates fixed, variable, average, and marginal cost before comparing total revenue and profit. Exam 1 covers the first five weeks and includes a focused elasticity question. The Pricing Strategy Session is the current assessment: use the VidStack case to propose tiers, explain the segment logic, and revise the design after a cannibalization challenge. Problem Set 4 will extend the monopoly and markup work. The final project is a pricing recommendation supported by a demand story, not a list of prices without a mechanism.
+
+Grades reward a visible chain from assumption to model to decision. A correct number with the wrong economic interpretation is not complete. State whether a change moves along a curve or shifts it, whether a cost is marginal or average, and whether a price change is likely to raise or lower total revenue. When you use a course page, cite it by title. When the model is silent about fairness, access, or competitor response, name that limitation instead of quietly assuming it away.
+
+## Working agreements
+
+The course agent is available for explanations, practice, and questions, but it should not replace the student's reasoning. Ask it to check a setup, challenge an assumption, or point to a relevant course page. Do not submit a polished answer you cannot defend in your own words. The Pricing Strategy Session records the reasoning and revision process because the final table alone cannot show whether the model was understood.
+
+Late work is accepted for up to one week with a note about the revision. Office hours are a good place to bring a graph that feels mechanically correct but economically strange. We will keep returning to the same habit: identify the decision, identify the constraint, and then choose the model that actually speaks to it.`,
   status: "published",
   instructorKey: "amara",
   objectives: [
@@ -748,18 +1013,18 @@ export const econCourse: FixtureCourse = {
   ],
   modules: modulesList,
   assignments: [
-    { key: "ps1", name: "Problem Set 1", descriptionMd: "Covers supply, demand, and shifts.", objectiveCodes: ["LO1"], pointsPossible: 100, dueWeek: 2, published: true },
-    { key: "ps2", name: "Problem Set 2", descriptionMd: "Covers consumer surplus and marginal benefit.", objectiveCodes: ["LO2"], pointsPossible: 100, dueWeek: 3, published: true },
-    { key: "ps3", name: "Problem Set 3", descriptionMd: "Covers costs, revenues, and profit maximization.", objectiveCodes: ["LO3"], pointsPossible: 100, dueWeek: 4, published: true },
-    { key: "exam-1", name: "Midterm Exam 1", descriptionMd: "Covers weeks 1-5 core concepts.", objectiveCodes: ["LO1", "LO2", "LO3", "LO4", "LO5"], pointsPossible: 100, dueWeek: 5, published: true },
-    { key: "session-assignment", name: "Pricing Strategy Session", descriptionMd: "Interactive pricing strategy session for VidStack case.", objectiveCodes: ["LO4", "LO5", "LO6"], pointsPossible: 100, dueWeek: 7, published: true },
-    { key: "ps4", name: "Problem Set 4", descriptionMd: "Covers monopoly pricing and markup decisions.", objectiveCodes: ["LO5"], pointsPossible: 100, dueWeek: 9, published: true },
-    { key: "final-project", name: "Final Pricing Project", descriptionMd: "Draft assignment for final project.", objectiveCodes: ["LO6"], pointsPossible: 100, dueWeek: 12, published: false },
+    { key: "ps1", name: "Problem Set 1: Equilibrium and Market Shifts", descriptionMd: "Use a streaming-market schedule to solve for equilibrium, then analyze a change in consumer preference and a change in server cost. Draw the original and new graphs, identify whether each change shifts a curve or moves along it, and explain what happens to price, quantity, and the likely shortage or surplus. Include one sentence about an assumption the model makes.", objectiveCodes: ["LO1"], pointsPossible: 100, dueWeek: 2, published: true },
+    { key: "ps2", name: "Problem Set 2: Willingness to Pay and Surplus", descriptionMd: "Work from a willingness-to-pay schedule for six streaming customers. Calculate marginal benefit, consumer surplus at a flat price, and the change in surplus after a price increase. Use a graph or table to show which customers leave. End by explaining why a firm's revenue goal and a consumer's value are related but not identical.", objectiveCodes: ["LO2"], pointsPossible: 100, dueWeek: 3, published: true },
+    { key: "ps3", name: "Problem Set 3: Costs, Revenue, and the Firm's Decision", descriptionMd: "Separate fixed cost, variable cost, average cost, and marginal cost for a digital platform. Calculate total revenue and profit at several output levels, then identify the quantity where marginal revenue and marginal cost meet. Explain why a near-zero marginal serving cost does not mean the firm has no fixed-cost constraint.", objectiveCodes: ["LO3"], pointsPossible: 100, dueWeek: 4, published: true },
+    { key: "exam-1", name: "Midterm Exam 1: Markets, Firms, and Elasticity", descriptionMd: "The midterm covers equilibrium, consumer surplus, cost and revenue, monopoly choices, and price elasticity. Show the model before calculating. One section asks you to distinguish elasticity from slope and explain what a price increase does to revenue in elastic and inelastic regions. Interpret every result in the market story.", objectiveCodes: ["LO1", "LO2", "LO3", "LO4", "LO5"], pointsPossible: 100, dueWeek: 5, published: true },
+    { key: "session-assignment", name: "Pricing Strategy Session", descriptionMd: "VidStack lost 18 percent of subscribers after a flat 15 dollar price hike. Work through the case with the course agent, ask questions before choosing a solution, and propose a tiered pricing table with prices, target segments, and concrete fences. Defend the design with elasticity and willingness to pay, then revise it when the agent tests cannibalization. Submit the final proposal and be ready to explain what evidence would change your recommendation.", objectiveCodes: ["LO4", "LO5", "LO6"], pointsPossible: 100, dueWeek: 7, published: true },
+    { key: "ps4", name: "Problem Set 4: Monopoly Markups and Churn", descriptionMd: "Analyze a platform with market power that is choosing between a high price with churn and a lower price with more subscribers. Use marginal revenue, marginal cost, elasticity, and a short customer-retention table to explain the decision. Identify one pricing mistake that a single graph would hide.", objectiveCodes: ["LO5"], pointsPossible: 100, dueWeek: 9, published: true },
+    { key: "final-project", name: "Final Pricing Project: A Defensible Market Design", descriptionMd: "Draft a pricing recommendation for a product you can describe with a demand story. The proposal should define customer segments, willingness-to-pay evidence, costs, prices, fences, competitor risks, and one fairness or access concern. The draft is unpublished while the class decides how to compare recommendations.", objectiveCodes: ["LO6"], pointsPossible: 100, dueWeek: 12, published: false },
   ],
   pages: pagesList,
   announcements: [
-    { title: "Exam 1 Grades Released", messageMd: "Exam 1 grades have been posted. Please review your feedback. Price elasticity of demand remains a common point of confusion.", dayOffset: 30 },
-    { title: "Active Pricing Session Reminders", messageMd: "For those currently working through the VidStack pricing interactive session, remember to examine the relationship between slope and elasticity. Submit your final proposal when ready.", dayOffset: 43 },
+    { title: "Exam 1 Grades Released", messageMd: "Exam 1 grades are posted. When you read the feedback, do not skip the short note under the elasticity question. A number of otherwise solid solutions used the slope of the demand curve as if it were percentage responsiveness. Bring the graph and the calculation to office hours if those two ideas still feel interchangeable.", dayOffset: 30 },
+    { title: "Active Pricing Session Reminders", messageMd: "If you are working on the VidStack session, start with the 18% subscriber loss and explain who you think left. Then give each tier a job, a price, and a fence that a real customer would value. Before submitting, ask the agent to test whether a Standard customer could keep the same value by downgrading. The final table is only half of the assignment. I want to see the revision and the evidence you would collect next.", dayOffset: 43 },
   ],
   enrollments: [
     { userKey: "amara", role: "instructor" },
@@ -852,7 +1117,17 @@ export const sessionAssignment: V0SessionAssignment = {
   orgId,
   courseId,
   assignmentId: sessionAssignmentId,
-  instructions: "VidStack raised prices and subscribers dropped. Design a new pricing structure using tiers and fences.",
+  instructions: `VidStack lost 18% of its subscribers after moving from a flat $12.99 plan to a flat $15 plan. Dr. Osei wants a recommendation that explains the loss instead of treating it as a generic request for three prices.
+
+Start by naming the customer groups you think are hidden inside the 18% churn and state what you are assuming about their willingness to pay. Use the course pages on elasticity, revenue, and price discrimination to explain why one price may fail. Do not use the visual steepness of a graph as a substitute for a percentage-response calculation.
+
+Your working record should include:
+1. A short problem frame tied to the subscriber loss.
+2. A tier table with a price, target use case, and at least one concrete fence for each tier.
+3. A sentence explaining why a customer would choose each tier and why a higher-value customer would not simply downgrade.
+4. A revision after the agent tests cannibalization, plus one piece of evidence you would collect before treating the prices as a forecast.
+
+The agent may ask questions, point you to course pages, and challenge the design. It should not choose the prices for you. Submit the final table with the reasoning that led to it, including any uncertainty that remains.`,
   durationMinutes: 30,
   groundingScope: ["Syllabus", "Weeks 4-6", "Exam 1"],
   transcriptPolicy: "shared on request / for review",
@@ -1768,6 +2043,54 @@ const dialogueDataMap: Record<string, {
   }
 };
 
+// Keep the seeded class varied without making every student sound like a
+// polished model answer. The student notes above are the source for the
+// persisted transcript text and the evidence quotes below.
+for (const [key, data] of Object.entries(dialogueDataMap)) {
+  if (["maya", "liam", "sofia"].includes(key)) continue;
+  const note = economicsWritingFor(key);
+  data.pricing = {
+    ...data.pricing,
+    tiers: data.pricing.tiers.map((tier) => {
+      if (tier.rationale.trim().length >= 24) return tier;
+      const fence = tier.fence.trim();
+      const segment = tier.targetSegment.toLowerCase();
+      const fenceText = fence.toLowerCase() === "none"
+        ? "I have not named a meaningful feature tradeoff yet."
+        : `${fence} is the tradeoff for choosing this price.`;
+      if (tier.name.toLowerCase().includes("basic")) {
+        return { ...tier, rationale: `The lower price is meant to keep ${segment} viewers from leaving. ${fenceText}` };
+      }
+      if (tier.name.toLowerCase().includes("premium")) {
+        return { ...tier, rationale: `The higher price is for ${segment} viewers who value the extra use case. ${fenceText}` };
+      }
+      return { ...tier, rationale: `This is the ordinary ${segment} option, so it needs a clear reason to sit between Basic and Premium. ${fenceText}` };
+    }),
+  };
+  const tierText = data.pricing.tiers
+    .map((tier) => `${tier.name} at $${tier.price.toFixed(2)} (${tier.fence})`)
+    .join("; ");
+
+  data.raw = [
+    { role: "user", text: note.opening },
+    { role: "assistant", text: "That gives us a starting point. Which customer group or change in the case should we make explicit before choosing a price?" },
+    { role: "user", text: note.concept },
+    { role: "assistant", text: "Good. Now use that distinction to decide what a lower or higher tier is supposed to do. What would keep a valuable customer from moving down?" },
+    { role: "user", text: note.revision },
+    { role: "assistant", text: "Push on the downgrade risk once more. A feature is only a fence if the customer values the difference enough to stay." },
+    { role: "user", text: note.caveat },
+    { role: "assistant", text: "Write the working table in your own words, then name the evidence you would want before treating it as a forecast." },
+    { role: "user", text: tierText },
+    { role: "assistant", text: "That is a usable working design. Keep the assumption or open question with the table when you submit." },
+  ];
+  data.quotes = {
+    framing: note.opening,
+    grounding: note.concept,
+    iteration: note.revision,
+    final_design: tierText,
+  };
+}
+
 const otherStudentSessions: V0SessionAdaptation[] = [];
 const otherStudentTurns: V0Turn[] = [];
 const otherStudentArtifacts: V0ArtifactState[] = [];
@@ -1933,6 +2256,28 @@ for (const key of studentKeys) {
   studentQuotes[key] = data.quotes;
 }
 
+function economicsJourneyRationale(
+  studentName: string,
+  criterionKey: string,
+  level: "Exceeds" | "Meets" | "Developing" | "Missing",
+  quote: string,
+): string {
+  const criterionText: Record<string, string> = {
+    framing: "The opening should identify who is reacting to the price change before the student commits to a price.",
+    grounding: "The explanation should use elasticity, slope, or willingness to pay in the VidStack story rather than as a definition detached from the case.",
+    iteration: "The revision should respond to the cannibalization challenge by changing or defending a concrete fence.",
+    final_design: "The final design should name tiers, prices, target use cases, and the tradeoff each customer accepts.",
+  };
+  const levelText = {
+    Exceeds: "makes that move specifically and gives the instructor something concrete to build on",
+    Meets: "makes that move clearly enough to be useful, though one assumption still needs testing",
+    Developing: "starts to make that move, but leaves an important part of the reasoning unresolved",
+    Missing: "does not yet make that move in a way the instructor can evaluate",
+  }[level];
+  const excerpt = quote.length > 140 ? `${quote.slice(0, 137)}...` : quote;
+  return `${studentName} ${levelText}. ${criterionText[criterionKey] ?? "The response should connect the student's choice to the course model."} Evidence: “${excerpt}”`;
+}
+
 // Generate the V0EvidenceSpans
 export const evidenceSpans: V0EvidenceSpan[] = [];
 export const journeyReports: V0JourneyReport[] = [];
@@ -2009,7 +2354,7 @@ for (const key of studentKeys) {
     reportScores[criterionKey] = {
       level,
       score,
-      rationale: `Graded ${level} on ${criterionKey} because of verbatim student statement.`,
+      rationale: economicsJourneyRationale(studentsMap.get(key)!.name, criterionKey, level, quote),
       evidenceSpans: [spanId],
     };
   }
@@ -2077,7 +2422,7 @@ export const classRollup: V0ClassRollup = {
     recoveryCount: dynamicRecoveryCount,
     completedStudentSessions: studentDefs.length,
   },
-  narrativeDraft: "The class demonstrated high engagement. 14 of 31 students confused elasticity with slope initially, but several recovered well after the tutoring challenge.",
+  narrativeDraft: `Exam 1 identified elasticity versus slope as the clearest shared gap: ${dynamicConfusionCount} of ${studentDefs.length} students lost points on that distinction. The pricing session gives the instructor a more useful split than a single class average: ${dynamicRecoveryCount} recoverers revised their reasoning under challenge, while the remaining records range from strong segment analysis to incomplete fences and direct requests for the agent to do the work. The current queue is intentionally mixed, with 20 graded proposals, 8 submitted drafts awaiting review, and 3 missing submissions.`,
   recommendedPracticeSet: {
     title: "Exam 2 Practice: Elasticity & Segmentation",
     base: "VidStack pricing scenarios and segment sensitivity.",

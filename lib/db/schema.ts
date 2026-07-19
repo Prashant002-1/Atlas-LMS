@@ -110,6 +110,10 @@ export const users = pgTable(
     image: text("image"),
     passwordHash: text("password_hash"),
     role: roleEnum("role").notNull().default("student"),
+    // Instructor profile facts, shown on the account page and the syllabus.
+    title: text("title"),
+    officeLocation: text("office_location"),
+    officeHours: text("office_hours"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [uniqueIndex("users_email_idx").on(t.email), index("users_org_idx").on(t.orgId)]

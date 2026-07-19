@@ -93,63 +93,49 @@ export default async function TeachSettingsPage() {
       />
 
       <section aria-labelledby="identity-heading" className="border-b border-[var(--color-border)] pb-8">
-        <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.38fr)]">
-          <div className="min-w-0">
-            <p className="text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-[var(--color-accent-strong)]">Active course agent</p>
-            <h2 id="identity-heading" className="mt-2 text-[1.625rem] font-semibold leading-tight text-[var(--color-ink)]">{configuration.identity.name}</h2>
-            <p className="mt-1 text-[0.875rem] text-[var(--color-muted)]">{configuration.identity.role}</p>
-            <p className="mt-4 max-w-3xl text-[0.875rem] leading-7 text-[var(--color-ink)]">{configuration.teaching.approach}</p>
-          </div>
-          <dl className="grid gap-4 text-[0.78125rem]">
-            <ConfigFact label="Voice" value={configuration.identity.voice} />
-            <ConfigFact label="Current version" value={activeConfig.version === 0 ? "Default" : `Version ${activeConfig.version}`} />
-            <ConfigFact label="Last change" value={activeConfig.changeSummary} />
-            <ConfigFact label="Changed in" value={activeConfig.sourceSessionTitle ?? "Default course state"} href={activeConfig.sourceSessionId ? `/teach/atlas?thread=${activeConfig.sourceSessionId}` : undefined} />
-          </dl>
-        </div>
+        <p className="text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-[var(--color-accent-strong)]">Active course agent</p>
+        <h2 id="identity-heading" className="mt-2 text-[1.625rem] font-semibold leading-tight text-[var(--color-ink)]">{configuration.identity.name}</h2>
+        <p className="mt-1 text-[0.875rem] text-[var(--color-muted)]">{configuration.identity.role}</p>
+        <p className="mt-3 max-w-3xl text-[0.875rem] leading-7 text-[var(--color-ink)]">{configuration.teaching.approach}</p>
+        <dl className="mt-6 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+          <ConfigRow label="Voice" value={configuration.identity.voice} />
+          <ConfigRow label="Version" value={activeConfig.version === 0 ? "Default" : `Version ${activeConfig.version}`} />
+          <ConfigRow label="Last change" value={activeConfig.changeSummary} />
+          <ConfigRow
+            label="Changed in"
+            value={activeConfig.sourceSessionTitle ?? "Default course state"}
+            href={activeConfig.sourceSessionId ? `/teach/atlas?thread=${activeConfig.sourceSessionId}` : undefined}
+          />
+        </dl>
       </section>
 
       <section aria-labelledby="student-experience-heading" className="border-b border-[var(--color-border)] py-8">
-        <div className="grid gap-7 lg:grid-cols-[minmax(0,0.42fr)_minmax(0,1fr)]">
-          <div>
-            <h2 id="student-experience-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Student experience</h2>
-            <p className="mt-1 text-[0.75rem] leading-5 text-[var(--color-muted)]">Shown in every assessed session and backed by the active configuration.</p>
-          </div>
-          <blockquote className="border-l-2 border-[var(--color-accent-strong)] pl-4 text-[0.875rem] leading-7 text-[var(--color-ink)]">
-            {activeConfig.studentDisclosure}
-          </blockquote>
-        </div>
+        <h2 id="student-experience-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Student experience</h2>
+        <blockquote className="mt-4 max-w-3xl border-l-2 border-[var(--color-accent-strong)] pl-4 text-[0.875rem] leading-7 text-[var(--color-ink)]">
+          {activeConfig.studentDisclosure}
+        </blockquote>
       </section>
 
       <section aria-labelledby="teaching-heading" className="border-b border-[var(--color-border)] py-8">
-        <SectionLead
-          id="teaching-heading"
-          title="Teaching behavior"
-          detail="Course-wide behavior compiled into professor and student sessions. AI assignment contracts remain stricter where they need to be."
-        />
-        <dl className="mt-5 grid border-y border-[var(--color-border)] sm:grid-cols-2 lg:grid-cols-5">
+        <h2 id="teaching-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Teaching behavior</h2>
+        <dl className="mt-4 grid border-y border-[var(--color-border)] sm:grid-cols-2 lg:grid-cols-5">
           <BehaviorFact label="Socratic by default" value={configuration.teaching.socraticByDefault ? "Yes" : "No"} />
           <BehaviorFact label="Direct answers" value={directAnswerLabel(configuration.teaching.directAnswers)} />
           <BehaviorFact label="Challenge" value={titleCase(configuration.teaching.challengeLevel)} />
           <BehaviorFact label="Citations" value={configuration.teaching.citationMode === "required" ? "Required" : "When useful"} />
           <BehaviorFact label="Daily student turns" value={String(configuration.limits.studentDailyTurns)} />
         </dl>
-
-        <div className="mt-7 grid gap-7 lg:grid-cols-3">
-          <BoundaryList title="Supports" items={configuration.boundaries.supports} />
-          <BoundaryList title="Avoids" items={configuration.boundaries.avoids} />
-          <BoundaryList title="Escalates to professor" items={configuration.boundaries.escalatesWhen} />
-        </div>
+        <dl className="mt-6 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+          <BoundaryRow label="Supports" items={configuration.boundaries.supports} />
+          <BoundaryRow label="Avoids" items={configuration.boundaries.avoids} />
+          <BoundaryRow label="Escalates to professor" items={configuration.boundaries.escalatesWhen} />
+        </dl>
       </section>
 
       <section aria-labelledby="rules-heading" className="border-b border-[var(--color-border)] py-8">
-        <SectionLead
-          id="rules-heading"
-          title="Course rules"
-          detail={`${activeRules.length} active ${activeRules.length === 1 ? "rule" : "rules"}. Atlas writes and versions these from the professor's request.`}
-        />
+        <SectionLead id="rules-heading" title="Course rules" detail={`${activeRules.length} active`} />
         {configuration.rules.length > 0 ? (
-          <div className="mt-5 overflow-x-auto border-y border-[var(--color-border)]">
+          <div className="mt-4 overflow-x-auto border-y border-[var(--color-border)]">
             <table className="w-full min-w-[44rem] border-collapse text-left">
               <thead>
                 <tr className="text-[0.6875rem] text-[var(--color-faint)]">
@@ -172,7 +158,7 @@ export default async function TeachSettingsPage() {
             </table>
           </div>
         ) : (
-          <p className="mt-5 border-y border-[var(--color-border)] py-5 text-[0.8125rem] text-[var(--color-muted)]">No additional course rules.</p>
+          <p className="mt-4 border-y border-[var(--color-border)] py-5 text-[0.8125rem] text-[var(--color-muted)]">No additional course rules.</p>
         )}
       </section>
 
@@ -180,10 +166,9 @@ export default async function TeachSettingsPage() {
         <SectionLead
           id="knowledge-heading"
           title="Course knowledge"
-          detail="Only ready material is placed in Atlas context. Student sessions receive only material available to the course."
           action={<TextLink href="/teach/course#materials" className="text-[0.75rem]">Manage course materials</TextLink>}
         />
-        <dl className="mt-5 grid border-y border-[var(--color-border)] sm:grid-cols-3">
+        <dl className="mt-4 grid border-y border-[var(--color-border)] sm:grid-cols-3">
           <BehaviorFact label="Materials" value={String(totalMaterials)} />
           <BehaviorFact label="Ready for Atlas" value={String(readyMaterials)} />
           <BehaviorFact label="Processing or queued" value={String((materialCountByStatus.get("processing") ?? 0) + (materialCountByStatus.get("queued") ?? 0))} />
@@ -194,11 +179,11 @@ export default async function TeachSettingsPage() {
         <SectionLead
           id="assignment-contracts-heading"
           title="AI assignment contracts"
-          detail="Each assessed session keeps its own brief, duration, sources, transcript policy, personal-record setting, and rubric."
+          detail={`${assignmentRows.length} configured`}
           action={<TextLink href="/teach/ai-assignments" className="text-[0.75rem]">Open AI assignments</TextLink>}
         />
         {assignmentRows.length > 0 ? (
-          <div className="mt-5 overflow-x-auto border-y border-[var(--color-border)]">
+          <div className="mt-4 overflow-x-auto border-y border-[var(--color-border)]">
             <table className="w-full min-w-[48rem] border-collapse text-left">
               <thead>
                 <tr className="text-[0.6875rem] text-[var(--color-faint)]">
@@ -233,84 +218,82 @@ export default async function TeachSettingsPage() {
             </table>
           </div>
         ) : (
-          <p className="mt-5 border-y border-[var(--color-border)] py-5 text-[0.8125rem] text-[var(--color-muted)]">No AI assignments are configured.</p>
+          <p className="mt-4 border-y border-[var(--color-border)] py-5 text-[0.8125rem] text-[var(--color-muted)]">No AI assignments are configured.</p>
         )}
       </section>
 
       <section aria-labelledby="system-boundaries-heading" className="border-b border-[var(--color-border)] py-8">
-        <SectionLead
-          id="system-boundaries-heading"
-          title="System boundaries"
-          detail="These limits are enforced by routes, scoped queries, and typed tools. Course configuration cannot change them."
-        />
-        <div className="mt-5 overflow-x-auto border-y border-[var(--color-border)]">
-          <table className="w-full min-w-[52rem] border-collapse text-left">
-            <thead>
-              <tr className="text-[0.6875rem] text-[var(--color-faint)]">
-                <th scope="col" className="px-3 py-2.5 font-medium">Agent</th>
-                <th scope="col" className="px-3 py-2.5 font-medium">Reads</th>
-                <th scope="col" className="px-3 py-2.5 font-medium">Writes</th>
-                <th scope="col" className="px-3 py-2.5 font-medium">Never</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-border)] text-[0.75rem]">
-              {[agentProfiles.professor, agentProfiles.session].map((profile) => (
-                <tr key={profile.id}>
-                  <th scope="row" className="px-3 py-3.5 align-top font-medium text-[var(--color-ink)]">{profile.id === "session" ? `${configuration.identity.name} (AI assignment)` : profile.label}</th>
-                  <td className="max-w-sm px-3 py-3.5 align-top leading-5 text-[var(--color-muted)]">{profile.boundaries.reads.join("; ")}</td>
-                  <td className="max-w-sm px-3 py-3.5 align-top leading-5 text-[var(--color-muted)]">{profile.boundaries.writes.join("; ")}</td>
-                  <td className="max-w-sm px-3 py-3.5 align-top leading-5 text-[var(--color-muted)]">{profile.boundaries.never.join("; ")}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <h2 id="system-boundaries-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">System boundaries</h2>
+        <div className="mt-4 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+          {[agentProfiles.professor, agentProfiles.session].map((profile) => (
+            <div key={profile.id} className="py-4">
+              <p className="px-3 text-[0.8125rem] font-semibold text-[var(--color-ink)]">
+                {profile.id === "session" ? `${configuration.identity.name} (AI assignment)` : profile.label}
+              </p>
+              <dl className="mt-2.5 grid gap-2">
+                <SystemBoundaryRow label="Reads" items={profile.boundaries.reads} />
+                <SystemBoundaryRow label="Writes" items={profile.boundaries.writes} />
+                <SystemBoundaryRow label="Never" items={profile.boundaries.never} />
+              </dl>
+            </div>
+          ))}
         </div>
       </section>
 
       <section aria-labelledby="history-heading" className="py-8">
-        <SectionLead
-          id="history-heading"
-          title="Version history"
-          detail="Every Atlas change is append-only and attributed to the professor and source thread. Existing sessions use the current active version on their next turn."
-        />
+        <SectionLead id="history-heading" title="Version history" detail={history.length > 0 ? `${history.length} shown, newest first` : undefined} />
         {history.length > 0 ? (
-          <ol className="mt-5 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+          <ol className="mt-4 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
             {history.map((item) => (
               <li key={item.id} className="grid gap-2 px-3 py-3.5 sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-start">
                 <span className="atlas-mono text-[0.71875rem] text-[var(--color-faint)]">v{item.version}</span>
                 <div className="min-w-0">
                   <p className="text-[0.8125rem] font-medium text-[var(--color-ink)]">{item.changeSummary}</p>
-                  <p className="mt-0.5 text-[0.71875rem] leading-5 text-[var(--color-muted)]">{item.createdByName ?? "Course instructor"}{item.sourceSessionTitle ? ` / ${item.sourceSessionTitle}` : ""}</p>
+                  <p className="mt-0.5 text-[0.71875rem] leading-5 text-[var(--color-muted)]">
+                    {item.createdByName ?? "Course instructor"}
+                    {item.sourceSessionTitle ? (
+                      <>
+                        {" / "}
+                        {item.sourceSessionId ? (
+                          <TextLink href={`/teach/atlas?thread=${item.sourceSessionId}`} className="text-[0.71875rem]">{item.sourceSessionTitle}</TextLink>
+                        ) : (
+                          item.sourceSessionTitle
+                        )}
+                      </>
+                    ) : null}
+                  </p>
                 </div>
                 <time className="text-[0.6875rem] text-[var(--color-faint)]" dateTime={item.createdAt.toISOString()}>{formatStamp(item.createdAt)}</time>
               </li>
             ))}
           </ol>
         ) : (
-          <p className="mt-5 border-y border-[var(--color-border)] py-5 text-[0.8125rem] text-[var(--color-muted)]">The first conversation change will create version 1.</p>
+          <p className="mt-4 border-y border-[var(--color-border)] py-5 text-[0.8125rem] text-[var(--color-muted)]">The first conversation change will create version 1.</p>
         )}
       </section>
     </>
   );
 }
 
-function SectionLead({ id, title, detail, action }: { id: string; title: string; detail: string; action?: ReactNode }) {
+function SectionLead({ id, title, detail, action }: { id: string; title: string; detail?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h2 id={id} className="text-[1rem] font-semibold text-[var(--color-ink)]">{title}</h2>
-        <p className="mt-1 max-w-3xl text-[0.78125rem] leading-5 text-[var(--color-muted)]">{detail}</p>
-      </div>
+    <div className="flex flex-wrap items-baseline justify-between gap-3">
+      <h2 id={id} className="text-[1rem] font-semibold text-[var(--color-ink)]">
+        {title}
+        {detail ? <span className="ml-2.5 text-[0.75rem] font-normal text-[var(--color-faint)]">{detail}</span> : null}
+      </h2>
       {action}
     </div>
   );
 }
 
-function ConfigFact({ label, value, href }: { label: string; value: string; href?: string }) {
+function ConfigRow({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
-    <div className="border-b border-[var(--color-border)] pb-3 last:border-b-0 last:pb-0">
-      <dt className="text-[0.6875rem] text-[var(--color-faint)]">{label}</dt>
-      <dd className="mt-1 font-medium leading-5 text-[var(--color-ink)]">{href ? <TextLink href={href} className="text-[0.78125rem]">{value}</TextLink> : value}</dd>
+    <div className="grid gap-1 px-3 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-6">
+      <dt className="text-[0.75rem] text-[var(--color-faint)]">{label}</dt>
+      <dd className="min-w-0 text-[0.8125rem] font-medium leading-5 text-[var(--color-ink)]">
+        {href ? <TextLink href={href} className="text-[0.8125rem]">{value}</TextLink> : value}
+      </dd>
     </div>
   );
 }
@@ -324,17 +307,37 @@ function BehaviorFact({ label, value }: { label: string; value: string }) {
   );
 }
 
-function BoundaryList({ title, items }: { title: string; items: string[] }) {
+function BoundaryRow({ label, items }: { label: string; items: string[] }) {
   return (
-    <div>
-      <h3 className="text-[0.78125rem] font-semibold text-[var(--color-ink)]">{title}</h3>
-      {items.length > 0 ? (
-        <ul className="mt-3 space-y-2 text-[0.78125rem] leading-5 text-[var(--color-muted)]">
-          {items.map((item, index) => <li key={`${title}-${index}`} className="border-l border-[var(--color-border-strong)] pl-3">{item}</li>)}
-        </ul>
-      ) : <p className="mt-3 text-[0.75rem] text-[var(--color-faint)]">None</p>}
+    <div className="grid gap-1.5 px-3 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-6">
+      <dt className="text-[0.75rem] font-medium text-[var(--color-ink)]">{label}</dt>
+      <dd className="min-w-0">
+        {items.length > 0 ? (
+          <ul className="space-y-1 text-[0.78125rem] leading-5 text-[var(--color-muted)]">
+            {items.map((item, index) => <li key={`${label}-${index}`}>{item}</li>)}
+          </ul>
+        ) : (
+          <p className="text-[0.75rem] text-[var(--color-faint)]">None</p>
+        )}
+      </dd>
     </div>
   );
+}
+
+function SystemBoundaryRow({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div className="grid gap-1 px-3 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-6">
+      <dt className="text-[0.71875rem] text-[var(--color-faint)]">{label}</dt>
+      <dd className="min-w-0 text-[0.75rem] leading-5 text-[var(--color-muted)]">{sentenceList(items)}</dd>
+    </div>
+  );
+}
+
+/** Join boundary phrases into one readable sentence-cased line. */
+function sentenceList(items: string[]): string {
+  if (items.length === 0) return "None";
+  const joined = items.join("; ");
+  return joined.charAt(0).toUpperCase() + joined.slice(1);
 }
 
 function directAnswerLabel(value: CourseAgentConfiguration["teaching"]["directAnswers"]) {

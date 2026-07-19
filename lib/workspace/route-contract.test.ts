@@ -43,6 +43,7 @@ const requiredRoutes = [
   "/teach/course",
   "/teach/gradebook",
   "/teach/students",
+  "/teach/syllabus",
   "/teach/settings",
   "/teach/student/[studentId]",
   "/teach/week/[moduleId]",

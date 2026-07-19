@@ -79,6 +79,13 @@ const checks: SmokeCheck[] = [
     includes: ["Course setup", "Syllabus", "Add course material", "Upload material"],
   },
   {
+    name: "syllabus",
+    path: "/teach/syllabus",
+    status: 200,
+    auth: { email: "instructor@demo.edu", password: "atlas1234", redirectTo: "/teach/syllabus" },
+    includes: ["Syllabus", "Weekly schedule", "Assignments and grading", "Course policies", "Export PDF"],
+  },
+  {
     name: "ai assignments tab",
     path: "/teach/ai-assignments",
     status: 200,

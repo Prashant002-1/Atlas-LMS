@@ -16,6 +16,14 @@ export function ProposalCard({ proposal, compact = false }: { proposal: Instruct
         <div className="min-w-0">
           <p className="text-[0.875rem] font-semibold leading-5">{proposal.title}</p>
           <p className="mt-1 text-[0.75rem] text-[var(--color-muted)]">{blockSummary(proposal)}</p>
+          {proposal.thread ? (
+            <p className="mt-1 text-[0.71875rem] text-[var(--color-faint)]">
+              Thread:{" "}
+              <TextLink href={`/teach/atlas?thread=${proposal.thread.id}`} className="text-[0.71875rem]">
+                {proposal.thread.title ?? "Open in Atlas"}
+              </TextLink>
+            </p>
+          ) : null}
         </div>
         <StatusBadge tone={tone[proposal.status]}>{label[proposal.status]}</StatusBadge>
       </div>

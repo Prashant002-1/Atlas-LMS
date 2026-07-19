@@ -1,21 +1,18 @@
-# ── Atlas LMS — production image (Next.js standalone) ──
-FROM node:20-alpine AS base
+# Atlas LMS production image, Next.js standalone.
+FROM node:24-alpine AS base
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
 
-# deps
 FROM base AS deps
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-# build
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-# run
 FROM base AS runner
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

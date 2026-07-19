@@ -714,7 +714,6 @@ const mutateLmsSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("post_announcement"), title: z.string().min(3).max(200), messageMd: z.string().min(1).max(4000) }),
   z.object({ action: z.literal("create_practice_set"), title: z.string().min(3).max(200), base: z.string().max(1200).optional(), questions: z.array(practiceQuestionSchema).min(1).max(12), published: z.boolean().default(true) }),
   z.object({ action: z.literal("update_course"), name: z.string().min(3).max(200).optional(), description: z.string().max(2000).nullable().optional(), syllabusMd: z.string().max(20_000).nullable().optional() }),
-  z.object({ action: z.literal("update_course_policy"), allowExplain: z.boolean().optional(), allowPractice: z.boolean().optional(), allowQuestions: z.boolean().optional(), explanationDepth: z.enum(["hint", "guided", "full"]).optional(), citationsRequired: z.boolean().optional(), personaName: z.string().max(80).nullable().optional(), personaStyle: z.string().max(600).nullable().optional(), customInstructions: z.string().max(2000).nullable().optional(), studentDailyLimit: z.number().int().min(1).max(500).optional(), shareStruggleSignal: z.boolean().optional() }),
   z.object({ action: z.literal("set_grade"), assignmentId: z.string().uuid(), studentId: z.string().uuid(), score: z.number().min(0), grade: z.string().max(24).nullable().optional() }),
   z.object({ action: z.literal("mark_missing"), assignmentId: z.string().uuid(), studentId: z.string().uuid(), missing: z.boolean().default(true) }),
   z.object({ action: z.literal("update_session_contract"), assignmentId: z.string().uuid(), instructions: z.string().min(10).max(2000).optional(), durationMinutes: z.number().int().min(5).max(240).optional(), groundingScope: z.array(z.string().min(1).max(200)).max(12).optional(), transcriptPolicy: z.string().min(3).max(200).optional(), personalRecordSideNotes: z.boolean().optional() }),
@@ -741,7 +740,6 @@ const DIRECT_ACTION_TOOL_DESCRIPTIONS = {
   post_announcement: "Post a course announcement.",
   create_practice_set: "Create a course practice set.",
   update_course: "Update the course name, description, or syllabus.",
-  update_course_policy: "Update the course AI policy.",
   set_grade: "Set a student's grade for an assignment.",
   mark_missing: "Mark or clear a student's assignment as missing.",
   update_session_contract: "Update an AI assignment session contract.",
@@ -890,25 +888,6 @@ async function mutateLms(scope: ProfessorScope, model: LanguageModel, input: Mut
       if (input.syllabusMd !== undefined) set.syllabusMd = input.syllabusMd;
       await db.update(courses).set(set).where(and(eq(courses.id, scope.courseId), eq(courses.orgId, scope.orgId)));
       return { ok: true, action: input.action, summary: `Updated course ${input.name ?? course.name}.` };
-    }
-
-    if (input.action === "update_course_policy") {
-      const [existing] = await db.select().from(courseAiPolicies).where(and(eq(courseAiPolicies.orgId, scope.orgId), eq(courseAiPolicies.courseId, scope.courseId))).limit(1);
-      const values = {
-        allowExplain: input.allowExplain ?? existing?.allowExplain ?? true,
-        allowPractice: input.allowPractice ?? existing?.allowPractice ?? true,
-        allowQuestions: input.allowQuestions ?? existing?.allowQuestions ?? true,
-        explanationDepth: input.explanationDepth ?? existing?.explanationDepth ?? "guided",
-        citationsRequired: input.citationsRequired ?? existing?.citationsRequired ?? true,
-        personaName: input.personaName !== undefined ? input.personaName : existing?.personaName ?? null,
-        personaStyle: input.personaStyle !== undefined ? input.personaStyle : existing?.personaStyle ?? null,
-        customInstructions: input.customInstructions !== undefined ? input.customInstructions : existing?.customInstructions ?? null,
-        studentDailyLimit: input.studentDailyLimit ?? existing?.studentDailyLimit ?? 40,
-        shareStruggleSignal: input.shareStruggleSignal ?? existing?.shareStruggleSignal ?? false,
-        updatedAt: new Date(),
-      } satisfies Partial<typeof courseAiPolicies.$inferInsert>;
-      await db.insert(courseAiPolicies).values({ orgId: scope.orgId, courseId: scope.courseId, ...values }).onConflictDoUpdate({ target: [courseAiPolicies.courseId], set: values });
-      return { ok: true, action: input.action, summary: "Updated the course AI policy." };
     }
 
     if (input.action === "set_grade") {

@@ -5,6 +5,10 @@ import { buildContextPack, estimateTokens, type ContextPack, type ContextSection
 import { parseRubricCriteria, parseSideNoteTriggers } from "@/lib/agent/session-parts";
 import type { AtlasHarnessConfig } from "@/lib/agent/atlas-harness";
 import { buildProfessorOperatorInstructions } from "@/lib/agent/professor-operator-context";
+import {
+  loadActiveCourseAgentConfig,
+  renderCourseAgentConfigForReference,
+} from "@/lib/agent/course-agent-config";
 
 /**
  * The professor profile's deterministic context snapshot. Scope is supplied by
@@ -33,9 +37,11 @@ const SECTION_CHARACTER_LIMITS: Record<string, number> = {
   modules: 8000,
   work: 12_000,
   pages: 12_000,
+  materials: 16_000,
   announcements: 4000,
   class_state: 6000,
   ai_assignments: 16_000,
+  agent_configuration: 12_000,
   open_drafts: 4000,
 };
 
@@ -48,18 +54,23 @@ function boundedSection(name: string, content: string): string {
 }
 
 export async function buildProfessorPack(scope: ProfessorScope): Promise<ProfessorPack> {
-  const pack = await buildContextPack({
-    orgId: scope.orgId,
-    courseId: scope.courseId,
-    audience: "instructor",
-    userId: scope.instructorId,
-  });
+  const [pack, courseAgentConfig] = await Promise.all([
+    buildContextPack({
+      orgId: scope.orgId,
+      courseId: scope.courseId,
+      audience: "instructor",
+      userId: scope.instructorId,
+    }),
+    loadActiveCourseAgentConfig(scope.orgId, scope.courseId),
+  ]);
 
   const sections: ContextSection[] = [];
   const push = (name: string, content: string) => {
     const trimmed = content.trim();
     if (trimmed) sections.push({ name, content: trimmed, tokenEstimate: estimateTokens(trimmed) });
   };
+
+  push("agent_configuration", renderCourseAgentConfigForReference(courseAgentConfig));
 
   const assignmentRows = await db
     .select({
@@ -94,8 +105,8 @@ export async function buildProfessorPack(scope: ProfessorScope): Promise<Profess
     assignmentLines.push(
       `${row.assignmentName} [id:${row.assignmentId}]`,
       `  Brief: ${row.instructions}`,
-      `  ${row.durationMinutes} min · transcript: ${row.transcriptPolicy} · personal notes ${row.personalRecordSideNotes ? "ON" : "OFF"}${
-        triggers.length ? ` · topics: ${triggers.map((trigger) => trigger.topic).join(", ")}` : ""
+      `  ${row.durationMinutes} min / transcript: ${row.transcriptPolicy} / personal notes ${row.personalRecordSideNotes ? "ON" : "OFF"}${
+        triggers.length ? ` / topics: ${triggers.map((trigger) => trigger.topic).join(", ")}` : ""
       }`,
       `  Rubric v${row.rubricVersion}:`
     );
@@ -105,7 +116,7 @@ export async function buildProfessorPack(scope: ProfessorScope): Promise<Profess
       continue;
     }
     for (const criterion of criteria) {
-      assignmentLines.push(`    ${criterion.name} [key:${criterion.key}] · ${criterion.weight} pts · ${criterion.description}`);
+      assignmentLines.push(`    ${criterion.name} [key:${criterion.key}] / ${criterion.weight} pts / ${criterion.description}`);
       for (const level of criterion.levels) {
         assignmentLines.push(`      ${level.level} (${level.score}): ${level.descriptor}`);
       }

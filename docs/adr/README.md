@@ -10,3 +10,4 @@ ADR-0001 through ADR-0007 were referenced before ADR files were committed; they 
 | [0011](0011-agent-profiles-professor-planning.md) | Accepted | Agent Profiles and Professor Planning |
 | [0012](0012-atlas-professor-agent-harness.md) | Superseded in capability scope | Atlas Professor Agent Harness |
 | [0013](0013-professor-agent-lms-operator.md) | Accepted | Professor Agent as the LMS Operator |
+| [0014](0014-course-agent-configuration-and-materials.md) | Accepted | Versioned Course Agent Configuration and Material Intake |

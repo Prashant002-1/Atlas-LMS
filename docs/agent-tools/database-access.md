@@ -1,130 +1,72 @@
 # Database access matrix
 
-This is a table-oriented view of every database touch in the professor-agent request path and live tool registry.
+This is the table-oriented view of database access in the professor-agent request path and the Course Setup material path.
 
 ## Scope predicates
 
-The main LMS tables carry `orgId` and `courseId`. Tool code repeats both predicates where both columns exist.
+- Current organization, instructor, and course are resolved before tools are created.
+- Tool schemas do not accept organization or course identifiers.
+- LMS executors repeat organization and course predicates.
+- Student reads and grade writes additionally verify active course enrollment.
+- Professor thread reads require the current instructor, command surface, and course anchor.
+- Course agent configuration writes verify the source thread against the same organization, course, instructor, surface, and anchor.
 
-Additional scope rules:
-
-- student reads and grade writes join or check active `enrollments` with role `student`;
-- professor thread reads require `agent_sessions.userId = scope.instructorId`, surface `command`, and anchor type `course`;
-- current course selection happens before tool creation and cannot be overridden by a model parameter;
-- joined `assignments`, `users`, and `rubrics` tables receive their own organization and course predicates in the relevant joins.
-
-Proof: [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts), [`app/api/atlas/planning/route.ts`](../../app/api/atlas/planning/route.ts), and [`lib/workspace/scope.ts`](../../lib/workspace/scope.ts).
+Proof: [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts), [`lib/agent/course-agent-config.ts`](../../lib/agent/course-agent-config.ts), [`app/api/atlas/planning/route.ts`](../../app/api/atlas/planning/route.ts), and [`lib/workspace/scope.ts`](../../lib/workspace/scope.ts).
 
 ## Runtime access outside explicit tools
 
 | Stage | Reads | Writes |
 | --- | --- | --- |
-| authenticate and choose course | auth/session storage through `auth`; `terms`, `courses`, `enrollments` through `resolveScope` | cookies are read, not changed by this route |
-| short-term turn budget | `agent_turns` joined to `agent_sessions` | none |
-| model resolution | `org_provider_keys` through `resolveModelForOrg`, with environment fallback implemented in that module | none |
-| create or load professor thread | `agent_sessions` | may insert `agent_sessions`; may update thread title |
-| persist user turn | `agent_sessions` state | inserts `agent_turns`; updates `agent_sessions` counters/timestamps |
-| build base instructor context | `courses`, `terms`, `course_ai_policies`, `learning_objectives`, `modules`, `assignments`, `pages`, recent `announcements`, `content_alignments`, `enrollments`, `submissions` | none |
-| extend professor context | `session_assignments`, `rubrics`, pending `change_proposals` | none |
-| load conversation | `agent_turns`, `agent_sessions.summary` | none |
-| persist assistant turn | `agent_sessions` state | inserts `agent_turns`; updates `agent_sessions` counters/timestamps |
-| compaction when needed | active `agent_turns`, `agent_sessions` | updates `agent_sessions.summary` and compaction cursor |
+| authenticate and choose course | authentication state, `terms`, `courses`, `enrollments` | none |
+| model resolution | `org_provider_keys` or environment fallback | none |
+| create or load professor thread | `agent_sessions` | may insert `agent_sessions`; may update title |
+| persist turns | `agent_sessions` | inserts `agent_turns`; updates counters and timestamps |
+| build professor context | course academic tables, `files`, `course_material_records`, `course_agent_configs`, AI assignment contracts, rubrics, drafts | none |
+| compaction | active `agent_turns`, `agent_sessions` | updates session summary and cursor |
 
-Proof: [`lib/agent/professor-runtime.ts`](../../lib/agent/professor-runtime.ts), [`lib/agent/context.ts`](../../lib/agent/context.ts), [`lib/agent/professor-context.ts`](../../lib/agent/professor-context.ts), [`lib/agent/session.ts`](../../lib/agent/session.ts), and [`lib/agent/session-store.ts`](../../lib/agent/session-store.ts).
+Provider records are never returned to model-visible tools or teacher Settings.
 
-## Read-tool table matrix
+## Model-visible tools
 
-| Tool or resource | Tables read | Tables written |
+| Tool | Main reads | Main writes |
 | --- | --- | --- |
-| `inspect_lms.overview` | `enrollments`, `assignments`, `modules`, `pages`, `files`, `announcements`, `practice_sets`, `submissions`, `session_submissions`, `change_proposals` | none |
-| `inspect_lms.course` | `courses` | none |
-| `inspect_lms.students` | `enrollments`, `users` | none |
-| `inspect_lms.assignments` | `assignments` | none |
-| `inspect_lms.modules` | `modules` | none |
-| `inspect_lms.module_items` | `module_items` | none |
-| `inspect_lms.pages` | `pages` | none |
-| `inspect_lms.files` | `files` | none |
-| `inspect_lms.announcements` | `announcements` | none |
-| `inspect_lms.quizzes` | `quizzes` | none |
-| `inspect_lms.practice_sets` | `practice_sets` | none |
-| `inspect_lms.submissions` | `submissions`, `assignments`, `users` | none |
-| `inspect_lms.sessions` | `session_submissions`, `assignments`, `users`, optional `journey_reports` | none |
-| `inspect_lms.class_results` | `class_rollups`, `assignments` | none |
-| `inspect_lms.rubrics` | `session_assignments`, `assignments`, `rubrics` | none |
-| `inspect_lms.policies` | `course_ai_policies`, `session_assignments`, `assignments` | none |
-| `inspect_lms.calendar` | `assignments`, `modules` | none |
-| `inspect_lms.drafts` | `change_proposals` | none |
-| `inspect_lms.threads` | `agent_sessions` | none |
-| `read_gradebook`, all views | `enrollments`, `users`; selected views additionally read `assignments`, `submissions` | none |
-| `search_course` | selected subset of `assignments`, `modules`, `pages`, `files`, `announcements`; student search also reads `enrollments`, `users` | none |
-| `load_skill` | no database tables; reads `.atlas/manifest.json` and one `.atlas/skills/*/SKILL.md` file | none |
+| `inspect_lms` | selected course tables by resource | none |
+| `read_gradebook` | `enrollments`, `users`, `assignments`, `submissions` as required by view | none |
+| `search_course` | selected course content tables and active roster | none |
+| 20 direct action tools | action-specific scoped rows | one typed action across content, grades, sessions, drafts, or deletion |
+| `load_skill` | reviewed `.atlas` files | none |
+| `configure_agent` | `agent_sessions`, current `course_agent_configs` version | inserts one `course_agent_configs` row |
+| `draft_ai_assignment` | assignment and pending-draft rows | inserts `change_proposals`, `proposal_blocks` |
+| `draft_rubric` | assignment, session contract, rubric, and pending-draft rows | inserts `change_proposals`, `proposal_blocks` |
+| `draft_course` | validated in-memory draft | inserts `change_proposals`, `proposal_blocks` |
 
-Proof: read executors in [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts).
+The exact 20 direct action tools are documented in [Write tools](write-tools.md). Their action-level data changes are documented in [content actions](write-content-actions.md), [grade and session actions](write-grade-session-actions.md), and [review and deletion actions](write-review-delete-actions.md).
 
-## Direct-write table matrix
+## Course agent configuration
 
-| Direct action tool | Tables read | Tables inserted | Tables updated | Tables deleted |
-| --- | --- | --- | --- | --- |
-| `create_assignment` | `assignments` for max position | `assignments` | none | none |
-| `update_assignment` | `assignments` target | none | `assignments` | none |
-| `publish_assignment` | `assignments` target | none | `assignments` | none |
-| `create_module` | `modules` for max position | `modules` | none | none |
-| `update_module` | `modules` target | none | `modules` | none |
-| `publish_module` | `modules` target | none | `modules` | none |
-| `create_page` | `pages` slugs | `pages` | none | none |
-| `update_page` | `pages` target | none | `pages` | none |
-| `post_announcement` | none | `announcements` | none | none |
-| `create_practice_set` | `practice_sets` for max position | `practice_sets` | none | none |
-| `update_course` | `courses` target | none | `courses` | none |
-| `update_course_policy` | `course_ai_policies` | `course_ai_policies` when absent | `course_ai_policies` on conflict | none |
-| `set_grade` | `assignments`, `enrollments`, `users`; standing refresh also reads `submissions` joined to `assignments` | `submissions` when absent | `submissions` on conflict; `enrollments` standing | none |
-| `mark_missing` | `assignments`, `enrollments`, `users`, existing `submissions` | `submissions` when absent | `submissions` on conflict | none |
-| `update_session_contract` | `session_assignments`, `assignments` | none | `session_assignments` | none |
-| `apply_draft` | `change_proposals`, `proposal_blocks`, then block-specific target tables | block-specific live rows | `proposal_blocks`, `change_proposals`, plus block-specific updates | none |
-| `dismiss_draft` | `change_proposals` | none | `proposal_blocks`, `change_proposals` | none |
-| `grade_session` | `session_submissions`, `rubrics`, `journey_reports`, then rollup reads | `evidence_spans`, `journey_reports`, and upsert `class_rollups` | `class_rollups` on conflict | prior `evidence_spans` and `journey_reports` for that submission when grading runs |
-| `finalize_session_grade` | `journey_reports`, `session_submissions`, `users`, existing classic `submissions`; standing refresh reads `submissions`, `assignments` | classic `submissions` when absent | `journey_reports`, `session_submissions`, classic `submissions`, `enrollments` standing | none |
-| `refresh_class_results` | `assignments`, `journey_reports`, `session_submissions`, `session_side_notes` | `class_rollups` when absent | `class_rollups` on conflict | none |
-| `delete_record` | one selected target table | none | none | one row from `assignments`, `modules`, `pages`, `announcements`, or `practice_sets`; declared foreign-key cascades may delete or null dependent rows |
+`configure_agent` writes append-only policy state:
 
-Proof: `mutateLms` in [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts), grading in [`lib/agent/grading.ts`](../../lib/agent/grading.ts), rollup in [`lib/agent/rollup.ts`](../../lib/agent/rollup.ts), and proposal application in [`lib/agent/apply.ts`](../../lib/agent/apply.ts).
-
-## Draft-tool table matrix
-
-| Tool | Tables read | Tables inserted | Live course rows changed immediately? |
-| --- | --- | --- | --- |
-| `draft_ai_assignment` | `assignments`, `session_assignments`, pending assignment-kind `change_proposals` | `change_proposals`, `proposal_blocks` | no |
-| `draft_rubric` | `session_assignments`, `assignments`, `rubrics`, pending rubric-kind `change_proposals` | `change_proposals`, `proposal_blocks` | no |
-| `draft_course` | none before its transaction, apart from schema validation in memory | `change_proposals`, `proposal_blocks` | no |
-
-Both AI assignment and rubric drafts take a transaction advisory lock before duplicate checks and insert. `draft_course` does not.
-
-Proof: [`lib/agent/professor-tools.ts`](../../lib/agent/professor-tools.ts).
-
-## Apply-time live table matrix by block
-
-| Proposal block | Tables read | Tables inserted or updated |
+| Step | Reads | Writes |
 | --- | --- | --- |
-| `objective` | `learning_objectives` | inserts `learning_objectives` only if code is absent |
-| `module` | `modules`, matching `learning_objectives` | inserts `modules`; inserts `content_alignments` for matching codes |
-| `assignment` | `assignments`, `courses`, `terms`, matching `learning_objectives` | inserts `assignments`; inserts `content_alignments` |
-| `page` | `pages`, matching `learning_objectives` | inserts `pages`; inserts `content_alignments` |
-| `announcement` | none beyond proposal data | inserts `announcements` |
-| `practice_set` | `practice_sets`, matching `learning_objectives` | inserts `practice_sets`; inserts `content_alignments` |
-| `ai_assignment` | target `assignments`, existing `session_assignments`, max course rubric version | inserts `rubrics`; inserts `session_assignments` |
-| `session_rubric` | target `session_assignments` joined to `assignments`, max course rubric version | inserts `rubrics`; updates `session_assignments.rubricId` |
+| source verification | `agent_sessions` | none |
+| concurrency check | latest `course_agent_configs.version` | transaction advisory lock only |
+| successful change | none after validation | one new `course_agent_configs` row |
 
-Every processed proposal block is then updated with applied state and optional applied item type/id. The proposal is updated to applied.
+It never updates or deletes a prior version. The stored configuration cannot grant database authority.
 
-## Tables the live tools do not query directly
+Proof: [`lib/agent/course-agent-tool.ts`](../../lib/agent/course-agent-tool.ts) and [`lib/agent/course-agent-config.ts`](../../lib/agent/course-agent-config.ts).
 
-The live operator registry has no executor that directly queries or mutates:
+## Course material intake outside the model
 
-- auth `accounts`, `sessions`, or `verification_tokens`;
-- `organizations`;
-- `program_outcomes` or `objective_outcome_map`;
-- `course_grade_snapshots`;
-- `calendar_events`;
-- `org_provider_keys` as a model-visible tool. Model resolution reads provider configuration before the tool registry is created, and keys are not returned to the model.
+Teacher Course Setup uses authenticated server actions, not model tools:
 
-Some of these tables may be touched by authentication or model-resolution infrastructure outside model-visible tools, as noted above.
+| Action | External work | Database work |
+| --- | --- | --- |
+| upload material | forwards a bounded file to the configured HTTPS ingestion service | transaction inserts `files` plus `course_material_records` |
+| add linked material | asks the ingestion service to process one HTTPS URL | transaction inserts `files` plus `course_material_records` |
+| signed ingestion callback | worker sends HMAC-signed job status and extraction data | updates the scoped `files` and `course_material_records` rows for that job |
+| change material access | none | updates or creates one `course_material_records` extension row |
+
+If initial ingestion fails, no database row is created. Asynchronous work is correlated by a stable unique job id. Existing `files` rows without an extension row resolve as ready, course-visible LMS material.
+
+Proof: [`lib/instructor/course-material-actions.ts`](../../lib/instructor/course-material-actions.ts), [`lib/course/materials.ts`](../../lib/course/materials.ts), [`app/api/materials/ingestion/route.ts`](../../app/api/materials/ingestion/route.ts), and [`lib/db/course-agent-schema.ts`](../../lib/db/course-agent-schema.ts).

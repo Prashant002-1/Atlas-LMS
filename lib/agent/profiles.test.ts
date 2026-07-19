@@ -50,7 +50,8 @@ test("the professor profile operates the LMS through typed course scope", () => 
   const reads = agentProfiles.professor.boundaries.reads.join(" ");
   assert.match(reads, /each enrolled student's grades/);
   const writes = agentProfiles.professor.boundaries.writes.join(" ");
-  assert.match(writes, /typed course operations/);
+  assert.match(writes, /typed LMS operations/);
+  assert.match(writes, /configure_agent/);
   assert.match(writes, /changeProposals/);
   const never = agentProfiles.professor.boundaries.never.join(" ");
   assert.match(never, /outside the signed-in organization and current course/);

@@ -29,10 +29,10 @@ test("learning-objective UI stays out of professor and student surfaces", () => 
   }
 });
 
-test("settings describe topics and course material, not objective tracking", () => {
+test("settings describe course knowledge, not objective tracking", () => {
   const settings = read("app/teach/settings/page.tsx");
-  assert.ok(settings.includes("Course citations"));
-  assert.ok(settings.includes("Cite the course material used in a response."));
+  assert.ok(settings.includes("Course knowledge"));
+  assert.ok(settings.includes("Manage course materials"));
   assert.equal(settings.toLowerCase().includes("objectives"), false);
 });
 

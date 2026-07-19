@@ -123,22 +123,21 @@ test("creation and edits open as deliberate dialogs", () => {
 test("settings reflects the real Atlas control scopes", () => {
   const page = source("app/teach/settings/page.tsx");
   for (const expected of [
-    "Agent boundaries",
-    "AI assignments",
-    "Course session defaults",
-    "Model access",
-    "sessionAssignments",
-    "resolveModelForOrg",
-    "CHAT_PROVIDERS",
-    "openai_compatible",
-    "verified transcript evidence",
+    "Agent configuration",
+    "Student experience",
+    "Teaching behavior",
+    "Course rules",
+    "Course knowledge",
+    "AI assignment contracts",
+    "System boundaries",
+    "Version history",
+    "loadActiveCourseAgentConfig",
+    "courseMaterialRecords",
   ]) {
     assert.equal(page.includes(expected), true, `settings should include ${expected}`);
   }
 
-  const actions = source("lib/instructor/settings-actions.ts");
-  assert.equal(actions.includes("saveSettingsProviderKey"), true);
-  assert.equal(actions.includes("removeSettingsProviderKey"), true);
-  assert.equal(actions.includes("baseUrl"), true);
-  assert.equal(actions.includes("CHAT_PROVIDERS.includes"), true);
+  for (const excluded of ["resolveModelForOrg", "CHAT_PROVIDERS", "openai_compatible", "saveSettingsProviderKey"]) {
+    assert.equal(page.includes(excluded), false, `settings should not include ${excluded}`);
+  }
 });

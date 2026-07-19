@@ -13,7 +13,7 @@ npm run db:seed
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The legacy seed accounts use password `atlas1234`:
+Open [http://localhost:3000](http://localhost:3000). The demo accounts use password `atlas1234`:
 
 - `instructor@demo.edu`
 - `student@demo.edu`
@@ -29,9 +29,13 @@ npm run smoke
 
 ## Current State
 
-Phases 0-4 of [`docs/v0/implementation-plan.md`](docs/v0/implementation-plan.md) are complete and merged. The v0 loop is implemented: professor configuration -> student session -> evidence-verified journey report -> class insight -> approved practice-set proposal. Phase 5 is limited to live validation, on-camera polish, and recording.
+The v0 loop is implemented: professor configuration, student session, evidence-verified grade draft, professor finalization, class result, and approved practice-set proposal.
 
-The current seed data is the active v0 demo world from [`docs/v0/data-blueprint.md`](docs/v0/data-blueprint.md), including native session, evidence, report, and rollup rows. The professor-facing agent-chat layer and its broader AI SDK integration are deliberately not part of this completed loop; they need their own architecture phase before implementation.
+Atlas is the professor's course-wide operator. It can inspect and act on the current LMS through typed, tenant-scoped tools. Course agent identity and teaching behavior are append-only, versioned configuration written through conversation with Atlas and compiled into student sessions below fixed application and assignment rules.
+
+Course Setup is the operational course workspace for offering facts, syllabus, structure, and course materials. Documents, PDFs, slide decks, assessments, media, links, Common Cartridge, and QTI packages enter through a bounded external-ingestion seam. Teacher Settings is read-only configuration transparency. Institution model and provider access remains server and administrator infrastructure.
+
+The current seed data is the active v0 demo world from [`docs/v0/data-blueprint.md`](docs/v0/data-blueprint.md), including native session, evidence, report, and rollup rows. Additional course material and course agent configuration rows can be seeded through the current schema without changing the product surfaces.
 
 ## License
 

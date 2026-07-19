@@ -7,7 +7,7 @@ The tokens in `app/globals.css` are the source of truth. This note describes the
 - Palette: a near-monochrome neutral scale carries the UI and one Atlas emerald signals brand, primary action, focus, and active streaming. Dark is the default theme; light ships behind `[data-theme="light"]`. Amber and red are reserved for real signals, never decoration.
 - Type: Geist Sans for interface and reading, Geist Mono for figures, codes, and labels. Vendored in `assets/fonts`, decoded by the postinstall step, loaded in `app/layout.tsx`, and exposed as `--font-serif`, `--font-sans`, `--font-mono`.
 - Scale: the root type size is 110% and every text and component size is rem-based, so the whole interface renders full without browser zoom. Hairline borders, radii, and icon glyphs stay in px so edges and marks remain crisp.
-- Shape: one sharp radius scale, fixed. Controls 4px, rows and badges 6px, panels 8px, declared as theme tokens so the semantic utilities `rounded-control`, `rounded-row`, `rounded-panel` are the only radii components use. `rounded-full` is reserved for true circles such as avatars and dots. Fine borders over shadows.
+- Shape: one sharp radius scale, fixed. Controls 4px, rows and badges 6px, panels 8px, declared as theme tokens so the semantic utilities `rounded-control`, `rounded-row`, and `rounded-panel` are the only radii components use. `rounded-full` is reserved for true circles such as avatars and dots. Fine borders over shadows.
 - Motion: one easing curve, short transitions, reduced motion respected. Page-entry motion belongs to the professor and student overviews only. Operational tabs and record routes render immediately.
 
 ## Mark
@@ -16,23 +16,25 @@ A course aperture: measured top ticks, converging paths, and a single point of o
 
 The institution is the primary licensed-product identity. In the expanded shell, keep the full-size Atlas mark on the left and place the organization name with a small `Atlas` label beneath it on the right, all inside the existing header height. Repeat the organization name beneath the signed-in person's name. Do not add `Powered by` copy.
 
-The mark's geometry is fixed. Where Atlas appears as an icon among interface icons, use the single-shade copy: the exact same artwork rendered as a currentColor stencil, never a redesign (`public/brand/atlas-icon.svg`, rendered by `AtlasIcon`).
+The mark's geometry is fixed. Where Atlas appears as an icon among interface icons, use the single-shade copy: the exact same artwork rendered as a currentColor stencil, never a redesign.
 
 ## Surfaces
 
-The product does not paint decorative or implied-data backgrounds. Records carry the screen; identity stays in the mark, the type, and a restrained accent.
+The product does not paint decorative or implied-data backgrounds. Records carry the screen; identity stays in the mark, type, and a restrained accent.
 
 Containment is not the default hierarchy. Start with type, spacing, alignment, and hairline rules. Add a bordered panel only when an element is an independent interactive surface. Do not turn every section, metric, student, criterion, or status into a card.
 
-Management surfaces are table-first when people need to compare, filter, or scan records. A roster, Work list, or gradebook is a table, not a card grid. Keep full student names visible, give columns explicit labels, and let one row carry one record. Filters must use facts the records actually carry: `Past due`, `Upcoming`, `Draft`, `Submitted`, `Missing`, and `Graded`.
+Management surfaces are table-first when people need to compare, filter, or scan records. A roster, Work list, gradebook, or course-material library is a table, not a card grid. Keep full names visible, give columns explicit labels, and let one row carry one record. Filters must use facts the records actually carry.
 
 Creation starts from a visible page-header action. The form opens in a focused dialog and never sits permanently in the record list. Editing follows the same rule: show the record first, then open a deliberate edit surface. Do not place a large textbox panel above or below a management list.
 
-Announcements read like a professional message archive: searchable rows, author, subject, message preview, exact timestamp, and a clickable full-message view. Module detail may use a compact previous/current/next switcher whose current-week control opens a complete clickable week menu on hover or click, so moving through the course never requires returning to the index.
+Announcements read like a professional message archive: searchable rows, author, subject, message preview, exact timestamp, and a clickable full-message view. Module detail may use a compact previous/current/next switcher whose current-week control opens a complete clickable week menu on hover or click.
 
-Configuration is read-first. Show the facts needed for the task, then put forms behind a clear Edit control. Rubrics are viewed as rubrics and changed through Atlas and Review; grading pages do not ask professors to rebalance point arithmetic inline.
+Course Setup is an operational course workspace, not a metadata form. Show course identity, offering facts, structure counts, a rendered syllabus, and a searchable material library. Material intake supports documents, PDFs, slide decks, assessments, media, links, Common Cartridge, and QTI packages through a focused action. Display processing state, source, access, size or pages, and update time as record facts.
 
-Settings is the Atlas control plane. Keep four scopes distinct: fixed agent boundaries, per-assignment contracts, course session defaults, and organization model access. Do not present a stored field as a working control unless a runtime consumes it.
+Configuration is read-first. Rubrics are viewed as rubrics and changed through Atlas and Review; grading pages do not ask professors to rebalance point arithmetic inline.
+
+Teacher Settings is the transparent course agent configuration. Show identity, teaching behavior, student disclosure, course rules, knowledge readiness, assignment contracts, fixed system boundaries, and version provenance. Atlas is the editor. Do not render editable prompt text, provider controls, model identifiers, endpoints, or API keys to teachers.
 
 ## Interaction Posture
 
@@ -41,16 +43,16 @@ Show the record and direct controls. Do not assign work to the user, narrate the
 - Use the direct underlying noun. An assignment is an assignment. A session is a session. A submission is a submission. A grade is a grade. A rubric is a rubric. Never replace a core record with an ornamental abstraction such as `journey`.
 - A teacher should not need to infer what an object, status, or action means.
 - Do not use dashboard language such as `Needs action`, `Next`, `To do`, `course health`, generic `insights`, or tutorial hints.
-- A status is a fact, not decoration. Prefer quiet text and a small signal over repeated badge boxes. Reserve badges for exceptional states that must interrupt scanning.
-- Published is the normal record state and stays unlabelled. Show `Draft`, `Review`, `Submitted`, `Missing`, and other states only when they change what the user can do or understand.
-- Plain actions such as `Publish` and `Sign out` are text-first, use the surrounding control scale, and do not carry a redundant checkmark or exit icon beside the label.
-- Do not add row selection unless the selected records have a clear available action. Selection without an operation is false affordance.
-- Learning-objective codes and coverage stay internal. Do not show `LO1`, `LO2`, objective chips, objective counts, coverage meters, or objective-selection controls in professor or student interfaces.
-- Name things what they are: course, work, module, announcement, grades. Doctrine words like `course record` belong to the docs; the interface says course.
-- No explainer sentences on controls everyone knows. The action label should carry its meaning. Do not repeat the Review gate below every proposal button.
+- A status is a fact, not decoration. Prefer quiet text and a small signal over repeated badge boxes.
+- Published is the normal record state and stays unlabelled. Show `Draft`, `Review`, `Submitted`, `Missing`, and other states only when they change meaning.
+- Plain actions such as `Publish` and `Sign out` are text-first and do not carry a redundant icon beside the label.
+- Do not add row selection unless selected records have a clear available action.
+- Learning-objective codes and coverage stay internal. Do not show objective chips, counts, coverage meters, or selection controls.
+- Name things what they are: course, work, module, announcement, grades. Doctrine words belong to docs; the interface says course.
+- No explainer sentences on controls everyone knows. The action label should carry its meaning.
 - Atlas is represented by the mark or a plain label, never sparkle or wand iconography.
-- Give navigation and controls a visible, restrained signifier before hover. Hover and focus confirm an available action; they do not reveal that an otherwise identical surface is clickable.
-- The student agent may guide a student within a professor-defined learning contract. This rule applies to the ordinary LMS interface, especially professor surfaces.
+- Give navigation and controls a visible, restrained signifier before hover.
+- The student agent may guide a student only inside the professor-defined course configuration and assignment contract.
 
 ## Components
 

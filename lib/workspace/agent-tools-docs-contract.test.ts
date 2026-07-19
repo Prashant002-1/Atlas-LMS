@@ -16,6 +16,7 @@ const docs = [
   "write-grade-session-actions.md",
   "write-review-delete-actions.md",
   "draft-tools.md",
+  "course-agent-configuration.md",
   "database-access.md",
   "shared-schemas.md",
   "capability-index.md",
@@ -55,7 +56,6 @@ const actions = [
   "post_announcement",
   "create_practice_set",
   "update_course",
-  "update_course_policy",
   "set_grade",
   "mark_missing",
   "update_session_contract",
@@ -73,6 +73,7 @@ const tools = [
   "search_course",
   "load_skill",
   ...actions,
+  "configure_agent",
   "draft_ai_assignment",
   "draft_rubric",
   "draft_course",
@@ -88,9 +89,7 @@ const skills = [
 ];
 
 test("agent tool reference is modular and source linked", () => {
-  for (const file of docs) {
-    assert.equal(existsSync(path.join(docsDir, file)), true, `${file} should exist`);
-  }
+  for (const file of docs) assert.equal(existsSync(path.join(docsDir, file)), true, `${file} should exist`);
 
   for (const file of docs) {
     const content = read(`docs/agent-tools/${file}`);
@@ -102,21 +101,23 @@ test("agent tool reference is modular and source linked", () => {
   }
 });
 
-test("documented live tool registry matches professorOperatorTools", () => {
-  const source = read("lib/agent/lms-operator.ts");
+test("documented live tool registry matches the professor runtime", () => {
+  const operator = read("lib/agent/lms-operator.ts");
+  const runtime = read("lib/agent/professor-runtime.ts");
   const readme = read("docs/agent-tools/README.md");
   for (const name of tools) {
     assert.equal(readme.includes("`" + name + "`"), true);
   }
   for (const direct of ["inspect_lms", "read_gradebook", "search_course", "load_skill"]) {
-    assert.match(source, new RegExp(`const ${direct} = tool`));
+    assert.match(operator, new RegExp(`const ${direct} = tool`));
   }
-  assert.match(source, /const actions = directActionTools/);
-  assert.match(source, /\.\.\.actions/);
+  assert.match(operator, /const actions = directActionTools/);
+  assert.match(operator, /\.\.\.actions/);
+  assert.match(runtime, /configure_agent: courseAgentConfigurationTool/);
   for (const draft of ["draft_ai_assignment", "draft_rubric", "draft_course"]) {
-    assert.match(source, new RegExp(`${draft}: legacy\\.${draft}`));
+    assert.match(operator, new RegExp(`${draft}: legacy\\.${draft}`));
   }
-  assert.doesNotMatch(source.slice(source.indexOf("return {", source.indexOf("export function professorOperatorTools"))), /inspect_course/);
+  assert.doesNotMatch(operator.slice(operator.indexOf("return {", operator.indexOf("export function professorOperatorTools"))), /inspect_course/);
 });
 
 test("documented inspect_lms resources match the Zod enum", () => {
@@ -135,6 +136,20 @@ test("documented direct action tools match the internal discriminated union", ()
   assert.deepEqual(found, actions);
   const docsText = read("docs/agent-tools/write-tools.md");
   for (const action of actions) assert.equal(docsText.includes("`" + action + "`"), true);
+});
+
+test("documented configuration tool matches its schema and append-only write", () => {
+  const tool = read("lib/agent/course-agent-tool.ts");
+  const config = read("lib/agent/course-agent-config.ts");
+  const docsText = read("docs/agent-tools/course-agent-configuration.md");
+  assert.match(tool, /expectedVersion/);
+  assert.match(tool, /studentDisclosure/);
+  assert.match(tool, /courseAgentConfigurationInputSchema/);
+  assert.match(config, /insert\(courseAgentConfigs\)/);
+  assert.doesNotMatch(config, /update\(courseAgentConfigs\)/);
+  for (const field of ["expectedVersion", "studentDisclosure", "changeSummary", "directAnswers", "challengeLevel", "citationMode", "studentDailyTurns", "appliesTo"]) {
+    assert.equal(docsText.includes(field), true);
+  }
 });
 
 test("documented skill allowlist matches the Atlas manifest", () => {

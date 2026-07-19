@@ -56,7 +56,6 @@ See [Direct content and policy actions](write-content-actions.md).
 | `post_announcement` | inserts and publishes an announcement |
 | `create_practice_set` | inserts a practice set |
 | `update_course` | updates course name, description, or syllabus |
-| `update_course_policy` | upserts course AI policy |
 
 ### Grades, assessed sessions, and class results
 

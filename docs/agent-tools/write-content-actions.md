@@ -215,34 +215,3 @@ Request:
 ```
 
 Reads the current course by `scope.courseId` and `scope.orgId`, updates supplied fields, and updates `updatedAt`. Null clears description or syllabus.
-
-## Course AI policy action
-
-### `update_course_policy`
-
-Request:
-
-```ts
-{
-  allowExplain?: boolean;
-  allowPractice?: boolean;
-  allowQuestions?: boolean;
-  explanationDepth?: "hint" | "guided" | "full";
-  citationsRequired?: boolean;
-  personaName?: string | null;         // maximum 80
-  personaStyle?: string | null;        // maximum 600
-  customInstructions?: string | null;  // maximum 2,000
-  studentDailyLimit?: number;          // integer 1 to 500
-  shareStruggleSignal?: boolean;
-}
-```
-
-Behavior:
-
-1. Reads the existing `course_ai_policies` row.
-2. Preserves each omitted field from that row.
-3. When no row exists, omitted fields use code defaults: explain/practice/questions true, depth guided, citations true, no persona or custom instructions, daily limit 40, struggle signal false.
-4. Inserts or updates by the unique `courseId` constraint.
-5. Updates `updatedAt`.
-
-The action returns only its summary, not the full policy row.

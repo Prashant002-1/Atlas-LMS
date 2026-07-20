@@ -130,7 +130,7 @@ export default async function TeachSyllabusPage() {
                       <div key={item.id} className="flex flex-wrap items-baseline gap-x-2">
                         <dt className="text-[var(--color-faint)]">Due</dt>
                         <dd className="min-w-0">
-                          <TextLink href={`/teach/work/${item.id}`} className="text-[0.78125rem]">{item.name}</TextLink>
+                          <TextLink href={`/teach/assignments/${item.id}`} className="text-[0.78125rem]">{item.name}</TextLink>
                           <span className="ml-2 text-[var(--color-muted)]">{workFacts(item)}</span>
                         </dd>
                       </div>
@@ -163,7 +163,7 @@ export default async function TeachSyllabusPage() {
                 {work.map((item) => (
                   <tr key={item.id}>
                     <th scope="row" className="px-3 py-3 align-top font-medium text-[var(--color-ink)]">
-                      <TextLink href={`/teach/work/${item.id}`} className="text-[0.78125rem]">{item.name}</TextLink>
+                      <TextLink href={`/teach/assignments/${item.id}`} className="text-[0.78125rem]">{item.name}</TextLink>
                       {item.session ? <span className="ml-2 font-normal text-[var(--color-muted)]">AI assignment</span> : null}
                       {!item.published ? <span className="ml-2 font-normal text-[var(--color-muted)]">Draft</span> : null}
                     </th>

@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/teach/page-header";
 import { StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { EmptyState } from "@/components/atlas/record";
 
-/** The roster and where the work stands, plainly. */
+/** The roster and assignment progress, plainly. */
 export default async function TeachStudentsPage() {
   const session = await auth();
   const workspace = await loadInstructorWorkspace(session?.user);
@@ -18,7 +18,7 @@ export default async function TeachStudentsPage() {
     );
   }
 
-  /* Record order, not a queue: work sorts by its own due dates. */
+  /* Record order, not a queue: assignments sort by their due dates. */
   const active = [...workspace.workProgress].sort((a, b) => {
     if (a.dueAt && b.dueAt) return a.dueAt.getTime() - b.dueAt.getTime();
     if (a.dueAt) return -1;
@@ -59,7 +59,7 @@ export default async function TeachStudentsPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Work</h2>
+        <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Assignments</h2>
         {active.length > 0 ? (
           <div className="mt-2.5 space-y-2">
             {active.map((item) => <ProgressRow key={item.assignmentId ?? item.title} item={item} />)}
@@ -80,7 +80,7 @@ function ProgressRow({ item }: { item: InstructorWorkspace["workProgress"][numbe
     <article className="atlas-card-hover group flex items-center gap-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]">
       <div className="min-w-0 flex-1">
         <p className="truncate text-[0.875rem] font-medium leading-6">
-          {item.assignmentId ? <TextLink href={`/teach/work/${item.assignmentId}`}>{item.title}</TextLink> : item.title}
+          {item.assignmentId ? <TextLink href={`/teach/assignments/${item.assignmentId}`}>{item.title}</TextLink> : item.title}
         </p>
         <p className="text-[0.78125rem] text-[var(--color-muted)]">
           {item.graded} graded / {item.submitted} submitted / {item.open} open

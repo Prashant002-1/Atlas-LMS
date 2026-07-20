@@ -323,7 +323,7 @@ export async function loadAssignmentCockpit(actor: Actor | null | undefined, ass
 
   const bundle = await loadSessionAssignmentBundle(orgId, assignmentId);
   if (!bundle || bundle.assignment.courseId !== course.id) {
-    return { problem: { title: "Not a work session", detail: "This assignment is not a session assignment in the course in view." } };
+    return { problem: { title: "Session unavailable", detail: "This assignment is not configured for a session in the course in view." } };
   }
 
   const { grid, counts } = await loadJourneyGrid(orgId, course.id, bundle);

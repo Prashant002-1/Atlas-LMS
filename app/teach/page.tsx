@@ -1,17 +1,12 @@
-import Link from "next/link";
 import { Plus } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { loadInstructorWorkspace, type InstructorWorkspace } from "@/lib/instructor/workspace";
 import { PageHeader } from "@/components/teach/page-header";
 import { CourseSwitch } from "@/components/teach/course-switch";
-import { ButtonLink, Panel, RecordRow, StatusBadge, TextLink } from "@/components/atlas/primitives";
-import { EmptyState } from "@/components/atlas/record";
+import { ButtonLink, RecordRow, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
-/**
- * The teaching overview is the course at a glance: the work, modules,
- * announcements, and recent changes, each as facts with direct controls.
- */
+/** A lean teaching overview: assignments, the next dates, and a short Atlas briefing. */
 export default async function TeachOverviewPage() {
   const session = await auth();
   const workspace = await loadInstructorWorkspace(session?.user);
@@ -25,23 +20,26 @@ export default async function TeachOverviewPage() {
     );
   }
 
-  const progressById = new Map(workspace.workProgress.map((item) => [item.assignmentId, item]));
-  const workRows = workspace.assignments.slice(0, 6);
-  const moduleRows = workspace.modules.slice(0, 6);
+  const assignments = workspace.assignments.slice(0, 7);
+  const upcoming = workspace.assignments
+    .filter((assignment) => assignment.status === "approved" && assignment.dueAt && assignment.dueAt.getTime() >= Date.now())
+    .sort((a, b) => (a.dueAt?.getTime() ?? 0) - (b.dueAt?.getTime() ?? 0))
+    .slice(0, 4);
+  const briefing = buildAtlasBriefing(workspace);
 
   return (
     <>
       <header className="mb-7 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--color-border)] pb-5">
         <h1 className="sr-only">{workspace.course.name}</h1>
         <CourseSwitch
-          courses={workspace.scope.courses.map((c) => ({ id: c.id, code: c.code, name: c.name }))}
+          courses={workspace.scope.courses.map((course) => ({ id: course.id, code: course.code, name: course.name }))}
           activeCourseId={workspace.scope.course?.id ?? ""}
-          terms={workspace.scope.terms.map((t) => ({ slug: t.slug, name: t.name }))}
+          terms={workspace.scope.terms.map((term) => ({ slug: term.slug, name: term.name }))}
           activeTermSlug={workspace.scope.term?.slug ?? ""}
           returnTo="/teach"
         />
         <div className="flex flex-wrap items-center gap-2">
-          <ButtonLink href="/teach/work?new=1#new" variant="secondary" size="sm" icon={false}>
+          <ButtonLink href="/teach/assignments?new=1#new" variant="secondary" size="sm" icon={false}>
             <Plus size={13} strokeWidth={2} aria-hidden className="mr-1.5" />
             New assignment
           </ButtonLink>
@@ -49,7 +47,6 @@ export default async function TeachOverviewPage() {
             <Plus size={13} strokeWidth={2} aria-hidden className="mr-1.5" />
             New module
           </ButtonLink>
-          {/* /teach/announcements#new remains the legacy deep-link marker; the dialog uses ?new=1. */}
           <ButtonLink href="/teach/announcements?new=1" variant="secondary" size="sm" icon={false}>
             <Plus size={13} strokeWidth={2} aria-hidden className="mr-1.5" />
             New announcement
@@ -57,112 +54,71 @@ export default async function TeachOverviewPage() {
         </div>
       </header>
 
-      <StaggerGrid className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(17.5rem,0.42fr)]" stagger={0.06}>
-        <div className="min-w-0 space-y-4">
+      <StaggerGrid className="grid gap-x-10 gap-y-9 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.38fr)]" stagger={0.05}>
+        <MotionItem>
+          <section className="min-w-0" aria-labelledby="overview-assignments-heading">
+            <div className="flex items-baseline justify-between gap-3 border-b border-[var(--color-border)] pb-2.5">
+              <h2 id="overview-assignments-heading" className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Assignments</h2>
+              <TextLink href="/teach/assignments" className="text-[0.75rem]">All assignments</TextLink>
+            </div>
+            {assignments.length > 0 ? (
+              <div className="divide-y divide-[var(--color-border)]">
+                {assignments.map((assignment) => <AssignmentRecordRow key={assignment.id ?? assignment.title} assignment={assignment} />)}
+              </div>
+            ) : (
+              <p className="py-5 text-[0.8125rem] text-[var(--color-muted)]">No assignments yet.</p>
+            )}
+          </section>
+        </MotionItem>
+
+        <div className="min-w-0 space-y-8">
           <MotionItem>
-            <Panel title="Work" action={<TextLink href="/teach/work" className="text-[0.8125rem]">All work</TextLink>}>
-              {workRows.length > 0 ? (
-                <div className="-mx-5 -my-5 divide-y divide-[var(--color-border)]">
-                  {workRows.map((assignment) => (
-                    <WorkRecordRow
-                      key={assignment.id ?? assignment.title}
-                      assignment={assignment}
-                      progress={assignment.id ? progressById.get(assignment.id) : undefined}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  art="atlas"
-                  title="No work yet"
-                  detail="This course has no assignments yet."
-                  action={<TextLink href="/teach/work?new=1#new" className="text-[0.8125rem]">New assignment</TextLink>}
-                />
-              )}
-            </Panel>
+            <section aria-labelledby="atlas-briefing-heading">
+              <div className="flex items-baseline justify-between gap-3 border-b border-[var(--color-border)] pb-2.5">
+                <h2 id="atlas-briefing-heading" className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Atlas briefing</h2>
+                <TextLink href="/teach/atlas" className="text-[0.75rem]">Open Atlas</TextLink>
+              </div>
+              <p className="pt-3 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{briefing}</p>
+            </section>
           </MotionItem>
 
           <MotionItem>
-            <Panel title="Modules" action={<TextLink href="/teach/weeks" className="text-[0.8125rem]">All modules</TextLink>}>
-              {moduleRows.length > 0 ? (
-                <div className="-mx-5 -my-5 divide-y divide-[var(--color-border)]">
-                  {moduleRows.map((module) => (
-                    <RecordRow
-                      key={module.id ?? module.title}
-                      href={module.id ? `/teach/week/${module.id}` : "/teach/weeks"}
-                      aside={module.status === "approved" ? undefined : <StatusBadge tone="neutral">Draft</StatusBadge>}
-                    >
-                      <span className="flex min-w-0 items-baseline gap-3">
-                        <span className="atlas-mono w-5 shrink-0 text-[0.8125rem] tabular-nums text-[var(--color-faint)]">
-                          {module.week}
-                        </span>
-                        <span className="truncate text-[0.875rem] font-medium">{module.title}</span>
-                      </span>
+            <section aria-labelledby="upcoming-heading">
+              <h2 id="upcoming-heading" className="border-b border-[var(--color-border)] pb-2.5 text-[0.8125rem] font-semibold text-[var(--color-ink)]">Upcoming</h2>
+              {upcoming.length > 0 ? (
+                <div className="divide-y divide-[var(--color-border)]">
+                  {upcoming.map((assignment) => (
+                    <RecordRow key={assignment.id ?? assignment.title} href={assignment.id ? `/teach/assignments/${assignment.id}` : "/teach/assignments"}>
+                      <span className="block truncate text-[0.8125rem] font-medium">{assignment.title}</span>
+                      <span className="mt-0.5 block text-[0.71875rem] text-[var(--color-muted)]">{assignment.dueAt ? shortDate(assignment.dueAt) : "No due date"}</span>
                     </RecordRow>
                   ))}
                 </div>
               ) : (
-                <EmptyState
-                  art="atlas"
-                  title="No modules yet"
-                  detail="This course has no modules yet."
-                  action={<TextLink href="/teach/weeks?new=1#new" className="text-[0.8125rem]">New module</TextLink>}
-                />
+                <p className="py-4 text-[0.8125rem] text-[var(--color-muted)]">No upcoming due dates.</p>
               )}
-            </Panel>
+            </section>
           </MotionItem>
-        </div>
 
-        <div className="min-w-0 space-y-4">
           <MotionItem>
-            <Panel title="Announcements" action={<TextLink href="/teach/announcements" className="text-[0.8125rem]">All</TextLink>}>
+            <section aria-labelledby="overview-announcements-heading">
+              <div className="flex items-baseline justify-between gap-3 border-b border-[var(--color-border)] pb-2.5">
+                <h2 id="overview-announcements-heading" className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Announcements</h2>
+                <TextLink href="/teach/announcements" className="text-[0.75rem]">All</TextLink>
+              </div>
               {workspace.notices.length > 0 ? (
-                <div className="space-y-4">
-                  {workspace.notices.slice(0, 3).map((notice) => (
-                    <div key={notice.id ?? notice.title}>
-                      <p className="text-[0.84375rem] font-medium leading-5">{notice.title}</p>
-                      <p className="atlas-mono mt-0.5 text-[0.6875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
-                        {notice.postedAt ? `Posted ${shortDate(notice.postedAt)}` : "Draft"}
-                      </p>
-                    </div>
+                <div className="divide-y divide-[var(--color-border)]">
+                  {workspace.notices.slice(0, 2).map((notice) => (
+                    <article key={notice.id ?? notice.title} className="py-3.5">
+                      <p className="text-[0.8125rem] font-medium leading-5 text-[var(--color-ink)]">{notice.title}</p>
+                      <p className="mt-0.5 text-[0.6875rem] text-[var(--color-faint)]">{notice.postedAt ? shortDate(notice.postedAt) : "Draft"}</p>
+                    </article>
                   ))}
                 </div>
               ) : (
-                <EmptyState
-                  art="atlas"
-                  title="No announcements"
-                  detail="Nothing has been posted to this course yet."
-                  action={<TextLink href="/teach/announcements?new=1" className="text-[0.8125rem]">New announcement</TextLink>}
-                />
+                <p className="py-4 text-[0.8125rem] text-[var(--color-muted)]">No announcements.</p>
               )}
-            </Panel>
-          </MotionItem>
-
-          <MotionItem>
-            <Panel title="Recent changes">
-              {workspace.recentChanges.length > 0 ? (
-                <div className="space-y-3.5">
-                  {workspace.recentChanges.map((change) => (
-                    <Link
-                      key={`${change.kind}-${change.href}-${change.at.getTime()}-${change.title}`}
-                      href={change.href}
-                      className="group/change block rounded-row focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
-                    >
-                      <span className="block truncate text-[0.8125rem] font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_22%,transparent)] decoration-1 underline-offset-[3px] transition group-hover/change:text-[var(--color-accent-strong)] group-hover/change:decoration-[var(--color-accent-strong)]">
-                        {change.title}
-                      </span>
-                      <span className="atlas-mono mt-0.5 block text-[0.6875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
-                        {change.event} / {shortDate(change.at)}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[0.8125rem] leading-5 text-[var(--color-muted)]">
-                  Changes to modules, work, and announcements appear here as they happen.
-                </p>
-              )}
-            </Panel>
+            </section>
           </MotionItem>
         </div>
       </StaggerGrid>
@@ -170,32 +126,28 @@ export default async function TeachOverviewPage() {
   );
 }
 
-function WorkRecordRow({
-  assignment,
-  progress,
-}: {
-  assignment: InstructorWorkspace["assignments"][number];
-  progress?: InstructorWorkspace["workProgress"][number];
-}) {
-  const facts: string[] = [];
-  if (assignment.dueAt) facts.push(`Due ${shortDate(assignment.dueAt)}`);
-  if (assignment.points) facts.push(`${Math.round(assignment.points)} pts`);
-  if (progress) {
-    facts.push(`${progress.submitted} submitted`);
-    if (progress.graded > 0) facts.push(`${progress.graded} graded`);
-  }
-
+function AssignmentRecordRow({ assignment }: { assignment: InstructorWorkspace["assignments"][number] }) {
   return (
     <RecordRow
-      href={assignment.id ? `/teach/work/${assignment.id}` : "/teach/work"}
+      href={assignment.id ? `/teach/assignments/${assignment.id}` : "/teach/assignments"}
       aside={assignment.status === "approved" ? undefined : <StatusBadge tone="neutral">Draft</StatusBadge>}
     >
-      <span className="block truncate text-[0.875rem] font-medium">{assignment.title}</span>
-      <span className="mt-0.5 block truncate text-[0.78125rem] text-[var(--color-muted)]">
-        {facts.length > 0 ? facts.join(" / ") : "No due date"}
-      </span>
+      <span className="block truncate text-[0.84375rem] font-medium">{assignment.title}</span>
+      <span className="mt-0.5 block text-[0.75rem] text-[var(--color-muted)]">{assignment.dueAt ? shortDate(assignment.dueAt) : "No due date"}</span>
     </RecordRow>
   );
+}
+
+function buildAtlasBriefing(workspace: InstructorWorkspace) {
+  const ungraded = workspace.workProgress.reduce((sum, item) => sum + Math.max(0, item.submitted - item.graded), 0);
+  const missing = workspace.workProgress.reduce((sum, item) => sum + item.missing, 0);
+  const drafts = workspace.proposals.filter((proposal) => proposal.status === "pending").length;
+  const parts: string[] = [];
+  if (ungraded > 0) parts.push(`${ungraded} ${ungraded === 1 ? "submission is" : "submissions are"} waiting for grading`);
+  if (missing > 0) parts.push(`${missing} ${missing === 1 ? "submission is" : "submissions are"} marked missing`);
+  if (drafts > 0) parts.push(`${drafts} ${drafts === 1 ? "draft is" : "drafts are"} waiting in Review`);
+  if (parts.length === 0) return "There are no ungraded submissions, missing records, or Review drafts today.";
+  return `${parts.join(". ")}.`;
 }
 
 function shortDate(date: Date): string {

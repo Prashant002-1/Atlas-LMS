@@ -13,13 +13,13 @@ const teacherSections: NavSection[] = [
   {
     label: "Course",
     items: [
-      { href: "/teach/work", label: "Work", icon: "work" },
+      { href: "/teach/assignments", label: "Assignments", icon: "assignments" },
       { href: "/teach/weeks", label: "Modules", icon: "weeks" },
       { href: "/teach/announcements", label: "Announcements", icon: "announce" },
       { href: "/teach/calendar", label: "Calendar", icon: "calendar" },
       { href: "/teach/gradebook", label: "Gradebook", icon: "gradebook" },
       { href: "/teach/students", label: "Students", icon: "students" },
-      { href: "/teach/syllabus", label: "Syllabus", icon: "course" },
+      { href: "/teach/syllabus", label: "Syllabus", icon: "syllabus" },
       { href: "/teach/course", label: "Course setup", icon: "setup" },
     ],
   },

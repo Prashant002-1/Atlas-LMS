@@ -2,11 +2,10 @@ import { auth } from "@/lib/auth";
 import { loadStudentCourseWorkspace, type StudentAssignment } from "@/lib/student/workspace";
 import { shortDate } from "@/lib/student/format";
 import { PageHeader } from "@/components/teach/page-header";
-import { Panel, RecordRow, StatusBadge } from "@/components/atlas/primitives";
-import { EmptyState } from "@/components/atlas/record";
+import { RecordRow, StatusBadge } from "@/components/atlas/primitives";
 
 /**
- * Grades: the returned work, each with its score, and the standing the
+ * Grades: returned assignments with their scores, and the standing the
  * gradebook currently records. Facts from rows; nothing is projected.
  */
 export default async function StudentCourseGradesPage({ params }: { params: Promise<{ courseId: string }> }) {
@@ -34,16 +33,15 @@ export default async function StudentCourseGradesPage({ params }: { params: Prom
     <>
       <PageHeader
         title="Grades"
-        course={`${workspace.course.code} / ${workspace.course.name}`}
-        action={workspace.standing ? <StatusBadge tone="neutral">{workspace.standing}</StatusBadge> : undefined}
+        action={workspace.standing ? <span className="text-[0.8125rem] font-medium tabular-nums text-[var(--color-muted)]">{workspace.standing}</span> : undefined}
       />
 
       {graded.length > 0 || awaiting.length > 0 ? (
         <div className="space-y-6">
           {graded.length > 0 ? (
             <section>
-              <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Returned</h2>
-              <div className="mt-2.5 divide-y divide-[var(--color-border)] rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+              <h2 className="border-b border-[var(--color-border)] pb-2.5 text-[0.8125rem] font-semibold text-[var(--color-ink)]">Returned</h2>
+              <div className="divide-y divide-[var(--color-border)]">
                 {graded.map((assignment) => (
                   <GradeRow key={assignment.id} assignment={assignment} />
                 ))}
@@ -53,12 +51,12 @@ export default async function StudentCourseGradesPage({ params }: { params: Prom
 
           {awaiting.length > 0 ? (
             <section>
-              <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">
+              <h2 className="border-b border-[var(--color-border)] pb-2.5 text-[0.8125rem] font-semibold text-[var(--color-ink)]">
                 Submitted, not yet graded
               </h2>
-              <div className="mt-2.5 divide-y divide-[var(--color-border)] rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+              <div className="divide-y divide-[var(--color-border)]">
                 {awaiting.map((assignment) => (
-                  <RecordRow key={assignment.id} href={`/student/work/${assignment.id}`}>
+                  <RecordRow key={assignment.id} href={`/student/assignments/${assignment.id}`}>
                     <span className="block truncate text-[0.875rem] font-medium">{assignment.name}</span>
                     <span className="mt-0.5 block text-[0.78125rem] text-[var(--color-muted)]">
                       {assignment.submittedAt ? `Submitted ${shortDate(assignment.submittedAt)}` : "Submitted"}
@@ -70,9 +68,7 @@ export default async function StudentCourseGradesPage({ params }: { params: Prom
           ) : null}
         </div>
       ) : (
-        <Panel>
-          <EmptyState art="atlas" title="No grades yet" detail="Returned work appears here with its score." />
-        </Panel>
+        <p className="border-y border-[var(--color-border)] py-5 text-[0.8125rem] text-[var(--color-muted)]">No grades yet.</p>
       )}
     </>
   );
@@ -81,7 +77,7 @@ export default async function StudentCourseGradesPage({ params }: { params: Prom
 function GradeRow({ assignment }: { assignment: StudentAssignment }) {
   return (
     <RecordRow
-      href={`/student/work/${assignment.id}`}
+      href={`/student/assignments/${assignment.id}`}
       aside={
         <>
           {typeof assignment.score === "number" && assignment.points ? (

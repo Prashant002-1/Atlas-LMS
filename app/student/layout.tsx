@@ -46,7 +46,7 @@ export default async function StudentLayout({ children }: { children: ReactNode 
             items: rows.map((row) => ({
               href: `/student/course/${row.courseId}`,
               label: row.code,
-              icon: "course" as const,
+              compactLabel: row.code.split("-")[0].slice(0, 2),
               children: [
                 { href: `/student/course/${row.courseId}`, label: "Home", exact: true },
                 { href: `/student/course/${row.courseId}/modules`, label: "Modules" },

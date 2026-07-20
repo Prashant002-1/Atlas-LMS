@@ -29,7 +29,7 @@ import { gradeLetterFor, runGradingForSubmission } from "@/lib/agent/grading";
 import { loadAtlasSkill } from "@/lib/agent/atlas-harness";
 import { practiceQuestionSchema } from "@/lib/agent/blocks";
 import { recomputeClassRollup } from "@/lib/agent/rollup";
-import { parseJourneyScores, parseRubricCriteria, pricingArtifactSchema } from "@/lib/agent/session-parts";
+import { parseJourneyScores, parseRubricCriteria } from "@/lib/agent/session-parts";
 import { renderFinalArtifactBody } from "@/lib/agent/transcript";
 import { summarizeGradeDistribution } from "@/lib/agent/gradebook-analysis";
 import { professorTools } from "@/lib/agent/professor-tools";
@@ -910,7 +910,7 @@ async function mutateLms(scope: ProfessorScope, model: LanguageModel, input: Mut
       if (!assignment) return { ok: false, error: "That assignment is not in this course." };
       if (!student) return { ok: false, error: "That student is not enrolled in this course." };
       const [existing] = await db.select().from(submissions).where(and(eq(submissions.orgId, scope.orgId), eq(submissions.courseId, scope.courseId), eq(submissions.assignmentId, assignment.id), eq(submissions.userId, student.id))).limit(1);
-      if (input.missing && (existing?.submittedAt || existing?.gradedAt)) return { ok: false, error: "Submitted or graded work cannot be marked missing." };
+      if (input.missing && (existing?.submittedAt || existing?.gradedAt)) return { ok: false, error: "A submitted or graded assignment cannot be marked missing." };
       await db
         .insert(submissions)
         .values({ orgId: scope.orgId, courseId: scope.courseId, assignmentId: assignment.id, userId: student.id, missing: input.missing, workflowState: input.missing ? "missing" : "unsubmitted" })
@@ -967,8 +967,7 @@ async function mutateLms(scope: ProfessorScope, model: LanguageModel, input: Mut
       const now = new Date();
       const score = row.report.overallScore;
       const grade = gradeLetterFor(score);
-      const artifact = pricingArtifactSchema.safeParse(row.submission.finalArtifact);
-      const fallbackBody = renderFinalArtifactBody(artifact.success ? artifact.data : null, row.studentName ?? "Student");
+      const fallbackBody = renderFinalArtifactBody(row.submission.finalArtifact, row.studentName ?? "Student");
       await db.transaction(async (tx) => {
         await tx.update(journeyReports).set({ status: "final", finalizedAt: now, finalizedById: scope.instructorId, updatedAt: now }).where(and(eq(journeyReports.id, row.report.id), eq(journeyReports.orgId, scope.orgId), eq(journeyReports.courseId, scope.courseId)));
         await tx.update(sessionSubmissions).set({ status: "graded" }).where(and(eq(sessionSubmissions.id, row.submission.id), eq(sessionSubmissions.orgId, scope.orgId), eq(sessionSubmissions.courseId, scope.courseId)));

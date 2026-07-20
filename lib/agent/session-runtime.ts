@@ -80,7 +80,7 @@ export async function runSessionTurn(args: {
 
   const updateArtifact = tool({
     description:
-      "Snapshot the student's current deliverable state whenever they propose or revise it. Record their decisions verbatim; include revisionNote on every revision after the first.",
+      "Snapshot the student's current submission draft when they produce or revise substantive assignment content. Use structured_response for ordinary assignments and pricing_table only for a pricing-plan deliverable. Preserve the student's claims, evidence, wording, and numbers; include revisionNote after the first revision.",
     inputSchema: updateArtifactInputSchema,
     execute: async () => {
       revision += 1;

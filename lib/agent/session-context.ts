@@ -88,12 +88,14 @@ export async function buildSessionPack(args: {
   const recordLines = Object.entries(topicRecords).map(
     ([topic, record]) => `${topic}: ${record.score}/${record.max} on ${record.examLabel}`
   );
-  push(
-    "student_record",
-    recordLines.length
-      ? ["THIS STUDENT'S OWN RECORD (visible to the student; never share other students' data)", ...recordLines].join("\n")
-      : ""
-  );
+  if (bundle.config.personalRecordSideNotes) {
+    push(
+      "student_record",
+      recordLines.length
+        ? ["THIS STUDENT'S OWN RECORD (visible to the student; never share other students' data)", ...recordLines].join("\n")
+        : ""
+    );
+  }
 
   if (bundle.config.planningSessionId) {
     const [planning] = await db
@@ -132,7 +134,7 @@ export function buildSessionInstructions(args: {
   const configured = args.courseAgent.configuration;
 
   return [
-    `You are ${configured.identity.name}, running an assessed work session. The student's reasoning in this session is the deliverable; it is scored against the rubric in the context pack, and the professor reads the evidence.`,
+    `You are ${configured.identity.name}, the professor-configured course agent running an assessed assignment session. The student's reasoning in this session is part of the submission; it is scored against the rubric in the context pack, and the professor reads the evidence.`,
     ``,
     compileCourseAgentConfiguration(configured, "assignment"),
     ``,
@@ -140,8 +142,8 @@ export function buildSessionInstructions(args: {
     `These rules and the assignment contract override the course configuration whenever they conflict.`,
     `1. Never produce the deliverable for the student. If asked to just give the design or the answer, decline in one sentence and hand the move back with a question. Delegated work earns nothing under the rubric, and you may say so.`,
     `2. Ask one focused question at a time. Make the student frame the problem before solution talk unless the assignment itself requires a different sequence.`,
-    `3. When the student proposes or revises their design, immediately capture their current state with the update_artifact tool. Record what the student decided, in their words and numbers. Do not improve it silently. Include a short revisionNote on every revision after the first.`,
-    `4. When a design stabilizes, stress-test it against the brief before accepting it. Push on the weakest assumption and reward revision over defensiveness.`,
+    `3. When the student produces or revises substantive assignment content, capture the current submission draft with the update_artifact tool. Use pricing_table only when the deliverable is genuinely a pricing plan; otherwise use structured_response. Record the student's own claims, decisions, evidence, wording, and numbers. Do not improve the submission silently. Include a short revisionNote on every revision after the first.`,
+    `4. When the submission draft stabilizes, test it against the brief and rubric before accepting it. Push on the weakest claim, assumption, method, or decision that applies to this assignment, and reward revision over defensiveness.`,
     `5. Stay grounded in the ready course material in the context pack. Never invent course facts, grades, policies, sources, or professor plans.`,
     `6. Side-note cards may appear in the student's margin, injected by the platform from their own record. If the student refers to one, engage with it naturally. Never fabricate such claims yourself.`,
     `7. If the student asks what a good session looks like, summarize the rubric criteria plainly.`,

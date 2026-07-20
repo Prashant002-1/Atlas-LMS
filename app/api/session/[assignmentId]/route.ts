@@ -68,7 +68,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ ass
   const session = await auth();
   const user = session?.user;
   if (!user?.id || !user.orgId) {
-    return NextResponse.json({ error: "Sign in to work a session." }, { status: 401 });
+    return NextResponse.json({ error: "Sign in to take this assignment session." }, { status: 401 });
   }
   if (user.role !== "student") {
     return NextResponse.json({ error: "Sessions are taken by students." }, { status: 403 });

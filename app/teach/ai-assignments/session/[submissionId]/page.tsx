@@ -7,9 +7,9 @@ import { BackLink } from "@/components/atlas/primitives";
 import { ProfessorReportPanel } from "@/components/cockpit/report-panel";
 import { TranscriptView } from "@/components/cockpit/transcript-view";
 import { ArtifactPanel } from "@/components/session/artifact-panel";
-import { pricingArtifactSchema } from "@/lib/agent/session-parts";
+import { parseSessionArtifact } from "@/lib/agent/session-parts";
 
-/** One student's submitted session: grade, final work, and transcript. */
+/** One student's submitted session: grade, submission draft, and transcript. */
 export default async function SessionSubmissionPage({ params }: { params: Promise<{ submissionId: string }> }) {
   const session = await auth();
   if (!session?.user) {
@@ -30,17 +30,17 @@ export default async function SessionSubmissionPage({ params }: { params: Promis
   const criterionNames = view.report
     ? Object.fromEntries(view.report.criteria.map((criterion) => [criterion.key, criterion.name]))
     : {};
-  const revisions = view.artifacts
-    .map((artifact) => pricingArtifactSchema.safeParse(artifact.state))
-    .filter((parsed) => parsed.success)
-    .map((parsed) => ({ state: parsed.data! }));
+  const revisions = view.artifacts.flatMap((artifact) => {
+    const parsed = parseSessionArtifact(artifact.artifactType, artifact.state);
+    return parsed ? [parsed] : [];
+  });
 
   return (
     <>
       <BackLink href={`/teach/ai-assignments/${view.assignment.id}`}>{view.assignment.name}</BackLink>
 
       <div className="mt-3">
-        <PageHeader title={view.student.name} course={`${view.course.code} / ${view.assignment.name}`} />
+        <PageHeader title={view.student.name} course={`${view.course.code}, ${view.assignment.name}`} />
       </div>
 
       <div className="-mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[0.78125rem] text-[var(--color-muted)]">
@@ -51,7 +51,7 @@ export default async function SessionSubmissionPage({ params }: { params: Promis
 
       <nav aria-label="Session sections" className="mt-5 flex gap-5 border-b border-[var(--color-border)] pb-3 text-[0.78125rem]">
         <a href="#grade" className="font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">Grade</a>
-        <a href="#final-work" className="font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">Final work</a>
+        <a href="#submission-draft" className="font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">Submission draft</a>
         <a href="#transcript" className="font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">Transcript</a>
       </nav>
 
@@ -76,8 +76,8 @@ export default async function SessionSubmissionPage({ params }: { params: Promis
           )}
         </div>
 
-        <div id="final-work" className="scroll-mt-24 border-t border-[var(--color-border)] pt-6 xl:border-l xl:border-t-0 xl:pl-8 xl:pt-0">
-          <ArtifactPanel revisions={revisions} title="Final work" plain />
+        <div id="submission-draft" className="scroll-mt-24 border-t border-[var(--color-border)] pt-6 xl:border-l xl:border-t-0 xl:pl-8 xl:pt-0">
+          <ArtifactPanel revisions={revisions} title="Submission draft" plain />
         </div>
       </div>
 

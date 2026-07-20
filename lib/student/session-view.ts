@@ -81,7 +81,7 @@ export type StudentSessionView =
       submitted: boolean;
       submittedAt: string | null;
       studentName: string;
-      /** The journey report for the submitted session, when grading has run. */
+      /** The grade report for the submitted session, when grading has run. */
       report: StudentJourneyReportView | null;
       /** Submitted but not yet graded (no model configured, or grading failed). */
       gradingPending: boolean;
@@ -96,7 +96,7 @@ export async function loadStudentSessionView(user: Actor, assignmentId: string):
 
   const bundle = await loadSessionAssignmentBundle(user.orgId, assignmentId);
   if (!bundle) {
-    return { problem: { title: "Not a work session", detail: "This assignment is not configured as a work session." } };
+    return { problem: { title: "Session unavailable", detail: "This assignment is not configured for a session." } };
   }
 
   const enrollment = await activeStudentEnrollment(user.orgId, bundle.assignment.courseId, user.id);

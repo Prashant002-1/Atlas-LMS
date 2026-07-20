@@ -47,7 +47,7 @@ test("student session detail uses direct record language and restrained hierarch
   const grade = read("components/cockpit/report-panel.tsx");
   const transcript = read("components/cockpit/transcript-view.tsx");
 
-  for (const expected of ["Grade", "Final work", "Transcript"]) assert.ok(page.includes(expected));
+  for (const expected of ["Grade", "Submission draft", "Transcript"]) assert.ok(page.includes(expected));
   assert.ok(grade.includes("Post grade"));
   assert.ok(transcript.includes("Session transcript"));
   assert.equal(grade.includes("StatusBadge"), false);
@@ -64,7 +64,7 @@ test("redundant proposal narration stays out of the class results surface", () =
 });
 
 test("regular assignment submissions use the same searchable review table", () => {
-  const page = read("app/teach/work/[assignmentId]/page.tsx");
+  const page = read("app/teach/assignments/[assignmentId]/page.tsx");
   const table = read("components/teach/submission-review-table.tsx");
 
   assert.ok(page.includes("SubmissionReviewTable"));
@@ -91,7 +91,7 @@ test("status filters reserve clean space for their dropdown icons", () => {
 });
 
 test("student filtering and row identity are deterministic", () => {
-  const page = read("app/teach/work/[assignmentId]/page.tsx");
+  const page = read("app/teach/assignments/[assignmentId]/page.tsx");
   const sessionTable = read("components/cockpit/session-table.tsx");
   const submissionTable = read("components/teach/submission-review-table.tsx");
 

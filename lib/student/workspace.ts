@@ -75,7 +75,7 @@ export type StudentCourseCard = {
   term: string;
   standing: string | null;
   nextDue: { assignmentId: string; name: string; dueAt: Date } | null;
-  /** Open work whose due date has passed: a fact the overview must surface. */
+  /** Open assignments whose due date has passed: a fact the overview must surface. */
   overdue: { assignmentId: string; name: string; dueAt: Date } | null;
   overdueCount: number;
   openCount: number;
@@ -214,7 +214,7 @@ export async function loadStudentOverview(actor?: Actor | null): Promise<Student
         if (a.dueAt && a.dueAt.getTime() >= now && (!nextDue || a.dueAt < nextDue.dueAt)) {
           nextDue = { assignmentId: a.id, name: a.name, dueAt: a.dueAt };
         }
-        // Open work past its due date is overdue, and the overview says so:
+        // An open assignment past its due date is overdue, and the overview says so:
         // it must never read "Nothing due" while this row exists.
         if (a.dueAt && a.dueAt.getTime() < now) {
           overdueCount += 1;
@@ -332,7 +332,7 @@ export async function loadStudentCalendar(
       kind: "due",
       title: a.name,
       courseCode: codeByCourse.get(a.courseId) ?? "",
-      href: `/student/work/${a.id}`,
+      href: `/student/assignments/${a.id}`,
       status: submissionStatus(submissionByAssignment.get(a.id)),
     });
   }
@@ -424,7 +424,7 @@ export async function loadStudentCourseWorkspace(
   };
 }
 
-/* ── one record (work or material) ───────────────────────────── */
+/* ── one record (assignment or material) ─────────────────────── */
 
 export async function loadStudentAssignmentWorkspace(
   actor: Actor | null | undefined,
@@ -440,7 +440,7 @@ export async function loadStudentAssignmentWorkspace(
 
   const assignment = base.allAssignments.find((a) => a.id === assignmentId);
   if (!assignment) {
-    return { ...base.workspace, problem: { title: "Work unavailable", detail: "This work is not part of this course." } };
+    return { ...base.workspace, problem: { title: "Assignment unavailable", detail: "This assignment is not part of this course." } };
   }
   const codes = new Set(assignment.objectiveCodes);
   return {

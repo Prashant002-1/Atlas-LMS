@@ -43,7 +43,7 @@ export function ProposalCard({ proposal, compact = false }: { proposal: Instruct
                   <RubricCard title="Rubric" criteria={block.criteria} />
                   <p className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[0.71875rem] leading-4 text-[var(--color-faint)]">
                     <span>Applying creates the AI assignment with this contract and rubric.</span>
-                    <TextLink href={`/teach/work/${block.assignmentId}`} className="text-[0.71875rem]">Open the assignment</TextLink>
+                    <TextLink href={`/teach/assignments/${block.assignmentId}`} className="text-[0.71875rem]">Open the assignment</TextLink>
                   </p>
                 </li>
               ) : block.type === "session_rubric" ? (

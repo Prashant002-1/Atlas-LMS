@@ -191,7 +191,7 @@ function SubmissionReview({
           <form action={gradeSubmission} className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
             <input type="hidden" name="assignmentId" value={assignmentId} />
             <input type="hidden" name="studentId" value={row.studentId} />
-            <input type="hidden" name="returnTo" value={`/teach/work/${assignmentId}`} />
+            <input type="hidden" name="returnTo" value={`/teach/assignments/${assignmentId}`} />
             <label className="grid gap-1 text-[0.71875rem] font-medium text-[var(--color-muted)]">
               Score
               <input name="score" type="number" min={0} max={pointsPossible ?? undefined} step="0.01" defaultValue={row.score ?? ""} required className="min-h-9 rounded-control border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[0.8125rem] text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-strong)]" />
@@ -208,7 +208,7 @@ function SubmissionReview({
           <form action={markSubmissionMissing} className="mt-3">
             <input type="hidden" name="assignmentId" value={assignmentId} />
             <input type="hidden" name="studentId" value={row.studentId} />
-            <input type="hidden" name="returnTo" value={`/teach/work/${assignmentId}`} />
+            <input type="hidden" name="returnTo" value={`/teach/assignments/${assignmentId}`} />
             <button type="submit" className="inline-flex min-h-9 items-center rounded-control border border-[var(--color-border-strong)] px-3 text-[0.8125rem] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-warn)] hover:text-[var(--color-warn)]">Mark missing</button>
           </form>
         ) : (

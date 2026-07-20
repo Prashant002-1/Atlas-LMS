@@ -10,8 +10,8 @@ import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
 /**
  * The student home: every course at a glance. What is due (overdue first,
- * stated as the fact it is), then each course as its own card. The work
- * itself lives on the course pages.
+ * stated as the fact it is), then each course as its own card. Assignments
+ * live on their course pages.
  */
 export default async function StudentOverviewPage() {
   const session = await auth();
@@ -28,7 +28,7 @@ export default async function StudentOverviewPage() {
             {overview.dueSoon.map((item) => (
               <MotionItem key={`${item.assignmentId}-${item.overdue ? "overdue" : "ahead"}`}>
                 <Link
-                  href={`/student/work/${item.assignmentId}`}
+                  href={`/student/assignments/${item.assignmentId}`}
                   className="atlas-card-hover group flex items-center justify-between gap-3 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-[var(--shadow-panel)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
                 >
                   <span className="min-w-0">
@@ -61,7 +61,7 @@ export default async function StudentOverviewPage() {
             <EmptyState
               art="horizon"
               title="Nothing due"
-              detail="No open work has a deadline ahead of you."
+              detail="No open assignment has a deadline ahead of you."
               action={<TextLink href="/student/calendar" className="text-[0.8125rem]">Open the calendar</TextLink>}
             />
           </div>
@@ -123,7 +123,7 @@ function CourseCard({ card }: { card: StudentCourseCard }) {
           {card.nextDue ? `${card.nextDue.name}, ${dueLabel(card.nextDue.dueAt).toLowerCase()}` : "Nothing due"}
         </p>
       )}
-      <p className="mt-1 text-[0.78125rem] text-[var(--color-muted)]">{counts.join(" / ")}</p>
+      <p className="mt-1 text-[0.78125rem] text-[var(--color-muted)]">{counts.join(", ")}</p>
     </Link>
   );
 }

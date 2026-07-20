@@ -42,8 +42,8 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
       <div className="mt-3">
         <PageHeader
           title={view.assignment.name}
-          course={`${view.course.code} / AI assignment`}
-          action={<ButtonLink href={`/teach/work/${view.assignment.id}`} variant="secondary" size="sm">Open assignment</ButtonLink>}
+          course={`${view.course.code}, AI assignment`}
+          action={<ButtonLink href={`/teach/assignments/${view.assignment.id}`} variant="secondary" size="sm">Open assignment</ButtonLink>}
         />
       </div>
 

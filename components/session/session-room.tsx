@@ -35,6 +35,7 @@ import {
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import {
   artifactUpdatesFromParts,
+  isArtifactToolPartType,
   parseSessionArtifact,
   sideNotesFromParts,
   type RubricCriterion,
@@ -334,7 +335,7 @@ function MessageParts({ message, streaming }: { message: UIMessage; streaming: b
       rendered.push(<Response key={index} streaming={streaming && index === parts.length - 1}>{part.text}</Response>);
       return;
     }
-    if (type === "tool-update_artifact") {
+    if (isArtifactToolPartType(type)) {
       rendered.push(<p key={index} className="flex items-center gap-1.5 text-[0.75rem] font-medium text-[var(--color-accent-strong)]"><CheckCircle2 size={13} aria-hidden />Submission draft updated</p>);
       return;
     }

@@ -71,7 +71,7 @@ export const agentProfiles: Record<AgentProfileId, AgentProfile> = {
         "the session contract, rubric, and grounding scope for one assignment",
         "this student's own past submissions and prior turns in this session",
       ],
-      writes: ["its own session turns and artifact snapshots through update_artifact"],
+      writes: ["its own session turns and artifact snapshots through exact typed artifact tools"],
       never: [
         "see another student's grades, transcript, submission, or personal notes",
         "see unpublished or instructor-only material or the professor's private threads",

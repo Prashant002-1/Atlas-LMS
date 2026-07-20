@@ -1,10 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { z } from "zod";
 import {
   artifactUpdatesFromParts,
   parseRubricCriteria,
   parseSideNoteTriggers,
   pricingArtifactSchema,
+  sessionArtifactToolSchemas,
   sideNotesFromParts,
 } from "./session-parts";
 import { v0DemoWorld } from "../db/fixtures/v0-demo-world";
@@ -34,19 +36,37 @@ test("the seeded session assignment carries sanctioned side-note triggers", () =
 });
 
 test("artifact updates extract from tool parts and reject junk", () => {
-  const state = {
+  const pricingState = {
     tiers: [{ name: "Basic", price: 7.99, targetSegment: "Casual", fence: "Ads", rationale: "Entry." }],
     expectedRisk: "Low.",
   };
+  const structuredState = {
+    title: "Research plan",
+    sections: [{ heading: "Method", content: "Compare two groups." }],
+  };
   const updates = artifactUpdatesFromParts([
     { type: "text", text: "hello" },
-    { type: "tool-update_artifact", state: "output-available", input: { artifactType: "pricing_table", state } },
-    { type: "tool-update_artifact", state: "input-streaming", input: { artifactType: "pricing_table", state } },
+    { type: "tool-update_pricing_table", state: "output-available", input: pricingState },
+    { type: "tool-update_structured_response", state: "input-available", input: structuredState },
+    { type: "tool-update_artifact", state: "output-available", input: { artifactType: "pricing_table", state: pricingState } },
+    { type: "tool-update_pricing_table", state: "input-streaming", input: pricingState },
     { type: "tool-update_artifact", state: "output-available", input: { artifactType: "pricing_table", state: { nope: 1 } } },
   ]);
-  assert.equal(updates.length, 1);
-  assert.equal(updates[0].state.tiers[0].name, "Basic");
+  assert.equal(updates.length, 3);
+  assert.deepEqual(updates.map((update) => update.artifactType), ["pricing_table", "structured_response", "pricing_table"]);
+  const pricingUpdate = updates[0];
+  if (pricingUpdate.artifactType !== "pricing_table") assert.fail("first update should be a pricing table");
+  assert.equal(pricingUpdate.state.tiers[0].name, "Basic");
   assert.deepEqual(artifactUpdatesFromParts("not an array"), []);
+});
+
+test("model-visible artifact tools serialize without union composition", () => {
+  for (const [name, schema] of Object.entries(sessionArtifactToolSchemas)) {
+    const json = JSON.stringify(z.toJSONSchema(schema));
+    for (const keyword of ["anyOf", "oneOf", "allOf"]) {
+      assert.equal(json.includes(`"${keyword}"`), false, `${name} must not serialize ${keyword}`);
+    }
+  }
 });
 
 test("side notes extract from data parts with validation", () => {

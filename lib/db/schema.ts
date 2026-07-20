@@ -843,8 +843,8 @@ export const sessionAssignments = pgTable(
 
 /**
  * Artifact states, one snapshot per revision of the student's evolving
- * deliverable (e.g. the pricing table). Written when the agent's
- * update_artifact tool call lands; turnIndex ties the snapshot to the
+ * deliverable (e.g. the pricing table). Written when an agent artifact tool
+ * call lands; turnIndex ties the snapshot to the
  * assistant turn that produced it so the drill-in can replay the evolution.
  */
 export const sessionArtifactStates = pgTable(

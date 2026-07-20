@@ -8,7 +8,7 @@ import type { UIMessage } from "ai";
  * the wire shape, and the persisted row), scoped to the v0 session surface:
  *
  *   - the artifact panel state (the student's evolving deliverable), carried
- *     as the update_artifact tool call the agent makes;
+ *     by exact artifact tools and normalized into one persisted contract;
  *   - side-note cards, carried as `data-side-note` parts the SERVER writes
  *     (the model never invents one, see lib/agent/side-notes.ts);
  *   - a transient session status line for submit/lock state changes.
@@ -18,7 +18,7 @@ import type { UIMessage } from "ai";
  * transcripts and assignments whose deliverable is genuinely a pricing plan.
  */
 
-export const SESSION_PART_SCHEMA_VERSION = "2" as const;
+export const SESSION_PART_SCHEMA_VERSION = "3" as const;
 
 /* ── artifact panel ─────────────────────────────────────────── */
 
@@ -63,7 +63,7 @@ export const structuredArtifactSchema = z.object({
 export type PricingArtifact = z.infer<typeof pricingArtifactSchema>;
 export type StructuredArtifact = z.infer<typeof structuredArtifactSchema>;
 
-/** Input schema for the agent's update_artifact tool. */
+/** Internal normalized contract for persistence, replay, and rendering. */
 export const updateArtifactInputSchema = z.discriminatedUnion("artifactType", [
   z.object({
     artifactType: z.literal("pricing_table"),
@@ -77,6 +77,15 @@ export const updateArtifactInputSchema = z.discriminatedUnion("artifactType", [
 
 export type UpdateArtifactInput = z.infer<typeof updateArtifactInputSchema>;
 export type SessionArtifact = UpdateArtifactInput["state"];
+
+/**
+ * Exact model-visible schemas. Kimi K3 rejects top-level union schemas, so the
+ * artifact discriminator stays in Atlas and each tool exposes one object.
+ */
+export const sessionArtifactToolSchemas = {
+  update_pricing_table: pricingArtifactSchema,
+  update_structured_response: structuredArtifactSchema,
+} as const;
 
 export function parseSessionArtifact(artifactType: string, state: unknown): UpdateArtifactInput | null {
   const parsed = updateArtifactInputSchema.safeParse({ artifactType, state });
@@ -211,8 +220,12 @@ export type SessionDataParts = {
 
 /** Tools the session agent can call. */
 export type SessionTools = {
-  update_artifact: {
-    input: UpdateArtifactInput;
+  update_pricing_table: {
+    input: PricingArtifact;
+    output: { ok: boolean; revision: number };
+  };
+  update_structured_response: {
+    input: StructuredArtifact;
     output: { ok: boolean; revision: number };
   };
 };
@@ -223,16 +236,36 @@ export type SessionUIMessage = UIMessage<never, SessionDataParts, SessionTools>;
 
 type LoosePart = { type?: unknown } & Record<string, unknown>;
 
+export function isArtifactToolPartType(type: unknown): boolean {
+  return (
+    type === "tool-update_pricing_table" ||
+    type === "tool-update_structured_response" ||
+    type === "tool-update_artifact"
+  );
+}
+
 /** Extract validated artifact updates from a message's parts, in order. */
 export function artifactUpdatesFromParts(parts: unknown): UpdateArtifactInput[] {
   if (!Array.isArray(parts)) return [];
   const updates: UpdateArtifactInput[] = [];
   for (const part of parts as LoosePart[]) {
-    if (part?.type !== "tool-update_artifact") continue;
     const state = part.state;
     if (state !== "input-available" && state !== "output-available") continue;
-    const parsed = updateArtifactInputSchema.safeParse(part.input);
-    if (parsed.success) updates.push(parsed.data);
+
+    if (part.type === "tool-update_pricing_table") {
+      const parsed = parseSessionArtifact("pricing_table", part.input);
+      if (parsed) updates.push(parsed);
+      continue;
+    }
+    if (part.type === "tool-update_structured_response") {
+      const parsed = parseSessionArtifact("structured_response", part.input);
+      if (parsed) updates.push(parsed);
+      continue;
+    }
+    if (part.type === "tool-update_artifact") {
+      const parsed = updateArtifactInputSchema.safeParse(part.input);
+      if (parsed.success) updates.push(parsed.data);
+    }
   }
   return updates;
 }

@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { UIMessage } from "ai";
 
 /**
- * Session stream contract, the typed parts a live work session may carry.
+ * Session stream contract, the typed parts a live assignment session may carry.
  *
  * Same discipline as the old block registry (one zod schema is the tool input,
  * the wire shape, and the persisted row), scoped to the v0 session surface:
@@ -13,11 +13,12 @@ import type { UIMessage } from "ai";
  *     (the model never invents one, see lib/agent/side-notes.ts);
  *   - a transient session status line for submit/lock state changes.
  *
- * v0 is deliberately scenario-locked to the pricing artifact (camera-first,
- * no speculative generality). New artifact types register here first.
+ * Artifact types are registered here. The general structured response covers
+ * ordinary assignments, while the pricing table remains supported for seeded
+ * transcripts and assignments whose deliverable is genuinely a pricing plan.
  */
 
-export const SESSION_PART_SCHEMA_VERSION = "1" as const;
+export const SESSION_PART_SCHEMA_VERSION = "2" as const;
 
 /* ── artifact panel ─────────────────────────────────────────── */
 
@@ -35,15 +36,63 @@ export const pricingArtifactSchema = z.object({
   revisionNote: z.string().max(300).optional(),
 });
 
-export type PricingArtifact = z.infer<typeof pricingArtifactSchema>;
-
-/** Input schema for the agent's update_artifact tool. */
-export const updateArtifactInputSchema = z.object({
-  artifactType: z.literal("pricing_table"),
-  state: pricingArtifactSchema,
+export const structuredArtifactFieldSchema = z.object({
+  label: z.string().min(1).max(100),
+  value: z.string().min(1).max(800),
 });
 
+export const structuredArtifactSectionSchema = z
+  .object({
+    heading: z.string().min(1).max(120),
+    content: z.string().min(1).max(1_600).optional(),
+    fields: z.array(structuredArtifactFieldSchema).max(12).optional(),
+    items: z.array(z.string().min(1).max(400)).max(12).optional(),
+  })
+  .refine(
+    (section) => Boolean(section.content || section.fields?.length || section.items?.length),
+    "A structured response section must contain content, fields, or items."
+  );
+
+export const structuredArtifactSchema = z.object({
+  title: z.string().min(1).max(160),
+  summary: z.string().min(1).max(800).optional(),
+  sections: z.array(structuredArtifactSectionSchema).min(1).max(8),
+  revisionNote: z.string().max(300).optional(),
+});
+
+export type PricingArtifact = z.infer<typeof pricingArtifactSchema>;
+export type StructuredArtifact = z.infer<typeof structuredArtifactSchema>;
+
+/** Input schema for the agent's update_artifact tool. */
+export const updateArtifactInputSchema = z.discriminatedUnion("artifactType", [
+  z.object({
+    artifactType: z.literal("pricing_table"),
+    state: pricingArtifactSchema,
+  }),
+  z.object({
+    artifactType: z.literal("structured_response"),
+    state: structuredArtifactSchema,
+  }),
+]);
+
 export type UpdateArtifactInput = z.infer<typeof updateArtifactInputSchema>;
+export type SessionArtifact = UpdateArtifactInput["state"];
+
+export function parseSessionArtifact(artifactType: string, state: unknown): UpdateArtifactInput | null {
+  const parsed = updateArtifactInputSchema.safeParse({ artifactType, state });
+  return parsed.success ? parsed.data : null;
+}
+
+/** Parse current wrapped values plus raw legacy pricing and structured states. */
+export function parseStoredSessionArtifact(value: unknown): UpdateArtifactInput | null {
+  const current = updateArtifactInputSchema.safeParse(value);
+  if (current.success) return current.data;
+  const pricing = pricingArtifactSchema.safeParse(value);
+  if (pricing.success) return { artifactType: "pricing_table", state: pricing.data };
+  const structured = structuredArtifactSchema.safeParse(value);
+  if (structured.success) return { artifactType: "structured_response", state: structured.data };
+  return null;
+}
 
 /* ── side-note cards ────────────────────────────────────────── */
 

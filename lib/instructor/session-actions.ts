@@ -32,7 +32,6 @@ import {
 } from "@/lib/agent/practice-proposal";
 import { parseRubricCriteria, rescaleCriterionToWeight } from "@/lib/agent/session-parts";
 import { renderFinalArtifactBody } from "@/lib/agent/transcript";
-import { pricingArtifactSchema } from "@/lib/agent/session-parts";
 import { classRollupStatsSchema } from "@/lib/agent/rollup";
 
 /**
@@ -70,10 +69,10 @@ function revalidateCockpit(assignmentId: string, studentId?: string) {
   revalidatePath("/teach/ai-assignments");
   revalidatePath(`/teach/ai-assignments/${assignmentId}`);
   revalidatePath("/teach");
-  revalidatePath(`/teach/work/${assignmentId}`);
+  revalidatePath(`/teach/assignments/${assignmentId}`);
   revalidatePath("/student");
   revalidatePath(`/student/session/${assignmentId}`);
-  revalidatePath(`/student/work/${assignmentId}`);
+  revalidatePath(`/student/assignments/${assignmentId}`);
   if (studentId) revalidatePath(`/teach/student/${studentId}`);
 }
 
@@ -112,8 +111,7 @@ export async function finalizeJourneyReport(formData: FormData) {
   const now = new Date();
   const score = row.report.overallScore;
   const grade = gradeLetterFor(score);
-  const artifact = pricingArtifactSchema.safeParse(row.submission.finalArtifact);
-  const fallbackBody = renderFinalArtifactBody(artifact.success ? artifact.data : null, row.studentName ?? "Student");
+  const fallbackBody = renderFinalArtifactBody(row.submission.finalArtifact, row.studentName ?? "Student");
 
   await db.transaction(async (tx) => {
     await tx

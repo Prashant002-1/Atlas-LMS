@@ -13,7 +13,7 @@ import {
 import { parseSideNoteTriggers, type SideNoteCard, type SideNoteTrigger } from "@/lib/agent/session-parts";
 
 /**
- * Side notes surface facts from the student's own past work. A card fires only
+ * Side notes surface facts from the student's own past course results. A card fires only
  * when the professor enables it, a sanctioned keyword lands in the student's
  * turn, the student's stored score is weak on that topic, and the topic has not
  * already fired in this session. The model never composes these facts.

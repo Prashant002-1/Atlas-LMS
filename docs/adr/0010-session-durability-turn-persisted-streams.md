@@ -22,7 +22,7 @@ Atlas v0 runs self-hosted (Docker/local) on its own Postgres, and its actual dur
 The v0 session engine uses **plain AI SDK 7 with turn-persisted streams on Atlas's own Postgres**:
 
 1. Every student turn is written to `agent_turns` BEFORE generation starts; it can never be lost.
-2. The assistant turn streams over a `createUIMessageStream`; on end, its full parts (text, `update_artifact` tool calls, `data-side-note` parts) are written as one turn, and validated artifact updates are snapshotted to `session_artifact_states` at that turn index.
+2. The assistant turn streams over a `createUIMessageStream`; on end, its full parts (text, exact artifact tool calls, `data-side-note` parts) are written as one turn, and validated artifact updates are snapshotted to `session_artifact_states` at that turn index.
 3. The session page hydrates the entire transcript from rows; the client sends only its latest message. A refresh replays the record; the only thing at risk mid-stream is the single reply being generated, which the student re-requests.
 4. Submit freezes the session in one transaction: normalized transcript + final artifact into `session_submissions`, mirrored onto the classic gradebook row.
 

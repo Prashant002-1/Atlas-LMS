@@ -30,6 +30,11 @@ test("the student session is the professor-configured assignment agent", () => {
 });
 
 test("artifact state supports ordinary assignments and legacy pricing transcripts", () => {
+  const runtime = read("lib/agent/session-runtime.ts");
+  assert.ok(runtime.includes("sessionArtifactToolSchemas.update_pricing_table"));
+  assert.ok(runtime.includes("sessionArtifactToolSchemas.update_structured_response"));
+  assert.equal(runtime.includes("inputSchema: updateArtifactInputSchema"), false);
+
   const structured = updateArtifactInputSchema.parse({
     artifactType: "structured_response",
     state: {

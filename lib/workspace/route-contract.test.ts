@@ -136,13 +136,13 @@ test("active source carries no old runtime references", () => {
   }
 });
 
-test("session, proposal, policy, and BYOK substrate remains for v0 adaptation", () => {
+test("session, proposal, policy, and platform model substrate remain for v0 adaptation", () => {
   assertSourceIncludes("lib/db/schema.ts", "export const agentSessions");
   assertSourceIncludes("lib/db/schema.ts", "export const agentTurns");
   assertSourceIncludes("lib/db/schema.ts", "export const proposalBlocks");
   assertSourceIncludes("lib/db/schema.ts", "export const changeProposals");
   assertSourceIncludes("lib/db/schema.ts", "export const courseAiPolicies");
-  assertSourceIncludes("lib/db/schema.ts", "export const orgProviderKeys");
+  assertSourceIncludes("lib/ai/platform-model.ts", "export function resolvePlatformModel()");
   assertSourceIncludes("lib/agent/context.ts", "export async function buildContextPack");
   assertSourceIncludes("lib/agent/session.ts", "export async function resumeOrCreateSession");
   assertSourceIncludes("lib/agent/session.ts", "export async function compactIfNeeded");
@@ -176,7 +176,7 @@ test("phase 2 mounts the session engine on the kept substrate", () => {
   assertSourceIncludes("lib/agent/session-runtime.ts", "export async function runSessionTurn");
   assertSourceIncludes("lib/agent/session-runtime.ts", "createUIMessageStream");
   assertSourceIncludes("lib/agent/session-runtime.ts", "persistSessionTurn(session, \"user\"");
-  assertSourceIncludes("app/api/session/[assignmentId]/route.ts", "resolveModelForOrg");
+  assertSourceIncludes("app/api/session/[assignmentId]/route.ts", "resolvePlatformModel");
   assertSourceIncludes("app/api/session/[assignmentId]/route.ts", 'user.role !== "student"');
 
   // Side notes are server-triggered, policy-gated, and record-composed.
@@ -281,9 +281,9 @@ test("issue 27: the professor plans with Atlas across the profile boundary", () 
   assertSourceIncludes("lib/agent/professor-runtime.ts", 'persistSessionTurn(session, "user"');
   assertSourceIncludes("lib/agent/professor-runtime.ts", "createUIMessageStream");
 
-  // The endpoint fails closed: instructor role, course in view, org model key.
+  // The endpoint fails closed: instructor role, course in view, platform model runtime.
   assertSourceIncludes("app/api/atlas/planning/route.ts", "isInstructorLike");
-  assertSourceIncludes("app/api/atlas/planning/route.ts", "resolveModelForOrg");
+  assertSourceIncludes("app/api/atlas/planning/route.ts", "resolvePlatformModel");
   assertSourceIncludes("app/api/atlas/planning/route.ts", "loadCommandSession");
 
   // The one door: planning tools draft proposals with session provenance and
@@ -436,10 +436,9 @@ test("issue 26: workspaces present records and direct controls, not a task queue
   assertServerAction("lib/instructor/actions.ts", "createAnnouncementRecord");
   assertSourceIncludes("app/teach/announcements/page.tsx", "action={createAnnouncementRecord}");
 
-  // Course setup is roster-facing and never touches Atlas policy or keys.
+  // Course setup is roster-facing and never touches Atlas policy or model configuration.
   assertServerAction("lib/instructor/actions.ts", "updateCourseDetails");
   assertSourceIncludes("app/teach/course/page.tsx", "action={updateCourseDetails}");
-  assertSourceExcludes("app/teach/course/page.tsx", "saveProviderKey");
   assertSourceExcludes("app/teach/course/page.tsx", "updateCourseAiPolicy");
 
   // The student calendar is derived from the record: assignment due dates and
@@ -463,12 +462,46 @@ test("no em dashes anywhere in the product", () => {
   }
 });
 
-test("BYOK keys are encrypted, resolved server-side, and never default silently", () => {
-  assertSourceIncludes("lib/agent/keys.ts", "aes-256-gcm");
-  assertSourceIncludes("lib/agent/keys.ts", "export async function resolveModelForOrg");
-  assertSourceIncludes("lib/agent/keys.ts", "keyTail");
-  assertServerAction("lib/instructor/actions.ts", "saveProviderKey");
-  assertSourceExcludes("app/teach/settings/page.tsx", "decryptSecret");
+test("model access is platform-owned and cannot be overridden by course actors", () => {
+  assertSourceIncludes("lib/ai/platform-model.ts", "export function resolvePlatformModel()");
+  assertSourceIncludes("lib/ai/platform-model.ts", "hasEnvCredentials(provider)");
+  assertSourceIncludes("lib/ai/platform-model.ts", "defaultChatProvider()");
+  assertSourceExcludes("lib/ai/platform-model.ts", "@/lib/db");
+  assertSourceExcludes("lib/ai/platform-model.ts", "orgId");
+
+  assert.equal(existsSync(path.join(root, "lib/agent/keys.ts")), false);
+  assert.equal(existsSync(path.join(root, "lib/instructor/settings-actions.ts")), false);
+  assertSourceExcludes("lib/instructor/actions.ts", 'formData.get("apiKey")');
+  assertSourceExcludes("lib/db/schema.ts", "ciphertext");
+  assertSourceExcludes("lib/db/schema.ts", ["provider", "Kind", "Enum"].join(""));
+
+  const migration = readFile("drizzle/0007_platform_model_credentials.sql");
+  assert.match(migration, /DROP TABLE IF EXISTS/);
+  assert.match(migration, /DROP TYPE IF EXISTS/);
+});
+
+test("tracked product artifacts contain no customer model override remnants", () => {
+  const retiredTerms = [
+    ["b", "y", "o", "k"].join(""),
+    ["bring", " your", " own"].join(""),
+    ["org", "provider", "keys"].join(""),
+    ["org", "_provider", "_keys"].join(""),
+    ["save", "org", "provider", "key"].join(""),
+    ["delete", "org", "provider", "key"].join(""),
+    ["list", "org", "provider", "keys"].join(""),
+    ["save", "provider", "key"].join(""),
+    ["save", "settings", "provider", "key"].join(""),
+    ["resolve", "model", "for", "org"].join(""),
+    ["connect", " a", " model", " key"].join(""),
+    ["your", " key"].join(""),
+  ];
+
+  for (const file of projectTextFiles(root)) {
+    const source = readFileSync(file, "utf8").toLowerCase();
+    for (const term of retiredTerms) {
+      assert.equal(source.includes(term), false, `${path.relative(root, file)} contains retired model access language`);
+    }
+  }
 });
 
 test("record actions stay direct and editable by hand", () => {
@@ -539,6 +572,18 @@ function sourceFiles(dirs: string[]) {
     }
   }
 
+  return files;
+}
+
+function projectTextFiles(dir: string): string[] {
+  const files: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    if ([".git", ".next", "node_modules"].includes(entry)) continue;
+    const file = path.join(dir, entry);
+    const stats = statSync(file);
+    if (stats.isDirectory()) files.push(...projectTextFiles(file));
+    else if (/\.(?:ts|tsx|md|mdx|html|sql|json|ya?ml)$/.test(entry) || entry === ".env.example") files.push(file);
+  }
   return files;
 }
 

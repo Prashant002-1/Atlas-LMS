@@ -80,13 +80,6 @@ export const agentSurfaceEnum = pgEnum("agent_surface", ["command", "cue"]);
 export const agentTurnRoleEnum = pgEnum("agent_turn_role", ["user", "assistant", "tool"]);
 export const cueTargetEnum = pgEnum("cue_target", ["assignment", "module", "page", "course"]);
 export const explanationDepthEnum = pgEnum("explanation_depth", ["hint", "guided", "full"]);
-export const providerKindEnum = pgEnum("provider_kind", [
-  "openrouter",
-  "openai",
-  "anthropic",
-  "google",
-  "openai_compatible",
-]);
 export const sessionSubmissionStatusEnum = pgEnum("session_submission_status", ["submitted", "graded"]);
 export const journeyReportStatusEnum = pgEnum("journey_report_status", ["draft", "final"]);
 
@@ -732,31 +725,6 @@ export const proposalBlocks = pgTable(
   (t) => [index("proposal_blocks_proposal_idx").on(t.proposalId, t.position)]
 );
 
-/**
- * BYOK, org-level provider keys, AES-256-GCM encrypted with the app secret.
- * Resolution order at runtime: org key → environment fallback. Keys never reach
- * the client; the settings UI shows only a masked tail.
- */
-export const orgProviderKeys = pgTable(
-  "org_provider_keys",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    orgId: uuid("org_id")
-      .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    provider: providerKindEnum("provider").notNull(),
-    ciphertext: text("ciphertext").notNull(),
-    iv: text("iv").notNull(),
-    keyTail: text("key_tail").notNull(), // last 4 chars, for display
-    chatModel: text("chat_model"),
-    // For the openai_compatible / opencode-gateway provider: the endpoint base URL.
-    baseUrl: text("base_url"),
-    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (t) => [uniqueIndex("org_provider_keys_org_provider_idx").on(t.orgId, t.provider)]
-);
-
 // Agent write-actions land here as a reviewable diff. Nothing mutates the course until approved.
 export const changeProposals = pgTable(
   "change_proposals",
@@ -1074,7 +1042,6 @@ export type AgentSession = typeof agentSessions.$inferSelect;
 export type AgentTurn = typeof agentTurns.$inferSelect;
 export type ProposalBlock = typeof proposalBlocks.$inferSelect;
 export type PracticeSet = typeof practiceSets.$inferSelect;
-export type OrgProviderKey = typeof orgProviderKeys.$inferSelect;
 export type NewCourse = typeof courses.$inferInsert;
 export type Enrollment = typeof enrollments.$inferSelect;
 export type Module = typeof modules.$inferSelect;

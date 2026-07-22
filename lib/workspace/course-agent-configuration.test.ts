@@ -111,8 +111,7 @@ test("teacher configuration is transparent and conversation edited", () => {
   assert.doesNotMatch(page, /Model access/);
   assert.doesNotMatch(page, /Provider/);
   assert.doesNotMatch(page, /API key/);
-  assert.doesNotMatch(page, /resolveModelForOrg/);
-  assert.doesNotMatch(page, /saveSettingsProviderKey/);
+  assert.doesNotMatch(page, /resolvePlatformModel/);
 });
 
 test("course setup is read first and supports real material intake", () => {

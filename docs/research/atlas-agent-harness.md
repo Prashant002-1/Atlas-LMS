@@ -50,7 +50,7 @@ Sources:
 - https://developers.openai.com/codex/config-basic
 - https://developers.openai.com/codex/agent-approvals-security
 
-Implication for Atlas: use a reviewed `.atlas` authoring layer, not a general coding runtime. Load only skill metadata on every turn and one small workflow body when needed. Keep provider keys, tenant scope, and action policy outside repository prompt files.
+Implication for Atlas: use a reviewed `.atlas` authoring layer, not a general coding runtime. Load only skill metadata on every turn and one small workflow body when needed. Keep platform credentials, data scope, and action policy outside repository prompt files.
 
 ### OpenCode v2
 

@@ -20,9 +20,6 @@ import {
 import { isInstructorLike } from "@/lib/auth/session";
 import { findEditableCourse } from "@/lib/instructor/workspace";
 import { applyProposal, dismissProposal } from "@/lib/agent/apply";
-import { deleteOrgProviderKey, saveOrgProviderKey } from "@/lib/agent/keys";
-
-
 
 export async function createModuleRecord(formData: FormData) {
   const user = await requireInstructorActor();
@@ -620,36 +617,6 @@ export async function updateCourseAiPolicy(formData: FormData) {
   redirect("/teach/settings");
 }
 
-/** Attach the org's model key (BYOK). Stored encrypted; only the tail is ever shown. */
-export async function saveProviderKey(formData: FormData) {
-  const user = await requireInstructorActor();
-
-  const providerRaw = String(formData.get("provider") ?? "openrouter");
-  const provider = providerRaw === "openai" ? ("openai" as const) : ("openrouter" as const);
-  const apiKey = String(formData.get("apiKey") ?? "").trim();
-  const chatModel = optionalCompactField(formData.get("chatModel"), 120);
-
-  if (apiKey.length < 12) {
-    throw new Error("That key looks too short.");
-  }
-
-  await saveOrgProviderKey({ orgId: user.orgId, userId: user.id, provider, apiKey, chatModel });
-
-  revalidatePath("/teach/settings");
-  redirect("/teach/settings");
-}
-
-export async function removeProviderKey(formData: FormData) {
-  const user = await requireInstructorActor();
-  const providerRaw = String(formData.get("provider") ?? "");
-  if (providerRaw !== "openai" && providerRaw !== "openrouter") {
-    throw new Error("Unknown provider.");
-  }
-  await deleteOrgProviderKey(user.orgId, providerRaw);
-  revalidatePath("/teach/settings");
-  redirect("/teach/settings");
-}
-
 /**
  * Post an announcement: a one-way course post, published on creation with
  * the posting time as its record fact. There is no inbox and no thread.
@@ -682,7 +649,7 @@ export async function createAnnouncementRecord(formData: FormData) {
 /**
  * Course setup: the roster-facing course details. Name and description only;
  * the syllabus text has its own action on the Syllabus page, and Atlas policy
- * and model keys live in Settings, deliberately not here.
+ * lives in Settings, deliberately not here.
  */
 export async function updateCourseDetails(formData: FormData) {
   const user = await requireInstructorActor();
@@ -972,7 +939,3 @@ async function replaceObjectiveLinks(
 
   await linkObjectives(tx, orgId, courseId, itemId, itemType, objectiveCodes);
 }
-
-
-
-

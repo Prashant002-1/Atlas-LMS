@@ -1,6 +1,6 @@
 /**
  * Regrade session submissions through the live grading pipeline, using the
- * same org BYOK model resolution as the product path. This is the dev/demo
+ * same platform model resolution as the product path. This is the dev/demo
  * tool for pending reports and for the calibration pilot (grade the seeded
  * archetypes with a real model, then compare against the professor's blind
  * grades).
@@ -9,7 +9,7 @@
  *   npm run regrade -- --all                 regrade EVERY submission (force)
  *   npm run regrade -- --submission <id>     regrade one submission (force)
  *
- * Requires DATABASE_URL (or .env.local) and a configured model key.
+ * Requires DATABASE_URL (or .env.local) and configured platform model credentials.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -31,7 +31,7 @@ async function main() {
   const { db } = await import("../lib/db");
   const { sessionSubmissions, journeyReports, users } = await import("../lib/db/schema");
   const { runGradingForSubmission } = await import("../lib/agent/grading");
-  const { resolveModelForOrg } = await import("../lib/agent/keys");
+  const { resolvePlatformModel } = await import("../lib/ai/platform-model");
   const { parseJourneyScores } = await import("../lib/agent/session-parts");
   const { eq, isNull } = await import("drizzle-orm");
 
@@ -68,22 +68,16 @@ async function main() {
   }
 
   const force = all || Boolean(onlySubmissionId);
-  const modelsByOrg = new Map<string, Awaited<ReturnType<typeof resolveModelForOrg>>>();
+  const resolved = resolvePlatformModel();
+  if (!resolved) {
+    console.error("Atlas's platform model runtime is not configured.");
+    process.exit(1);
+  }
   let failures = 0;
 
   console.log(`Grading ${rows.length} submission${rows.length === 1 ? "" : "s"}${force ? " (force)" : ""}...`);
 
   for (const row of rows) {
-    if (!modelsByOrg.has(row.orgId)) {
-      modelsByOrg.set(row.orgId, await resolveModelForOrg(row.orgId));
-    }
-    const resolved = modelsByOrg.get(row.orgId);
-    if (!resolved) {
-      console.error(`SKIP ${row.id} (${row.studentName ?? row.userId}): no model key configured for the org.`);
-      failures += 1;
-      continue;
-    }
-
     try {
       const report = await runGradingForSubmission({
         orgId: row.orgId,

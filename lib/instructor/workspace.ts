@@ -9,8 +9,10 @@ import {
   courses,
   enrollments,
   learningObjectives,
+  journeyReports,
   modules,
   sessionAssignments,
+  sessionSubmissions,
   submissions,
   users,
 } from "@/lib/db/schema";
@@ -75,6 +77,10 @@ export type InstructorAssignmentSubmission = {
   score?: number | null;
   grade?: string | null;
   body?: string | null;
+  /** Canonical AI-session drill-in reached from every assignment surface. */
+  sessionSubmissionId?: string | null;
+  draftScore?: number | null;
+  draftReportStatus?: "draft" | "final" | null;
 };
 
 export type InstructorStudentWorkItem = {
@@ -816,8 +822,30 @@ export async function loadInstructorAssignmentWorkspace(
           )
       : [];
 
+  const sessionSubmissionRows =
+    studentIds.length > 0
+      ? await db
+          .select({
+            id: sessionSubmissions.id,
+            userId: sessionSubmissions.userId,
+            draftScore: journeyReports.overallScore,
+            reportStatus: journeyReports.status,
+          })
+          .from(sessionSubmissions)
+          .leftJoin(journeyReports, eq(journeyReports.submissionId, sessionSubmissions.id))
+          .where(
+            and(
+              eq(sessionSubmissions.orgId, actor.orgId),
+              eq(sessionSubmissions.courseId, workspace.course.id),
+              eq(sessionSubmissions.assignmentId, assignment.id ?? ""),
+              inArray(sessionSubmissions.userId, studentIds)
+            )
+          )
+      : [];
+
   const userById = new Map(studentRows.map((user) => [user.id, user]));
   const submissionByUser = new Map(submissionRows.map((submission) => [submission.userId, submission]));
+  const sessionSubmissionByUser = new Map(sessionSubmissionRows.map((submission) => [submission.userId, submission]));
   const roster = studentEnrollmentRows.map((enrollment) => {
     const user = userById.get(enrollment.userId);
     const submission = submissionByUser.get(enrollment.userId);
@@ -832,6 +860,9 @@ export async function loadInstructorAssignmentWorkspace(
       score: submission?.score,
       grade: submission?.grade,
       body: submission?.body,
+      sessionSubmissionId: sessionSubmissionByUser.get(enrollment.userId)?.id ?? null,
+      draftScore: sessionSubmissionByUser.get(enrollment.userId)?.draftScore ?? null,
+      draftReportStatus: sessionSubmissionByUser.get(enrollment.userId)?.reportStatus ?? null,
     };
   });
 

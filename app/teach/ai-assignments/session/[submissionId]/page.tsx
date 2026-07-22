@@ -8,6 +8,7 @@ import { ProfessorReportPanel } from "@/components/cockpit/report-panel";
 import { TranscriptView } from "@/components/cockpit/transcript-view";
 import { ArtifactPanel } from "@/components/session/artifact-panel";
 import { parseSessionArtifact } from "@/lib/agent/session-parts";
+import { PendingActionButton } from "@/components/atlas/pending-action-button";
 
 /** One student's submitted session: grade, submission draft, and transcript. */
 export default async function SessionSubmissionPage({ params }: { params: Promise<{ submissionId: string }> }) {
@@ -65,12 +66,12 @@ export default async function SessionSubmissionPage({ params }: { params: Promis
               <p className="mt-2 text-[0.8125rem] text-[var(--color-muted)]">This session has not been graded.</p>
               <form action={regradeJourneyReport} className="mt-4">
                 <input type="hidden" name="submissionId" value={view.submission.id} />
-                <button
-                  type="submit"
-                  className="inline-flex min-h-9 items-center rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 text-[0.8125rem] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
+                <PendingActionButton
+                  pendingLabel="Grading session"
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 text-[0.8125rem] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
                 >
                   Grade session
-                </button>
+                </PendingActionButton>
               </form>
             </section>
           )}

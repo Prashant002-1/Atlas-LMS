@@ -8,6 +8,7 @@ const read = (relative: string) => readFileSync(path.join(root, relative), "utf8
 
 test("the Atlas page is a full viewport operator with quiet streaming feedback", () => {
   const room = read("components/planning/atlas-room.tsx");
+  const status = read("components/ai-elements/agent-status.tsx");
   const entry = read("components/planning/planning-room.tsx");
   assert.match(entry, /atlas-room/);
   assert.match(room, /atlas-harness-root/);
@@ -19,12 +20,12 @@ test("the Atlas page is a full viewport operator with quiet streaming feedback",
   assert.match(room, /Voice input coming soon/);
   assert.match(room, /min-h-\[3\.25rem\] flex-row items-end/);
   assert.match(room, /ThinkingIndicator/);
-  assert.match(room, /<Shimmer/);
+  assert.match(status, /<Shimmer/);
   assert.match(room, /PromptCheckpointRail/);
-  assert.match(room, /Prompt checkpoints/);
-  assert.match(room, /role="tooltip"/);
-  assert.match(room, /aria-describedby/);
-  assert.match(room, /scrollIntoView/);
+  assert.match(status, /Prompt checkpoints/);
+  assert.match(status, /role="tooltip"/);
+  assert.match(status, /aria-describedby/);
+  assert.match(status, /scrollIntoView/);
   assert.match(room, /Checking the gradebook/);
   assert.match(room, /What is the grade distribution for this class\?/);
   assert.match(room, /How is Maya Patel doing\?/);

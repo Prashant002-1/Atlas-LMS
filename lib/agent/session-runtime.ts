@@ -47,11 +47,13 @@ export async function runSessionTurn(args: {
   courseAgent: ResolvedCourseAgentConfig;
   model: LanguageModel;
   userText: string;
+  /** The route persists input before it starts a durable workflow run. */
+  userTurnIndex?: number;
 }): Promise<Response> {
   const { session, bundle } = args;
 
   const userParts = [{ type: "text" as const, text: args.userText }];
-  const userTurnIndex = await persistSessionTurn(session, "user", userParts);
+  const userTurnIndex = args.userTurnIndex ?? await persistSessionTurn(session, "user", userParts);
 
   const sideNote = await fireSideNoteForTurn({
     session,

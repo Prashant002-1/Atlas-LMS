@@ -53,11 +53,15 @@ export async function runProfessorTurn(args: {
   scope: ProfessorScope;
   model: LanguageModel;
   userText: string;
+  /** The route persists input before it starts a durable workflow run. */
+  userTurnPersisted?: boolean;
 }): Promise<Response> {
   const { session, scope } = args;
 
-  await titleCommandSessionFromIntent(session, args.userText);
-  await persistSessionTurn(session, "user", [{ type: "text" as const, text: args.userText }]);
+  if (!args.userTurnPersisted) {
+    await titleCommandSessionFromIntent(session, args.userText);
+    await persistSessionTurn(session, "user", [{ type: "text" as const, text: args.userText }]);
+  }
 
   const [professorPack, harness] = await Promise.all([buildProfessorPack(scope), loadAtlasHarness()]);
   const instructions = buildProfessorInstructions({ harness });

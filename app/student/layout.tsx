@@ -57,6 +57,13 @@ export default async function StudentLayout({ children }: { children: ReactNode 
           },
         ]
       : []),
+    {
+      label: "University",
+      items: [
+        { href: "/student/resources", label: "Resources", icon: "resources" },
+        { href: "/student/books", label: "Books", icon: "books" },
+      ],
+    },
   ];
 
   return (

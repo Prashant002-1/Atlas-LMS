@@ -174,8 +174,8 @@ export async function finalizeJourneyReport(formData: FormData) {
   });
 
   revalidateCockpit(row.report.assignmentId, row.report.userId);
-  revalidatePath(`/teach/ai-assignments/journey/${row.submission.id}`);
-  redirect(`/teach/ai-assignments/journey/${row.submission.id}`);
+  revalidatePath(`/teach/ai-assignments/session/${row.submission.id}`);
+  redirect(`/teach/ai-assignments/session/${row.submission.id}`);
 }
 
 /* ── regrade: rerun the pipeline on a draft ─────────────────── */
@@ -225,8 +225,8 @@ export async function regradeJourneyReport(formData: FormData) {
   });
 
   revalidateCockpit(submission.assignmentId);
-  revalidatePath(`/teach/ai-assignments/journey/${submissionId}`);
-  redirect(`/teach/ai-assignments/journey/${submissionId}`);
+  revalidatePath(`/teach/ai-assignments/session/${submissionId}`);
+  redirect(`/teach/ai-assignments/session/${submissionId}`);
 }
 
 /* ── class insight ──────────────────────────────────────────── */

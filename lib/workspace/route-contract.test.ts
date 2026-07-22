@@ -222,7 +222,7 @@ test("phase 3 makes the rubric read the transcript", () => {
   assertServerAction("lib/student/actions.ts", "requestJourneyReview");
 
   // The student sees the evidence-backed report; the seed lands graded worlds.
-  assertSourceIncludes("app/student/session/[assignmentId]/page.tsx", "JourneyReportPanel");
+  assertSourceIncludes("components/session/session-room.tsx", "JourneyReportPanel");
   assertSourceIncludes("components/session/journey-report-panel.tsx", "requestJourneyReview");
   assertSourceIncludes("lib/db/seed.ts", "journeyReports");
   assertSourceIncludes("lib/db/seed.ts", "computeClassRollupStats");
@@ -416,10 +416,10 @@ test("issue 26: the shell holds the sharp radius scale by construction", () => {
 test("issue 26: workspaces present records and direct controls, not a task queue", () => {
   // The professor overview stays lean: assignments, upcoming dates, a short
   // deterministic Atlas briefing, announcements, and direct creation.
-  assertSourceIncludes("app/teach/page.tsx", '"Assignments"');
-  assertSourceIncludes("app/teach/page.tsx", '"Upcoming"');
-  assertSourceIncludes("app/teach/page.tsx", '"Atlas briefing"');
-  assertSourceIncludes("app/teach/page.tsx", '"Announcements"');
+  assertSourceIncludes("app/teach/page.tsx", ">Assignments<");
+  assertSourceIncludes("app/teach/page.tsx", ">Upcoming<");
+  assertSourceIncludes("app/teach/page.tsx", ">Atlas briefing<");
+  assertSourceIncludes("app/teach/page.tsx", ">Announcements<");
   assertSourceExcludes("app/teach/page.tsx", '"Recent changes"');
   assertSourceExcludes("lib/instructor/workspace.ts", "recentChanges");
   assertSourceIncludes("app/teach/page.tsx", "/teach/assignments?new=1");

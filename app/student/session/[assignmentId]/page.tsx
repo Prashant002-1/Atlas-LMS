@@ -42,6 +42,8 @@ export default async function StudentSessionPage({ params }: { params: Promise<{
       initialArtifacts={view.artifacts}
       initialSideNotes={view.sideNotes}
       sessionStartedAt={view.sessionStartedAt}
+      deadlineAt={view.deadlineAt}
+      activeRunId={view.activeRunId}
       submitted={view.submitted}
       submittedAt={view.submittedAt}
       report={view.report}

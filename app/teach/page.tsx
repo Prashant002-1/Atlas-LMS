@@ -6,6 +6,10 @@ import { CourseSwitch } from "@/components/teach/course-switch";
 import { ButtonLink, RecordRow, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
 
+function hasUpcomingDueDate(assignment: InstructorWorkspace["assignments"][number]) {
+  return assignment.status === "approved" && assignment.dueAt && assignment.dueAt.getTime() >= Date.now();
+}
+
 /** A lean teaching overview: assignments, the next dates, and a short Atlas briefing. */
 export default async function TeachOverviewPage() {
   const session = await auth();
@@ -22,14 +26,14 @@ export default async function TeachOverviewPage() {
 
   const assignments = workspace.assignments.slice(0, 7);
   const upcoming = workspace.assignments
-    .filter((assignment) => assignment.status === "approved" && assignment.dueAt && assignment.dueAt.getTime() >= Date.now())
+    .filter(hasUpcomingDueDate)
     .sort((a, b) => (a.dueAt?.getTime() ?? 0) - (b.dueAt?.getTime() ?? 0))
     .slice(0, 4);
   const briefing = buildAtlasBriefing(workspace);
 
   return (
     <>
-      <header className="mb-7 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--color-border)] pb-5">
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
         <h1 className="sr-only">{workspace.course.name}</h1>
         <CourseSwitch
           courses={workspace.scope.courses.map((course) => ({ id: course.id, code: course.code, name: course.name }))}
@@ -57,8 +61,8 @@ export default async function TeachOverviewPage() {
       <StaggerGrid className="grid gap-x-10 gap-y-9 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.38fr)]" stagger={0.05}>
         <MotionItem>
           <section className="min-w-0" aria-labelledby="overview-assignments-heading">
-            <div className="flex items-baseline justify-between gap-3 border-b border-[var(--color-border)] pb-2.5">
-              <h2 id="overview-assignments-heading" className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Assignments</h2>
+            <div className="mb-2 flex items-baseline justify-between gap-3">
+              <h2 id="overview-assignments-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Assignments</h2>
               <TextLink href="/teach/assignments" className="text-[0.75rem]">All assignments</TextLink>
             </div>
             {assignments.length > 0 ? (
@@ -74,8 +78,8 @@ export default async function TeachOverviewPage() {
         <div className="min-w-0 space-y-8">
           <MotionItem>
             <section aria-labelledby="atlas-briefing-heading">
-              <div className="flex items-baseline justify-between gap-3 border-b border-[var(--color-border)] pb-2.5">
-                <h2 id="atlas-briefing-heading" className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Atlas briefing</h2>
+              <div className="mb-3 flex items-baseline justify-between gap-3">
+                <h2 id="atlas-briefing-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Atlas briefing</h2>
                 <TextLink href="/teach/atlas" className="text-[0.75rem]">Open Atlas</TextLink>
               </div>
               <p className="pt-3 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{briefing}</p>
@@ -84,7 +88,7 @@ export default async function TeachOverviewPage() {
 
           <MotionItem>
             <section aria-labelledby="upcoming-heading">
-              <h2 id="upcoming-heading" className="border-b border-[var(--color-border)] pb-2.5 text-[0.8125rem] font-semibold text-[var(--color-ink)]">Upcoming</h2>
+              <h2 id="upcoming-heading" className="mb-2 text-[1rem] font-semibold text-[var(--color-ink)]">Upcoming</h2>
               {upcoming.length > 0 ? (
                 <div className="divide-y divide-[var(--color-border)]">
                   {upcoming.map((assignment) => (
@@ -102,8 +106,8 @@ export default async function TeachOverviewPage() {
 
           <MotionItem>
             <section aria-labelledby="overview-announcements-heading">
-              <div className="flex items-baseline justify-between gap-3 border-b border-[var(--color-border)] pb-2.5">
-                <h2 id="overview-announcements-heading" className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Announcements</h2>
+              <div className="mb-2 flex items-baseline justify-between gap-3">
+                <h2 id="overview-announcements-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Announcements</h2>
                 <TextLink href="/teach/announcements" className="text-[0.75rem]">All</TextLink>
               </div>
               {workspace.notices.length > 0 ? (

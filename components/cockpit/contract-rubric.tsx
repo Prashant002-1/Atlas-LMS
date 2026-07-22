@@ -28,6 +28,10 @@ export function AssignmentSettings({
         <SettingFact label="Personal notes" value={contract.personalRecordSideNotes ? "On" : "Off"} />
         <SettingFact label="Transcript" value={contract.transcriptPolicy} wide />
         <SettingFact label="Course material" value={contract.groundingScope.length > 0 ? contract.groundingScope.join(", ") : "Course"} wide />
+        <div className="sm:col-span-2">
+          <dt className="text-[0.71875rem] text-[var(--color-faint)]">Connected tools</dt>
+          <dd className="mt-0.5 text-[0.8125rem] leading-5 text-[var(--color-muted)]">None attached. <TextLink href="/teach/integrations" className="text-[0.75rem]">Open integrations</TextLink></dd>
+        </div>
       </dl>
       <p className="mt-4 max-w-2xl text-[0.8125rem] leading-6 text-[var(--color-muted)]">{contract.instructions}</p>
 

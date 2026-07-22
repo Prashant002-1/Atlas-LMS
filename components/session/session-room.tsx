@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
 import type { UIMessage } from "ai";
+import { WorkflowChatTransport } from "@ai-sdk/workflow";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -20,11 +21,16 @@ import {
   Conversation,
   ConversationContent,
   ConversationEmptyState,
-  ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import { Response } from "@/components/ai-elements/response";
-import { Loader } from "@/components/ai-elements/loader";
+import {
+  messageHasVisibleOutput,
+  PromptCheckpointRail,
+  promptAnchorId,
+  promptCheckpointLabel,
+  ThinkingIndicator,
+} from "@/components/ai-elements/agent-status";
 import {
   PromptInput,
   PromptInputSubmit,
@@ -62,6 +68,8 @@ export type SessionRoomProps = {
   initialArtifacts: Array<{ turnIndex: number; artifactType: string; state: unknown }>;
   initialSideNotes: SideNoteCard[];
   sessionStartedAt: string | null;
+  deadlineAt: string | null;
+  activeRunId: string | null;
   submitted: boolean;
   submittedAt: string | null;
   report: StudentJourneyReportView | null;
@@ -86,6 +94,8 @@ export function SessionRoom(props: SessionRoomProps) {
       initialArtifacts={[]}
       initialSideNotes={[]}
       sessionStartedAt={null}
+      deadlineAt={null}
+      activeRunId={null}
       submitted={false}
       submittedAt={null}
       report={null}
@@ -95,13 +105,60 @@ export function SessionRoom(props: SessionRoomProps) {
 }
 
 function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void; chatIdSuffix?: string }) {
-  const { messages, sendMessage, status, stop, error } = useChat({
+  const router = useRouter();
+  const runStorageKey = `atlas-active-run:session:${props.assignmentId}${props.chatIdSuffix ?? ""}`;
+  const [localDeadlineAt, setLocalDeadlineAt] = useState<string | null>(props.deadlineAt);
+  const [closing, setClosing] = useState(false);
+  const [steerQueue, setSteerQueue] = useState<string[]>([]);
+  const steerQueueRef = useRef<string[]>([]);
+  const deadlineAt = localDeadlineAt ?? props.deadlineAt;
+  const transport = useMemo(() => new WorkflowChatTransport<UIMessage>({
+    api: `/api/session/${props.assignmentId}`,
+    prepareSendMessagesRequest: ({ messages: outgoing }) => ({
+      body: { message: outgoing[outgoing.length - 1] },
+    }),
+    onChatSendMessage: (response) => {
+      const runId = response.headers.get("x-workflow-run-id");
+      const exactDeadline = response.headers.get("x-session-deadline-at");
+      if (runId) {
+        window.localStorage.setItem(runStorageKey, runId);
+      }
+      if (exactDeadline) setLocalDeadlineAt(exactDeadline);
+    },
+    onChatEnd: () => {
+      window.localStorage.removeItem(runStorageKey);
+    },
+    prepareReconnectToStreamRequest: ({ ...rest }) => {
+      const runId = window.localStorage.getItem(runStorageKey);
+      if (!runId) throw new Error("No active session run to resume.");
+      return { ...rest, api: `/api/agent-runs/${encodeURIComponent(runId)}/stream` };
+    },
+  }), [props.assignmentId, runStorageKey]);
+
+  useEffect(() => {
+    if (props.activeRunId) window.localStorage.setItem(runStorageKey, props.activeRunId);
+    else window.localStorage.removeItem(runStorageKey);
+  }, [props.activeRunId, runStorageKey]);
+
+  const { messages, sendMessage, status, error } = useChat({
     id: `session-${props.assignmentId}${props.chatIdSuffix ?? ""}`,
     messages: props.initialMessages,
-    transport: new DefaultChatTransport({
-      api: `/api/session/${props.assignmentId}`,
-      prepareSendMessagesRequest: ({ messages: outgoing }) => ({ body: { message: outgoing[outgoing.length - 1] } }),
-    }),
+    resume: Boolean(props.activeRunId),
+    transport,
+    onError: (chatError) => console.error("Atlas session stream failed", chatError),
+    onFinish: ({ isAbort, isDisconnect }) => {
+      if (isAbort || isDisconnect) return;
+      if (closing || props.submitted) {
+        steerQueueRef.current = [];
+        setSteerQueue([]);
+        return;
+      }
+      const [next, ...rest] = steerQueueRef.current;
+      if (!next) return;
+      steerQueueRef.current = rest;
+      setSteerQueue(rest);
+      window.setTimeout(() => sendMessage({ text: next }), 0);
+    },
   });
   const [inspectorOpen, setInspectorOpen] = useState(false);
 
@@ -118,6 +175,45 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
 
   const busy = status === "submitted" || status === "streaming";
   const started = messages.length > 0;
+
+  const beginIfNeeded = () => {
+    if (deadlineAt || started) return;
+    setLocalDeadlineAt(new Date(Date.now() + props.durationMinutes * 60_000).toISOString());
+  };
+
+  const sendSessionMessage = (text: string) => {
+    beginIfNeeded();
+    sendMessage({ text });
+  };
+
+  useEffect(() => {
+    if (!deadlineAt || props.submitted) return;
+    const delay = Math.max(0, Date.parse(deadlineAt) - Date.now());
+    const timer = window.setTimeout(() => setClosing(true), delay);
+    return () => window.clearTimeout(timer);
+  }, [deadlineAt, props.submitted]);
+
+  useEffect(() => {
+    if (!closing && !props.gradingPending) return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/session/${props.assignmentId}/state`, { cache: "no-store" });
+        if (!response.ok || cancelled) return;
+        const state = await response.json() as { submitted: boolean; reportReady: boolean; deadlineAt: string | null };
+        if (state.deadlineAt) setLocalDeadlineAt(state.deadlineAt);
+        if ((state.submitted && !props.submitted) || (state.reportReady && !props.report)) router.refresh();
+      } catch {
+        // The durable workflow owns completion; a transient poll failure is harmless.
+      }
+    };
+    void poll();
+    const timer = window.setInterval(poll, 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [closing, props.assignmentId, props.gradingPending, props.report, props.submitted, router]);
 
   const liveRevisions = useMemo(() => {
     const out: ArtifactRevision[] = [];
@@ -159,7 +255,13 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
   }, [props.initialSideNotes, inlineNoteIds]);
 
   const lastMessage = messages[messages.length - 1];
-  const awaitingReply = busy && (!lastMessage || lastMessage.role === "user");
+  const awaitingReply = busy && !messageHasVisibleOutput(lastMessage);
+  const promptCheckpoints = useMemo(
+    () => messages
+      .filter((message) => message.role === "user")
+      .map((message, index) => ({ id: message.id, label: promptCheckpointLabel(message, index) })),
+    [messages]
+  );
 
   return (
     <div className="student-assignment-session-root flex h-full min-h-0 w-full bg-[var(--color-bg)]">
@@ -202,7 +304,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <SessionTimer startedAt={props.sessionStartedAt} durationMinutes={props.durationMinutes} running={started && !props.submitted} />
+            <SessionTimer deadlineAt={deadlineAt} durationMinutes={props.durationMinutes} running={started && !props.submitted} onElapsed={() => setClosing(true)} />
             {props.submitted ? <span className="hidden text-[0.71875rem] font-medium text-[var(--color-accent-strong)] sm:block">Submitted</span> : null}
             <button
               type="button"
@@ -220,8 +322,9 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
 
         <div className="flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 flex-col">
-            <Conversation className="h-full bg-[var(--color-bg)]">
-              <ConversationContent className="mx-auto w-full max-w-[48rem] flex-1 gap-7 px-4 pb-10 pt-8 md:px-8">
+            <div className="relative flex min-h-0 flex-1">
+              <Conversation className="h-full bg-[var(--color-bg)]">
+                <ConversationContent className="mx-auto w-full max-w-[48rem] flex-1 gap-7 px-4 pb-10 pt-8 md:px-8">
                 {messages.length === 0 ? (
                   <ConversationEmptyState className="min-h-[25rem] items-start justify-center px-0 text-left">
                     <div className="w-full max-w-[40rem] space-y-6">
@@ -236,15 +339,19 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                         <div><dt className="text-[var(--color-faint)]">Transcript</dt><dd className="mt-0.5 font-medium text-[var(--color-ink)]">Part of submission</dd></div>
                       </dl>
                       <Suggestions className="justify-start">
-                        <Suggestion suggestion="I'm ready. Begin with the first question." onClick={(text) => sendMessage({ text })} />
-                        <Suggestion suggestion="Review the rubric with me before we start." onClick={(text) => sendMessage({ text })} />
+                        <Suggestion suggestion="I'm ready. Begin with the first question." onClick={sendSessionMessage} />
+                        <Suggestion suggestion="Review the rubric with me before we start." onClick={sendSessionMessage} />
                       </Suggestions>
                     </div>
                   </ConversationEmptyState>
                 ) : (
                   messages.map((message, index) => (
                     <div key={message.id} className="flex flex-col gap-3">
-                      <Message from={message.role === "user" ? "user" : "assistant"}>
+                      <Message
+                        id={message.role === "user" ? promptAnchorId(message.id) : undefined}
+                        className={message.role === "user" ? "scroll-mt-24" : undefined}
+                        from={message.role === "user" ? "user" : "assistant"}
+                      >
                         <MessageContent>
                           <MessageParts message={message} streaming={busy && index === messages.length - 1 && message.role === "assistant"} />
                         </MessageContent>
@@ -253,39 +360,44 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                     </div>
                   ))
                 )}
-                {awaitingReply ? (
-                  <div className="flex items-center gap-2 text-[0.78125rem] text-[var(--color-muted)]">
-                    <Loader size={14} />
-                    {props.agentName} is responding
-                  </div>
-                ) : null}
-              </ConversationContent>
-              <ConversationScrollButton />
-            </Conversation>
+                  {awaitingReply ? <ThinkingIndicator label={`${props.agentName} is responding`} /> : null}
+                </ConversationContent>
+              </Conversation>
+              {promptCheckpoints.length > 0 ? <PromptCheckpointRail checkpoints={promptCheckpoints} /> : null}
+            </div>
 
             <div className="shrink-0 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)] to-transparent px-3 pb-3 pt-2 md:px-6 md:pb-5">
               <div className="mx-auto w-full max-w-[48rem]">
                 {props.submitted ? (
                   <SubmittedControl submittedAt={props.submittedAt} onStartFresh={props.onStartFresh} />
+                ) : closing ? (
+                  <ClosingControl agentName={props.agentName} />
                 ) : (
                   <>
                     {error ? <p className="mb-2 text-[0.78125rem] text-[var(--color-danger)]">{error.message || "The session could not finish that turn. Your message is saved."}</p> : null}
+                    {steerQueue.length > 0 ? <p className="mb-2 text-[0.71875rem] text-[var(--color-muted)]" role="status">Steer queued · {steerQueue[0]}</p> : null}
                     <PromptInput
                       className="min-h-[3.25rem] flex-row items-end overflow-hidden shadow-[var(--shadow-floating)]"
                       onSubmit={(message, event) => {
                         const text = message.text.trim();
-                        if (!text || busy) return;
-                        sendMessage({ text });
+                        if (!text) return;
+                        if (busy) {
+                          const nextQueue = [...steerQueueRef.current, text];
+                          steerQueueRef.current = nextQueue;
+                          setSteerQueue(nextQueue);
+                        } else {
+                          sendSessionMessage(text);
+                        }
                         const form = event.currentTarget;
                         form.reset();
                         const field = form.querySelector("textarea");
                         if (field) field.style.height = "auto";
                       }}
                     >
-                      <PromptInputTextarea aria-label="Assignment response" className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-3 py-[0.8125rem]" placeholder={started ? "Continue your reasoning..." : "Begin the assignment..."} disabled={busy} autoFocus />
+                      <PromptInputTextarea aria-label="Assignment response" className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-3 py-[0.8125rem]" placeholder={busy ? `Steer ${props.agentName}...` : started ? "Continue your reasoning..." : "Begin the assignment..."} autoFocus />
                       <PromptInputToolbar className="shrink-0 justify-end gap-0.5 px-1.5 py-1.5">
                         <PromptInputTools><span className="px-1.5 text-[0.6875rem] text-[var(--color-faint)]">Assignment session</span></PromptInputTools>
-                        <PromptInputSubmit status={status} onStop={stop} className="rounded-full" />
+                        <PromptInputSubmit status={status} allowSubmitWhileBusy className="rounded-full" />
                       </PromptInputToolbar>
                     </PromptInput>
                   </>
@@ -311,7 +423,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
               <button type="button" onClick={() => setInspectorOpen(false)} aria-label="Close assignment details" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"><PanelRightClose size={15} aria-hidden /></button>
             </div>
             <div className="min-h-0 w-[min(21rem,92vw)] flex-1 overflow-y-auto">
-              <AssignmentDetails {...props} started={started} />
+              <AssignmentDetails {...props} deadlineAt={deadlineAt} started={started} />
               <div className="border-t border-[var(--color-border)] px-4 py-4"><ArtifactPanel revisions={revisions} plain /></div>
               <div className="border-t border-[var(--color-border)] px-4 py-4"><RubricPanel criteria={props.criteria} plain /></div>
               {props.report ? <div className="border-t border-[var(--color-border)] px-4 py-4"><JourneyReportPanel report={props.report} assignmentId={props.assignmentId} compact /></div> : null}
@@ -362,7 +474,7 @@ function AssignmentDetails(props: SessionRoomProps & { started: boolean }) {
     <section aria-label="Assignment" className="px-4 py-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Assignment</h2>
-        <SessionTimer startedAt={props.sessionStartedAt} durationMinutes={props.durationMinutes} running={props.started && !props.submitted} />
+        <SessionTimer deadlineAt={props.deadlineAt} durationMinutes={props.durationMinutes} running={props.started && !props.submitted} />
       </div>
       <p className="mt-2 text-[0.78125rem] leading-5 text-[var(--color-muted)]">{props.brief}</p>
       <dl className="mt-3 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)] text-[0.71875rem] leading-5">
@@ -378,32 +490,44 @@ function AssignmentDetails(props: SessionRoomProps & { started: boolean }) {
   );
 }
 
-function SessionTimer({ startedAt, durationMinutes, running }: { startedAt: string | null; durationMinutes: number; running: boolean }) {
+function SessionTimer({
+  deadlineAt,
+  durationMinutes,
+  running,
+  onElapsed,
+}: {
+  deadlineAt: string | null;
+  durationMinutes: number;
+  running: boolean;
+  onElapsed?: () => void;
+}) {
   const [now, setNow] = useState<number | null>(null);
-  const [localStart, setLocalStart] = useState<number | null>(null);
+  const elapsedRef = useRef(false);
 
   useEffect(() => {
     if (!running) return;
-    const tick = () => {
-      setNow(Date.now());
-      if (!startedAt) setLocalStart((previous) => previous ?? Date.now());
-    };
+    const tick = () => setNow(Date.now());
     const frame = requestAnimationFrame(tick);
     const timer = setInterval(tick, 1000);
     return () => {
       cancelAnimationFrame(frame);
       clearInterval(timer);
     };
-  }, [running, startedAt]);
+  }, [running]);
 
-  const startMs = startedAt ? Date.parse(startedAt) : localStart;
-  const total = durationMinutes * 60;
+  const deadlineMs = deadlineAt ? Date.parse(deadlineAt) : null;
 
-  if (!running || startMs === null || now === null) {
+  useEffect(() => {
+    if (!running || deadlineMs === null || now === null || deadlineMs > now || elapsedRef.current) return;
+    elapsedRef.current = true;
+    onElapsed?.();
+  }, [deadlineMs, now, onElapsed, running]);
+
+  if (!running || deadlineMs === null || now === null) {
     return <span className="flex items-center gap-1 text-[0.71875rem] text-[var(--color-faint)]"><Clock3 size={11.5} aria-hidden />{durationMinutes} min</span>;
   }
 
-  const remaining = Math.max(0, total - Math.floor((now - startMs) / 1000));
+  const remaining = Math.max(0, Math.ceil((deadlineMs - now) / 1000));
   const minutes = Math.floor(remaining / 60);
   const seconds = remaining % 60;
   const low = remaining <= 300;
@@ -416,6 +540,15 @@ function SessionTimer({ startedAt, durationMinutes, running }: { startedAt: stri
       <Clock3 size={11.5} aria-hidden />
       {remaining === 0 ? "Time is up" : `${minutes}:${String(seconds).padStart(2, "0")}`}
     </span>
+  );
+}
+
+function ClosingControl({ agentName }: { agentName: string }) {
+  return (
+    <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-3 shadow-[var(--shadow-panel)]" role="status" aria-live="polite">
+      <ThinkingIndicator label={`${agentName} is concluding the session`} />
+      <p className="mt-1 text-[0.71875rem] leading-5 text-[var(--color-muted)]">Time is up. Your final response is being saved, the assignment will submit automatically, and a reviewable draft grade will follow.</p>
+    </div>
   );
 }
 

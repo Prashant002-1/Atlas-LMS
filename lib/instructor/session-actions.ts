@@ -22,7 +22,7 @@ import { findEditableCourse } from "@/lib/instructor/workspace";
 import { loadSessionAssignmentBundle } from "@/lib/agent/session-store";
 import { gradeLetterFor, runGradingForSubmission } from "@/lib/agent/grading";
 import { recomputeClassRollup } from "@/lib/agent/rollup";
-import { resolveModelForOrg } from "@/lib/agent/keys";
+import { resolvePlatformModel } from "@/lib/ai/platform-model";
 import { BLOCK_SCHEMA_VERSION } from "@/lib/agent/blocks";
 import {
   buildPracticeSetBlock,
@@ -211,9 +211,9 @@ export async function regradeJourneyReport(formData: FormData) {
     throw new Error("This report is finalized and stays the record; regrade is for drafts.");
   }
 
-  const resolved = await resolveModelForOrg(actor.orgId);
+  const resolved = resolvePlatformModel();
   if (!resolved) {
-    throw new Error("No model key is configured for this organization. Connect one in Settings.");
+    throw new Error("Atlas's model runtime is not configured.");
   }
 
   await runGradingForSubmission({
@@ -241,7 +241,7 @@ export async function refreshClassRollup(formData: FormData) {
     throw new Error("Session assignment unavailable.");
   }
 
-  const resolved = await resolveModelForOrg(actor.orgId);
+  const resolved = resolvePlatformModel();
   await recomputeClassRollup({
     orgId: actor.orgId,
     courseId: course.id,
@@ -314,9 +314,9 @@ export async function proposePracticeSet(formData: FormData) {
   let block = buildPracticeSetBlock(rollupRow.recommendedPracticeSet, objectives);
   if (!block) {
     const stats = classRollupStatsSchema.safeParse(rollupRow.stats);
-    const resolved = await resolveModelForOrg(actor.orgId);
+    const resolved = resolvePlatformModel();
     if (!stats.success || !resolved) {
-      throw new Error("Nothing to draft from: no stored recommendation and no model key to draft with.");
+      throw new Error("Nothing to draft from: there is no stored recommendation and Atlas's model runtime is unavailable.");
     }
     block = await draftPracticeSetBlock({
       model: resolved.model,

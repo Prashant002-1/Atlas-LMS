@@ -10,13 +10,13 @@ Vercel AI SDK v6 (`streamText`/`generateText` + zod `tool()`), with Atlas owning
 the model in Postgres: deterministic context packs (`lib/agent/context.ts`), the versioned zod block
 contract (`lib/agent/blocks.ts`), anchored sessions + turns + rolling compaction
 (`lib/agent/session.ts`), Postgres-FTS session recall (`lib/agent/session-search.ts`), transactional
-draft to live apply (`lib/agent/apply.ts`), and per-org BYOK model resolution (`lib/agent/keys.ts`,
-`lib/ai/provider.ts`).
+draft to live apply (`lib/agent/apply.ts`), and platform-owned model resolution
+(`lib/ai/platform-model.ts`, `lib/ai/provider.ts`).
 
 As of `eve@0.11.7`, Eve peers on `ai@7.0.0-beta.178`; Atlas has moved to that AI SDK beta and mounts
 Eve through `withEve(nextConfig)`. The production command behavior has an Eve runtime path available
-with `?runtime=eve` or `ATLAS_COMMAND_RUNTIME=eve`; the BYOK-safe Atlas route remains the default
-until the tenant model adapter is complete.
+with `?runtime=eve` or `ATLAS_COMMAND_RUNTIME=eve`; the Atlas route backed by platform credentials
+remains the default until the Eve model bridge is complete.
 
 This works, but the session/runtime plumbing is hand-rolled: durability is best-effort, there is no
 crash-safe resume, no parked work for human checkpoints, no first-class run history, schedules, or
@@ -58,9 +58,9 @@ Eve-emitted blocks back into Review.
   for the single-block cue).
 
 ### Net-new we build
-1. A **tenant-aware BYOK model adapter**: a `LanguageModel` proxy that resolves the org key at call
-   time via `AsyncLocalStorage` populated by the channel, deferring to `resolveModelForOrg`.
-   Required because `defineAgent.model` is static and Eve has no dynamic-model resolver. Biggest risk.
+1. A **platform model adapter**: a `LanguageModel` configured from Atlas's server environment and
+   shared by every course runtime. No request or organization context participates in model choice.
+   Required because `defineAgent.model` is static. The adapter remains application infrastructure.
 2. A channel `AuthFn` mapping the next-auth session to an Eve `SessionAuthContext`.
 3. `disableTool()` for the default-harness tools (`bash`, `web_fetch`, `web_search`, `glob`, `grep`,
    `read_file`, `write_file`, `todo`, `load_skill`) to hold the grounded / propose-only doctrine.
@@ -77,8 +77,8 @@ connections, Agent Runs observability, and an evals harness.
 
 ## Tensions and resolutions
 
-1. **Per-org BYOK vs static `defineAgent.model`.** Resolve with the tenant-aware `LanguageModel`
-   proxy (preferred), or AI Gateway BYOK via `modelOptions.providerOptions.gateway.byok`.
+1. **Platform model configuration vs static `defineAgent.model`.** Construct the model from Atlas's
+   server environment at startup, using the existing provider registry or AI Gateway.
 2. **ADR-0005 (Postgres single source) vs Eve Workflow-owned session state.** Revise ADR-0005:
    Postgres stays the source for the course record + proposals/blocks; conversation/runtime state
    moves to the Workflow world, optionally mirrored to Postgres for recall + analytics.
@@ -96,9 +96,9 @@ connections, Agent Runs observability, and an evals harness.
 - Eve is in beta; pin the version and watch `vercel/eve` for breaking changes before building deep.
 - The first runtime mount and selectable Eve command path have landed on the PR branch. Eve can now
   emit Atlas proposal blocks that the app persists into Review. The default remains the Atlas route
-  until tenant BYOK is resolved in Eve.
+  until platform model configuration is resolved in Eve.
 - ADR-0005 must be amended (session state location). ADR-0006 stands: the provider registry now
-  feeds the BYOK model adapter that Eve consumes.
+  feeds the platform model adapter that Eve consumes.
 
 ## Rollout (phased)
 
@@ -108,7 +108,7 @@ connections, Agent Runs observability, and an evals harness.
 - **Phase 1 — command surface bridge:** selectable Eve command runtime, Eve proposal tools, Atlas
   proxy route, durable Eve cursor on `agent_sessions`, and Review persistence for Eve-emitted blocks.
 - **Phase 2 — cue surface:** cue surface as a custom channel, one `emit` tool, dynamic instructions
-  from the pack, next-auth `AuthFn`, tenant-aware model adapter on one provider.
-- **Phase 3 — command hardening:** tenant-aware model adapter, Eve-native inspect/recall tools,
+  from the pack, next-auth `AuthFn`, platform model adapter on one provider.
+- **Phase 3 — command hardening:** platform model adapter, Eve-native inspect/recall tools,
   `turn.completed` Postgres mirror, and default the command center to Eve.
 - **Phase 4 — harden:** Agent Runs/OTel, hosting decision, amend ADRs.

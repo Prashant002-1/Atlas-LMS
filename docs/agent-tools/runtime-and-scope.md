@@ -43,7 +43,7 @@ Proof: [`app/api/atlas/planning/route.ts`](../../app/api/atlas/planning/route.ts
 ## Per-turn sequence
 
 1. Resolve authentication, organization, instructor, and course.
-2. Resolve the institution model before creating a new thread.
+2. Resolve the Atlas platform model before creating a new thread.
 3. Persist the professor's user turn.
 4. Rebuild the current course context and active course agent configuration.
 5. Load fixed reviewed `.atlas` agent and guardrail files.

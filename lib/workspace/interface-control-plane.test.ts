@@ -137,7 +137,7 @@ test("settings reflects the real Atlas control scopes", () => {
     assert.equal(page.includes(expected), true, `settings should include ${expected}`);
   }
 
-  for (const excluded of ["resolveModelForOrg", "CHAT_PROVIDERS", "openai_compatible", "saveSettingsProviderKey"]) {
+  for (const excluded of ["resolvePlatformModel", "CHAT_PROVIDERS", "openai_compatible"]) {
     assert.equal(page.includes(excluded), false, `settings should not include ${excluded}`);
   }
 });

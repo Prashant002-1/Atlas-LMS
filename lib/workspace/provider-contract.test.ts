@@ -1,6 +1,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createChatModel } from "@/lib/ai/provider";
+import { resolvePlatformModel } from "@/lib/ai/platform-model";
+
+const platformModelEnv = [
+  "ATLAS_CHAT_PROVIDER",
+  "ATLAS_CHAT_MODEL",
+  "ATLAS_OPENAI_COMPAT_BASE_URL",
+  "ATLAS_OPENAI_COMPAT_API_KEY",
+  "OPENROUTER_API_KEY",
+  "OPENAI_API_KEY",
+  "ANTHROPIC_API_KEY",
+  "GOOGLE_GENERATIVE_AI_API_KEY",
+  "GEMINI_API_KEY",
+] as const;
 
 function structuredOutputCapability(model: unknown): boolean | undefined {
   return (model as { supportsStructuredOutputs?: boolean }).supportsStructuredOutputs;
@@ -34,3 +47,55 @@ test("unknown compatible endpoints retain the conservative capability default", 
 
   assert.equal(structuredOutputCapability(custom), false);
 });
+
+test("platform model resolution is environment-only and accepts no actor scope", () => {
+  withPlatformModelEnv(
+    {
+      ATLAS_CHAT_PROVIDER: "openai",
+      ATLAS_CHAT_MODEL: "gpt-platform-test",
+      OPENAI_API_KEY: "platform-test-key",
+    },
+    () => {
+      assert.equal(resolvePlatformModel.length, 0);
+      const resolved = resolvePlatformModel();
+      assert.equal(resolved?.provider, "openai");
+      assert.equal(resolved?.modelId, "gpt-platform-test");
+    }
+  );
+});
+
+test("platform model resolution can use another configured server provider", () => {
+  withPlatformModelEnv(
+    {
+      ATLAS_CHAT_PROVIDER: "openrouter",
+      ATLAS_CHAT_MODEL: "claude-platform-test",
+      ANTHROPIC_API_KEY: "platform-test-key",
+    },
+    () => {
+      const resolved = resolvePlatformModel();
+      assert.equal(resolved?.provider, "anthropic");
+      assert.equal(resolved?.modelId, "claude-platform-test");
+    }
+  );
+});
+
+test("platform model resolution reports missing server configuration", () => {
+  withPlatformModelEnv({}, () => {
+    assert.equal(resolvePlatformModel(), null);
+  });
+});
+
+function withPlatformModelEnv(overrides: Partial<Record<(typeof platformModelEnv)[number], string>>, run: () => void) {
+  const previous = new Map(platformModelEnv.map((name) => [name, process.env[name]]));
+  for (const name of platformModelEnv) delete process.env[name];
+  Object.assign(process.env, overrides);
+
+  try {
+    run();
+  } finally {
+    for (const [name, value] of previous) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  }
+}

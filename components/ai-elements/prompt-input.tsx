@@ -99,25 +99,31 @@ export function PromptInputSubmit({
   disabled,
   className,
   onStop,
+  allowSubmitWhileBusy = false,
 }: {
   status?: ChatStatus;
   disabled?: boolean;
   className?: string;
   onStop?: () => void;
+  /** Keep the composer as a steering queue while the current run is active. */
+  allowSubmitWhileBusy?: boolean;
 }) {
   const busy = status === "streaming" || status === "submitted";
+  const steering = busy && allowSubmitWhileBusy;
   return (
     <button
-      type={busy ? "button" : "submit"}
-      onClick={busy ? onStop : undefined}
-      disabled={busy ? !onStop : disabled}
-      aria-label={busy ? (onStop ? "Stop" : "Generating") : "Send"}
+      type={busy && !steering ? "button" : "submit"}
+      onClick={busy && !steering ? onStop : undefined}
+      disabled={busy && !steering ? !onStop : disabled}
+      aria-label={steering ? "Queue steering message" : busy ? (onStop ? "Stop" : "Generating") : "Send"}
       className={cn(
         "inline-flex size-9 shrink-0 items-center justify-center rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]",
         className
       )}
     >
-      {busy && onStop ? (
+      {steering ? (
+        <ArrowUpIcon className="size-4" strokeWidth={2.2} aria-hidden />
+      ) : busy && onStop ? (
         <SquareIcon className="size-3.5" aria-hidden />
       ) : busy ? (
         <Loader2Icon className="size-4 animate-spin" aria-hidden />

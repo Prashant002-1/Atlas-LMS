@@ -48,6 +48,9 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
     score: submission.score ?? null,
     grade: submission.grade ?? null,
     body: submission.body ?? null,
+    sessionSubmissionId: submission.sessionSubmissionId ?? null,
+    draftScore: submission.draftScore ?? null,
+    draftReportStatus: submission.draftReportStatus ?? null,
   }));
 
   return (

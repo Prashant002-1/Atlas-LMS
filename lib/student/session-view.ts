@@ -15,6 +15,7 @@ import {
   studentDisplayName,
 } from "@/lib/agent/session-store";
 import { parseJourneyScores, type RubricCriterion, type RubricLevelName, type SideNoteCard } from "@/lib/agent/session-parts";
+import { publicWorkflowRunId } from "@/lib/agent/run-claims";
 import { turnsFromSubmissionTranscript } from "@/lib/agent/grading";
 import type { UIMessage } from "ai";
 
@@ -75,6 +76,8 @@ export type StudentSessionView =
       };
       criteria: RubricCriterion[];
       sessionStartedAt: string | null;
+      deadlineAt: string | null;
+      activeRunId: string | null;
       messages: UIMessage[];
       artifacts: StudentSessionArtifact[];
       sideNotes: SideNoteCard[];
@@ -158,6 +161,8 @@ export async function loadStudentSessionView(user: Actor, assignmentId: string):
     },
     criteria: bundle.criteria,
     sessionStartedAt: viewSession && turnRows.length > 0 ? viewSession.createdAt.toISOString() : null,
+    deadlineAt: viewSession?.deadlineAt?.toISOString() ?? null,
+    activeRunId: publicWorkflowRunId(viewSession?.activeRunId),
     messages: turnsToUIMessages(turnRows),
     artifacts: artifactRows.map((row) => ({ turnIndex: row.turnIndex, artifactType: row.artifactType, state: row.state })),
     sideNotes,

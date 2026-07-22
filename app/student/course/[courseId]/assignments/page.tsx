@@ -30,7 +30,7 @@ export default async function StudentCourseAssignmentsPage({ params }: { params:
       <PageHeader title="Assignments" />
 
       <section>
-        <h2 className="border-b border-[var(--color-border)] pb-2.5 text-[0.8125rem] font-semibold text-[var(--color-ink)]">Open</h2>
+        <h2 className="mb-2 text-[1rem] font-semibold text-[var(--color-ink)]">Open</h2>
         <div>
           {open.length > 0 ? (
             <div className="divide-y divide-[var(--color-border)]">
@@ -48,7 +48,7 @@ export default async function StudentCourseAssignmentsPage({ params }: { params:
 
       {done.length > 0 ? (
         <section className="mt-7">
-          <h2 className="border-b border-[var(--color-border)] pb-2.5 text-[0.8125rem] font-semibold text-[var(--color-ink)]">Submitted</h2>
+          <h2 className="mb-2 text-[1rem] font-semibold text-[var(--color-ink)]">Submitted</h2>
           <div className="divide-y divide-[var(--color-border)]">
             {done.map((assignment) => (
               <AssignmentRow key={assignment.id} assignment={assignment} />

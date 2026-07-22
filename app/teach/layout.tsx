@@ -28,6 +28,7 @@ const teacherSections: NavSection[] = [
     items: [
       { href: "/teach/atlas", label: "Atlas", icon: "atlas" },
       { href: "/teach/ai-assignments", label: "AI assignments", icon: "aiwork" },
+      { href: "/teach/integrations", label: "Integrations", icon: "integrations" },
       { href: "/teach/review", label: "Review", icon: "review" },
       { href: "/teach/settings", label: "Settings", icon: "settings" },
     ],

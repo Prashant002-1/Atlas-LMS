@@ -2,6 +2,7 @@ import { BadgeCheck, Quote, RotateCcw } from "lucide-react";
 import { finalizeJourneyReport, regradeJourneyReport } from "@/lib/instructor/session-actions";
 import { cn } from "@/lib/utils";
 import type { DrillInReport } from "@/lib/instructor/cockpit";
+import { PendingActionButton } from "@/components/atlas/pending-action-button";
 
 const levelColor = {
   Exceeds: "text-[var(--color-good)]",
@@ -73,23 +74,23 @@ export function ProfessorReportPanel({ report, submissionId }: { report: DrillIn
           <div className="flex items-center gap-2">
             <form action={regradeJourneyReport}>
               <input type="hidden" name="submissionId" value={submissionId} />
-              <button
-                type="submit"
+              <PendingActionButton
+                pendingLabel="Grading"
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-[var(--color-border-strong)] px-3 text-[0.78125rem] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]"
               >
                 <RotateCcw size={12} aria-hidden />
                 Grade again
-              </button>
+              </PendingActionButton>
             </form>
             <form action={finalizeJourneyReport}>
               <input type="hidden" name="reportId" value={report.id} />
-              <button
-                type="submit"
+              <PendingActionButton
+                pendingLabel="Posting"
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 text-[0.78125rem] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
               >
                 <BadgeCheck size={13} aria-hidden />
                 Post grade
-              </button>
+              </PendingActionButton>
             </form>
           </div>
         ) : null}

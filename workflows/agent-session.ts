@@ -1,0 +1,161 @@
+import { and, eq } from "drizzle-orm";
+import { getWorkflowMetadata, getWritable, sleep } from "workflow";
+import { db } from "@/lib/db";
+import { agentSessions } from "@/lib/db/schema";
+import { loadActiveCourseAgentConfig } from "@/lib/agent/course-agent-config";
+import { resolveModelForOrg } from "@/lib/agent/keys";
+import { runProfessorTurn } from "@/lib/agent/professor-runtime";
+import { runSessionTurn } from "@/lib/agent/session-runtime";
+import { concludeExpiredSession } from "@/lib/agent/session-conclusion";
+import { loadSessionAssignmentBundle } from "@/lib/agent/session-store";
+import { activateAgentRun, activateDeadlineRun } from "@/lib/agent/run-claims";
+
+type ProfessorTurnArgs = {
+  orgId: string;
+  instructorId: string;
+  courseId: string;
+  sessionId: string;
+  userText: string;
+  runClaimId: string;
+};
+
+type StudentTurnArgs = {
+  orgId: string;
+  courseId: string;
+  sessionId: string;
+  assignmentId: string;
+  userText: string;
+  userTurnIndex: number;
+  runClaimId: string;
+};
+
+async function registerActiveRun(sessionId: string, claimId: string, runId: string) {
+  "use step";
+  if (!(await activateAgentRun(sessionId, claimId, runId))) {
+    throw new Error("This session run no longer owns the active claim.");
+  }
+}
+
+async function pipeResponseToWorkflow(response: Response) {
+  const body = response.body;
+  if (!body) throw new Error("Agent response has no stream.");
+  await body.pipeTo(getWritable<Uint8Array>());
+}
+
+async function streamProfessorTurnStep(args: ProfessorTurnArgs, runId: string) {
+  "use step";
+  try {
+    const [session] = await db
+      .select()
+      .from(agentSessions)
+      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.orgId, args.orgId)))
+      .limit(1);
+    if (!session || session.userId !== args.instructorId || session.courseId !== args.courseId) {
+      throw new Error("Professor thread not found.");
+    }
+    const resolved = await resolveModelForOrg(args.orgId);
+    if (!resolved) throw new Error("No model is configured for this institution.");
+
+    await pipeResponseToWorkflow(await runProfessorTurn({
+      session,
+      scope: { orgId: args.orgId, instructorId: args.instructorId, courseId: args.courseId },
+      model: resolved.model,
+      userText: args.userText,
+      userTurnPersisted: true,
+    }));
+  } finally {
+    await db
+      .update(agentSessions)
+      .set({ activeRunId: null, activeRunStartedAt: null, updatedAt: new Date() })
+      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.activeRunId, runId)));
+  }
+}
+streamProfessorTurnStep.maxRetries = 0;
+
+async function streamStudentTurnStep(args: StudentTurnArgs, runId: string) {
+  "use step";
+  try {
+    const [session] = await db
+      .select()
+      .from(agentSessions)
+      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.orgId, args.orgId)))
+      .limit(1);
+    if (!session || session.courseId !== args.courseId || session.anchorId !== args.assignmentId) {
+      throw new Error("Student session not found.");
+    }
+    const [bundle, courseAgent, resolved] = await Promise.all([
+      loadSessionAssignmentBundle(args.orgId, args.assignmentId),
+      loadActiveCourseAgentConfig(args.orgId, args.courseId),
+      resolveModelForOrg(args.orgId),
+    ]);
+    if (!bundle) throw new Error("Session assignment contract not found.");
+    if (!resolved) throw new Error("No model is configured for this institution.");
+
+    await pipeResponseToWorkflow(await runSessionTurn({
+      session,
+      bundle,
+      courseAgent,
+      model: resolved.model,
+      userText: args.userText,
+      userTurnIndex: args.userTurnIndex,
+    }));
+  } finally {
+    await db
+      .update(agentSessions)
+      .set({ activeRunId: null, activeRunStartedAt: null, updatedAt: new Date() })
+      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.activeRunId, runId)));
+  }
+}
+streamStudentTurnStep.maxRetries = 0;
+
+export async function professorTurnWorkflow(args: ProfessorTurnArgs) {
+  "use workflow";
+  const { workflowRunId } = getWorkflowMetadata();
+  await registerActiveRun(args.sessionId, args.runClaimId, workflowRunId);
+  await streamProfessorTurnStep(args, workflowRunId);
+}
+
+export async function studentTurnWorkflow(args: StudentTurnArgs) {
+  "use workflow";
+  const { workflowRunId } = getWorkflowMetadata();
+  await registerActiveRun(args.sessionId, args.runClaimId, workflowRunId);
+  await streamStudentTurnStep(args, workflowRunId);
+}
+
+async function registerDeadlineRun(sessionId: string, claimId: string, runId: string) {
+  "use step";
+  if (!(await activateDeadlineRun(sessionId, claimId, runId))) {
+    throw new Error("This deadline workflow no longer owns the session claim.");
+  }
+}
+
+async function sessionHasActiveTurn(sessionId: string): Promise<boolean> {
+  "use step";
+  const [row] = await db
+    .select({ activeRunId: agentSessions.activeRunId })
+    .from(agentSessions)
+    .where(eq(agentSessions.id, sessionId))
+    .limit(1);
+  return Boolean(row?.activeRunId);
+}
+
+async function concludeExpiredSessionStep(orgId: string, sessionId: string) {
+  "use step";
+  return concludeExpiredSession({ orgId, sessionId });
+}
+
+/** Server-owned timer: survives navigation, refreshes, and client disconnects. */
+export async function sessionDeadlineWorkflow(args: { orgId: string; sessionId: string; deadlineAt: string; runClaimId: string }) {
+  "use workflow";
+  const { workflowRunId } = getWorkflowMetadata();
+  await registerDeadlineRun(args.sessionId, args.runClaimId, workflowRunId);
+  await sleep(new Date(args.deadlineAt));
+
+  // Let a response that began before the deadline finish and reach the frozen
+  // transcript. A stale failed run cannot hold submission forever.
+  for (let attempt = 0; attempt < 60 && await sessionHasActiveTurn(args.sessionId); attempt += 1) {
+    await sleep("2s");
+  }
+
+  await concludeExpiredSessionStep(args.orgId, args.sessionId);
+}

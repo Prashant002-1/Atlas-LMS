@@ -39,8 +39,8 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
         <div className="min-w-0 space-y-8">
           {workspace.currentWeek ? (
             <section aria-labelledby="current-module-heading">
-              <div className="flex items-baseline justify-between gap-3 border-b border-[var(--color-border)] pb-2.5">
-                <h2 id="current-module-heading" className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">This week</h2>
+              <div className="mb-3 flex items-baseline justify-between gap-3">
+                <h2 id="current-module-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">This week</h2>
                 <TextLink href={`/student/course/${courseId}/modules`} className="text-[0.75rem]">Modules</TextLink>
               </div>
               <div className="pt-3">
@@ -53,8 +53,8 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
           ) : null}
 
           <section aria-labelledby="course-assignments-heading">
-            <div className="flex items-baseline justify-between gap-3 border-b border-[var(--color-border)] pb-2.5">
-              <h2 id="course-assignments-heading" className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Assignments</h2>
+            <div className="mb-2 flex items-baseline justify-between gap-3">
+              <h2 id="course-assignments-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Assignments</h2>
               <TextLink href={`/student/course/${courseId}/assignments`} className="text-[0.75rem]">All assignments</TextLink>
             </div>
             {openAssignments.length > 0 ? (
@@ -68,7 +68,7 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
         </div>
 
         <section aria-labelledby="course-announcements-heading" className="min-w-0">
-          <h2 id="course-announcements-heading" className="border-b border-[var(--color-border)] pb-2.5 text-[0.8125rem] font-semibold text-[var(--color-ink)]">Announcements</h2>
+          <h2 id="course-announcements-heading" className="mb-2 text-[1rem] font-semibold text-[var(--color-ink)]">Announcements</h2>
           {workspace.notices.length > 0 ? (
             <div className="divide-y divide-[var(--color-border)]">
               {workspace.notices.slice(0, 3).map((notice) => (

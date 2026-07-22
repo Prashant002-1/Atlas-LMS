@@ -13,6 +13,9 @@ import {
   LayoutDashboard,
   Megaphone,
   MessagesSquare,
+  Files,
+  Library,
+  Plug,
   PanelLeftClose,
   PanelLeftOpen,
   ScrollText,
@@ -51,6 +54,9 @@ const ICONS = {
   calendar: CalendarDays,
   announce: Megaphone,
   gradebook: Table2,
+  resources: Library,
+  books: Files,
+  integrations: Plug,
 } satisfies Record<string, NavIconComponent>;
 
 export type ShellNavChild = {

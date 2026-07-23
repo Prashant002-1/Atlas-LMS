@@ -29,11 +29,12 @@ test("learning-objective UI stays out of professor and student surfaces", () => 
   }
 });
 
-test("settings describe course knowledge, not objective tracking", () => {
+test("material knowledge lives on Materials, and settings tracks no objectives", () => {
   const settings = read("app/teach/settings/page.tsx");
-  assert.ok(settings.includes("Course knowledge"));
-  assert.ok(settings.includes("Manage course materials"));
   assert.equal(settings.toLowerCase().includes("objectives"), false);
+  const materials = read("app/teach/materials/page.tsx");
+  assert.ok(materials.includes("Add material"));
+  assert.ok(materials.includes("available to students"));
 });
 
 test("objective relationships may persist silently through ordinary edits", () => {

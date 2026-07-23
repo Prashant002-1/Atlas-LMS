@@ -74,7 +74,7 @@ export function ToolHeader({
 export function ToolContent({ className, children }: { className?: string; children: ReactNode }) {
   const ctx = useContext(ToolContext);
   if (!ctx?.open) return null;
-  return <div className={cn("space-y-3 border-t border-[var(--color-border)] px-3 py-3 text-[0.78125rem] text-[var(--color-muted)]", className)}>{children}</div>;
+  return <div className={cn("space-y-3 px-3 py-3 text-[0.78125rem] text-[var(--color-muted)]", className)}>{children}</div>;
 }
 
 export function ToolInput({ input, className }: { input: unknown; className?: string }) {

@@ -18,7 +18,7 @@ export default async function TeachIntegrationsPage() {
 
       <section className="mt-8" aria-labelledby="connected-tools-heading">
         <h2 id="connected-tools-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Connected tools</h2>
-        <div className="mt-2 border-y border-[var(--color-border)]">
+        <div className="mt-2">
           <EmptyRecord title="No tools connected" detail="Tools you connect will appear here." />
         </div>
       </section>

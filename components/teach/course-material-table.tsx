@@ -52,7 +52,7 @@ export function CourseMaterialTable({ rows }: { rows: CourseMaterialRow[] }) {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2 border-y border-[var(--color-border)] px-3 py-2.5">
+      <div className="flex flex-wrap items-center gap-2 px-3 py-2.5">
         <label className="relative min-w-[15rem] flex-1">
           <span className="sr-only">Search course materials</span>
           <Search size={14} aria-hidden className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-faint)]" />
@@ -112,7 +112,7 @@ export function CourseMaterialTable({ rows }: { rows: CourseMaterialRow[] }) {
           </table>
         </div>
       ) : (
-        <p className="border-b border-[var(--color-border)] px-3 py-8 text-center text-[0.78125rem] text-[var(--color-muted)]">No course materials match these filters.</p>
+        <p className="px-3 py-8 text-center text-[0.78125rem] text-[var(--color-muted)]">No course materials match these filters.</p>
       )}
     </div>
   );

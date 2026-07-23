@@ -25,7 +25,7 @@ export function ClassInsight({
   pendingPracticeProposals: number;
 }) {
   return (
-    <section aria-labelledby="class-results-heading" className="border-t border-[var(--color-border)] pt-6">
+    <section aria-labelledby="class-results-heading" className="pt-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="class-results-heading" className="text-[1.125rem] font-semibold text-[var(--color-ink)]">Class results</h2>
@@ -89,16 +89,7 @@ export function ClassInsight({
             })}
           </div>
 
-          {Object.keys(insight.stats.sideNoteTopicCounts).length > 0 ? (
-            <p className="mt-5 text-[0.75rem] text-[var(--color-muted)]">
-              Personal record notes: {Object.entries(insight.stats.sideNoteTopicCounts)
-                .sort((a, b) => b[1] - a[1])
-                .map(([topic, count]) => `${topic} in ${count} session${count === 1 ? "" : "s"}`)
-                .join(", ")}.
-            </p>
-          ) : null}
-
-          <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-[var(--color-border)] pt-4">
+          <div className="mt-6 flex flex-wrap items-center gap-3 pt-4">
             {pendingPracticeProposals > 0 ? (
               <p className="text-[0.8125rem] text-[var(--color-muted)]">
                 Practice set waiting in <TextLink href="/teach/review">Review</TextLink>

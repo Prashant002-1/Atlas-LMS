@@ -31,7 +31,7 @@ export default async function InstructorWeekPage({ params }: { params: Promise<{
       </div>
 
       {workspace.problem || !workspace.module ? (
-        <div className="border-y border-[var(--color-border)] py-5">
+        <div className="py-5">
           <h1 className="text-[1.125rem] font-semibold text-[var(--color-ink)]">{workspace.problem?.title ?? "Module unavailable"}</h1>
           <p className="mt-1 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{workspace.problem?.detail ?? "This module is not in a course you teach."}</p>
         </div>
@@ -73,7 +73,7 @@ function ModuleRecord({ workspace }: { workspace: InstructorModuleWorkspace }) {
         ) : (
           <p className="text-[0.8125rem] text-[var(--color-muted)]">No summary.</p>
         )}
-        <dl className="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-y border-[var(--color-border)] py-3 text-[0.75rem] text-[var(--color-muted)]">
+        <dl className="mt-5 flex flex-wrap gap-x-6 gap-y-2 py-3 text-[0.75rem] text-[var(--color-muted)]">
           <div className="flex gap-1.5"><dt>Module</dt><dd className="font-medium text-[var(--color-ink)]">{courseModule.week}</dd></div>
           <div className="flex gap-1.5"><dt>Assignments</dt><dd className="font-medium text-[var(--color-ink)]">{workspace.assignments.length}</dd></div>
           {!published ? <div className="flex gap-1.5"><dt>Status</dt><dd className="font-medium text-[var(--color-ink)]">Draft</dd></div> : null}
@@ -88,7 +88,7 @@ function ModuleRecord({ workspace }: { workspace: InstructorModuleWorkspace }) {
 function EditModuleDialog({ module }: { module: NonNullable<InstructorModuleWorkspace["module"]> }) {
   if (!module.id) return null;
   return (
-    <RecordDialog mode="edit" triggerLabel="Edit module" title="Edit module" description="Update the title and summary without leaving the module." triggerVariant="secondary">
+    <RecordDialog mode="edit" triggerLabel="Edit module" title="Edit module" triggerVariant="secondary">
       <form action={updateModuleRecord} className="grid gap-4">
         <input type="hidden" name="moduleId" value={module.id} />
         <input type="hidden" name="returnTo" value={`/teach/week/${module.id}`} />
@@ -101,7 +101,7 @@ function EditModuleDialog({ module }: { module: NonNullable<InstructorModuleWork
           Summary
           <textarea name="summary" rows={10} defaultValue={module.summary ?? ""} className={`${fieldClass} min-h-56 resize-y py-3 leading-6`} />
         </label>
-        <div className="flex justify-end border-t border-[var(--color-border)] pt-4"><ActionButton>Save module</ActionButton></div>
+        <div className="flex justify-end pt-4"><ActionButton>Save module</ActionButton></div>
       </form>
     </RecordDialog>
   );
@@ -115,11 +115,11 @@ function RelatedAssignments({ assignments }: { assignments: InstructorAssignment
         <p className="text-[0.75rem] text-[var(--color-muted)]">{assignments.length} {assignments.length === 1 ? "assignment" : "assignments"}</p>
       </div>
       {assignments.length > 0 ? (
-        <div className="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+        <div className="divide-y divide-[var(--color-border)]">
           {assignments.map((assignment) => <AssignmentRow key={assignment.id ?? assignment.title} assignment={assignment} />)}
         </div>
       ) : (
-        <div className="border-y border-[var(--color-border)]"><EmptyRecord title="No assignments" detail="No assignments are attached to this module." /></div>
+        <div><EmptyRecord title="No assignments" /></div>
       )}
     </section>
   );

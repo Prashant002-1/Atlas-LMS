@@ -90,7 +90,7 @@ export function AssignmentTable({ rows, nowIso }: { rows: AssignmentTableRow[]; 
         </div>
       </div>
 
-      <div className="mt-4 overflow-x-auto border-y border-[var(--color-border)]">
+      <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[58rem] border-collapse text-left">
           <thead>
             <tr className="text-[0.71875rem] text-[var(--color-muted)]">

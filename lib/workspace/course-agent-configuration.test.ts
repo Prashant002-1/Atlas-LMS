@@ -103,10 +103,12 @@ test("teacher configuration is transparent and conversation edited", () => {
   const page = read("app/teach/settings/page.tsx");
   assert.match(page, /Agent configuration/);
   assert.match(page, /Change with Atlas/);
-  assert.match(page, /Student experience/);
   assert.match(page, /Course rules/);
   assert.match(page, /System boundaries/);
   assert.match(page, /Version history/);
+  assert.doesNotMatch(page, /studentDisclosure/);
+  assert.doesNotMatch(page, /configuration\.identity\.role/);
+  assert.doesNotMatch(page, /configuration\.teaching\.approach/);
   assert.doesNotMatch(page, /<form/);
   assert.doesNotMatch(page, /Model access/);
   assert.doesNotMatch(page, /Provider/);

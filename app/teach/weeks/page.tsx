@@ -35,13 +35,13 @@ export default async function TeachModulesPage({ searchParams }: { searchParams:
             <h2 id="module-list-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Course modules</h2>
             <p className="mt-1 text-[0.75rem] text-[var(--color-muted)]">{workspace.modules.length} modules</p>
           </div>
-          <div className="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+          <div className="divide-y divide-[var(--color-border)]">
             {workspace.modules.map((module) => <ModuleRow key={module.id ?? module.title} module={module} />)}
           </div>
         </section>
       ) : (
-        <div className="border-y border-[var(--color-border)]">
-          <EmptyState art="atlas" title="No modules" detail="Create the first module for this course." />
+        <div>
+          <EmptyState art="atlas" title="No modules" />
         </div>
       )}
     </>
@@ -80,7 +80,6 @@ function NewModuleDialog({ defaultOpen }: { defaultOpen: boolean }) {
       mode="create"
       triggerLabel="New module"
       title="New module"
-      description="Add the next module to the course. It stays a draft until you publish it."
       triggerVariant="primary"
       defaultOpen={defaultOpen}
     >
@@ -91,9 +90,9 @@ function NewModuleDialog({ defaultOpen }: { defaultOpen: boolean }) {
         </label>
         <label className="grid gap-1.5 text-[0.75rem] font-medium">
           Summary
-          <textarea name="summary" rows={8} placeholder="What the module covers and why it matters." className={`${fieldClass} min-h-48 resize-y py-3 leading-6`} />
+          <textarea name="summary" rows={8} className={`${fieldClass} min-h-48 resize-y py-3 leading-6`} />
         </label>
-        <div className="flex justify-end border-t border-[var(--color-border)] pt-4">
+        <div className="flex justify-end pt-4">
           <ActionButton>Create module</ActionButton>
         </div>
       </form>

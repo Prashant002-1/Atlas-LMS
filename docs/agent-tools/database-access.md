@@ -8,8 +8,8 @@ This is the table-oriented view of database access in the professor-agent reques
 - Tool schemas do not accept organization or course identifiers.
 - LMS executors repeat organization and course predicates.
 - Student reads and grade writes additionally verify active course enrollment.
-- Professor thread reads require the current instructor, command surface, and course anchor.
-- Course agent configuration writes verify the source thread against the same organization, course, instructor, surface, and anchor.
+- Professor chat reads require the current instructor, command surface, and course anchor.
+- Course agent configuration writes verify the source chat against the same organization, course, instructor, surface, and anchor.
 
 Proof: [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts), [`lib/agent/course-agent-config.ts`](../../lib/agent/course-agent-config.ts), [`app/api/atlas/planning/route.ts`](../../app/api/atlas/planning/route.ts), and [`lib/workspace/scope.ts`](../../lib/workspace/scope.ts).
 
@@ -19,7 +19,7 @@ Proof: [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts), [`lib/age
 | --- | --- | --- |
 | authenticate and choose course | authentication state, `terms`, `courses`, `enrollments` | none |
 | model resolution | server environment configuration only | none |
-| create or load professor thread | `agent_sessions` | may insert `agent_sessions`; may update title |
+| create or load professor chat | `agent_sessions` | may insert `agent_sessions`; may update title |
 | persist turns | `agent_sessions` | inserts `agent_turns`; updates counters and timestamps |
 | build professor context | course academic tables, `files`, `course_material_records`, `course_agent_configs`, AI assignment contracts, rubrics, drafts | none |
 | compaction | active `agent_turns`, `agent_sessions` | updates session summary and cursor |

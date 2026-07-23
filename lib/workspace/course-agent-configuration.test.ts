@@ -117,7 +117,7 @@ test("the course agent is transparent in Course setup and conversation edited", 
   const settings = read("app/teach/settings/page.tsx");
   assert.doesNotMatch(settings, /configure_agent/);
   assert.doesNotMatch(settings, /listCourseAgentConfigHistory/);
-  assert.doesNotMatch(settings, /<form/);
+  assert.match(settings, /restoreProfessorAtlasChat/);
   assert.doesNotMatch(settings, /Model access/);
   assert.doesNotMatch(settings, /API key/);
   assert.doesNotMatch(settings, /resolvePlatformModel/);

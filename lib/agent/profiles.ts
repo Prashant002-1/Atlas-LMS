@@ -37,7 +37,7 @@ export const agentProfiles: Record<AgentProfileId, AgentProfile> = {
       reads: [
         "all LMS records in the current course, including unpublished content",
         "the current roster and each enrolled student's grades, submissions, sessions, and academic standing",
-        "the active course agent configuration, version history, AI assignment contracts, rubrics, professor threads, and drafts",
+        "the active course agent configuration, version history, AI assignment contracts, rubrics, professor chats, and drafts",
         "reviewed Atlas skill instructions loaded on demand",
       ],
       writes: [
@@ -49,7 +49,7 @@ export const agentProfiles: Record<AgentProfileId, AgentProfile> = {
       ],
       never: [
         "read or write outside the signed-in organization and current course",
-        "read another instructor's private professor threads",
+        "read another instructor's private professor chats",
         "let course configuration expand tools, data access, or application authority",
         "expose secrets or provider credentials",
         "run arbitrary SQL, shell commands, network requests, or general code",
@@ -75,7 +75,7 @@ export const agentProfiles: Record<AgentProfileId, AgentProfile> = {
       writes: ["its own session turns and artifact snapshots through exact typed artifact tools"],
       never: [
         "see another student's grades, transcript, submission, or personal notes",
-        "see unpublished or instructor-only material or the professor's private threads",
+        "see unpublished or instructor-only material or the professor's private chats",
         "let course configuration weaken the assignment contract or rubric",
         "invent a personal note or change a grade",
       ],
@@ -98,12 +98,12 @@ export const agentProfiles: Record<AgentProfileId, AgentProfile> = {
         "its own durable observations about this student",
       ],
       writes: [
-        "its own personal-thread turns",
+        "its own personal-chat turns",
         "durable observations about this student through the remember tool, within hard budgets",
       ],
       never: [
         "produce work for submission or help evade a course rule or the university policy",
-        "see another student's data, unpublished or instructor-only material, or a professor's threads",
+        "see another student's data, unpublished or instructor-only material, or a professor's chats",
         "change a grade, a record, or any course content",
         "stand in for an advisor, counselor, or medical professional",
       ],

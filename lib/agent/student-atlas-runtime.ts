@@ -20,6 +20,7 @@ import {
 } from "@/lib/agent/student-atlas";
 import { studentAtlasTools } from "@/lib/agent/student-atlas-tools";
 import { loadActiveOrgAgentPolicy } from "@/lib/agent/org-policy";
+import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
 
 /**
  * One student personal turn on the durable AI SDK seam (ADR-0010, ADR-0016).
@@ -39,7 +40,7 @@ export type StudentAtlasDataParts = {
   };
 };
 
-export type StudentAtlasUIMessage = UIMessage<never, StudentAtlasDataParts>;
+export type StudentAtlasUIMessage = UIMessage<AtlasMessageMetadata, StudentAtlasDataParts>;
 
 function stripDataParts(messages: UIMessage[]): UIMessage[] {
   return messages.map((message) => ({
@@ -111,7 +112,11 @@ export async function runStudentAtlasTurn(args: {
         tools,
         stopWhen: isStepCount(10),
       });
-      writer.merge(toUIMessageStream({ stream: result.stream }));
+      const createdAt = new Date().toISOString();
+      writer.merge(toUIMessageStream({
+        stream: result.stream,
+        messageMetadata: () => ({ createdAt }),
+      }));
     },
     onError: (error) => {
       console.error("student atlas turn failed", error);

@@ -16,7 +16,7 @@ import { professorTurnWorkflow } from "@/workflows/agent-session";
 
 export const maxDuration = 120;
 
-const MAX_THREAD_TURNS = 400;
+const MAX_CHAT_TURNS = 400;
 const MAX_TURN_CHARACTERS = 4000;
 const MAX_REQUEST_BYTES = 64 * 1024;
 const RATE_WINDOW_MINUTES = 10;
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Sign in to use Atlas." }, { status: 401 });
   }
   if (!isInstructorLike(user.role)) {
-    return NextResponse.json({ error: "Atlas professor threads belong to instructors." }, { status: 403 });
+    return NextResponse.json({ error: "Professor Atlas chats belong to instructors." }, { status: 403 });
   }
 
   const contentLengthHeader = request.headers.get("content-length");
@@ -126,21 +126,21 @@ export async function POST(request: Request) {
   const threadScope = { orgId: user.orgId, userId: user.id, courseId: scope.course.id };
   const requestedId = typeof body.sessionId === "string" ? body.sessionId : "new";
   if (requestedId !== "new" && requestedId !== "" && !UUID_PATTERN.test(requestedId)) {
-    return NextResponse.json({ error: "Malformed thread id." }, { status: 400 });
+    return NextResponse.json({ error: "Malformed chat id." }, { status: 400 });
   }
   const thread =
     requestedId === "new" || requestedId === ""
       ? await createCommandSession(threadScope)
       : await loadCommandSession(threadScope, requestedId);
   if (!thread) {
-    return NextResponse.json({ error: "That thread is not yours in this course." }, { status: 404 });
+    return NextResponse.json({ error: "That chat is not yours in this course." }, { status: 404 });
   }
-  if (thread.totalTurns >= MAX_THREAD_TURNS) {
-    return NextResponse.json({ error: "This thread is full. Start a new one." }, { status: 409 });
+  if (thread.totalTurns >= MAX_CHAT_TURNS) {
+    return NextResponse.json({ error: "This chat is full. Start a new one." }, { status: 409 });
   }
   const runClaimId = await claimActiveAgentRun(thread.id);
   if (!runClaimId) {
-    return NextResponse.json({ error: "Atlas is still working in this thread. Your next message can steer it when this response lands." }, { status: 409 });
+    return NextResponse.json({ error: "Atlas is still working in this chat. Your next message can steer it when this response lands." }, { status: 409 });
   }
 
   let run: Awaited<ReturnType<typeof start>> | null = null;
@@ -158,7 +158,7 @@ export async function POST(request: Request) {
     }]);
     if (!(await activateAgentRun(thread.id, runClaimId, run.runId))) {
       await run.cancel();
-      return NextResponse.json({ error: "Another Atlas run already owns this thread." }, { status: 409 });
+      return NextResponse.json({ error: "Another Atlas run already owns this chat." }, { status: 409 });
     }
   } catch (error) {
     if (!run) await releaseAgentRunClaim(thread.id, runClaimId);

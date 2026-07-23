@@ -146,12 +146,20 @@ function buildAtlasBriefing(workspace: InstructorWorkspace) {
   const ungraded = workspace.workProgress.reduce((sum, item) => sum + Math.max(0, item.submitted - item.graded), 0);
   const missing = workspace.workProgress.reduce((sum, item) => sum + item.missing, 0);
   const drafts = workspace.proposals.filter((proposal) => proposal.status === "pending").length;
+  const gradingFocus = [...workspace.workProgress]
+    .map((item) => ({ ...item, waiting: Math.max(0, item.submitted - item.graded) }))
+    .sort((left, right) => right.waiting - left.waiting)[0];
+  const courseCode = workspace.course.code;
   const parts: string[] = [];
-  if (ungraded > 0) parts.push(`${ungraded} ${ungraded === 1 ? "submission is" : "submissions are"} waiting for grading`);
-  if (missing > 0) parts.push(`${missing} ${missing === 1 ? "submission is" : "submissions are"} marked missing`);
+  if (ungraded > 0 && gradingFocus?.waiting) {
+    parts.push(
+      `Start with ${gradingFocus.title}: ${gradingFocus.waiting} ${gradingFocus.waiting === 1 ? "submission is" : "submissions are"} waiting for grading`
+    );
+  }
+  if (missing > 0) parts.push(`${missing} ${missing === 1 ? "submission is" : "submissions are"} marked missing across the course`);
   if (drafts > 0) parts.push(`${drafts} ${drafts === 1 ? "draft is" : "drafts are"} waiting in Review`);
-  if (parts.length === 0) return "There are no ungraded submissions, missing records, or Review drafts today.";
-  return `${parts.join(". ")}.`;
+  if (parts.length === 0) return `${courseCode} has no ungraded submissions, missing records, or Review drafts today.`;
+  return `In ${courseCode}, ${parts.join(". ")}.`;
 }
 
 function shortDate(date: Date): string {

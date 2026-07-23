@@ -45,7 +45,7 @@ Before writing, the tool:
 
 Inside that transaction:
 
-- inserts one pending `change_proposals` row with kind `assignment`, summary `AI assignment: <assignment name>`, `diff.source = "atlas_harness"`, assignment id, note, author id, course id, organization id, and the professor thread `sessionId`;
+- inserts one pending `change_proposals` row with kind `assignment`, summary `AI assignment: <assignment name>`, `diff.source = "atlas_harness"`, assignment id, note, author id, course id, organization id, and the professor chat `sessionId`;
 - inserts one pending `proposal_blocks` row with `blockType = "ai_assignment"`, schema version 1, position 1, and the validated block data.
 
 No `rubrics`, `session_assignments`, or `assignments` row is changed until apply.
@@ -108,7 +108,7 @@ The tool:
 
 Inside the transaction:
 
-- inserts one pending `change_proposals` row with kind `rubric`, summary `Rubric: <assignment> · <title>`, source `atlas_harness`, assignment id, replaced rubric version, note, author, and professor thread session id;
+- inserts one pending `change_proposals` row with kind `rubric`, summary `Rubric: <assignment> · <title>`, source `atlas_harness`, assignment id, replaced rubric version, note, author, and professor chat session id;
 - inserts one pending position-1 `proposal_blocks` row with `blockType = "session_rubric"`, schema version 1, and normalized criteria.
 
 No live rubric row changes until apply.
@@ -225,7 +225,7 @@ Each block is round-tripped through `parseStoredBlock` before any proposal row i
 One transaction:
 
 1. determines proposal kind: one uniform module, assignment, practice-set, or objective type maps to its corresponding proposal kind; a mixed set or pages/announcements maps to `course`;
-2. inserts one pending `change_proposals` row with `diff.source = "atlas_harness"`, author, course, organization, summary, and professor thread `sessionId`;
+2. inserts one pending `change_proposals` row with `diff.source = "atlas_harness"`, author, course, organization, summary, and professor chat `sessionId`;
 3. inserts one pending `proposal_blocks` row per block, preserving array order as positions 1 through N.
 
 There is no advisory lock or duplicate-pending check for `draft_course`.
@@ -267,7 +267,7 @@ Additional exact behavior:
 
 - assignment `dueWeek` becomes term start plus `week * 7 - 1` days at 23:59 UTC; without a term or due week, due date is null;
 - objective links are created only for codes already present in `learning_objectives`;
-- an `ai_assignment` apply does not set `session_assignments.planningSessionId`, even though the proposal itself keeps the professor thread `sessionId`;
+- an `ai_assignment` apply does not set `session_assignments.planningSessionId`, even though the proposal itself keeps the professor chat `sessionId`;
 - if an apply target disappears or is already configured, the relevant block may produce no live record, but the apply loop still marks that proposal block applied;
 - a pending block that fails `parseStoredBlock` is filtered out, is not updated by the loop, and can remain pending even though the proposal is marked applied;
 - `applyProposal` marks the proposal applied after processing all valid pending blocks.

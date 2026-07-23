@@ -24,7 +24,7 @@ import { listActiveMemories, renderMemoriesForReference } from "@/lib/agent/memo
 
 /**
  * The student profile's session store and deterministic context snapshot
- * (ADR-0016). A personal thread belongs to a person in an organization:
+ * (ADR-0016). A personal chat belongs to a person in an organization:
  * surface `personal`, anchor `org`, course_id null. Scope is always
  * { orgId, studentId } resolved from the authenticated route; no parameter
  * exists to cross it.
@@ -44,11 +44,12 @@ function personalSessionFilter(scope: StudentAtlasScope) {
     eq(agentSessions.surface, studentProfile.surface),
     eq(agentSessions.anchorType, studentProfile.anchorType),
     isNull(agentSessions.courseId),
-    isNull(agentSessions.anchorId)
+    isNull(agentSessions.anchorId),
+    isNull(agentSessions.archivedAt)
   );
 }
 
-const DEFAULT_THREAD_TITLE = "Atlas thread";
+const DEFAULT_CHAT_TITLE = "Atlas chat";
 
 export async function createStudentAtlasSession(scope: StudentAtlasScope): Promise<AgentSession> {
   const [created] = await db
@@ -60,7 +61,7 @@ export async function createStudentAtlasSession(scope: StudentAtlasScope): Promi
       surface: studentProfile.surface,
       anchorType: studentProfile.anchorType,
       anchorId: null,
-      title: DEFAULT_THREAD_TITLE,
+      title: DEFAULT_CHAT_TITLE,
     })
     .returning();
   return created;
@@ -86,10 +87,10 @@ export async function resumeLatestStudentAtlasSession(scope: StudentAtlasScope):
 }
 
 export async function titleStudentAtlasSessionFromIntent(session: AgentSession, intent: string): Promise<void> {
-  if (session.title?.trim() && session.title !== DEFAULT_THREAD_TITLE) return;
+  if (session.title?.trim() && session.title !== "Atlas thread" && session.title !== DEFAULT_CHAT_TITLE) return;
   if (session.totalTurns > 0) return;
   const compact = intent.replace(/\s+/g, " ").trim();
-  const title = !compact ? DEFAULT_THREAD_TITLE : compact.length > 64 ? `${compact.slice(0, 61)}...` : compact;
+  const title = !compact ? DEFAULT_CHAT_TITLE : compact.length > 64 ? `${compact.slice(0, 61)}...` : compact;
   await db.update(agentSessions).set({ title, updatedAt: new Date() }).where(eq(agentSessions.id, session.id));
   session.title = title;
 }
@@ -127,7 +128,7 @@ export async function listStudentAtlasThreads(scope: StudentAtlasScope): Promise
 
   return rows.map((row) => ({
     id: row.id,
-    title: row.title?.trim() || DEFAULT_THREAD_TITLE,
+    title: row.title?.trim() || DEFAULT_CHAT_TITLE,
     userTurnCount: userTurns.get(row.id) ?? 0,
     updatedAt: row.updatedAt.toISOString(),
   }));

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
 import { tool, type LanguageModel } from "ai";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -100,7 +100,7 @@ const inspectLmsSchema = z.object({
     "policies",
     "calendar",
     "drafts",
-    "threads",
+    "chats",
   ]),
   ids: z.array(z.string().uuid()).max(20).optional(),
   query: z.string().trim().min(1).max(160).optional(),
@@ -434,8 +434,8 @@ async function inspectLms(scope: ProfessorScope, input: InspectLmsInput): Promis
     return { ok: true, resource: input.resource, asOf, count: records.length, records };
   }
 
-  if (input.resource === "threads") {
-    const conditions: SQL[] = [eq(agentSessions.orgId, scope.orgId), eq(agentSessions.courseId, scope.courseId), eq(agentSessions.userId, scope.instructorId), eq(agentSessions.surface, "command"), eq(agentSessions.anchorType, "course")];
+  if (input.resource === "chats") {
+    const conditions: SQL[] = [eq(agentSessions.orgId, scope.orgId), eq(agentSessions.courseId, scope.courseId), eq(agentSessions.userId, scope.instructorId), eq(agentSessions.surface, "command"), eq(agentSessions.anchorType, "course"), isNull(agentSessions.archivedAt)];
     if (input.ids?.length) conditions.push(inArray(agentSessions.id, input.ids));
     if (input.query) conditions.push(ilike(agentSessions.title, `%${input.query}%`));
     const rows = await db

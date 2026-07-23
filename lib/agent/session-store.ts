@@ -192,7 +192,7 @@ export async function getSessionSubmission(orgId: string, sessionId: string): Pr
 /** Every stored turn of a session, oldest first. Full-transcript read, not the compaction window. */
 export async function loadFullSessionTurns(orgId: string, sessionId: string): Promise<StoredTurnRow[]> {
   return db
-    .select({ id: agentTurns.id, turnIndex: agentTurns.turnIndex, role: agentTurns.role, parts: agentTurns.parts })
+    .select({ id: agentTurns.id, turnIndex: agentTurns.turnIndex, role: agentTurns.role, parts: agentTurns.parts, createdAt: agentTurns.createdAt })
     .from(agentTurns)
     .where(and(eq(agentTurns.orgId, orgId), eq(agentTurns.sessionId, sessionId)))
     .orderBy(asc(agentTurns.turnIndex));

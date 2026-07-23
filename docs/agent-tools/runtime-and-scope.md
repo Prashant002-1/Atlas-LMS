@@ -2,7 +2,7 @@
 
 ## Entry point
 
-Professor conversation turns use `POST /api/atlas/planning`. The route accepts a thread id plus the current user message, limits the body to 64 KiB, limits user text to 4,000 characters, and rejects malformed or cross-course thread ids.
+Professor conversation turns use `POST /api/atlas/planning`. The route accepts a chat id plus the current user message, limits the body to 64 KiB, limits user text to 4,000 characters, and rejects malformed or cross-course chat ids.
 
 Only signed-in instructor-like users with an organization and a current teaching course may enter the runtime.
 
@@ -30,7 +30,7 @@ Proof: [`lib/workspace/scope.ts`](../../lib/workspace/scope.ts), [`lib/agent/pro
 | --- | ---: |
 | Professor API body | 64 KiB |
 | User turn | 4,000 characters |
-| Professor thread | 400 persisted turns |
+| Professor chat | 400 persisted turns |
 | Short-term rate | fewer than 30 user turns in 10 minutes per organization, user, course, and command surface |
 | Route duration | 120 seconds |
 | Model steps | 16 |
@@ -43,7 +43,7 @@ Proof: [`app/api/atlas/planning/route.ts`](../../app/api/atlas/planning/route.ts
 ## Per-turn sequence
 
 1. Resolve authentication, organization, instructor, and course.
-2. Resolve the Atlas platform model before creating a new thread.
+2. Resolve the Atlas platform model before creating a new chat.
 3. Persist the professor's user turn.
 4. Rebuild the current course context and active course agent configuration.
 5. Load fixed reviewed `.atlas` agent and guardrail files.

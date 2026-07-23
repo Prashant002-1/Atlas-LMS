@@ -99,35 +99,45 @@ test("student sessions compile shared state below fixed rules", () => {
   assert.doesNotMatch(context, /Professor's standing instructions/);
 });
 
-test("teacher configuration is transparent and conversation edited", () => {
-  const page = read("app/teach/settings/page.tsx");
-  assert.match(page, /Agent configuration/);
+test("the course agent is transparent in Course setup and conversation edited", () => {
+  const page = read("app/teach/course/page.tsx");
+  assert.match(page, /Course agent/);
   assert.match(page, /Change with Atlas/);
   assert.match(page, /Course rules/);
-  assert.match(page, /System boundaries/);
   assert.match(page, /Version history/);
-  assert.doesNotMatch(page, /studentDisclosure/);
-  assert.doesNotMatch(page, /configuration\.identity\.role/);
-  assert.doesNotMatch(page, /configuration\.teaching\.approach/);
-  assert.doesNotMatch(page, /<form/);
+  assert.match(page, /loadActiveCourseAgentConfig/);
+  assert.match(page, /listCourseAgentConfigHistory/);
+  assert.doesNotMatch(page, /configure_agent/);
+  assert.doesNotMatch(page, /writeCourseAgentConfig/);
   assert.doesNotMatch(page, /Model access/);
-  assert.doesNotMatch(page, /Provider/);
   assert.doesNotMatch(page, /API key/);
   assert.doesNotMatch(page, /resolvePlatformModel/);
+
+  // Settings describes the professor's own Atlas and carries no course agent editor.
+  const settings = read("app/teach/settings/page.tsx");
+  assert.doesNotMatch(settings, /configure_agent/);
+  assert.doesNotMatch(settings, /listCourseAgentConfigHistory/);
+  assert.doesNotMatch(settings, /<form/);
+  assert.doesNotMatch(settings, /Model access/);
+  assert.doesNotMatch(settings, /API key/);
+  assert.doesNotMatch(settings, /resolvePlatformModel/);
 });
 
-test("course setup is read first and supports real material intake", () => {
-  const page = read("app/teach/course/page.tsx");
+test("materials have their own page and course setup stays a control center", () => {
+  const materialsPage = read("app/teach/materials/page.tsx");
+  const coursePage = read("app/teach/course/page.tsx");
   const actions = read("lib/instructor/course-material-actions.ts");
   const materials = read("lib/course/materials.ts");
   const context = read("lib/agent/context.ts");
 
-  assert.match(page, /Edit course/);
-  assert.match(page, /Add material/);
-  assert.match(page, /CourseMaterialTable/);
-  assert.match(page, /\.imscc/);
-  assert.match(page, /QTI\/XML/);
-  assert.doesNotMatch(page, /<Panel/);
+  assert.match(materialsPage, /Add material/);
+  assert.match(materialsPage, /CourseMaterialTable/);
+  assert.match(materialsPage, /\.imscc/);
+  assert.match(materialsPage, /QTI\/XML/);
+  assert.match(coursePage, /Edit course/);
+  assert.doesNotMatch(coursePage, /CourseMaterialTable/);
+  assert.doesNotMatch(coursePage, /uploadCourseMaterial/);
+  assert.doesNotMatch(coursePage, /<Panel/);
   assert.match(actions, /ingestUploadedCourseMaterial/);
   assert.match(actions, /courseMaterialRecords/);
   assert.match(materials, /MAX_COURSE_MATERIAL_BYTES/);

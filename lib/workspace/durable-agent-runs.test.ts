@@ -73,10 +73,9 @@ test("integrations stay instructor-owned and enter student work contextually", (
 
   assert.match(instructorLayout, /\/teach\/integrations/);
   assert.doesNotMatch(studentLayout, /integrations/i);
-  for (const standard of ["LTI 1.3", "Deep Linking", "Assignment and Grade Services"]) {
-    assert.match(integrations, new RegExp(standard));
-  }
-  assert.match(integrations, /Students use the tool selected by their instructor/);
+  assert.match(integrations, /Add AI and other tools available through your university/);
+  assert.match(integrations, /Connected tools/);
+  assert.match(integrations, /No tools connected/);
   assert.match(settings, /Connected tools/);
 });
 

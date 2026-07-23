@@ -28,6 +28,10 @@ const requiredRoutes = [
   "/student/assignments/[assignmentId]",
   "/student/work/[assignmentId]",
   "/student/session/[assignmentId]",
+  "/student/atlas",
+  "/student/atlas/profile",
+  "/student/atlas/policies",
+  "/api/atlas/student",
   "/api/session/[assignmentId]",
   "/teach",
   "/teach/account",
@@ -47,6 +51,7 @@ const requiredRoutes = [
   "/teach/gradebook",
   "/teach/students",
   "/teach/syllabus",
+  "/teach/materials",
   "/teach/settings",
   "/teach/student/[studentId]",
   "/teach/week/[moduleId]",
@@ -272,7 +277,7 @@ test("issue 27: the professor plans with Atlas across the profile boundary", () 
   assertSourceIncludes("lib/agent/profiles.ts", "export const agentProfiles");
   assertSourceIncludes("lib/agent/profiles.ts", "professor:");
   assertSourceIncludes("lib/agent/profiles.ts", "session:");
-  assertSourceIncludes("lib/agent/profiles.ts", "study:");
+  assertSourceIncludes("lib/agent/profiles.ts", "student:");
   assertSourceIncludes("lib/agent/session-store.ts", "agentProfiles.session");
   assertSourceIncludes("lib/agent/session.ts", "agentProfiles.professor");
 
@@ -438,8 +443,13 @@ test("issue 26: workspaces present records and direct controls, not a task queue
   assertServerAction("lib/instructor/actions.ts", "createAnnouncementRecord");
   assertSourceIncludes("app/teach/announcements/page.tsx", "action={createAnnouncementRecord}");
 
-  // Course setup is roster-facing and never touches Atlas policy or model configuration.
+  // Course setup is the course control center: identity, grade scale, class
+  // policies, and the course agent shown read-first. It never touches model
+  // configuration, and agent changes go through Atlas, not a form here.
   assertServerAction("lib/instructor/actions.ts", "updateCourseDetails");
+  assertServerAction("lib/instructor/actions.ts", "updateGradeScale");
+  assertServerAction("lib/instructor/actions.ts", "saveClassPolicy");
+  assertServerAction("lib/instructor/actions.ts", "removeClassPolicy");
   assertSourceIncludes("app/teach/course/page.tsx", "action={updateCourseDetails}");
   assertSourceExcludes("app/teach/course/page.tsx", "updateCourseAiPolicy");
 

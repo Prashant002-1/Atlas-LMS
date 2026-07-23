@@ -4,7 +4,7 @@ This directory is the source-backed reference for the live professor-agent surfa
 
 ## Current tool registry
 
-The runtime exposes exactly 28 tools. Twenty direct LMS writes are separate exact-schema tools so providers do not need to accept a top-level union schema. Shared teaching policy is written through the append-only `configure_agent` tool.
+The runtime exposes exactly 29 tools. Twenty direct LMS writes are separate exact-schema tools so providers do not need to accept a top-level union schema. Shared teaching policy is written through the append-only `configure_agent` tool, and the agent's own durable notes go through the budgeted `remember` tool.
 
 | Tool | Kind | Purpose | Contract |
 | --- | --- | --- | --- |
@@ -13,6 +13,7 @@ The runtime exposes exactly 28 tools. Twenty direct LMS writes are separate exac
 | `search_course` | Read | Case-insensitive text search across selected course data | [Read tools](read-tools.md#search_course) |
 | `load_skill` | Filesystem read | Load one reviewed workflow from `.atlas/skills` | [Read tools](read-tools.md#load_skill) |
 | `configure_agent` | Versioned configuration write | Replace the shared course agent's typed teaching configuration | [Course agent configuration](course-agent-configuration.md) |
+| `remember` | Budgeted memory write | Add, replace, or remove one durable observation about the professor | [Personal memory](personal-memory.md) |
 | `create_assignment`, `update_assignment`, `publish_assignment` | Direct write | Create, edit, publish, or unpublish assignments | [Content actions](write-content-actions.md#assignment-actions) |
 | `create_module`, `update_module`, `publish_module` | Direct write | Create, edit, publish, or unpublish modules | [Content actions](write-content-actions.md#module-actions) |
 | `create_page`, `update_page`, `post_announcement`, `create_practice_set` | Direct write | Change ordinary course content immediately | [Content actions](write-content-actions.md) |
@@ -24,7 +25,7 @@ The runtime exposes exactly 28 tools. Twenty direct LMS writes are separate exac
 | `draft_rubric` | Draft write | Store a rubric revision proposal for Review | [Draft tools](draft-tools.md#draft_rubric) |
 | `draft_course` | Draft write | Store up to six course-object proposals for Review | [Draft tools](draft-tools.md#draft_course) |
 
-Proof: `professorOperatorTools` in [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts) returns the read, exact direct-action, and draft tools. `directActionTools` derives exact schemas from the internal mutation branches. `runProfessorTurn` adds `configure_agent` from [`lib/agent/course-agent-tool.ts`](../../lib/agent/course-agent-tool.ts) to the same closed registry.
+Proof: `professorOperatorTools` in [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts) returns the read, exact direct-action, and draft tools. `directActionTools` derives exact schemas from the internal mutation branches. `runProfessorTurn` adds `configure_agent` from [`lib/agent/course-agent-tool.ts`](../../lib/agent/course-agent-tool.ts) and `remember` from [`lib/agent/memories.ts`](../../lib/agent/memories.ts) to the same closed registry.
 
 `inspect_course` still exists inside `professorTools`, but the live runtime does not return it.
 

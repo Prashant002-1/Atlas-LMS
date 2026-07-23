@@ -1,5 +1,5 @@
 import { tool } from "ai";
-import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import {
@@ -250,7 +250,8 @@ function inspectRecordTool(scope: StudentAtlasScope) {
               and(
                 eq(announcements.orgId, scope.orgId),
                 inArray(announcements.courseId, scopedIds),
-                eq(announcements.published, true)
+                eq(announcements.published, true),
+                lte(announcements.postedAt, new Date())
               )
             )
             .orderBy(desc(announcements.postedAt))

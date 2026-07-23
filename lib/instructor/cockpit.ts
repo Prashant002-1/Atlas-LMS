@@ -114,7 +114,6 @@ export type AssignmentCockpitView =
         instructions: string;
         durationMinutes: number;
         groundingScope: string[];
-        transcriptPolicy: string;
         personalRecordSideNotes: boolean;
         planningSessionId: string | null;
       };
@@ -384,7 +383,6 @@ export async function loadAssignmentCockpit(actor: Actor | null | undefined, ass
       instructions: bundle.config.instructions,
       durationMinutes: bundle.config.durationMinutes,
       groundingScope: Array.isArray(bundle.config.groundingScope) ? (bundle.config.groundingScope as string[]) : [],
-      transcriptPolicy: bundle.config.transcriptPolicy,
       personalRecordSideNotes: bundle.config.personalRecordSideNotes,
       planningSessionId: bundle.config.planningSessionId,
     },

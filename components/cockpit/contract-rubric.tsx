@@ -10,7 +10,6 @@ export function AssignmentSettings({
     instructions: string;
     durationMinutes: number;
     groundingScope: string[];
-    transcriptPolicy: string;
   };
   changeHref: string;
 }) {
@@ -23,7 +22,6 @@ export function AssignmentSettings({
 
       <dl className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2">
         <SettingFact label="Length" value={`${contract.durationMinutes} minutes`} />
-        <SettingFact label="Transcript" value={contract.transcriptPolicy} wide />
         <SettingFact label="Course material" value={contract.groundingScope.length > 0 ? contract.groundingScope.join(", ") : "Course"} wide />
         <div className="sm:col-span-2">
           <dt className="text-[0.71875rem] text-[var(--color-faint)]">Connected tools</dt>

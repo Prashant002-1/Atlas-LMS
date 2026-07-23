@@ -153,7 +153,7 @@ The demo world needs a **memory**, not just seeded courses. The side-note beat i
 - [ ] **The professor's prior planning session with the agent** (Exam 2 / practice set discussion, topics flagged) - this is the side note's source and appears in her session history on camera
 - [ ] ~31 students with varied journey outcomes (the review-grid needs believable spread: some Exceeds, some Developing, one or two "delegated everything and it earned nothing")
 - [ ] Professor persona with a stated intent ("they pattern-match formulas; I want to see if they can reason about X")
-- [ ] The assignment itself, configured: rubric, duration, grounding scope, transcript policy, side-note toggle ON
+- [ ] The assignment itself, configured: rubric, duration, grounding scope, side-note toggle ON
 
 This is a content-design task as much as a build task. Do it before the UI - it is the difference between a demo and a diorama.
 
@@ -210,7 +210,7 @@ SCREEN: Student's report: four criteria with level chips and one quoted evidence
 NARRATOR: "The submission is the journey. Scored against her rubric, every score with a receipt - and the professor is the court of appeal."
 
 **[1:50-2:20 - Where it all came from]**
-SCREEN: Professor's side. Session history shows a prior conversation: "Exam 2 practice set planning - Tue." Then the assignment setup: rubric card drafted from syllabus + outcomes; she edits Iteration 25 -> 30, Framing 25 -> 20; **Approve**. Config: Grounding: course materials - Duration ~30m - Transcript: on request - Personal-record side notes: **ON**.
+SCREEN: Professor's side. Session history shows a prior conversation: "Exam 2 practice set planning - Tue." Then the assignment setup: rubric card drafted from syllabus + outcomes; she edits Iteration 25 -> 30, Framing 25 -> 20; **Approve**. Config: Grounding: course materials - Duration ~30m - Personal-record side notes: **ON**.
 NARRATOR: "Everything the agent just did came from here. It drafted the rubric from her syllabus and outcomes - she reweighted it, because what she cares about is how students respond to being wrong. Even the side note exists because she allowed it. Nothing went live without her sign-off."
 
 **[2:20-2:50 - The class]**

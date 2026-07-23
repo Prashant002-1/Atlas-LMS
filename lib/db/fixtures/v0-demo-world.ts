@@ -1130,7 +1130,6 @@ Your working record should include:
 The agent may ask questions, point you to course pages, and challenge the design. It should not choose the prices for you. Submit the final table with the reasoning that led to it, including any uncertainty that remains.`,
   durationMinutes: 30,
   groundingScope: ["Syllabus", "Weeks 4-6", "Exam 1"],
-  transcriptPolicy: "shared on request / for review",
   personalRecordSideNotes: true,
   // Professor-sanctioned triggers, flagged during the Exam 2 planning session:
   // the weak concept (and the term it gets confused with) arms the side note.

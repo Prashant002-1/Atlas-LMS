@@ -84,7 +84,6 @@ export async function buildProfessorPack(scope: ProfessorScope): Promise<Profess
       durationMinutes: sessionAssignments.durationMinutes,
       personalRecordSideNotes: sessionAssignments.personalRecordSideNotes,
       sideNoteTriggers: sessionAssignments.sideNoteTriggers,
-      transcriptPolicy: sessionAssignments.transcriptPolicy,
       rubricVersion: rubrics.version,
       rubricCriteria: rubrics.criteria,
     })
@@ -109,7 +108,7 @@ export async function buildProfessorPack(scope: ProfessorScope): Promise<Profess
     assignmentLines.push(
       `${row.assignmentName} [id:${row.assignmentId}]`,
       `  Brief: ${row.instructions}`,
-      `  ${row.durationMinutes} min / transcript: ${row.transcriptPolicy} / personal notes ${row.personalRecordSideNotes ? "ON" : "OFF"}${
+      `  ${row.durationMinutes} min / personal notes ${row.personalRecordSideNotes ? "ON" : "OFF"}${
         triggers.length ? ` / topics: ${triggers.map((trigger) => trigger.topic).join(", ")}` : ""
       }`,
       `  Rubric v${row.rubricVersion}:`

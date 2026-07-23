@@ -49,6 +49,24 @@ test("assignment contract and rubric are read first and changed in their Atlas t
   assert.equal(setup.includes("Weights must sum"), false);
 });
 
+test("assessed transcript access is an invariant, not an assignment setting", () => {
+  const schema = read("lib/db/schema.ts");
+  const migration = read("drizzle/0009_assessed_transcript_access.sql");
+  const setup = read("components/cockpit/contract-rubric.tsx");
+  const operator = read("lib/agent/lms-operator.ts");
+  const sessionContext = read("lib/agent/session-context.ts");
+  const sessionRoom = read("components/session/session-room.tsx");
+  const cockpit = read("lib/instructor/cockpit.ts");
+
+  assert.equal(schema.includes("transcriptPolicy"), false);
+  assert.match(migration, /DROP COLUMN IF EXISTS "transcript_policy"/);
+  assert.equal(setup.includes('label="Transcript"'), false);
+  assert.equal(operator.includes("transcriptPolicy"), false);
+  assert.match(sessionContext, /full assessed-session transcript is part of the instructor-visible course record/);
+  assert.match(sessionRoom, /Available to your instructor/);
+  assert.match(cockpit, /turnsFromSubmissionTranscript\(submission\.transcript\)/);
+});
+
 test("student session detail uses direct record language and restrained hierarchy", () => {
   const page = read("app/teach/ai-assignments/session/[submissionId]/page.tsx");
   const grade = read("components/cockpit/report-panel.tsx");
@@ -85,6 +103,16 @@ test("regular assignment submissions use the same searchable review table", () =
   assert.equal(table.includes('value: "selected"'), false);
   assert.equal(page.includes("StatusBadge"), false);
   assert.equal(page.includes("<Panel"), false);
+});
+
+test("the assignment edit dialog matches the persisted assignment contract", () => {
+  const page = read("app/teach/assignments/[assignmentId]/page.tsx");
+  assert.ok(page.includes("AssignmentEditDialog"));
+  assert.ok(page.includes('maxLength={220}'));
+  assert.ok(page.includes('maxLength={1600}'));
+  assert.ok(page.includes("Due date"));
+  assert.ok(page.includes("Points possible"));
+  assert.ok(page.includes('type="hidden" name="objectiveCode"'));
 });
 
 test("status filters reserve clean space for their dropdown icons", () => {

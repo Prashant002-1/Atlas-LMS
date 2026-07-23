@@ -257,7 +257,6 @@ async function applyBlock(
       rubricId: rubric.id,
       instructions: block.instructions,
       durationMinutes: block.durationMinutes,
-      transcriptPolicy: block.transcriptPolicy,
       personalRecordSideNotes: block.personalRecordSideNotes,
       planningSessionId: args.planningSessionId,
     });

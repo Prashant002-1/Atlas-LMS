@@ -121,7 +121,6 @@ type AiAssignmentDraftOutput = {
   assignmentName: string;
   instructions: string;
   durationMinutes: number;
-  transcriptPolicy: string;
   personalRecordSideNotes: boolean;
   criteria: RubricCriterion[];
   usedStandardFrame: boolean;
@@ -602,7 +601,7 @@ function AiAssignmentDraftCard({ draft, status }: { draft: AiAssignmentDraftOutp
       <div className="overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)]">
         <div className="bg-[var(--color-surface-muted)] px-3.5 py-2.5">
           <p className="text-[0.8125rem] leading-5 text-[var(--color-ink)]">{draft.instructions}</p>
-          <p className="atlas-mono mt-1.5 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">{draft.durationMinutes} min · transcript {draft.transcriptPolicy}</p>
+          <p className="atlas-mono mt-1.5 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">{draft.durationMinutes} min</p>
         </div>
         <RubricCard title={draft.usedStandardFrame ? "Rubric · standard frame" : "Rubric"} criteria={draft.criteria} className="rounded-none border-0" />
       </div>

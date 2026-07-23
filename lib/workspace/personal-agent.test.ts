@@ -107,12 +107,21 @@ test("student tools read the student's own record and nothing else", () => {
   assert.match(tools, /requireEnrolledCourse/);
   assert.match(tools, /eq\(enrollments\.userId, scope\.studentId\)/);
   assert.match(tools, /eq\(pages\.published, true\)/);
+  assert.match(tools, /lte\(announcements\.postedAt, new Date\(\)\)/);
   assert.match(tools, /inspect_record/);
   assert.match(tools, /search_course/);
   assert.match(tools, /read_page/);
   assert.doesNotMatch(tools, /\.update\(/);
   assert.doesNotMatch(tools, /\.insert\(/);
   assert.doesNotMatch(tools, /\.delete\(/);
+});
+
+test("the personal Atlas snapshot releases announcements only at posting time", () => {
+  const context = read("lib/agent/student-atlas.ts");
+  assert.match(context, /eq\(announcements\.published, true\)/);
+  assert.match(context, /lte\(announcements\.postedAt, now\)/);
+  assert.match(context, /Personal Atlas conversations are private/);
+  assert.match(context, /transcripts are available to the instructor/);
 });
 
 test("the student sidebar gains the Atlas group and the surfaces exist", () => {

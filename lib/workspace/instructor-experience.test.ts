@@ -75,6 +75,8 @@ test("announcements support review, scheduling, and a durable Atlas drafting thr
   const atlas = read("app/teach/atlas/page.tsx");
   const studentWorkspace = read("lib/student/workspace.ts");
   const context = read("lib/agent/context.ts");
+  const studentAtlas = read("lib/agent/student-atlas.ts");
+  const studentAtlasTools = read("lib/agent/student-atlas-tools.ts");
 
   assert.ok(page.includes("AnnouncementComposer"));
   assert.ok(composer.includes("Review"));
@@ -89,6 +91,8 @@ test("announcements support review, scheduling, and a durable Atlas drafting thr
   assert.ok(studentWorkspace.includes("lte(announcements.postedAt, new Date())"));
   assert.ok(context.includes('scope.audience === "student"'));
   assert.ok(context.includes("lte(announcements.postedAt, new Date())"));
+  assert.ok(studentAtlas.includes("lte(announcements.postedAt, now)"));
+  assert.ok(studentAtlasTools.includes("lte(announcements.postedAt, new Date())"));
   assert.equal(composer.includes("Put the announcement in Review"), false);
 });
 

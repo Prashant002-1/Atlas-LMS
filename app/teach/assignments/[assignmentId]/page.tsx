@@ -135,19 +135,19 @@ function AssignmentEditDialog({ assignment }: { assignment: InstructorAssignment
         {assignment.objectiveCodes.map((code) => <input key={code} type="hidden" name="objectiveCode" value={code} />)}
         <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Title
-          <input name="title" type="text" defaultValue={assignment.title} required autoFocus className={fieldClass} />
+          <input name="title" type="text" defaultValue={assignment.title} required autoFocus maxLength={220} className={fieldClass} />
         </label>
         <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Description
-          <textarea name="description" rows={10} defaultValue={assignment.detail ?? ""} className={`${fieldClass} min-h-56 resize-y py-3 leading-6`} />
+          <textarea name="description" rows={10} maxLength={1600} defaultValue={assignment.detail ?? ""} className={`${fieldClass} min-h-56 resize-y py-3 leading-6`} />
         </label>
         <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
           <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
-            Due
+            Due date
             <input name="dueDate" type="date" defaultValue={dateInputValue(assignment.dueAt)} className={fieldClass} />
           </label>
           <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
-            Points
+            Points possible
             <input name="points" type="number" min={0.01} step="0.01" defaultValue={assignment.points ?? ""} className={fieldClass} />
           </label>
         </div>

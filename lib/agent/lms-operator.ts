@@ -402,7 +402,6 @@ async function inspectLms(scope: ProfessorScope, input: InspectLmsInput): Promis
           instructions: sessionAssignments.instructions,
           durationMinutes: sessionAssignments.durationMinutes,
           groundingScope: sessionAssignments.groundingScope,
-          transcriptPolicy: sessionAssignments.transcriptPolicy,
           personalRecordSideNotes: sessionAssignments.personalRecordSideNotes,
           sideNoteTriggers: sessionAssignments.sideNoteTriggers,
           updatedAt: sessionAssignments.updatedAt,
@@ -717,7 +716,7 @@ const mutateLmsSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("update_course"), name: z.string().min(3).max(200).optional(), description: z.string().max(2000).nullable().optional(), syllabusMd: z.string().max(20_000).nullable().optional() }),
   z.object({ action: z.literal("set_grade"), assignmentId: z.string().uuid(), studentId: z.string().uuid(), score: z.number().min(0), grade: z.string().max(24).nullable().optional() }),
   z.object({ action: z.literal("mark_missing"), assignmentId: z.string().uuid(), studentId: z.string().uuid(), missing: z.boolean().default(true) }),
-  z.object({ action: z.literal("update_session_contract"), assignmentId: z.string().uuid(), instructions: z.string().min(10).max(2000).optional(), durationMinutes: z.number().int().min(5).max(240).optional(), groundingScope: z.array(z.string().min(1).max(200)).max(12).optional(), transcriptPolicy: z.string().min(3).max(200).optional(), personalRecordSideNotes: z.boolean().optional() }),
+  z.object({ action: z.literal("update_session_contract"), assignmentId: z.string().uuid(), instructions: z.string().min(10).max(2000).optional(), durationMinutes: z.number().int().min(5).max(240).optional(), groundingScope: z.array(z.string().min(1).max(200)).max(12).optional(), personalRecordSideNotes: z.boolean().optional() }),
   z.object({ action: z.literal("apply_draft"), proposalId: z.string().uuid() }),
   z.object({ action: z.literal("dismiss_draft"), proposalId: z.string().uuid() }),
   z.object({ action: z.literal("grade_session"), submissionId: z.string().uuid(), force: z.boolean().default(false) }),
@@ -931,7 +930,6 @@ async function mutateLms(scope: ProfessorScope, sessionId: string, model: Langua
       if (input.instructions !== undefined) set.instructions = input.instructions;
       if (input.durationMinutes !== undefined) set.durationMinutes = input.durationMinutes;
       if (input.groundingScope !== undefined) set.groundingScope = input.groundingScope;
-      if (input.transcriptPolicy !== undefined) set.transcriptPolicy = input.transcriptPolicy;
       if (input.personalRecordSideNotes !== undefined) set.personalRecordSideNotes = input.personalRecordSideNotes;
       await db.update(sessionAssignments).set(set).where(and(eq(sessionAssignments.id, target.id), eq(sessionAssignments.orgId, scope.orgId), eq(sessionAssignments.courseId, scope.courseId)));
       return { ok: true, action: input.action, summary: `Updated the session contract for ${target.assignmentName}.` };

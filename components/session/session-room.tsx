@@ -60,7 +60,6 @@ export type SessionRoomProps = {
   brief: string;
   durationMinutes: number;
   groundingScope: string[];
-  transcriptPolicy: string;
   criteria: RubricCriterion[];
   initialMessages: UIMessage[];
   initialArtifacts: Array<{ turnIndex: number; artifactType: string; state: unknown }>;
@@ -477,7 +476,7 @@ function AssignmentDetails(props: SessionRoomProps & { started: boolean }) {
       <p className="mt-2 text-[0.78125rem] leading-5 text-[var(--color-muted)]">{props.brief}</p>
       <dl className="mt-3 space-y-1 text-[0.71875rem] leading-5">
         {props.groundingScope.length > 0 ? <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2 py-2"><dt className="text-[var(--color-faint)]">Course material</dt><dd className="text-[var(--color-muted)]">{props.groundingScope.join(", ")}</dd></div> : null}
-        <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2 py-2"><dt className="text-[var(--color-faint)]">Transcript</dt><dd className="text-[var(--color-muted)]">{props.transcriptPolicy}</dd></div>
+        <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2 py-2"><dt className="text-[var(--color-faint)]">Transcript</dt><dd className="text-[var(--color-muted)]">Available to your instructor</dd></div>
       </dl>
     </section>
   );

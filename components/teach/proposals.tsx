@@ -203,9 +203,8 @@ function ProposalBlockPreview({ block }: { block: Block }) {
   if (block.type === "ai_assignment") {
     return (
       <RecordSection label="AI assignment" title={block.title}>
-        <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+        <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           <Fact label="Session" value={`${block.durationMinutes} minutes`} />
-          <Fact label="Transcript" value={block.transcriptPolicy} />
           <Fact label="Personal record notes" value={block.personalRecordSideNotes ? "On" : "Off"} />
         </dl>
         <p className="mt-5 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{block.instructions}</p>

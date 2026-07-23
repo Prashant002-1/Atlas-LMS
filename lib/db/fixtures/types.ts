@@ -263,7 +263,6 @@ export type V0SessionAssignment = {
   instructions: string;
   durationMinutes: number;
   groundingScope: string[];
-  transcriptPolicy: string;
   personalRecordSideNotes: boolean;
   /** Professor-sanctioned side-note triggers; the runtime never invents one. */
   sideNoteTriggers: V0SideNoteTrigger[];

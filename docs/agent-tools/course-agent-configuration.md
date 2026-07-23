@@ -12,7 +12,6 @@ Use this tool when the professor asks Atlas to change:
 - direct-answer policy;
 - challenge level;
 - citation behavior;
-- student turn limit per rolling 24 hours;
 - supported or avoided behavior;
 - escalation conditions;
 - a persistent study or AI-assignment rule;
@@ -43,9 +42,6 @@ Use this tool when the professor asks Atlas to change:
       avoids: string[]; // at most 12
       escalatesWhen: string[]; // at most 12
     };
-    limits: {
-      studentDailyTurns: number; // integer from 1 to 500
-    };
     rules: Array<{
       id: string; // stable kebab-case id
       title: string;
@@ -57,7 +53,7 @@ Use this tool when the professor asks Atlas to change:
 }
 ```
 
-The request is a complete replacement. The model must copy every current value the professor did not ask to change from the fresh `agent_configuration` section of the professor context pack.
+The request is a complete replacement. The model must copy every current value the professor did not ask to change from the fresh `agent_configuration` section of the professor context pack. Rate limits are server-owned and are not part of this tool or any course-actor surface.
 
 ## Execution
 
@@ -87,7 +83,6 @@ Success:
     version: number;
     name: string;
     voice: string;
-    studentDailyTurns: number;
     rules: number;
     studentDisclosure: string;
     changeSummary: string;

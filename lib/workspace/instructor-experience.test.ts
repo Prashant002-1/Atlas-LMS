@@ -38,7 +38,7 @@ test("the syllabus is its own composed surface, synchronized with the record", (
   // The syllabus text has one owner: its own action, not the course dialog.
   assert.match(actions, /export async function updateCourseSyllabus/);
   assert.equal(courseSetup.includes('name="syllabus"'), false, "course setup no longer edits the syllabus text");
-  assert.ok(courseSetup.includes('href="/teach/syllabus"'));
+  assert.equal(courseSetup.includes('href="/teach/syllabus"'), false, "course setup does not duplicate the syllabus route");
   assert.ok(layout.includes('"/teach/syllabus"'));
 });
 

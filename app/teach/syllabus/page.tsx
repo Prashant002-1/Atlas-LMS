@@ -225,12 +225,11 @@ export default async function TeachSyllabusPage() {
           <h2 id="syllabus-ai-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">AI in this course</h2>
           <TextLink href="/teach/course" className="text-[0.75rem]">Course agent</TextLink>
         </div>
-        <dl className="mt-4 grid sm:grid-cols-2 lg:grid-cols-5">
+        <dl className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4">
           <BandFact label="Course agent" value={configuration.identity.name} />
           <BandFact label="Direct answers" value={directAnswerLabel(configuration.teaching.directAnswers)} />
           <BandFact label="Citations" value={configuration.teaching.citationMode === "required" ? "Required" : "When useful"} />
           <BandFact label="Challenge" value={titleCase(configuration.teaching.challengeLevel)} />
-          <BandFact label="Daily student turns" value={String(configuration.limits.studentDailyTurns)} />
         </dl>
         {activeRules.length > 0 ? (
           <ul className="mt-5 divide-y divide-[var(--color-border)]">

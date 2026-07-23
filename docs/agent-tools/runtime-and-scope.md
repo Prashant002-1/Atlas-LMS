@@ -58,7 +58,7 @@ Proof: [`lib/agent/professor-runtime.ts`](../../lib/agent/professor-runtime.ts),
 
 ## Student assessed-session sequence
 
-1. Load the active typed course agent configuration and enforce its server-side turn limit before creating a turn.
+1. Load the active typed course agent configuration and enforce the server-owned rate limit before creating a turn.
 2. Persist the student's turn before generation.
 3. Evaluate deterministic personal-record note gates.
 4. Rebuild published course context and ready, course-visible materials.
@@ -66,7 +66,7 @@ Proof: [`lib/agent/professor-runtime.ts`](../../lib/agent/professor-runtime.ts),
 6. Wrap course and material content as untrusted reference data.
 7. Stream the response and persist assistant/tool parts.
 
-Course configuration may shape name, voice, teaching approach, answer policy, challenge level, citations, turn limits, and scoped course rules. It cannot weaken fixed session rules, alter the rubric, add tools, or widen data access.
+Course configuration may shape name, voice, teaching approach, answer policy, challenge level, citations, and scoped course rules. It cannot change rate limits, weaken fixed session rules, alter the rubric, add tools, or widen data access.
 
 Proof: [`app/api/session/[assignmentId]/route.ts`](../../app/api/session/[assignmentId]/route.ts), [`lib/agent/session-runtime.ts`](../../lib/agent/session-runtime.ts), [`lib/agent/session-context.ts`](../../lib/agent/session-context.ts), and [`lib/agent/context.ts`](../../lib/agent/context.ts).
 

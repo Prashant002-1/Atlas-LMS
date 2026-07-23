@@ -35,6 +35,19 @@ test("current schema package has expected structure", () => {
   assert.equal(pkg.courses[0].code, "ECON-241");
 });
 
+test("ECON-241 carries a substantive description and working class policies", () => {
+  const course = v0DemoWorld.currentSchema.package.courses[0];
+  assert.ok(course.description.length >= 300);
+  assert.deepEqual(course.classPolicies?.map((policy) => policy.title), [
+    "Attendance",
+    "Late work",
+    "Academic integrity",
+  ]);
+  assert.match(course.classPolicies?.[0]?.body ?? "", /no more than two class meetings/i);
+  assert.match(course.classPolicies?.[1]?.body ?? "", /seven calendar days/i);
+  assert.match(course.classPolicies?.[2]?.body ?? "", /own reasoning and writing/i);
+});
+
 test("exactly one current term, dates do not violate timeline", () => {
   const pkg = v0DemoWorld.currentSchema.package;
   const currentTerms = pkg.terms.filter((t) => t.current);

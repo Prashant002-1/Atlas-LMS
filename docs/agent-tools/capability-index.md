@@ -25,7 +25,7 @@ This index answers "can Atlas do X?" for the live professor and personal student
 | Recompute stored class results | Yes | `refresh_class_results` |
 | Apply or dismiss a pending draft | Yes | `apply_draft`, `dismiss_draft` |
 | Delete a supported course record | Yes | `delete_record` with exact current title confirmation |
-| Configure the shared course agent's name, voice, teaching behavior, turn limit, boundaries, disclosure, and rules | Yes | `configure_agent`; append-only versioned write |
+| Configure the shared course agent's name, voice, teaching behavior, boundaries, disclosure, and rules | Yes | `configure_agent`; append-only versioned write |
 | Draft a new AI assignment | Yes, through Review | `draft_ai_assignment`, then `apply_draft` |
 | Draft a rubric revision | Yes, through Review | `draft_rubric`, then `apply_draft` |
 | Draft coordinated course records | Yes, through Review | `draft_course`, then `apply_draft` |

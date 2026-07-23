@@ -30,9 +30,9 @@ import { RecordDialog } from "@/components/teach/record-dialog";
 
 /**
  * Course setup is the course control center: identity and offering facts,
- * the grade scale, class policies, the syllabus pointer, and the course
- * agent. Structure and materials live on their own pages; the agent is
- * changed in conversation with Atlas and reported here.
+ * the grade scale, class policies, and the course agent. Structure, syllabus,
+ * and materials live on their own pages; the agent is changed in conversation
+ * with Atlas and reported here.
  */
 export default async function TeachCourseSetupPage() {
   const session = await auth();
@@ -50,15 +50,11 @@ export default async function TeachCourseSetupPage() {
       name: courses.name,
       term: courses.term,
       description: courses.description,
-      syllabusMd: courses.syllabusMd,
       status: courses.status,
       startDate: courses.startDate,
       endDate: courses.endDate,
-      timeZone: courses.timeZone,
-      importSource: courses.importSource,
       gradeScale: courses.gradeScale,
       classPolicies: courses.classPolicies,
-      updatedAt: courses.updatedAt,
     })
     .from(courses)
     .where(and(eq(courses.orgId, session.user.orgId), eq(courses.id, scoped.id)))
@@ -79,29 +75,22 @@ export default async function TeachCourseSetupPage() {
   return (
     <>
       <PageHeader
-        title="Course setup"
-        course={`${course.code} / ${course.term ?? ""}`}
+        title={`${course.code}: ${course.name}`}
+        course="Course setup"
         action={<EditCourseDialog course={course} />}
       />
 
       <section aria-labelledby="course-overview-heading" className="pb-7">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.34fr)]">
-          <div className="min-w-0">
-            <h2 id="course-overview-heading" className="text-[1.125rem] font-semibold text-[var(--color-ink)]">{course.name}</h2>
-            <p className="mt-2 max-w-3xl text-[0.84375rem] leading-6 text-[var(--color-muted)]">
-              {course.description?.trim() || "No course description has been added."}
-            </p>
-          </div>
-          <dl className="grid grid-cols-2 gap-x-5 gap-y-4 text-[0.78125rem]">
-            <CourseFact label="Code" value={course.code} mono />
-            <CourseFact label="Status" value={course.status === "published" ? "Published" : titleCase(course.status)} />
-            <CourseFact label="Term" value={course.term ?? "Not set"} />
-            <CourseFact label="Time zone" value={course.timeZone ?? "Not set"} />
-            <CourseFact label="Starts" value={course.startDate ? longDate(course.startDate) : "Not set"} />
-            <CourseFact label="Ends" value={course.endDate ? longDate(course.endDate) : "Not set"} />
-            <CourseFact label="Source" value={course.importSource ? titleCase(course.importSource.replaceAll("_", " ")) : "Created in Atlas"} />
-          </dl>
-        </div>
+        <h2 id="course-overview-heading" className="sr-only">Course overview</h2>
+        <p className="max-w-[75ch] text-[0.84375rem] leading-6 text-[var(--color-muted)]">
+          {course.description?.trim() || "No course description has been added."}
+        </p>
+        <dl className="mt-5 flex flex-wrap gap-x-10 gap-y-3 text-[0.78125rem]">
+          <CourseFact label="Term" value={course.term ?? "Not set"} />
+          <CourseFact label="Starts" value={course.startDate ? longDate(course.startDate) : "Not set"} />
+          <CourseFact label="Ends" value={course.endDate ? longDate(course.endDate) : "Not set"} />
+          {course.status !== "published" ? <CourseFact label="Status" value={titleCase(course.status)} /> : null}
+        </dl>
       </section>
 
       <section aria-labelledby="grade-scale-heading" className="py-8">
@@ -125,7 +114,6 @@ export default async function TeachCourseSetupPage() {
         <SectionLead
           id="class-policies-heading"
           title="Class policies"
-          detail={classPolicies.length > 0 ? `${classPolicies.length} on the syllabus` : undefined}
           action={<ClassPolicyDialog mode="create" />}
         />
         {classPolicies.length > 0 ? (
@@ -151,17 +139,6 @@ export default async function TeachCourseSetupPage() {
         )}
       </section>
 
-      <section aria-labelledby="syllabus-heading" className="py-8">
-        <div className="mb-2 flex items-baseline justify-between gap-4">
-          <h2 id="syllabus-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Syllabus</h2>
-          <span className="text-[0.6875rem] text-[var(--color-faint)]">Updated {longDate(course.updatedAt)}</span>
-        </div>
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 px-3 py-3.5">
-          <p className="text-[0.8125rem] text-[var(--color-muted)]">{syllabusFact(course.syllabusMd)}</p>
-          <TextLink href="/teach/syllabus" className="text-[0.78125rem]">Open the syllabus</TextLink>
-        </div>
-      </section>
-
       <section aria-labelledby="course-agent-heading" className="py-8">
         <SectionLead
           id="course-agent-heading"
@@ -180,12 +157,11 @@ export default async function TeachCourseSetupPage() {
           <ConfigRow label="Student disclosure" value={activeConfig.studentDisclosure} />
         </dl>
 
-        <dl className="mt-5 grid sm:grid-cols-2 lg:grid-cols-5">
+        <dl className="mt-5 grid sm:grid-cols-2 lg:grid-cols-4">
           <BehaviorFact label="Socratic by default" value={configuration.teaching.socraticByDefault ? "Yes" : "No"} />
           <BehaviorFact label="Direct answers" value={directAnswerLabel(configuration.teaching.directAnswers)} />
           <BehaviorFact label="Challenge" value={titleCase(configuration.teaching.challengeLevel)} />
           <BehaviorFact label="Citations" value={configuration.teaching.citationMode === "required" ? "Required" : "When useful"} />
-          <BehaviorFact label="Daily student turns" value={String(configuration.limits.studentDailyTurns)} />
         </dl>
 
         <dl className="mt-5 space-y-1">
@@ -414,11 +390,11 @@ function BoundaryRow({ label, items }: { label: string; items: string[] }) {
   );
 }
 
-function CourseFact({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+function CourseFact({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-[0.6875rem] text-[var(--color-faint)]">{label}</dt>
-      <dd className={`mt-1 font-medium text-[var(--color-ink)] ${mono ? "atlas-mono" : ""}`}>{value}</dd>
+      <dd className="mt-1 font-medium text-[var(--color-ink)]">{value}</dd>
     </div>
   );
 }
@@ -429,13 +405,6 @@ function directAnswerLabel(value: CourseAgentConfiguration["teaching"]["directAn
 
 function surfaceLabel(value: "study" | "assignment") {
   return value === "study" ? "Study" : "AI assignments";
-}
-
-function syllabusFact(syllabusMd: string | null): string {
-  const text = syllabusMd?.trim();
-  if (!text) return "No syllabus text yet.";
-  const words = text.split(/\s+/).length;
-  return `${words.toLocaleString("en-US")} ${words === 1 ? "word" : "words"}`;
 }
 
 function longDate(date: Date): string {

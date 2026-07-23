@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import {
   changeProposals,
   classRollups,
+  courses,
   journeyReports,
   learningObjectives,
   proposalBlocks,
@@ -21,6 +22,7 @@ import { isInstructorLike } from "@/lib/auth/session";
 import { findEditableCourse } from "@/lib/instructor/workspace";
 import { loadSessionAssignmentBundle } from "@/lib/agent/session-store";
 import { gradeLetterFor, runGradingForSubmission } from "@/lib/agent/grading";
+import { gradeBandsForCourse } from "@/lib/course/policies";
 import { recomputeClassRollup } from "@/lib/agent/rollup";
 import { resolvePlatformModel } from "@/lib/ai/platform-model";
 import { BLOCK_SCHEMA_VERSION } from "@/lib/agent/blocks";
@@ -108,9 +110,15 @@ export async function finalizeJourneyReport(formData: FormData) {
     throw new Error("This report is already finalized.");
   }
 
+  const [scaleRow] = await db
+    .select({ gradeScale: courses.gradeScale })
+    .from(courses)
+    .where(and(eq(courses.id, course.id), eq(courses.orgId, actor.orgId)))
+    .limit(1);
+
   const now = new Date();
   const score = row.report.overallScore;
-  const grade = gradeLetterFor(score);
+  const grade = gradeLetterFor(score, gradeBandsForCourse(scaleRow?.gradeScale));
   const fallbackBody = renderFinalArtifactBody(row.submission.finalArtifact, row.studentName ?? "Student");
 
   await db.transaction(async (tx) => {

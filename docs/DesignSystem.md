@@ -36,7 +36,7 @@ Course Setup is an operational course workspace, not a metadata form. Show cours
 
 Configuration is read-first. Rubrics are viewed as rubrics and changed through Atlas and Review; grading pages do not ask professors to rebalance point arithmetic inline.
 
-Teacher Settings is the transparent course agent configuration. Show identity, teaching behavior, student disclosure, course rules, knowledge readiness, assignment contracts, fixed system boundaries, and version provenance. Atlas is the editor. Do not render editable prompt text, provider controls, model identifiers, endpoints, or API keys to teachers.
+Teacher Settings is the transparent course agent configuration. Show identity, teaching behavior, student disclosure, course rules, knowledge readiness, assignment contracts, fixed system boundaries, and version provenance. Atlas is the editor. Provider, model, endpoint, and credential configuration is Atlas-owned server infrastructure and is never rendered as a course-actor control.
 
 A student AI assignment is an assignment workspace, not a generic chat page. It uses the same AI Elements conversation substrate as the professor agent, while the header and utility rail keep the assignment, submission draft, rubric, grade, timer, and submit action distinct. The agent initiates pedagogical moves naturally from the professor configuration and assignment contract; the client does not fake stage changes or inject hardcoded domain prompts.
 

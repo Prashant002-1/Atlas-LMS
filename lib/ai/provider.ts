@@ -6,8 +6,9 @@ import type { EmbeddingModel, LanguageModel } from "ai";
 
 /**
  * Provider registry. One place that knows how to turn a (provider, modelId, key)
- * triple into a Vercel AI SDK model, so chat/generation and embeddings can be
- * swapped per env or per org without touching call sites.
+ * triple into a Vercel AI SDK model, so platform chat, generation, and
+ * embeddings can be configured through server environment secrets without
+ * touching call sites.
  *
  * Chat/generation providers:
  *   openrouter | openai | anthropic | google | openai_compatible
@@ -33,7 +34,7 @@ export const CHAT_PROVIDERS: readonly ChatProviderKind[] = [
 export type ChatModelSpec = {
   provider: ChatProviderKind;
   modelId: string;
-  /** Explicit key (BYOK). When omitted, the env key for the provider is used. */
+  /** Explicit server credential. When omitted, the provider reads platform env. */
   apiKey?: string;
   /** Required for openai_compatible; ignored otherwise. */
   baseURL?: string;
@@ -75,7 +76,7 @@ export function createChatModel(spec: ChatModelSpec): LanguageModel {
     case "openai_compatible": {
       const baseURL = spec.baseURL ?? process.env.ATLAS_OPENAI_COMPAT_BASE_URL;
       if (!baseURL) {
-        throw new Error("openai_compatible provider requires a base URL (ATLAS_OPENAI_COMPAT_BASE_URL or org base_url).");
+        throw new Error("openai_compatible provider requires ATLAS_OPENAI_COMPAT_BASE_URL.");
       }
       return createOpenAICompatible({
         name: "atlas-compat",
@@ -139,7 +140,7 @@ export function defaultFallbackProvider(): ChatProviderKind {
   return p && CHAT_PROVIDERS.includes(p) ? p : defaultChatProvider();
 }
 
-/* ── env-default convenience models (used off the BYOK path, e.g. compaction) ── */
+/* ── platform convenience models (for compaction and structured generation) ── */
 
 export function primaryModel(): LanguageModel {
   const provider = defaultChatProvider();

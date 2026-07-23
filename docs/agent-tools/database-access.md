@@ -18,13 +18,13 @@ Proof: [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts), [`lib/age
 | Stage | Reads | Writes |
 | --- | --- | --- |
 | authenticate and choose course | authentication state, `terms`, `courses`, `enrollments` | none |
-| model resolution | `org_provider_keys` or environment fallback | none |
+| model resolution | server environment configuration only | none |
 | create or load professor thread | `agent_sessions` | may insert `agent_sessions`; may update title |
 | persist turns | `agent_sessions` | inserts `agent_turns`; updates counters and timestamps |
 | build professor context | course academic tables, `files`, `course_material_records`, `course_agent_configs`, AI assignment contracts, rubrics, drafts | none |
 | compaction | active `agent_turns`, `agent_sessions` | updates session summary and cursor |
 
-Provider records are never returned to model-visible tools or teacher Settings.
+Platform credentials are never returned to model-visible tools or teacher Settings.
 
 ## Model-visible tools
 

@@ -6,7 +6,7 @@
 
 ## TL;DR
 
-Roughly **55-65% survived as KEEP or ADAPT - but what survived is plumbing and patterns, not the old product.** The strongest survivors are context packs, block registry discipline, apply-as-transaction, BYOK, anchored sessions, proposal rows, and the route shell. **Verdict: v0 is a new grading-pipeline product wearing Atlas's plumbing.** Phase 0 has already discarded the old command/cue/Eve surfaces and old broad catalog.
+Roughly **55-65% survived as KEEP or ADAPT - but what survived is plumbing and patterns, not the old product.** The strongest survivors are context packs, block registry discipline, apply-as-transaction, the provider registry, anchored sessions, proposal rows, and the route shell. **Verdict: v0 is a new grading-pipeline product wearing Atlas's plumbing.** Phase 0 has already discarded the old command/cue/Eve surfaces and old broad catalog.
 
 ## Inventory
 
@@ -21,7 +21,7 @@ Roughly **55-65% survived as KEEP or ADAPT - but what survived is plumbing and p
 | changeProposals / proposalBlocks | ADAPT | Propose-never-perform as rows is exactly right; every registered block type is course-authoring content. No session-assignment, artifact-state, grade, or journey blocks exist |
 | cueEvents | DISCARD | Rate-limiting for cue buttons; the new loop has no cue buttons |
 | chatSessions / chatMemories / plannerState | DISCARD | Legacy prototype chat, superseded by agentSessions/agentTurns per the schema's own comments |
-| orgProviderKeys + lib/agent/keys.ts + lib/ai/provider.ts | KEEP | BYOK done properly (AES-256-GCM, org-scoped, 5 providers, env fallback). Directly reusable |
+| lib/ai/provider.ts | KEEP | The five-provider registry and server environment configuration are directly reusable. Organization credential storage is discarded; model infrastructure is platform-owned. |
 | lib/ai/embeddings.ts | KEEP | 1536-dim, L2-normalized, scoped to course-content lookup only. Reusable for grounding evidence against materials |
 | lib/agent/blocks.ts | ADAPT | The registry pattern (one zod schema -> tool input + React render + persisted row) is the right contract for artifact panel, side notes, and journey cards. All 9 current block types get replaced |
 | lib/agent/context.ts | ADAPT | Deterministic budgeted packs are right; needs new sections (session transcript, professor planning history, rubric) and loses the course-authoring focus |

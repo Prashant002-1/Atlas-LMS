@@ -59,7 +59,7 @@ compact when the verbatim tail outgrows the budget. Planning threads are the
 command-surface sessions the cockpit already lists as planning history; the
 seeded Exam 2 planning session is simply the first row of the surface.
 Issue #27's architecture door is honored: no `WorkflowAgent`, no new
-runtime, org BYOK via `resolveModelForOrg` unchanged.
+runtime, and the platform-owned model resolver remains the single model seam.
 
 ### 3. Three tools, one door
 

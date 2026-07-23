@@ -8,7 +8,7 @@ Atlas now operates the professor's LMS through typed, course-scoped tools. The r
 
 - Course agent identity, voice, and standing instructions lived in editable text fields.
 - `customInstructions` was injected verbatim into student-session instructions.
-- Teacher Settings exposed provider names, model identifiers, endpoints, and API-key controls that belong to institution administration.
+- Teacher Settings exposed provider names, model identifiers, endpoints, and API-key controls that belong to Atlas platform operations.
 - Course Setup was one permanent form plus two small fact panels. It did not represent the PDFs, slide decks, assessments, pages, media, links, and course packages that make up a real course.
 - The professor could ask Atlas to edit course policy, but there was no append-only, inspectable configuration state shared by professor and student runtimes.
 
@@ -95,7 +95,7 @@ The teacher Settings route shows:
 
 The only editing affordance is `Change with Atlas`, which opens a new professor conversation. The route contains no forms.
 
-Provider, model, endpoint, and API-key controls are removed from the teacher surface. The existing provider registry and encrypted organization keys remain server and administrator infrastructure.
+Provider, model, endpoint, and API-key controls are absent from the teacher surface. The provider registry and credentials are Atlas-owned platform infrastructure configured only through server environment secrets.
 
 ### 6. Course Setup is a course workspace
 

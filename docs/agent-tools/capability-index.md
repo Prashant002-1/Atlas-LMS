@@ -40,7 +40,7 @@ Teacher Course Setup can also upload or link course material through its separat
 | Read another organization or unselected course | No | executors repeat organization and current-course predicates |
 | Use arbitrary SQL | No | no SQL-string input or SQL execution tool exists |
 | Use shell, filesystem mutation, browser, web search, HTTP, email, or general code execution | No | no such tool is in the returned registry |
-| Expose provider keys, model settings, endpoints, or credentials | No | model resolution happens before tools and provider details are absent from teacher settings |
+| Expose platform credentials, model settings, or endpoints | No | model resolution happens before tools and platform details are absent from course-actor settings |
 | Expand authority through course agent configuration | No | configuration changes teaching behavior only; fixed tools and scopes remain authoritative |
 | Replace fixed assignment or grading rules through course configuration | No | assessed-session rules and assignment contracts compile before course configuration |
 | Create or edit a quiz row | No | quizzes are read-only in `inspect_lms`; no quiz mutation action exists |

@@ -47,7 +47,7 @@ The interface receives only context metadata, never hidden prompt text. This giv
 
 ### 4. Guardrails are containment, not a promise
 
-The route authenticates the instructor, resolves the current course, rejects malformed and explicit role-confusion inputs, enforces a database-backed request budget, validates thread ownership, and resolves the organization's model before generation.
+The route authenticates the instructor, resolves the current course, rejects malformed and explicit role-confusion inputs, enforces a database-backed request budget, validates thread ownership, and resolves Atlas's platform model before generation.
 
 The prompt separates fixed policy from delimited course data. Tool schemas and executors recheck authorization. External capabilities do not exist in the tool set. Model output is treated as untrusted UI data and rendered through the existing hardened Markdown path and typed draft cards.
 
@@ -74,7 +74,7 @@ The supporting rail is closed by default, user-controlled, persistent, and colla
 
 - No database migration and no new dependency.
 - The branch is stacked on PR #32 so the harness includes the latest shell and control-plane work.
-- The existing Postgres turn persistence, BYOK resolver, proposal tables, apply gate, and compaction seam remain.
+- The existing Postgres turn persistence, platform model resolver, proposal tables, apply gate, and compaction seam remain.
 - `.atlas` can grow through reviewed, non-executable skills without expanding the runtime's authority.
 - Public-link hardening now has a concrete test surface: prompt override, tool misuse, cross-tenant identifiers, rate limits, duplicate drafts, context poisoning, output rendering, and interrupted streams.
 

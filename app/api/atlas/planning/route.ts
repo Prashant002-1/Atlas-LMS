@@ -6,7 +6,7 @@ import { isInstructorLike } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { agentSessions, agentTurns } from "@/lib/db/schema";
 import { guardProfessorInput } from "@/lib/agent/atlas-harness";
-import { resolveModelForOrg } from "@/lib/agent/keys";
+import { resolvePlatformModel } from "@/lib/ai/platform-model";
 import { persistSessionTurn } from "@/lib/agent/session-store";
 import { createCommandSession, loadCommandSession, titleCommandSessionFromIntent } from "@/lib/agent/session";
 import { workflowStreamResponse } from "@/lib/agent/workflow-stream";
@@ -115,10 +115,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const resolved = await resolveModelForOrg(user.orgId);
+  const resolved = resolvePlatformModel();
   if (!resolved) {
     return NextResponse.json(
-      { error: "Atlas is temporarily unavailable for this institution. Contact your administrator." },
+      { error: "Atlas's model runtime is temporarily unavailable. Please try again later." },
       { status: 503 }
     );
   }

@@ -3,7 +3,7 @@ import { getWorkflowMetadata, getWritable, sleep } from "workflow";
 import { db } from "@/lib/db";
 import { agentSessions } from "@/lib/db/schema";
 import { loadActiveCourseAgentConfig } from "@/lib/agent/course-agent-config";
-import { resolveModelForOrg } from "@/lib/agent/keys";
+import { resolvePlatformModel } from "@/lib/ai/platform-model";
 import { runProfessorTurn } from "@/lib/agent/professor-runtime";
 import { runSessionTurn } from "@/lib/agent/session-runtime";
 import { concludeExpiredSession } from "@/lib/agent/session-conclusion";
@@ -53,8 +53,8 @@ async function streamProfessorTurnStep(args: ProfessorTurnArgs, runId: string) {
     if (!session || session.userId !== args.instructorId || session.courseId !== args.courseId) {
       throw new Error("Professor thread not found.");
     }
-    const resolved = await resolveModelForOrg(args.orgId);
-    if (!resolved) throw new Error("No model is configured for this institution.");
+    const resolved = resolvePlatformModel();
+    if (!resolved) throw new Error("Atlas's model runtime is not configured.");
 
     await pipeResponseToWorkflow(await runProfessorTurn({
       session,
@@ -83,13 +83,13 @@ async function streamStudentTurnStep(args: StudentTurnArgs, runId: string) {
     if (!session || session.courseId !== args.courseId || session.anchorId !== args.assignmentId) {
       throw new Error("Student session not found.");
     }
-    const [bundle, courseAgent, resolved] = await Promise.all([
+    const [bundle, courseAgent] = await Promise.all([
       loadSessionAssignmentBundle(args.orgId, args.assignmentId),
       loadActiveCourseAgentConfig(args.orgId, args.courseId),
-      resolveModelForOrg(args.orgId),
     ]);
+    const resolved = resolvePlatformModel();
     if (!bundle) throw new Error("Session assignment contract not found.");
-    if (!resolved) throw new Error("No model is configured for this institution.");
+    if (!resolved) throw new Error("Atlas's model runtime is not configured.");
 
     await pipeResponseToWorkflow(await runSessionTurn({
       session,

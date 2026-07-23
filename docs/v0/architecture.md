@@ -4,13 +4,13 @@
 
 ## 0. The shape being built
 
-One loop on five primitives: professor configures a **session assignment** (agent-drafted rubric from syllabus + outcomes, professor edits and approves, policy toggles) -> student works a live **session** (streaming conversation + evolving typed artifact panel + margin side-note cards from the **course record**) -> a pipeline turns the transcript into **journey evidence** (per-criterion levels with verbatim quotes) -> professor reviews cards and class rollups. Requirements: typed structured streaming (blocks, not free text), sessions that survive a refresh, per-org BYOK, approval gates, Postgres as the record. Explicitly NOT needed: computer use, sandboxes, browsing, multi-agent swarms.
+One loop on five primitives: professor configures a **session assignment** (agent-drafted rubric from syllabus + outcomes, professor edits and approves, policy toggles) -> student works a live **session** (streaming conversation + evolving typed artifact panel + margin side-note cards from the **course record**) -> a pipeline turns the transcript into **journey evidence** (per-criterion levels with verbatim quotes) -> professor reviews cards and class rollups. Requirements: typed structured streaming (blocks, not free text), sessions that survive a refresh, an Atlas-owned model runtime, approval gates, Postgres as the record. Explicitly NOT needed: computer use, sandboxes, browsing, multi-agent swarms.
 
 ## 1. Accepted runtime
 
 **Accepted v0 runtime: plain Vercel AI SDK 7 streams with typed data parts and Atlas-owned Postgres persistence.** Not Eve; `WorkflowAgent` was evaluated and deferred in ADR-0010.
 
-**Why not Eve:** Eve is the wrong shape for this v0. `defineAgent.model` remains static; `defineDynamic` covers tools/skills/instructions only, so per-org BYOK still requires either the Gateway `byok` escape hatch or a custom model proxy. The default harness is computer-use shaped, which is wrong for a typed-blocks session product. Eve's strengths are real, but not worth bringing back for this build. Sources: vercel.com/docs/eve; eve.dev/docs/agent-config; Eve release notes; Vercel changelog.
+**Why not Eve:** Eve is the wrong shape for this v0. The default harness is computer-use shaped, which is wrong for a typed-blocks session product, and Atlas already owns a direct AI SDK runtime plus its platform model configuration. Eve's strengths are real, but not worth bringing back for this build. Sources: vercel.com/docs/eve; eve.dev/docs/agent-config; Eve release notes; Vercel changelog.
 
 **Why turn-persisted streams:** `streamText` runs inside a UI message stream while Atlas persists the user turn before generation and the completed assistant turn after it. Typed `data-*` parts and per-tool UI parts carry the artifact panel and side-note cards with explicit streaming states, while Postgres rows remain the source of truth for refresh, submission, and grading.
 

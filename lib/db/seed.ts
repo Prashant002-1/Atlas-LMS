@@ -174,8 +174,8 @@ async function main() {
   }
 
   /* the student agent's durable observations about the featured student */
-  const econ = pkg.courses[0];
-  const econCourseId = idFor(`course:${econ.code}:${econ.termSlug}`);
+  const featuredCourse = pkg.courses[0];
+  const econCourseId = idFor(`course:${featuredCourse.code}:${featuredCourse.termSlug}`);
   await db.insert(agentMemories).values([
     {
       id: idFor("memory:maya:elasticity"),

@@ -62,7 +62,7 @@ export function courseAgentConfigurationTool(args: {
         const message = error instanceof Error ? error.message : "";
         const safe = [
           "The course agent changed from version",
-          "The source Atlas thread is not available",
+          "The source Atlas chat is not available",
           "The proposed configuration contains instruction-control language",
         ].some((prefix) => message.startsWith(prefix));
         return {

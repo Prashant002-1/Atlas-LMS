@@ -42,7 +42,7 @@ const resources = [
   "policies",
   "calendar",
   "drafts",
-  "threads",
+  "chats",
 ];
 
 const actions = [

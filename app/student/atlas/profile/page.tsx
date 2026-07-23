@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { loadStudentAtlasProfile } from "@/lib/student/atlas";
 import { PageHeader } from "@/components/teach/page-header";
 import { TextLink } from "@/components/atlas/primitives";
+import { restoreStudentAtlasChat } from "@/lib/agent/chat-actions";
 
 /**
  * What Atlas knows about this student: standing from the record, strengths
@@ -133,7 +134,7 @@ export default async function StudentAtlasProfilePage() {
       <section aria-labelledby="cando-heading" className="py-8">
         <h2 id="cando-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">What Atlas can do</h2>
         <ul className="mt-3 divide-y divide-[var(--color-border)] text-[0.8125rem] leading-5 text-[var(--color-muted)]">
-          <li className="px-3 py-2.5">Explain published course material within each course's rules</li>
+          <li className="px-3 py-2.5">Explain published course material within each course&apos;s rules</li>
           <li className="px-3 py-2.5">Plan study time around what is due and where points were lost</li>
           <li className="px-3 py-2.5">Track assignments, dates, and announcements across your courses</li>
           <li className="px-3 py-2.5">Read your own grades and results with you</li>
@@ -142,6 +143,25 @@ export default async function StudentAtlasProfilePage() {
           The rules it works under are on <TextLink href="/student/atlas/policies" className="text-[0.75rem]">Policies</TextLink>.
         </p>
       </section>
+
+      {view.archivedChats.length > 0 ? (
+        <section aria-labelledby="archived-chats-heading" className="py-8">
+          <h2 id="archived-chats-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Archived chats</h2>
+          <ul className="mt-3 divide-y divide-[var(--color-border)]">
+            {view.archivedChats.map((chat) => (
+              <li key={chat.id} className="flex items-center justify-between gap-4 px-3 py-3">
+                <span className="min-w-0 truncate text-[0.8125rem] text-[var(--color-muted)]">{chat.title}</span>
+                <form action={restoreStudentAtlasChat}>
+                  <input type="hidden" name="chatId" value={chat.id} />
+                  <button type="submit" className="text-[0.71875rem] font-medium text-[var(--color-muted)] underline decoration-[color-mix(in_oklch,currentColor_40%,transparent)] underline-offset-[3px] transition hover:text-[var(--color-ink)]">
+                    Restore
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </>
   );
 }

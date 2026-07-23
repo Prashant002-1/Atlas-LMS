@@ -10,6 +10,8 @@ import { listActiveMemories, MEMORY_ACTIVE_BUDGET_CHARS } from "@/lib/agent/memo
 import { agentProfiles } from "@/lib/agent/profiles";
 import { PageHeader } from "@/components/teach/page-header";
 import { ButtonLink, TextLink } from "@/components/atlas/primitives";
+import { listArchivedProfessorChats } from "@/lib/agent/chat-archive";
+import { restoreProfessorAtlasChat } from "@/lib/agent/chat-actions";
 
 /**
  * Settings describes the professor's own Atlas: who it works for, what it
@@ -27,7 +29,7 @@ export default async function TeachSettingsPage() {
   const course = await findEditableCourse({ id: session.user.id, orgId: session.user.orgId, role: session.user.role });
   if (!course) redirect("/teach");
 
-  const [profile, taughtRows, memories] = await Promise.all([
+  const [profile, taughtRows, memories, archivedChats] = await Promise.all([
     loadAccountProfile(session.user.id),
     db
       .select({ id: courses.id, code: courses.code, name: courses.name })
@@ -43,6 +45,7 @@ export default async function TeachSettingsPage() {
       )
       .orderBy(asc(courses.code)),
     listActiveMemories({ orgId: session.user.orgId, userId: session.user.id, profile: "professor" }),
+    listArchivedProfessorChats({ orgId: session.user.orgId, userId: session.user.id }),
   ]);
 
   const displayName = profile?.name?.trim() || session.user.name || "you";
@@ -110,6 +113,26 @@ export default async function TeachSettingsPage() {
           </p>
         )}
       </section>
+
+      {archivedChats.length > 0 ? (
+        <section aria-labelledby="archived-chats-heading" className="py-8">
+          <h2 id="archived-chats-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Archived chats</h2>
+          <ul className="mt-3 divide-y divide-[var(--color-border)]">
+            {archivedChats.map((chat) => (
+              <li key={chat.id} className="grid items-center gap-2 px-3 py-3 sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:gap-6">
+                <span className="atlas-mono text-[0.71875rem] text-[var(--color-faint)]">{chat.courseCode}</span>
+                <span className="min-w-0 truncate text-[0.8125rem] text-[var(--color-muted)]">{chat.title}</span>
+                <form action={restoreProfessorAtlasChat}>
+                  <input type="hidden" name="chatId" value={chat.id} />
+                  <button type="submit" className="text-[0.71875rem] font-medium text-[var(--color-muted)] underline decoration-[color-mix(in_oklch,currentColor_40%,transparent)] underline-offset-[3px] transition hover:text-[var(--color-ink)]">
+                    Restore
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section aria-labelledby="course-agent-pointer-heading" className="py-8">
         <h2 id="course-agent-pointer-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">The course agent</h2>

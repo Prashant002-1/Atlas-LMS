@@ -274,7 +274,7 @@ export async function writeCourseAgentConfig(args: {
       )
       .limit(1);
     if (!sourceSession) {
-      throw new Error("The source Atlas thread is not available in this course.");
+      throw new Error("The source Atlas chat is not available in this course.");
     }
 
     const [current] = await tx

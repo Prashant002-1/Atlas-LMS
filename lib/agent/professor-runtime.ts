@@ -21,6 +21,7 @@ import {
 import { professorOperatorTools } from "@/lib/agent/lms-operator";
 import { courseAgentConfigurationTool } from "@/lib/agent/course-agent-tool";
 import { personalMemoryTool } from "@/lib/agent/memories";
+import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
 
 /**
  * One professor turn on the durable AI SDK seam. The professor's input is a row
@@ -40,7 +41,7 @@ export type ProfessorDataParts = {
   };
 };
 
-export type ProfessorUIMessage = UIMessage<never, ProfessorDataParts>;
+export type ProfessorUIMessage = UIMessage<AtlasMessageMetadata, ProfessorDataParts>;
 
 function stripDataParts(messages: UIMessage[]): UIMessage[] {
   return messages.map((message) => ({
@@ -110,7 +111,11 @@ export async function runProfessorTurn(args: {
         tools,
         stopWhen: isStepCount(16),
       });
-      writer.merge(toUIMessageStream({ stream: result.stream }));
+      const createdAt = new Date().toISOString();
+      writer.merge(toUIMessageStream({
+        stream: result.stream,
+        messageMetadata: () => ({ createdAt }),
+      }));
     },
     onError: (error) => {
       console.error("professor harness turn failed", error);

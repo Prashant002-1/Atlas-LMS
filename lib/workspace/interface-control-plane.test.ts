@@ -138,10 +138,10 @@ test("settings describes the personal Atlas while Course setup owns the course",
     "openai_compatible",
     "API key",
     "loadActiveCourseAgentConfig",
-    "<form",
   ]) {
     assert.equal(settings.includes(excluded), false, `settings should not include ${excluded}`);
   }
+  assert.equal(settings.includes("restoreProfessorAtlasChat"), true, "settings should restore archived chats");
 
   const courseSetup = source("app/teach/course/page.tsx");
   for (const expected of [

@@ -85,10 +85,20 @@ No memory management UI ships: the agent curates, the surface reports.
 ### Session address change
 
 `agent_sessions.course_id` becomes nullable and the `agent_surface` enum gains
-`personal` (with `org` on the anchor enum), because a personal thread belongs
+`personal` (with `org` on the anchor enum), because a personal chat belongs
 to a person in an organization, not to a course. Migration 0008 carries the
 enum additions, the nullability change, the two new tables, and two new course
 columns.
+
+Atlas calls these records chats in the product and in model-visible tools.
+Existing `thread` query parameters and internal type names remain compatibility
+details, not product language. A personal Atlas chat can be archived but never
+deleted: `agent_sessions.archived_at` removes it from active chat lists and
+workflow resumption, while Settings exposes a direct restore control. Assessed
+assignment sessions remain academic records and are outside this archive path.
+Each stored turn's creation time hydrates message metadata; the interface keeps
+that date out of the chat rail and reveals it below the message on hover or
+keyboard focus.
 
 ### The instructor split: Settings is Atlas, Course setup is the course
 

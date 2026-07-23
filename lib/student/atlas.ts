@@ -21,6 +21,8 @@ import {
 } from "@/lib/agent/course-agent-config";
 import { loadStudentTopicRecords } from "@/lib/agent/side-notes";
 import { agentProfiles } from "@/lib/agent/profiles";
+import { listArchivedStudentChats, type ArchivedAtlasChat } from "@/lib/agent/chat-archive";
+import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
 
 /**
  * Read layer for the student Atlas surfaces (ADR-0016): the chat room, the
@@ -53,7 +55,7 @@ export type StudentAtlasRoomView = {
   disabledDetail: string | null;
   threads: StudentAtlasThreadRef[];
   firstCourse: { id: string; code: string } | null;
-  active: { id: string; title: string; messages: UIMessage[]; activeRunId: string | null } | null;
+  active: { id: string; title: string; messages: UIMessage<AtlasMessageMetadata>[]; activeRunId: string | null } | null;
 };
 
 export async function loadStudentAtlasRoom(
@@ -103,12 +105,12 @@ export async function loadStudentAtlasRoom(
   if (requestedThreadId && requestedThreadId !== "new") {
     const thread = await loadStudentAtlasSession(scope, requestedThreadId);
     if (!thread) {
-      return { ...empty, threads, problem: { title: "Thread unavailable", detail: "This thread is not yours." } };
+      return { ...empty, threads, problem: { title: "Chat unavailable", detail: "This chat is not yours." } };
     }
     const turnRows = await loadFullSessionTurns(scope.orgId, thread.id);
     active = {
       id: thread.id,
-      title: thread.title ?? "Atlas thread",
+      title: thread.title ?? "Atlas chat",
       messages: turnsToUIMessages(turnRows),
       activeRunId: publicWorkflowRunId(thread.activeRunId),
     };
@@ -118,7 +120,7 @@ export async function loadStudentAtlasRoom(
       const turnRows = await loadFullSessionTurns(scope.orgId, newest.id);
       active = {
         id: newest.id,
-        title: newest.title ?? "Atlas thread",
+        title: newest.title ?? "Atlas chat",
         messages: turnsToUIMessages(turnRows),
         activeRunId: publicWorkflowRunId(newest.activeRunId),
       };
@@ -160,6 +162,7 @@ export type StudentAtlasProfileView = {
   gaps: StudentTopicFact[];
   sessionReports: Array<{ assignment: string; course: string; score: number; status: "draft" | "final" }>;
   observations: StudentObservation[];
+  archivedChats: ArchivedAtlasChat[];
   memoryUsedChars: number;
   memoryBudgetChars: number;
 };
@@ -176,6 +179,7 @@ export async function loadStudentAtlasProfile(actor: Actor | null | undefined): 
     gaps: [],
     sessionReports: [],
     observations: [],
+    archivedChats: [],
     memoryUsedChars: 0,
     memoryBudgetChars: MEMORY_ACTIVE_BUDGET_CHARS,
   };
@@ -228,7 +232,7 @@ export async function loadStudentAtlasProfile(actor: Actor | null | undefined): 
   gaps.sort((a, b) => a.score / a.max - b.score / b.max);
 
   const codeById = new Map(enrolledRows.map((row) => [row.courseId, row.code]));
-  const [reportRows, memories] = await Promise.all([
+  const [reportRows, memories, archivedChats] = await Promise.all([
     db
       .select({
         assignment: assignments.name,
@@ -242,6 +246,7 @@ export async function loadStudentAtlasProfile(actor: Actor | null | undefined): 
       .orderBy(desc(journeyReports.updatedAt))
       .limit(8),
     listActiveMemories({ orgId: scope.orgId, userId: scope.studentId, profile: "student" }),
+    listArchivedStudentChats(scope),
   ]);
 
   return {
@@ -269,6 +274,7 @@ export async function loadStudentAtlasProfile(actor: Actor | null | undefined): 
       course: memory.courseId ? (codeById.get(memory.courseId) ?? null) : null,
       createdAt: memory.createdAt.toISOString(),
     })),
+    archivedChats,
     memoryUsedChars: memories.reduce((sum, memory) => sum + memory.content.length, 0),
     memoryBudgetChars: MEMORY_ACTIVE_BUDGET_CHARS,
   };

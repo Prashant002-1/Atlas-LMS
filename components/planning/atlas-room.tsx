@@ -7,6 +7,7 @@ import { type UIMessage } from "ai";
 import { WorkflowChatTransport } from "@ai-sdk/workflow";
 import {
   CheckCircle2,
+  Archive,
   FileCheck2,
   History,
   PanelRightClose,
@@ -19,7 +20,7 @@ import {
   ConversationContent,
   ConversationEmptyState,
 } from "@/components/ai-elements/conversation";
-import { Message, MessageContent } from "@/components/ai-elements/message";
+import { Message, MessageContent, MessageTimestamp } from "@/components/ai-elements/message";
 import { Response } from "@/components/ai-elements/response";
 import {
   messageHasVisibleOutput,
@@ -45,6 +46,10 @@ import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput, type ToolState } 
 import { AtlasMark, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { RubricCard } from "@/components/planning/rubric-card";
 import type { RubricCriterion } from "@/lib/agent/session-parts";
+import { archiveProfessorAtlasChat } from "@/lib/agent/chat-actions";
+import { atlasMessageMetadataNow, type AtlasMessageMetadata } from "@/lib/agent/ui-message";
+
+type PlanningChatMessage = UIMessage<AtlasMessageMetadata>;
 
 export type PlanningThreadRef = {
   id: string;
@@ -72,7 +77,7 @@ export type PlanningRoomProps = {
   threadId: string;
   threadTitle: string;
   course: { id: string; code: string; name: string; term: string | null };
-  initialMessages: UIMessage[];
+  initialMessages: PlanningChatMessage[];
   activeRunId: string | null;
   threads: PlanningThreadRef[];
   drafts: PlanningDraftRef[];
@@ -241,7 +246,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
   const runStorageKey = `atlas-active-run:planning:${props.threadId}`;
   const [steerQueue, setSteerQueue] = useState<string[]>([]);
   const steerQueueRef = useRef<string[]>([]);
-  const transport = useMemo(() => new WorkflowChatTransport<UIMessage>({
+  const transport = useMemo(() => new WorkflowChatTransport<PlanningChatMessage>({
     api: "/api/atlas/planning",
     prepareSendMessagesRequest: ({ messages: outgoing }) => ({
       body: {
@@ -269,7 +274,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
     else window.localStorage.removeItem(runStorageKey);
   }, [props.activeRunId, runStorageKey]);
 
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, status, error } = useChat<PlanningChatMessage>({
     id: `planning-${props.threadId}`,
     messages: props.initialMessages,
     resume: Boolean(props.activeRunId),
@@ -281,11 +286,11 @@ export function PlanningRoom(props: PlanningRoomProps) {
       if (!next) return;
       steerQueueRef.current = rest;
       setSteerQueue(rest);
-      window.setTimeout(() => sendMessage({ text: next }), 0);
+      window.setTimeout(() => sendMessage({ text: next, metadata: atlasMessageMetadataNow() }), 0);
     },
   });
 
-  const sendPlanningMessage = (text: string) => sendMessage({ text });
+  const sendPlanningMessage = (text: string) => sendMessage({ text, metadata: atlasMessageMetadataNow() });
 
   const promptCheckpoints = useMemo(
     () => messages
@@ -301,8 +306,8 @@ export function PlanningRoom(props: PlanningRoomProps) {
     const firstText = (firstUserMessage?.parts as LoosePart[] | undefined)?.find(
       (part) => part.type === "text" && typeof part.text === "string"
     )?.text;
-    const compact = typeof firstText === "string" ? firstText.replace(/\s+/g, " ").trim() : "New thread";
-    const title = compact.length > 64 ? `${compact.slice(0, 61)}...` : compact || "New thread";
+    const compact = typeof firstText === "string" ? firstText.replace(/\s+/g, " ").trim() : "New chat";
+    const title = compact.length > 64 ? `${compact.slice(0, 61)}...` : compact || "New chat";
     const contextPart = messages.flatMap((message) => message.parts as LoosePart[]).find((part) => part.type === "data-run-context");
     const context = contextPart?.data as RunContext | undefined;
     return [{ id: learnedThreadId, title, userTurnCount: 1, draftCount: 0, decidedCount: 0, updatedAt: context?.builtAt ?? new Date(0).toISOString() }, ...props.threads];
@@ -351,6 +356,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
   const storedDraftIds = new Set(props.drafts.map((draft) => draft.proposalId));
   const pendingReviewCount = props.pendingProposals + visibleDrafts.filter((draft) => draft.status === "pending" && !storedDraftIds.has(draft.proposalId)).length;
   const busy = status === "submitted" || status === "streaming";
+  const activeChatId = learnedThreadId ?? props.threadId;
   const lastMessage = messages[messages.length - 1];
   const awaitingReply = busy && !messageHasVisibleOutput(lastMessage);
   const firstWork = props.work[0] ?? null;
@@ -395,10 +401,18 @@ export function PlanningRoom(props: PlanningRoomProps) {
                 Review {pendingReviewCount}
               </Link>
             ) : null}
-            <Link href="/teach/atlas?thread=new" aria-label="New thread" title="New thread" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
+            {activeChatId !== "new" ? (
+              <form action={archiveProfessorAtlasChat}>
+                <input type="hidden" name="chatId" value={activeChatId} />
+                <button type="submit" disabled={busy} aria-label="Archive chat" title="Archive chat" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
+                  <Archive size={15} aria-hidden />
+                </button>
+              </form>
+            ) : null}
+            <Link href="/teach/atlas?thread=new" aria-label="New chat" title="New chat" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
               <Plus size={16} aria-hidden />
             </Link>
-            <button type="button" onClick={() => updateRail(!railOpen)} aria-label={railOpen ? "Close Atlas sidebar" : "Open Atlas sidebar"} aria-expanded={railOpen} title={railOpen ? "Close sidebar" : "Threads and drafts"} className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
+            <button type="button" onClick={() => updateRail(!railOpen)} aria-label={railOpen ? "Close Atlas sidebar" : "Open Atlas sidebar"} aria-expanded={railOpen} title={railOpen ? "Close sidebar" : "Chats and drafts"} className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
               {railOpen ? <PanelRightClose size={16} aria-hidden /> : <PanelRightOpen size={16} aria-hidden />}
             </button>
           </div>
@@ -418,9 +432,9 @@ export function PlanningRoom(props: PlanningRoomProps) {
                       </p>
                     </div>
                     <Suggestions className="justify-start">
-                      <Suggestion suggestion="What is the grade distribution for this class?" onClick={(text) => sendMessage({ text })} />
-                      <Suggestion suggestion="How is Maya Patel doing?" onClick={(text) => sendMessage({ text })} />
-                      {firstWork ? <Suggestion suggestion={`Revise the rubric for ${firstWork.name}.`} onClick={(text) => sendMessage({ text })} /> : null}
+                      <Suggestion suggestion="What is the grade distribution for this class?" onClick={sendPlanningMessage} />
+                      <Suggestion suggestion="How is Maya Patel doing?" onClick={sendPlanningMessage} />
+                      {firstWork ? <Suggestion suggestion={`Revise the rubric for ${firstWork.name}.`} onClick={sendPlanningMessage} /> : null}
                     </Suggestions>
                   </div>
                 </ConversationEmptyState>
@@ -435,6 +449,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
                     <MessageContent>
                       <PlanningMessageParts message={message} streaming={busy && index === messages.length - 1 && message.role === "assistant"} statusByProposal={statusByProposal} />
                     </MessageContent>
+                    <MessageTimestamp createdAt={message.metadata?.createdAt} />
                   </Message>
                 ))
               )}
@@ -488,7 +503,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
       <aside aria-hidden={!railOpen} inert={!railOpen} className={cn("fixed inset-y-0 right-0 z-40 flex w-[min(22rem,92vw)] flex-col overflow-hidden border-l bg-[var(--color-surface)] shadow-[var(--shadow-floating)] transition-[transform,opacity,width,border-color] duration-[220ms] ease-out lg:static lg:z-auto lg:translate-x-0 lg:shadow-none", railOpen ? "translate-x-0 border-[var(--color-border)] opacity-100 lg:w-[21rem]" : "pointer-events-none translate-x-full border-transparent opacity-0 lg:w-0 lg:translate-x-0")}>
         <div className="flex h-14 w-[min(21rem,92vw)] shrink-0 items-center justify-between border-b border-[var(--color-border)] px-3">
           <div className="flex items-center gap-1">
-            <button type="button" onClick={() => setRailView("threads")} className={cn("rounded-control px-2.5 py-1.5 text-[0.75rem] font-medium transition", railView === "threads" ? "bg-[var(--color-surface-muted)] text-[var(--color-ink)]" : "text-[var(--color-muted)] hover:text-[var(--color-ink)]")}>Threads</button>
+            <button type="button" onClick={() => setRailView("threads")} className={cn("rounded-control px-2.5 py-1.5 text-[0.75rem] font-medium transition", railView === "threads" ? "bg-[var(--color-surface-muted)] text-[var(--color-ink)]" : "text-[var(--color-muted)] hover:text-[var(--color-ink)]")}>Chats</button>
             <button type="button" onClick={() => setRailView("drafts")} className={cn("rounded-control px-2.5 py-1.5 text-[0.75rem] font-medium transition", railView === "drafts" ? "bg-[var(--color-surface-muted)] text-[var(--color-ink)]" : "text-[var(--color-muted)] hover:text-[var(--color-ink)]")}>Drafts{visibleDrafts.length > 0 ? ` ${visibleDrafts.length}` : ""}</button>
           </div>
           <button type="button" onClick={() => updateRail(false)} aria-label="Close Atlas sidebar" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"><PanelRightClose size={15} aria-hidden /></button>
@@ -623,10 +638,10 @@ function CourseDraftCard({ draft, status }: { draft: CourseDraftOutput; status: 
 }
 
 function ThreadDraftsPanel({ drafts, pendingProposals }: { drafts: PlanningDraftRef[]; pendingProposals: number }) {
-  if (drafts.length === 0) return <div className="px-2 py-8 text-center"><FileCheck2 size={18} className="mx-auto text-[var(--color-faint)]" aria-hidden /><p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">No drafts in this thread.</p></div>;
+  if (drafts.length === 0) return <div className="px-2 py-8 text-center"><FileCheck2 size={18} className="mx-auto text-[var(--color-faint)]" aria-hidden /><p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">No drafts in this chat.</p></div>;
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between px-2"><p className="text-[0.6875rem] text-[var(--color-faint)]">This thread</p>{pendingProposals > 0 ? <TextLink href="/teach/review" className="text-[0.6875rem]">Open Review</TextLink> : null}</div>
+      <div className="mb-2 flex items-center justify-between px-2"><p className="text-[0.6875rem] text-[var(--color-faint)]">This chat</p>{pendingProposals > 0 ? <TextLink href="/teach/review" className="text-[0.6875rem]">Open Review</TextLink> : null}</div>
       <ul className="space-y-1">
         {drafts.map((draft) => <li key={draft.proposalId} className="flex items-start justify-between gap-3 px-2 py-3"><div className="min-w-0"><p className="text-[0.78125rem] leading-5 text-[var(--color-ink)]">{draft.summary}</p><p className="mt-0.5 text-[0.65625rem] text-[var(--color-faint)]">{new Date(draft.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p></div><StatusBadge tone={STATUS_TONE[draft.status]}>{STATUS_LABEL[draft.status]}</StatusBadge></li>)}
       </ul>
@@ -635,12 +650,12 @@ function ThreadDraftsPanel({ drafts, pendingProposals }: { drafts: PlanningDraft
 }
 
 function ThreadsPanel({ threads, activeId }: { threads: PlanningThreadRef[]; activeId: string }) {
-  if (threads.length === 0) return <div className="px-2 py-8 text-center"><History size={18} className="mx-auto text-[var(--color-faint)]" aria-hidden /><p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">No threads.</p></div>;
+  if (threads.length === 0) return <div className="px-2 py-8 text-center"><History size={18} className="mx-auto text-[var(--color-faint)]" aria-hidden /><p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">No chats.</p></div>;
   return (
     <ul className="space-y-0.5">
       {threads.map((thread) => {
         const active = thread.id === activeId;
-        return <li key={thread.id}><Link href={`/teach/atlas?thread=${thread.id}`} aria-current={active ? "page" : undefined} className={cn("block rounded-row px-2.5 py-2.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]", active ? "bg-[var(--color-surface-muted)]" : "hover:bg-[var(--color-surface-muted)]")}><span className={cn("block truncate text-[0.78125rem]", active ? "font-medium text-[var(--color-ink)]" : "text-[var(--color-muted)]")}>{thread.title}</span><span className="mt-1 flex items-center gap-1.5 text-[0.65625rem] text-[var(--color-faint)]"><span>{new Date(thread.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>{thread.draftCount > 0 ? <span>· {thread.draftCount} draft{thread.draftCount === 1 ? "" : "s"}</span> : null}</span></Link></li>;
+        return <li key={thread.id}><Link href={`/teach/atlas?thread=${thread.id}`} aria-current={active ? "page" : undefined} className={cn("block rounded-row px-2.5 py-2.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]", active ? "bg-[var(--color-surface-muted)]" : "hover:bg-[var(--color-surface-muted)]")}><span className={cn("block truncate text-[0.78125rem]", active ? "font-medium text-[var(--color-ink)]" : "text-[var(--color-muted)]")}>{thread.title}</span>{thread.draftCount > 0 ? <span className="mt-1 block text-[0.65625rem] text-[var(--color-faint)]">{thread.draftCount} draft{thread.draftCount === 1 ? "" : "s"}</span> : null}</Link></li>;
       })}
     </ul>
   );

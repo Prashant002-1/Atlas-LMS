@@ -11,6 +11,10 @@ ALTER TYPE "agent_surface" ADD VALUE IF NOT EXISTS 'personal';
 ALTER TYPE "cue_target" ADD VALUE IF NOT EXISTS 'org';
 
 ALTER TABLE "agent_sessions" ALTER COLUMN "course_id" DROP NOT NULL;
+ALTER TABLE "agent_sessions" ADD COLUMN IF NOT EXISTS "archived_at" timestamp with time zone;
+
+CREATE INDEX IF NOT EXISTS "agent_sessions_archive_idx"
+  ON "agent_sessions" ("org_id", "user_id", "surface", "archived_at");
 
 CREATE TABLE IF NOT EXISTS "agent_memories" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,

@@ -123,7 +123,11 @@ export async function runSessionTurn(args: {
         stopWhen: isStepCount(4),
       });
 
-      writer.merge(toUIMessageStream({ stream: result.stream }));
+      const createdAt = new Date().toISOString();
+      writer.merge(toUIMessageStream({
+        stream: result.stream,
+        messageMetadata: () => ({ createdAt }),
+      }));
     },
     onError: (error) => {
       console.error("session turn failed", error);

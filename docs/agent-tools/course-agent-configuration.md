@@ -64,7 +64,7 @@ The request is a complete replacement. The model must copy every current value t
 1. The Zod schema validates the complete configuration.
 2. A lexical check rejects instruction-control language that tries to replace privileged prompts, disable authorization, or bypass guardrails.
 3. A transaction takes an advisory lock for the organization and course.
-4. The source Atlas thread is verified against organization, course, instructor, command surface, and course anchor.
+4. The source Atlas chat is verified against organization, course, instructor, command surface, and course anchor.
 5. The current highest version is compared with `expectedVersion`.
 6. A mismatch aborts the write and tells Atlas to read the current state.
 7. A successful write inserts one append-only `course_agent_configs` row at current version plus one.

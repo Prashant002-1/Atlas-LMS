@@ -3,7 +3,7 @@ import { loadStudentAtlasRoom } from "@/lib/student/atlas";
 import { StudentAtlasRoom } from "@/components/student/atlas-room";
 import { PageHeader } from "@/components/teach/page-header";
 
-/** Atlas occupies the working viewport. Threads stay in its optional rail. */
+/** Atlas occupies the working viewport. Chats stay in its optional rail. */
 export default async function StudentAtlasPage({
   searchParams,
 }: {
@@ -38,7 +38,7 @@ export default async function StudentAtlasPage({
     <StudentAtlasRoom
       key={roomKey}
       threadId={activeId}
-      threadTitle={thread === "new" ? "New thread" : (view.active?.title ?? "New thread")}
+      threadTitle={thread === "new" ? "New chat" : (view.active?.title ?? "New chat")}
       studentName={view.studentName}
       initialMessages={thread === "new" ? [] : (view.active?.messages ?? [])}
       activeRunId={thread === "new" ? null : (view.active?.activeRunId ?? null)}

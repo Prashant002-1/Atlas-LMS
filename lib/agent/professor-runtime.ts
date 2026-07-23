@@ -20,6 +20,7 @@ import {
 } from "@/lib/agent/professor-context";
 import { professorOperatorTools } from "@/lib/agent/lms-operator";
 import { courseAgentConfigurationTool } from "@/lib/agent/course-agent-tool";
+import { personalMemoryTool } from "@/lib/agent/memories";
 
 /**
  * One professor turn on the durable AI SDK seam. The professor's input is a row
@@ -81,6 +82,10 @@ export async function runProfessorTurn(args: {
   const tools = {
     ...professorOperatorTools({ scope, sessionId: session.id, model: args.model }),
     configure_agent: courseAgentConfigurationTool({ scope, sessionId: session.id }),
+    remember: personalMemoryTool({
+      scope: { orgId: scope.orgId, userId: scope.instructorId, profile: "professor" },
+      sessionId: session.id,
+    }),
   };
 
   const stream = createUIMessageStream<ProfessorUIMessage>({

@@ -9,6 +9,7 @@ import {
   loadActiveCourseAgentConfig,
   renderCourseAgentConfigForReference,
 } from "@/lib/agent/course-agent-config";
+import { listActiveMemories, renderMemoriesForReference } from "@/lib/agent/memories";
 
 /**
  * The professor profile's deterministic context snapshot. Scope is supplied by
@@ -43,6 +44,7 @@ const SECTION_CHARACTER_LIMITS: Record<string, number> = {
   ai_assignments: 16_000,
   agent_configuration: 12_000,
   open_drafts: 4000,
+  professor_memory: 4000,
 };
 
 function boundedSection(name: string, content: string): string {
@@ -54,7 +56,7 @@ function boundedSection(name: string, content: string): string {
 }
 
 export async function buildProfessorPack(scope: ProfessorScope): Promise<ProfessorPack> {
-  const [pack, courseAgentConfig] = await Promise.all([
+  const [pack, courseAgentConfig, memories] = await Promise.all([
     buildContextPack({
       orgId: scope.orgId,
       courseId: scope.courseId,
@@ -62,6 +64,7 @@ export async function buildProfessorPack(scope: ProfessorScope): Promise<Profess
       userId: scope.instructorId,
     }),
     loadActiveCourseAgentConfig(scope.orgId, scope.courseId),
+    listActiveMemories({ orgId: scope.orgId, userId: scope.instructorId, profile: "professor" }),
   ]);
 
   const sections: ContextSection[] = [];
@@ -71,6 +74,7 @@ export async function buildProfessorPack(scope: ProfessorScope): Promise<Profess
   };
 
   push("agent_configuration", renderCourseAgentConfigForReference(courseAgentConfig));
+  push("professor_memory", renderMemoriesForReference(memories));
 
   const assignmentRows = await db
     .select({

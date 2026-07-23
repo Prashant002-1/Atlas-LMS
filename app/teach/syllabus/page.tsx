@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { findEditableCourse } from "@/lib/instructor/workspace";
-import { GRADE_BANDS, loadCourseSyllabus, type SyllabusAssignment } from "@/lib/instructor/syllabus";
+import { loadCourseSyllabus, type SyllabusAssignment } from "@/lib/instructor/syllabus";
 import { updateCourseSyllabus } from "@/lib/instructor/actions";
 import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton, TextLink } from "@/components/atlas/primitives";
@@ -27,7 +27,7 @@ export default async function TeachSyllabusPage() {
   const syllabus = await loadCourseSyllabus(session.user.orgId, scoped.id);
   if (!syllabus) redirect("/teach");
 
-  const { course, instructors, weeks, work, publishedPoints, agent } = syllabus;
+  const { course, instructors, weeks, work, publishedPoints, gradeBands, classPolicies, agent } = syllabus;
   const configuration = agent.configuration;
   const activeRules = configuration.rules.filter((rule) => rule.enabled);
 
@@ -183,14 +183,31 @@ export default async function TeachSyllabusPage() {
         )}
         <dl className="mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-1.5 text-[0.78125rem]">
           <InlineFact label="Graded points" value={formatPoints(publishedPoints)} />
-          <InlineFact label="Letter grades" value={GRADE_BANDS.map((band) => (band.min > 0 ? `${band.letter} ${band.min}+` : `${band.letter} below ${previousBandMin()}`)).join(" / ")} />
+          <InlineFact label="Letter grades" value={gradeBands.map((band) => (band.min > 0 ? `${band.letter} ${band.min}+` : `${band.letter} below ${previousBandMin(gradeBands)}`)).join(" / ")} />
         </dl>
       </section>
 
       <section aria-labelledby="syllabus-policies-heading" className="py-7">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h2 id="syllabus-policies-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Course policies</h2>
-          <TextLink href="/teach/settings" className="text-[0.75rem]">Agent configuration</TextLink>
+          <TextLink href="/teach/course" className="text-[0.75rem]">Course setup</TextLink>
+        </div>
+        {classPolicies.length > 0 ? (
+          <dl className="mt-4 divide-y divide-[var(--color-border)]">
+            {classPolicies.map((policy) => (
+              <div key={policy.title} className="grid gap-x-6 gap-y-1 px-3 py-3 sm:grid-cols-[minmax(0,0.32fr)_minmax(0,1fr)] text-[0.78125rem]">
+                <dt className="font-medium text-[var(--color-ink)]">{policy.title}</dt>
+                <dd className="leading-5 text-[var(--color-muted)]">{policy.body}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+      </section>
+
+      <section aria-labelledby="syllabus-ai-heading" className="py-7">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 id="syllabus-ai-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">AI in this course</h2>
+          <TextLink href="/teach/course" className="text-[0.75rem]">Course agent</TextLink>
         </div>
         <dl className="mt-4 grid sm:grid-cols-2 lg:grid-cols-5">
           <BandFact label="Course agent" value={configuration.identity.name} />
@@ -269,9 +286,9 @@ function formatPoints(value: number): string {
   return `${rounded} pts`;
 }
 
-/** The D band's floor, for the "F below N" phrasing. */
-function previousBandMin(): number {
-  const sorted = GRADE_BANDS.filter((band) => band.min > 0).sort((a, b) => a.min - b.min);
+/** The lowest positive band's floor, for the "below N" phrasing. */
+function previousBandMin(bands: Array<{ letter: string; min: number }>): number {
+  const sorted = bands.filter((band) => band.min > 0).sort((a, b) => a.min - b.min);
   return sorted[0]?.min ?? 60;
 }
 

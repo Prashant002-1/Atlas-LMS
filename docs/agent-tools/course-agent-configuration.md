@@ -108,7 +108,7 @@ Failure:
 
 The active row is the highest version for the course. Professor context includes it as lower-authority reference data. Student assessed sessions load it on every turn and compile it below fixed assessed-session rules and the assignment contract.
 
-The configuration may shape teaching behavior. It cannot add tools, widen organization or course scope, expose credentials, or weaken grading and transcript constraints.
+The configuration may shape teaching behavior. It cannot add tools, widen organization or course scope, expose credentials, or weaken grading and transcript constraints. External-source access is server-owned policy and is excluded from this model-visible complete-replacement contract, its reference block, and all course-actor settings.
 
 The student session page shows the configured name, version, and student disclosure. It does not show raw prompts or hidden reasoning.
 

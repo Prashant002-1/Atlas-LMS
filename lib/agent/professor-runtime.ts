@@ -23,6 +23,7 @@ import { courseAgentConfigurationTool } from "@/lib/agent/course-agent-tool";
 import { personalMemoryTool } from "@/lib/agent/memories";
 import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
 import { loadReadyThreadDocumentContext } from "@/lib/course/documents";
+import { governedWebSearchTools } from "@/lib/agent/web-search";
 
 /**
  * One professor turn on the durable AI SDK seam. The professor's input is a row
@@ -85,6 +86,9 @@ export async function runProfessorTurn(args: {
       userId: scope.instructorId,
     }),
   ]);
+  const webSearch = governedWebSearchTools({
+    policies: [professorPack.courseAgentConfig.configuration.externalSearch],
+  });
   const instructions = buildProfessorInstructions({ harness });
 
   const storedTurns = await loadActiveTurns(session);
@@ -106,6 +110,7 @@ export async function runProfessorTurn(args: {
       scope: { orgId: scope.orgId, userId: scope.instructorId, profile: "professor" },
       sessionId: session.id,
     }),
+    ...webSearch.tools,
   };
 
   const stream = createUIMessageStream<ProfessorUIMessage>({

@@ -8,6 +8,7 @@ import { buildProfessorOperatorInstructions } from "@/lib/agent/professor-operat
 import {
   loadActiveCourseAgentConfig,
   renderCourseAgentConfigForReference,
+  type ResolvedCourseAgentConfig,
 } from "@/lib/agent/course-agent-config";
 import { listActiveMemories, renderMemoriesForReference } from "@/lib/agent/memories";
 
@@ -30,6 +31,7 @@ export type ProfessorPack = {
   content: string;
   builtAt: string;
   tokenEstimate: number;
+  courseAgentConfig: ResolvedCourseAgentConfig;
 };
 
 const SECTION_CHARACTER_LIMITS: Record<string, number> = {
@@ -158,6 +160,7 @@ export async function buildProfessorPack(scope: ProfessorScope): Promise<Profess
     content,
     builtAt,
     tokenEstimate: estimateTokens(content),
+    courseAgentConfig,
   };
 }
 

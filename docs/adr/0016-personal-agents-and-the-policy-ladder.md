@@ -60,6 +60,23 @@ enrollment, organization, and the university policy switch; the turn limits are
 counted server side; every tool executor repeats organization and enrollment
 predicates; the model never sees a write path beyond its typed tools.
 
+External search follows the same ladder without becoming course-actor
+configuration. The fixed platform policy caps results and owns the provider,
+endpoint, schema, credentials, citation shape, and untrusted-data treatment.
+University and course records carry server-owned allow, result, and domain
+constraints that are excluded from professor configuration tools, reference
+blocks, Settings, Course setup, Syllabus, and student Policies. The effective
+policy is the strict intersection: a denial always wins, the smallest result
+limit wins, blocked domains accumulate, and allowed-domain lists intersect.
+
+Professor Atlas applies the current course layer. An assessed session applies
+the university and its course. The personal student Atlas applies the
+university and every course named by the request; a cross-course or ambiguous
+request applies all enrolled course layers. This conservative fallback prevents
+a personal chat from bypassing a restrictive course. Missing credentials omit
+the exact query-only tool, while provider failures return no sources and expose
+no backend status burden to the course actor.
+
 ### Memory is a small curated store, not a transcript
 
 `agent_memories` holds durable observations, per person, per authoring profile

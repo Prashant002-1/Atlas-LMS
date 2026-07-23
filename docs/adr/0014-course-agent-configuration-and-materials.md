@@ -97,14 +97,18 @@ The only editing affordance is `Change with Atlas`, which opens a new professor 
 
 Provider, model, endpoint, and API-key controls are absent from the teacher surface. The provider registry and credentials are Atlas-owned platform infrastructure configured only through server environment secrets.
 
-### 6. Course Setup is a course workspace
+### 6. Course Setup and Materials have separate ownership
 
-Course Setup becomes read-first:
+Course Setup is read-first and owns:
 
 - course identity and offering facts;
-- direct counts for students, modules, assignments, pages, assessments, and materials;
 - focused edit dialog for student-facing course details;
-- rendered syllabus;
+- the grade scale and class policies rendered live on the syllabus;
+- the syllabus pointer;
+- the course agent and its version history.
+
+Materials owns:
+
 - searchable, filterable material table;
 - focused upload and HTTPS-link intake;
 - material type, source, processing state, access, size or page count, and update time.
@@ -115,11 +119,19 @@ Supported intake types include documents, PDFs, Office files, slide decks, sprea
 
 The web process validates type and size, computes a SHA-256 checksum, and forwards the material to an institution-configured HTTPS ingestion service. The adapter uses a server-only outbound token. Callback HMAC uses a separate server-only secret.
 
-The service returns a stable job id, durable object URL, and optional extracted text, page count, metadata, and `processing` or `ready` state. A processing result is accepted only when Atlas has an externally reachable callback URL and callback secret. The worker signs the exact callback body with HMAC-SHA256 and sends the job id to `/api/materials/ingestion`; the callback repeats organization and course predicates before updating the matching row. Atlas creates no database row when the initial service request fails.
+The service returns a stable job id, durable object URL, and optional extracted text, page count, metadata, and `processing` or `ready` state. A processing result is accepted only when Atlas has an externally reachable callback URL and callback secret. The worker signs the exact callback body with HMAC-SHA256 and sends the job id to `/api/materials/ingestion`; the callback repeats organization plus the exact course or personal owner predicates before updating the matching row. Atlas creates no database row when the initial service request fails.
 
 The maximum file size is 25 MB. Next.js action and proxy body buffers are capped at 26 MB to allow multipart overhead.
 
 The existing `files` table remains the durable source record. `course_material_records` is a one-to-one extension carrying job, processing, and access metadata. Existing seeded and imported file rows without extension metadata remain valid and resolve as ready, course-visible LMS material. The exact worker protocol is documented in [Course material ingestion contract](../course-materials/ingestion-contract.md).
+
+### 8. Document understanding extends the same file record
+
+Atlas does not create a second file library for documents. A model-derived readable artifact extends `course_material_records`, with provider, model, and input-mode provenance. `document_attachments` connects the same file to a course material record, syllabus, assignment, professor thread, or student personal thread through explicit foreign keys and an exactly-one-owner check. Course files carry a course id. Personal student files instead carry the owning user id and require an exact organization, user, and personal-session match; instructors and other students cannot read them.
+
+Original browser viewing and download use an authenticated Atlas route over the durable ingestion URL. The readable detail surface shows the summary, outline, and content artifact. Notes and annotation controls remain visibly unavailable until their own persistence and authorization design exists.
+
+Native model input is deliberately narrow. First-party provider adapters may receive PDFs where their installed behavior and official provider documentation support it. Text and code are sent as text. Office documents and spreadsheets require worker-extracted text. Generic compatible gateways do not establish native file capability, so Atlas makes no universal parsing claim.
 
 ## Consequences
 
@@ -130,8 +142,10 @@ The existing `files` table remains the durable source record. `course_material_r
 - Changes are versioned, attributed, inspectable, and concurrency-safe.
 - The student receives an honest explanation of how the agent will teach.
 - Model and provider infrastructure no longer leaks into teacher workflow.
-- Course Setup can represent real instructional source material and interoperable packages.
+- Materials can represent real instructional source material and interoperable packages.
 - Ready-state and access checks prevent half-processed or instructor-only material from entering student context.
+- Documents attached to professor threads enter model context only after readable processing is ready and the thread's organization, course, and owner checks pass.
+- Documents attached to a student's personal Atlas enter bounded model context only after readable processing is ready and organization, student, and personal-session checks pass.
 - Existing course files and policies remain compatible.
 
 ### Costs

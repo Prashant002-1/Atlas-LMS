@@ -36,7 +36,7 @@ Proof: [`lib/workspace/scope.ts`](../../lib/workspace/scope.ts), [`lib/agent/pro
 | Model steps | 16 |
 | Read result rows | generally 100 maximum |
 
-Course material upload is a separate Course Setup server action. It accepts at most 25 MB and the framework buffers are capped at 26 MB including multipart overhead.
+Course material upload is a separate Materials server action. Personal student uploads use the same bounded ingestion seam and are attached only to the student's personal Atlas thread. Each upload accepts at most 25 MB and the framework buffers are capped at 26 MB including multipart overhead.
 
 Proof: [`app/api/atlas/planning/route.ts`](../../app/api/atlas/planning/route.ts), [`lib/course/materials.ts`](../../lib/course/materials.ts), and [`next.config.mjs`](../../next.config.mjs).
 
@@ -44,11 +44,11 @@ Proof: [`app/api/atlas/planning/route.ts`](../../app/api/atlas/planning/route.ts
 
 1. Resolve authentication, organization, instructor, and course.
 2. Resolve the Atlas platform model before creating a new chat.
-3. Persist the professor's user turn.
-4. Rebuild the current course context and active course agent configuration.
+3. Persist the professor's user turn and its scoped attachment ids.
+4. Rebuild the current course context, active course agent configuration, professor memory, and ready chat-document context.
 5. Load fixed reviewed `.atlas` agent and guardrail files.
-6. Place current course data, course agent configuration, and compacted history in a lower-authority reference message immediately before the current request.
-7. Run the 28-tool registry with a 16-step ceiling.
+6. Place current course data, course agent configuration, memory, bounded document content, and compacted history in a lower-authority reference message immediately before the current request.
+7. Run the 29-tool registry with a 16-step ceiling.
 8. Persist the complete assistant response and tool parts.
 9. Compact only after the assistant turn completes.
 

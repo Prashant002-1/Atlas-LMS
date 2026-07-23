@@ -5,6 +5,8 @@ import { loadStudentAssignmentWorkspace, type StudentAssignment } from "@/lib/st
 import { loadSessionAssignmentBundle } from "@/lib/agent/session-store";
 import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton, BackLink, ButtonLink, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { DocumentAttachmentSection } from "@/components/documents/document-attachments";
+import { listDocumentAttachments } from "@/lib/course/documents";
 
 const tone = { graded: "good", submitted: "accent", open: "neutral", missing: "warn" } as const;
 const label = { graded: "Graded", submitted: "Submitted", open: "Open", missing: "Missing" } as const;
@@ -30,6 +32,14 @@ export default async function StudentAssignmentPage({ params }: { params: Promis
   const assignment = workspace.assignment;
   const returnTo = `/student/assignments/${assignment.id}`;
   const sessionBundle = session.user.orgId ? await loadSessionAssignmentBundle(session.user.orgId, assignment.id) : null;
+  const attachedDocuments = session.user.orgId
+    ? await listDocumentAttachments({
+        orgId: session.user.orgId,
+        courseId: workspace.course.id,
+        owner: { type: "assignment", id: assignment.id },
+        audience: "student",
+      })
+    : [];
   const canSubmit = !sessionBundle && (assignment.status === "open" || assignment.status === "missing");
   const canRevise = !sessionBundle && assignment.status === "submitted";
 
@@ -60,6 +70,10 @@ export default async function StudentAssignmentPage({ params }: { params: Promis
           </div>
         ) : null}
       </section>
+
+      {attachedDocuments.length > 0 ? (
+        <DocumentAttachmentSection items={attachedDocuments} audience="student" title="Assignment documents" />
+      ) : null}
 
       {sessionBundle ? (
         <section className="mt-4 py-5">

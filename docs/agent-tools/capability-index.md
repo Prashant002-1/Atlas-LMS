@@ -1,6 +1,6 @@
 # Capability index
 
-This index answers "can Atlas do X?" for the live professor agent.
+This index answers "can Atlas do X?" for the live professor and personal student agents.
 
 ## Supported now
 
@@ -29,8 +29,10 @@ This index answers "can Atlas do X?" for the live professor agent.
 | Draft a rubric revision | Yes, through Review | `draft_rubric`, then `apply_draft` |
 | Draft coordinated course records | Yes, through Review | `draft_course`, then `apply_draft` |
 | Load a reviewed workflow | Yes | `load_skill` for one of six allowlisted skill ids |
+| Attach documents to a professor conversation | Yes | authenticated UI intake reuses Materials storage; the user turn persists scoped attachment ids and only ready readable content reaches model context |
+| Attach private documents to a student's personal Atlas | Yes | the file and processing record belong to the student with no course id; exact organization, student, and personal-session checks protect viewing and context |
 
-Teacher Course Setup can also upload or link course material through its separate scoped server actions. That intake is not a model-visible tool.
+Teacher Materials can also upload or link course material through its separate scoped server actions. That intake is not a model-visible tool.
 
 ## Not exposed by the current tool contracts
 
@@ -45,7 +47,7 @@ Teacher Course Setup can also upload or link course material through its separat
 | Replace fixed assignment or grading rules through course configuration | No | assessed-session rules and assignment contracts compile before course configuration |
 | Create or edit a quiz row | No | quizzes are read-only in `inspect_lms`; no quiz mutation action exists |
 | Create or edit a module item | No | module items are read-only in `inspect_lms` |
-| Upload a file through the professor conversation | No | material intake is a separate Course Setup action and no attachment tool is exposed to the model |
+| Ask the model to fetch or parse an arbitrary file itself | No | document intake is an authenticated application action; the model receives only ready, access-checked readable artifacts |
 | Add, remove, or edit a student enrollment | No | no enrollment mutation action exists |
 | Directly edit rubric criteria | No | rubric changes use `draft_rubric` plus apply |
 | Calculate weighted assignment-group course grades | No | grade distributions use stored course standing or raw assignment points |

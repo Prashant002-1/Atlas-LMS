@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { files } from "@/lib/db/schema";
 import { courseMaterialRecords } from "@/lib/db/course-agent-schema";
 import { classifyCourseMaterial } from "@/lib/course/materials";
+import { isDocumentFilename } from "@/lib/course/documents";
 import { findEditableCourse } from "@/lib/instructor/workspace";
 import {
   addLinkedCourseMaterial,
@@ -77,6 +78,7 @@ export default async function TeachMaterialsPage() {
       visibility: row.visibility ?? "course",
       pageCount: row.pageCount,
       updatedAt: (row.updatedAt ?? row.createdAt).toISOString(),
+      document: isDocumentFilename(row.filename ?? row.displayName),
     };
   });
   const readyMaterials = materials.filter((material) => material.processingStatus === "ready").length;
@@ -113,11 +115,11 @@ function AddMaterialDialog() {
         <form action={uploadCourseMaterial} className="grid gap-4">
           <div>
             <h3 className="text-[0.875rem] font-semibold text-[var(--color-ink)]">Upload</h3>
-            <p className="mt-1 text-[0.71875rem] leading-5 text-[var(--color-muted)]">PDF, Office, text, media, .imscc, QTI/XML, or ZIP. Maximum 25 MB.</p>
+            <p className="mt-1 text-[0.71875rem] leading-5 text-[var(--color-muted)]">PDF, Office, text, code, media, .imscc, QTI/XML, or ZIP. Maximum 25 MB.</p>
           </div>
           <label className="grid gap-1.5 text-[0.75rem] font-medium">
             File
-            <input name="file" type="file" required accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.rtf,.mp3,.m4a,.wav,.mp4,.mov,.webm,.imscc,.xml,.qti,.zip" className={`${fieldClass} file:mr-3 file:border-0 file:bg-transparent file:text-[0.75rem] file:font-medium file:text-[var(--color-ink)]`} />
+            <input name="file" type="file" required accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.rtf,.xml,.json,.jsonl,.yaml,.yml,.html,.css,.js,.jsx,.ts,.tsx,.mjs,.cjs,.py,.java,.c,.cc,.cpp,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.kts,.sql,.sh,.zsh,.bash,.mp3,.m4a,.wav,.mp4,.mov,.webm,.imscc,.qti,.zip" className={`${fieldClass} file:mr-3 file:border-0 file:bg-transparent file:text-[0.75rem] file:font-medium file:text-[var(--color-ink)]`} />
           </label>
           <label className="grid gap-1.5 text-[0.75rem] font-medium">
             Display name <span className="font-normal text-[var(--color-faint)]">Optional</span>

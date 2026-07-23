@@ -126,6 +126,17 @@ Profile (what Atlas knows, composed from record facts plus observations), and
 Policies (university policy, each course's rules, and the fixed platform
 rules, stated plainly).
 
+### Personal documents stay personal
+
+The student's Atlas accepts documents through the same durable-original and
+bounded understanding seam as course documents, without assigning them to a
+course. The `files`, processing, and attachment rows carry the owning student
+instead. An attachment must point to that student's established personal
+session in the same organization. Other students, instructors, and course
+read paths cannot open the original, the readable artifact, or the model
+context. The newest five ready documents are bounded to 80,000 characters in
+the lower-authority reference message.
+
 ## Consequences
 
 - The student runtime rides the existing durable seam unchanged: persist the

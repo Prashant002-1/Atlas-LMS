@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
 import { type UIMessage } from "ai";
 import { WorkflowChatTransport } from "@ai-sdk/workflow";
-import { Archive, CheckCircle2, History, PanelRightClose, PanelRightOpen, Plus } from "lucide-react";
+import { Archive, CheckCircle2, FileText, History, PanelRightClose, PanelRightOpen, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Conversation,
@@ -38,6 +38,7 @@ import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput, type ToolState } 
 import { AtlasMark } from "@/components/atlas/primitives";
 import { archiveStudentAtlasChat } from "@/lib/agent/chat-actions";
 import { atlasMessageMetadataNow, type AtlasMessageMetadata } from "@/lib/agent/ui-message";
+import { uploadStudentAtlasDocument } from "@/lib/student/document-actions";
 
 type StudentAtlasChatMessage = UIMessage<AtlasMessageMetadata>;
 
@@ -59,6 +60,14 @@ export type StudentAtlasRoomProps = {
 };
 
 type LoosePart = { type?: unknown; state?: unknown; input?: unknown; output?: unknown; data?: unknown; text?: unknown } & Record<string, unknown>;
+
+type StudentDocumentAttachment = {
+  attachmentId: string;
+  fileId: string;
+  displayName: string;
+  filename: string | null;
+  processingStatus: "queued" | "processing" | "ready" | "failed";
+};
 
 function outputObject(part: LoosePart): Record<string, unknown> | null {
   return part.output && typeof part.output === "object" ? (part.output as Record<string, unknown>) : null;
@@ -116,10 +125,14 @@ function actionSummary(part: LoosePart): string | null {
 }
 
 export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
-  const initialThreadId = props.threadId;
   const [railOpen, setRailOpen] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceTranscriptionState>("idle");
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState(props.threadId);
+  const [selectedDocuments, setSelectedDocuments] = useState<StudentDocumentAttachment[]>([]);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [uploadPending, startUploadTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -133,14 +146,14 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
     window.localStorage.setItem("atlas-student-rail", open ? "open" : "closed");
   }
 
-  const runStorageKey = `atlas-active-run:student:${props.threadId}`;
+  const runStorageKey = `atlas-active-run:student:${activeSessionId}`;
   const [steerQueue, setSteerQueue] = useState<string[]>([]);
   const steerQueueRef = useRef<string[]>([]);
   const transport = useMemo(() => new WorkflowChatTransport<StudentAtlasChatMessage>({
     api: "/api/atlas/student",
     prepareSendMessagesRequest: ({ messages: outgoing }) => ({
       body: {
-        sessionId: threadIdFromMessages(outgoing) ?? initialThreadId,
+        sessionId: threadIdFromMessages(outgoing) ?? activeSessionId,
         message: outgoing[outgoing.length - 1],
       },
     }),
@@ -157,7 +170,7 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
       if (!runId) throw new Error("No active Atlas run to resume.");
       return { ...rest, api: `/api/agent-runs/${encodeURIComponent(runId)}/stream` };
     },
-  }), [initialThreadId, runStorageKey]);
+  }), [activeSessionId, runStorageKey]);
 
   useEffect(() => {
     if (props.activeRunId) window.localStorage.setItem(runStorageKey, props.activeRunId);
@@ -180,15 +193,57 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
     },
   });
 
+  const sendStudentMessage = (text: string) => {
+    const attachments = selectedDocuments;
+    const message = attachments.length > 0
+      ? {
+          metadata: atlasMessageMetadataNow(),
+          parts: [
+            { type: "text" as const, text },
+            { type: "data-document-attachments" as const, data: { attachments } },
+          ],
+        }
+      : { text, metadata: atlasMessageMetadataNow() };
+    void sendMessage(message as Parameters<typeof sendMessage>[0]);
+    setSelectedDocuments([]);
+    setAttachmentError(null);
+  };
+
+  function uploadDocument(file: File | undefined) {
+    if (!file || selectedDocuments.length >= 5) return;
+    setAttachmentError(null);
+    startUploadTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.set("file", file);
+        formData.set("sessionId", activeSessionId);
+        const uploaded = await uploadStudentAtlasDocument(formData);
+        setActiveSessionId(uploaded.sessionId);
+        if (props.threadId === "new") {
+          window.history.replaceState(null, "", `/student/atlas?thread=${uploaded.sessionId}`);
+        }
+        setSelectedDocuments((current) => current.some((item) => item.fileId === uploaded.fileId)
+          ? current
+          : [...current, uploaded]);
+      } catch (uploadError) {
+        setAttachmentError(uploadError instanceof Error ? uploadError.message : "Atlas could not upload that document.");
+      } finally {
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    });
+  }
+
   const promptCheckpoints = useMemo(
     () => messages
       .filter((message) => message.role === "user")
       .map((message, index) => ({ id: message.id, label: promptCheckpointLabel(message, index) })),
     [messages]
   );
-  const sendStudentMessage = (text: string) => sendMessage({ text, metadata: atlasMessageMetadataNow() });
 
-  const learnedThreadId = useMemo(() => threadIdFromMessages(messages), [messages]);
+  const learnedThreadId = useMemo(
+    () => threadIdFromMessages(messages) ?? (activeSessionId === "new" ? null : activeSessionId),
+    [activeSessionId, messages]
+  );
   const visibleThreads = useMemo(() => {
     if (!learnedThreadId || props.threads.some((thread) => thread.id === learnedThreadId)) return props.threads;
     const firstUserMessage = messages.find((message) => message.role === "user");
@@ -313,7 +368,26 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
           <div className="mx-auto w-full max-w-[50rem]">
             {error ? <p className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{error.message || "Atlas could not finish that turn. Your message is saved."}</p> : null}
             {voiceError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{voiceError}</p> : null}
+            {attachmentError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{attachmentError}</p> : null}
             {steerQueue.length > 0 ? <p className="mb-2 text-[0.71875rem] text-[var(--color-muted)]" role="status">Steer queued · {steerQueue[0]}</p> : null}
+            {selectedDocuments.length > 0 ? (
+              <ul className="mb-2 flex flex-wrap gap-1.5" aria-label="Documents for this message">
+                {selectedDocuments.map((document) => (
+                  <li key={document.fileId} className="inline-flex max-w-full items-center gap-1.5 rounded-control border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[0.71875rem] text-[var(--color-muted)]">
+                    <FileText size={12} aria-hidden className="shrink-0" />
+                    <span className="max-w-[16rem] truncate">{document.displayName}</span>
+                    <span className="text-[var(--color-faint)]">{statusLabelForDocument(document.processingStatus)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={documentAccept}
+              className="sr-only"
+              onChange={(event) => uploadDocument(event.currentTarget.files?.[0])}
+            />
             <PromptInput className="min-h-[3.25rem] flex-row items-end overflow-hidden shadow-[var(--shadow-floating)]" onSubmit={(message, event) => {
               const text = message.text.trim();
               if (!text) return;
@@ -330,9 +404,11 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
               if (field) field.style.height = "auto";
             }}>
               <PromptInputButton
-                disabled
-                aria-label="Attachments coming soon"
-                title="Attachments coming soon"
+                disabled={busy || uploadPending || selectedDocuments.length >= 5}
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Attach document"
+                aria-busy={uploadPending}
+                title={selectedDocuments.length >= 5 ? "Five documents maximum" : uploadPending ? "Uploading document" : "Attach document"}
                 className="mb-1.5 ml-1.5 size-9 shrink-0 justify-center rounded-full px-0 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Plus size={16} aria-hidden />
@@ -342,7 +418,7 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
                 <PromptInputTools>
                   <VoiceTranscriptionButton onError={setVoiceError} onStateChange={setVoiceState} />
                 </PromptInputTools>
-                <PromptInputSubmit disabled={voiceState !== "idle"} status={status} allowSubmitWhileBusy className="rounded-full" />
+                <PromptInputSubmit disabled={voiceState !== "idle" || uploadPending} status={status} allowSubmitWhileBusy className="rounded-full" />
               </PromptInputToolbar>
             </PromptInput>
           </div>
@@ -370,6 +446,12 @@ function StudentMessageParts({ message, streaming }: { message: UIMessage; strea
 
   parts.forEach((part, index) => {
     const type = String(part.type ?? "");
+    if (type === "data-document-attachments") {
+      const data = part.data as { attachments?: StudentDocumentAttachment[] } | undefined;
+      const attachments = Array.isArray(data?.attachments) ? data.attachments : [];
+      if (attachments.length > 0) rendered.push(<MessageDocumentAttachments key={`documents-${index}`} attachments={attachments} />);
+      return;
+    }
     if (type.startsWith("data-")) return;
 
     if (type === "text" && typeof part.text === "string") {
@@ -397,6 +479,26 @@ function StudentMessageParts({ message, streaming }: { message: UIMessage; strea
   }
 
   return <>{rendered}</>;
+}
+
+function MessageDocumentAttachments({ attachments }: { attachments: StudentDocumentAttachment[] }) {
+  return (
+    <ul className="flex max-w-[42rem] flex-wrap gap-1.5">
+      {attachments.map((document) => (
+        <li key={document.attachmentId}>
+          <Link href={`/student/documents/${document.fileId}`} className="inline-flex max-w-[20rem] items-center gap-1.5 rounded-control border border-[var(--color-border)] px-2 py-1 text-[0.71875rem] text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]">
+            <FileText size={12} aria-hidden className="shrink-0" />
+            <span className="truncate">{document.displayName}</span>
+            <span className="text-[var(--color-faint)]">{statusLabelForDocument(document.processingStatus)}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function statusLabelForDocument(status: StudentDocumentAttachment["processingStatus"]) {
+  return { queued: "Queued", processing: "Processing", ready: "Ready", failed: "Failed" }[status];
 }
 
 function ActionReceipt({ summary }: { summary: string }) {
@@ -444,3 +546,5 @@ function ThreadsPanel({ threads, activeId }: { threads: StudentThreadRef[]; acti
     </ul>
   );
 }
+
+const documentAccept = ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.rtf,.xml,.json,.jsonl,.yaml,.yml,.html,.css,.js,.jsx,.ts,.tsx,.mjs,.cjs,.py,.java,.c,.cc,.cpp,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.kts,.sql,.sh,.zsh,.bash";

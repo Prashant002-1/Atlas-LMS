@@ -1,6 +1,6 @@
 # Database access matrix
 
-This is the table-oriented view of database access in the professor-agent request path and the Course Setup material path.
+This is the table-oriented view of database access in the professor-agent request path, teacher Materials, and personal student attachments.
 
 ## Scope predicates
 
@@ -58,7 +58,7 @@ Proof: [`lib/agent/course-agent-tool.ts`](../../lib/agent/course-agent-tool.ts) 
 
 ## Course material intake outside the model
 
-Teacher Course Setup uses authenticated server actions, not model tools:
+Teacher Materials and personal student document intake use authenticated server actions, not model tools:
 
 | Action | External work | Database work |
 | --- | --- | --- |
@@ -66,7 +66,8 @@ Teacher Course Setup uses authenticated server actions, not model tools:
 | add linked material | asks the ingestion service to process one HTTPS URL | transaction inserts `files` plus `course_material_records` |
 | signed ingestion callback | worker sends HMAC-signed job status and extraction data | updates the scoped `files` and `course_material_records` rows for that job |
 | change material access | none | updates or creates one `course_material_records` extension row |
+| attach a personal student document | forwards a bounded file to the same ingestion service | inserts one student-owned `files` row, private processing record, and exact personal-session attachment with no course id |
 
-If initial ingestion fails, no database row is created. Asynchronous work is correlated by a stable unique job id. Existing `files` rows without an extension row resolve as ready, course-visible LMS material.
+If initial ingestion fails, no database row is created. Asynchronous work is correlated by a stable unique job id. Existing course `files` rows without an extension row resolve as ready, course-visible LMS material. Personal rows require a private processing record and exact student/session ownership.
 
 Proof: [`lib/instructor/course-material-actions.ts`](../../lib/instructor/course-material-actions.ts), [`lib/course/materials.ts`](../../lib/course/materials.ts), [`app/api/materials/ingestion/route.ts`](../../app/api/materials/ingestion/route.ts), and [`lib/db/course-agent-schema.ts`](../../lib/db/course-agent-schema.ts).

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
 import { type UIMessage } from "ai";
@@ -9,10 +9,12 @@ import {
   CheckCircle2,
   Archive,
   FileCheck2,
+  FileText,
   History,
   PanelRightClose,
   PanelRightOpen,
   Plus,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -48,6 +50,8 @@ import { RubricCard } from "@/components/planning/rubric-card";
 import type { RubricCriterion } from "@/lib/agent/session-parts";
 import { archiveProfessorAtlasChat } from "@/lib/agent/chat-actions";
 import { atlasMessageMetadataNow, type AtlasMessageMetadata } from "@/lib/agent/ui-message";
+import type { ProfessorDocumentAttachment } from "@/lib/agent/professor-runtime";
+import { uploadProfessorChatDocument } from "@/lib/instructor/document-actions";
 
 type PlanningChatMessage = UIMessage<AtlasMessageMetadata>;
 
@@ -231,6 +235,10 @@ export function PlanningRoom(props: PlanningRoomProps) {
   const [railView, setRailView] = useState<"threads" | "drafts">("threads");
   const [voiceState, setVoiceState] = useState<VoiceTranscriptionState>("idle");
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [selectedDocuments, setSelectedDocuments] = useState<ProfessorDocumentAttachment[]>([]);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [uploadPending, startUploadTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -291,7 +299,40 @@ export function PlanningRoom(props: PlanningRoomProps) {
     },
   });
 
-  const sendPlanningMessage = (text: string) => sendMessage({ text, metadata: atlasMessageMetadataNow() });
+  const sendPlanningMessage = (text: string) => {
+    const attachments = selectedDocuments;
+    const message = attachments.length > 0
+      ? {
+          metadata: atlasMessageMetadataNow(),
+          parts: [
+            { type: "text" as const, text },
+            { type: "data-document-attachments" as const, data: { attachments } },
+          ],
+        }
+      : { text, metadata: atlasMessageMetadataNow() };
+    void sendMessage(message as Parameters<typeof sendMessage>[0]);
+    setSelectedDocuments([]);
+    setAttachmentError(null);
+  };
+
+  function uploadDocument(file: File | undefined) {
+    if (!file || selectedDocuments.length >= 5) return;
+    setAttachmentError(null);
+    startUploadTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.set("file", file);
+        const uploaded = await uploadProfessorChatDocument(formData);
+        setSelectedDocuments((current) => current.some((item) => item.fileId === uploaded.fileId)
+          ? current
+          : [...current, uploaded]);
+      } catch (uploadError) {
+        setAttachmentError(uploadError instanceof Error ? uploadError.message : "Atlas could not upload that document.");
+      } finally {
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    });
+  }
 
   const promptCheckpoints = useMemo(
     () => messages
@@ -464,7 +505,29 @@ export function PlanningRoom(props: PlanningRoomProps) {
           <div className="mx-auto w-full max-w-[50rem]">
             {error ? <p className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{error.message || "Atlas could not finish that turn. Your message is saved."}</p> : null}
             {voiceError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{voiceError}</p> : null}
+            {attachmentError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{attachmentError}</p> : null}
             {steerQueue.length > 0 ? <p className="mb-2 text-[0.71875rem] text-[var(--color-muted)]" role="status">Steer queued · {steerQueue[0]}</p> : null}
+            {selectedDocuments.length > 0 ? (
+              <ul className="mb-2 flex flex-wrap gap-1.5" aria-label="Documents for this message">
+                {selectedDocuments.map((document) => (
+                  <li key={document.fileId} className="inline-flex max-w-full items-center gap-1.5 rounded-control border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[0.71875rem] text-[var(--color-muted)]">
+                    <FileText size={12} aria-hidden className="shrink-0" />
+                    <span className="max-w-[16rem] truncate">{document.displayName}</span>
+                    <span className="text-[var(--color-faint)]">{statusLabelForDocument(document.processingStatus)}</span>
+                    <button type="button" onClick={() => setSelectedDocuments((current) => current.filter((item) => item.fileId !== document.fileId))} aria-label={`Remove ${document.displayName}`} className="inline-flex size-5 items-center justify-center rounded-full hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]">
+                      <X size={11} aria-hidden />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.rtf,.xml,.json,.jsonl,.yaml,.yml,.html,.css,.js,.jsx,.ts,.tsx,.mjs,.cjs,.py,.java,.c,.cc,.cpp,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.kts,.sql,.sh,.zsh,.bash"
+              className="sr-only"
+              onChange={(event) => uploadDocument(event.currentTarget.files?.[0])}
+            />
             <PromptInput className="min-h-[3.25rem] flex-row items-end overflow-hidden shadow-[var(--shadow-floating)]" onSubmit={(message, event) => {
               const text = message.text.trim();
               if (!text) return;
@@ -481,9 +544,11 @@ export function PlanningRoom(props: PlanningRoomProps) {
               if (field) field.style.height = "auto";
             }}>
               <PromptInputButton
-                disabled
-                aria-label="Attachments coming soon"
-                title="Attachments coming soon"
+                disabled={busy || uploadPending || selectedDocuments.length >= 5}
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Attach document"
+                aria-busy={uploadPending}
+                title={selectedDocuments.length >= 5 ? "Five documents maximum" : uploadPending ? "Uploading document" : "Attach document"}
                 className="mb-1.5 ml-1.5 size-9 shrink-0 justify-center rounded-full px-0 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Plus size={16} aria-hidden />
@@ -493,7 +558,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
                 <PromptInputTools>
                   <VoiceTranscriptionButton onError={setVoiceError} onStateChange={setVoiceState} />
                 </PromptInputTools>
-                <PromptInputSubmit disabled={voiceState !== "idle"} status={status} allowSubmitWhileBusy className="rounded-full" />
+                <PromptInputSubmit disabled={voiceState !== "idle" || uploadPending} status={status} allowSubmitWhileBusy className="rounded-full" />
               </PromptInputToolbar>
             </PromptInput>
           </div>
@@ -524,6 +589,12 @@ function PlanningMessageParts({ message, streaming, statusByProposal }: { messag
 
   parts.forEach((part, index) => {
     const type = String(part.type ?? "");
+    if (type === "data-document-attachments") {
+      const data = part.data as { attachments?: ProfessorDocumentAttachment[] } | undefined;
+      const attachments = Array.isArray(data?.attachments) ? data.attachments : [];
+      if (attachments.length > 0) rendered.push(<MessageDocumentAttachments key={`documents-${index}`} attachments={attachments} />);
+      return;
+    }
     if (type.startsWith("data-")) return;
 
     if (type === "text" && typeof part.text === "string") {
@@ -568,6 +639,26 @@ function PlanningMessageParts({ message, streaming, statusByProposal }: { messag
   }
 
   return <>{rendered}</>;
+}
+
+function MessageDocumentAttachments({ attachments }: { attachments: ProfessorDocumentAttachment[] }) {
+  return (
+    <ul className="flex max-w-[42rem] flex-wrap gap-1.5">
+      {attachments.map((document) => (
+        <li key={document.attachmentId}>
+          <Link href={`/teach/documents/${document.fileId}`} className="inline-flex max-w-[20rem] items-center gap-1.5 rounded-control border border-[var(--color-border)] px-2 py-1 text-[0.71875rem] text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]">
+            <FileText size={12} aria-hidden className="shrink-0" />
+            <span className="truncate">{document.displayName}</span>
+            <span className="text-[var(--color-faint)]">{statusLabelForDocument(document.processingStatus)}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function statusLabelForDocument(status: ProfessorDocumentAttachment["processingStatus"]) {
+  return { queued: "Queued", processing: "Processing", ready: "Ready", failed: "Failed" }[status];
 }
 
 function ActionReceipt({ summary }: { summary: string }) {

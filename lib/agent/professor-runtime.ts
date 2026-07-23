@@ -22,6 +22,7 @@ import { professorOperatorTools } from "@/lib/agent/lms-operator";
 import { courseAgentConfigurationTool } from "@/lib/agent/course-agent-tool";
 import { personalMemoryTool } from "@/lib/agent/memories";
 import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
+import { loadReadyThreadDocumentContext } from "@/lib/course/documents";
 
 /**
  * One professor turn on the durable AI SDK seam. The professor's input is a row
@@ -30,8 +31,17 @@ import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
  * only after a complete response.
  */
 
+export type ProfessorDocumentAttachment = {
+  attachmentId: string;
+  fileId: string;
+  displayName: string;
+  filename: string | null;
+  processingStatus: "queued" | "processing" | "ready" | "failed";
+};
+
 export type ProfessorDataParts = {
   "planning-ref": { sessionId: string };
+  "document-attachments": { attachments: ProfessorDocumentAttachment[] };
   "run-context": {
     sessionId: string;
     builtAt: string;
@@ -65,7 +75,16 @@ export async function runProfessorTurn(args: {
     await persistSessionTurn(session, "user", [{ type: "text" as const, text: args.userText }]);
   }
 
-  const [professorPack, harness] = await Promise.all([buildProfessorPack(scope), loadAtlasHarness()]);
+  const [professorPack, harness, attachedDocuments] = await Promise.all([
+    buildProfessorPack(scope),
+    loadAtlasHarness(),
+    loadReadyThreadDocumentContext({
+      orgId: scope.orgId,
+      courseId: scope.courseId,
+      sessionId: session.id,
+      userId: scope.instructorId,
+    }),
+  ]);
   const instructions = buildProfessorInstructions({ harness });
 
   const storedTurns = await loadActiveTurns(session);
@@ -75,7 +94,7 @@ export async function runProfessorTurn(args: {
   const priorMessages = conversationMessages.slice(0, -1);
   const referenceMessage = {
     role: "user" as const,
-    content: buildProfessorReference({ professorPack, threadSummary: session.summary }),
+    content: buildProfessorReference({ professorPack, threadSummary: session.summary, attachedDocuments }),
   };
   const modelMessages = currentMessage
     ? [...priorMessages, referenceMessage, currentMessage]

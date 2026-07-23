@@ -16,7 +16,8 @@ test("the Atlas page is a full viewport operator with quiet streaming feedback",
   assert.match(room, />Chats</);
   assert.match(room, /Drafts/);
   assert.match(room, /PanelRightOpen/);
-  assert.match(room, /Attachments coming soon/);
+  assert.match(room, /aria-label="Attach document"/);
+  assert.match(room, /data-document-attachments/);
   assert.match(room, /VoiceTranscriptionButton/);
   assert.match(room, /min-h-\[3\.25rem\] flex-row items-end/);
   assert.match(room, /ThinkingIndicator/);

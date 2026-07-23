@@ -28,6 +28,7 @@ export type CourseMaterialRow = {
   visibility: string;
   pageCount: number | null;
   updatedAt: string;
+  document: boolean;
 };
 
 const KIND_OPTIONS = ["all", "document", "slides", "assessment", "media", "link", "package", "other"] as const;
@@ -121,6 +122,10 @@ export function CourseMaterialTable({ rows }: { rows: CourseMaterialRow[] }) {
 function MaterialRow({ row }: { row: CourseMaterialRow }) {
   const Icon = KIND_ICONS[row.materialKind] ?? File;
   const nextVisibility = row.visibility === "course" ? "instructors" : "course";
+  const documentHref = row.document
+    ? `/teach/documents/${encodeURIComponent(row.id)}`
+    : null;
+  const openHref = documentHref ?? row.url;
   return (
     <tr className="transition hover:bg-[var(--color-surface-muted)]">
       <th scope="row" className="max-w-[24rem] px-3 py-3 align-top font-normal">
@@ -158,11 +163,11 @@ function MaterialRow({ row }: { row: CourseMaterialRow }) {
         </form>
       </td>
       <td className="px-3 py-3 text-right align-top">
-        {row.url ? (
+        {openHref ? (
           <a
-            href={row.url}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={openHref}
+            target={documentHref ? undefined : "_blank"}
+            rel={documentHref ? undefined : "noopener noreferrer"}
             aria-label={`Open ${row.displayName}`}
             className="inline-flex size-7 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
           >

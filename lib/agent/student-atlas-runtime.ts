@@ -21,6 +21,7 @@ import {
 import { studentAtlasTools } from "@/lib/agent/student-atlas-tools";
 import { loadActiveOrgAgentPolicy } from "@/lib/agent/org-policy";
 import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
+import { loadReadyPersonalThreadDocumentContext } from "@/lib/course/documents";
 
 /**
  * One student personal turn on the durable AI SDK seam (ADR-0010, ADR-0016).
@@ -32,6 +33,15 @@ import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
 
 export type StudentAtlasDataParts = {
   "atlas-ref": { sessionId: string };
+  "document-attachments": {
+    attachments: Array<{
+      attachmentId: string;
+      fileId: string;
+      displayName: string;
+      filename: string | null;
+      processingStatus: "queued" | "processing" | "ready" | "failed";
+    }>;
+  };
   "run-context": {
     sessionId: string;
     builtAt: string;
@@ -66,9 +76,14 @@ export async function runStudentAtlasTurn(args: {
     await persistSessionTurn(session, "user", [{ type: "text" as const, text: args.userText }]);
   }
 
-  const [pack, orgPolicy] = await Promise.all([
+  const [pack, orgPolicy, attachedDocuments] = await Promise.all([
     buildStudentAtlasPack(scope),
     loadActiveOrgAgentPolicy(scope.orgId),
+    loadReadyPersonalThreadDocumentContext({
+      orgId: scope.orgId,
+      userId: scope.studentId,
+      sessionId: session.id,
+    }),
   ]);
   const instructions = buildStudentAtlasInstructions({
     studentName: args.studentName,
@@ -84,7 +99,7 @@ export async function runStudentAtlasTurn(args: {
   const priorMessages = conversationMessages.slice(0, -1);
   const referenceMessage = {
     role: "user" as const,
-    content: buildStudentAtlasReference({ pack, threadSummary: session.summary }),
+    content: buildStudentAtlasReference({ pack, threadSummary: session.summary, attachedDocuments }),
   };
   const modelMessages = currentMessage
     ? [...priorMessages, referenceMessage, currentMessage]

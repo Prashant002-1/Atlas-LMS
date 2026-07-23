@@ -21,6 +21,7 @@ import {
   timestamp,
   jsonb,
   primaryKey,
+  check,
   uniqueIndex,
   index,
   vector,
@@ -376,9 +377,10 @@ export const files = pgTable(
     orgId: uuid("org_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    courseId: uuid("course_id")
-      .notNull()
-      .references(() => courses.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id").references(() => courses.id, { onDelete: "cascade" }),
+    // Personal Atlas documents belong directly to the student and have no
+    // course. Course files keep owner_user_id null.
+    ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "cascade" }),
     displayName: text("display_name").notNull(),
     filename: text("filename"),
     contentType: text("content_type"),
@@ -389,7 +391,11 @@ export const files = pgTable(
     embedding: vector("embedding", { dimensions: 1536 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [index("files_course_idx").on(t.courseId)]
+  (t) => [
+    check("files_one_scope_check", sql`num_nonnulls(${t.courseId}, ${t.ownerUserId}) = 1`),
+    index("files_course_idx").on(t.courseId),
+    index("files_owner_idx").on(t.orgId, t.ownerUserId),
+  ]
 );
 
 export const announcements = pgTable(

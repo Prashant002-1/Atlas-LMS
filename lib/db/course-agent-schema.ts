@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   index,
   integer,
   jsonb,
@@ -11,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import {
   agentSessions,
+  assignments,
   courses,
   files,
   organizations,
@@ -41,7 +44,7 @@ export const materialSourceEnum = pgEnum("material_source", [
   "seed",
 ]);
 export const materialStatusEnum = pgEnum("material_status", ["queued", "processing", "ready", "failed"]);
-export const materialVisibilityEnum = pgEnum("material_visibility", ["course", "instructors"]);
+export const materialVisibilityEnum = pgEnum("material_visibility", ["course", "instructors", "private"]);
 
 /**
  * Append-only, professor-owned course agent configuration. The highest version
@@ -74,10 +77,10 @@ export const courseAgentConfigs = pgTable(
 );
 
 /**
- * Processing and access metadata for a course file. Keeping this one-to-one
- * extension separate preserves every existing seeded and imported files row.
- * A file without an extension row is treated as ready, course-visible legacy
- * material by read paths.
+ * Processing and access metadata for one durable file. Course rows use a
+ * course id; personal Atlas rows use an owning user id and private visibility.
+ * Keeping this one-to-one extension preserves existing seeded and imported
+ * course files, which remain ready and course-visible on legacy read paths.
  */
 export const courseMaterialRecords = pgTable(
   "course_material_records",
@@ -86,9 +89,8 @@ export const courseMaterialRecords = pgTable(
     orgId: uuid("org_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    courseId: uuid("course_id")
-      .notNull()
-      .references(() => courses.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id").references(() => courses.id, { onDelete: "cascade" }),
+    ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "cascade" }),
     fileId: uuid("file_id")
       .notNull()
       .references(() => files.id, { onDelete: "cascade" }),
@@ -100,17 +102,73 @@ export const courseMaterialRecords = pgTable(
     pageCount: integer("page_count"),
     checksumSha256: text("checksum_sha256"),
     metadata: jsonb("metadata").notNull().default({}),
+    extraction: jsonb("extraction"),
+    extractionProvider: text("extraction_provider"),
+    extractionModel: text("extraction_model"),
+    extractionInputMode: text("extraction_input_mode"),
     processingError: text("processing_error"),
     updatedById: uuid("updated_by_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    check(
+      "course_material_records_one_scope_check",
+      sql`num_nonnulls(${table.courseId}, ${table.ownerUserId}) = 1`
+    ),
     uniqueIndex("course_material_records_file_idx").on(table.fileId),
     uniqueIndex("course_material_records_job_idx").on(table.ingestionJobId),
     index("course_material_records_course_idx").on(table.orgId, table.courseId, table.processingStatus),
+    index("course_material_records_owner_idx").on(table.orgId, table.ownerUserId, table.processingStatus),
+  ]
+);
+
+/**
+ * A course file can appear in more than one academic location, while a
+ * personal file belongs to one student's personal thread. Every attachment
+ * row has one real owner and one course-or-person scope.
+ */
+export const documentAttachments = pgTable(
+  "document_attachments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id").references(() => courses.id, { onDelete: "cascade" }),
+    ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "cascade" }),
+    fileId: uuid("file_id")
+      .notNull()
+      .references(() => files.id, { onDelete: "cascade" }),
+    courseMaterialId: uuid("course_material_id").references(() => courseMaterialRecords.id, { onDelete: "cascade" }),
+    syllabusCourseId: uuid("syllabus_course_id").references(() => courses.id, { onDelete: "cascade" }),
+    assignmentId: uuid("assignment_id").references(() => assignments.id, { onDelete: "cascade" }),
+    agentSessionId: uuid("agent_session_id").references(() => agentSessions.id, { onDelete: "cascade" }),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    check(
+      "document_attachments_one_owner_check",
+      sql`num_nonnulls(${table.courseMaterialId}, ${table.syllabusCourseId}, ${table.assignmentId}, ${table.agentSessionId}) = 1`
+    ),
+    check(
+      "document_attachments_one_scope_check",
+      sql`num_nonnulls(${table.courseId}, ${table.ownerUserId}) = 1`
+    ),
+    check(
+      "document_attachments_private_thread_check",
+      sql`${table.ownerUserId} IS NULL OR (${table.agentSessionId} IS NOT NULL AND ${table.courseMaterialId} IS NULL AND ${table.syllabusCourseId} IS NULL AND ${table.assignmentId} IS NULL)`
+    ),
+    uniqueIndex("document_attachments_material_file_idx").on(table.courseMaterialId, table.fileId),
+    uniqueIndex("document_attachments_syllabus_file_idx").on(table.syllabusCourseId, table.fileId),
+    uniqueIndex("document_attachments_assignment_file_idx").on(table.assignmentId, table.fileId),
+    uniqueIndex("document_attachments_session_file_idx").on(table.agentSessionId, table.fileId),
+    index("document_attachments_scope_idx").on(table.orgId, table.courseId, table.fileId),
+    index("document_attachments_owner_idx").on(table.orgId, table.ownerUserId, table.agentSessionId, table.fileId),
   ]
 );
 
 export type CourseAgentConfigRow = typeof courseAgentConfigs.$inferSelect;
 export type CourseMaterialRecord = typeof courseMaterialRecords.$inferSelect;
+export type DocumentAttachment = typeof documentAttachments.$inferSelect;

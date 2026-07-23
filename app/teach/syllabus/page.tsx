@@ -8,6 +8,8 @@ import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton, TextLink } from "@/components/atlas/primitives";
 import { Markdown } from "@/components/agent/markdown";
 import { RecordDialog } from "@/components/teach/record-dialog";
+import { DocumentAttachmentSection } from "@/components/documents/document-attachments";
+import { listDocumentAttachments } from "@/lib/course/documents";
 
 /**
  * The syllabus: one course overview a professor can hand to students. The
@@ -26,6 +28,13 @@ export default async function TeachSyllabusPage() {
 
   const syllabus = await loadCourseSyllabus(session.user.orgId, scoped.id);
   if (!syllabus) redirect("/teach");
+
+  const attachedDocuments = await listDocumentAttachments({
+    orgId: session.user.orgId,
+    courseId: scoped.id,
+    owner: { type: "syllabus", id: scoped.id },
+    audience: "instructor",
+  });
 
   const { course, instructors, weeks, work, publishedPoints, gradeBands, classPolicies, agent } = syllabus;
   const configuration = agent.configuration;
@@ -103,6 +112,13 @@ export default async function TeachSyllabusPage() {
           </p>
         )}
       </section>
+
+      <DocumentAttachmentSection
+        items={attachedDocuments}
+        audience="instructor"
+        owner={{ type: "syllabus", id: scoped.id, returnTo: "/teach/syllabus" }}
+        title="Syllabus documents"
+      />
 
       <section aria-labelledby="syllabus-schedule-heading" className="py-7">
         <h2 id="syllabus-schedule-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Weekly schedule</h2>

@@ -24,7 +24,7 @@ export default async function StudentCourseModulesPage({ params }: { params: Pro
       <PageHeader title="Modules" />
 
       {workspace.materials.length > 0 ? (
-        <div className="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+        <div className="divide-y divide-[var(--color-border)]">
           {workspace.materials.map((material) => {
             /* A module whose unlock date has not passed yet is still ahead. */
             const opensAhead = material.unlockAt ? !isOverdue(material.unlockAt) : false;
@@ -56,7 +56,7 @@ export default async function StudentCourseModulesPage({ params }: { params: Pro
           })}
         </div>
       ) : (
-        <p className="border-y border-[var(--color-border)] py-5 text-[0.8125rem] text-[var(--color-muted)]">No modules yet.</p>
+        <p className="py-5 text-[0.8125rem] text-[var(--color-muted)]">No modules yet.</p>
       )}
     </>
   );

@@ -52,8 +52,7 @@ export default async function StudentCalendarPage({
             <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
               <EmptyState
                 art="month"
-                title="A quiet month"
-                detail={`No due dates or module openings fall in ${monthLabel}.`}
+                title="No events"
               />
             </div>
           )}

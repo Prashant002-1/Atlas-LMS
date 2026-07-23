@@ -26,7 +26,7 @@ export function RubricPanel({
       )}
     >
       <h2 className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Rubric</h2>
-      <ul className="mt-2 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+      <ul className="mt-2 space-y-1">
         {criteria.map((criterion) => {
           const open = openKey === criterion.key;
           const target = criterion.levels.find((level) => level.level === "Exceeds") ?? criterion.levels[0];

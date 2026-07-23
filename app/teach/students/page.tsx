@@ -53,7 +53,7 @@ export default async function TeachStudentsPage() {
           </div>
         ) : (
           <div className="mt-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-            <EmptyState art="atlas" title="No students" detail="No one is enrolled in this course yet." />
+            <EmptyState art="atlas" title="No students" />
           </div>
         )}
       </section>
@@ -66,7 +66,7 @@ export default async function TeachStudentsPage() {
           </div>
         ) : (
           <div className="mt-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-            <EmptyState art="atlas" title="No work" detail="Published assignments appear here with their submission state." />
+            <EmptyState art="atlas" title="No assignments" />
           </div>
         )}
       </section>

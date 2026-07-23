@@ -1,4 +1,4 @@
-import { ChevronDown, FileSliders, ListChecks } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { updateSessionContract } from "@/lib/instructor/session-actions";
 import { ActionButton, TextLink } from "@/components/atlas/primitives";
 import type { RubricCriterion } from "@/lib/agent/session-parts";
@@ -13,19 +13,14 @@ export function AssignmentSettings({
     durationMinutes: number;
     groundingScope: string[];
     transcriptPolicy: string;
-    personalRecordSideNotes: boolean;
   };
 }) {
   return (
     <section aria-labelledby="session-settings-heading" className="relative">
-      <h2 id="session-settings-heading" className="flex items-center gap-2 text-[1rem] font-semibold text-[var(--color-ink)]">
-        <FileSliders size={15} aria-hidden className="text-[var(--color-muted)]" />
-        Session settings
-      </h2>
+      <h2 id="session-settings-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Session settings</h2>
 
       <dl className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2">
         <SettingFact label="Length" value={`${contract.durationMinutes} minutes`} />
-        <SettingFact label="Personal notes" value={contract.personalRecordSideNotes ? "On" : "Off"} />
         <SettingFact label="Transcript" value={contract.transcriptPolicy} wide />
         <SettingFact label="Course material" value={contract.groundingScope.length > 0 ? contract.groundingScope.join(", ") : "Course"} wide />
         <div className="sm:col-span-2">
@@ -35,7 +30,7 @@ export function AssignmentSettings({
       </dl>
       <p className="mt-4 max-w-2xl text-[0.8125rem] leading-6 text-[var(--color-muted)]">{contract.instructions}</p>
 
-      <details className="group mt-4 border-t border-[var(--color-border)] pt-3">
+      <details className="group mt-4 pt-3">
         <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 text-[0.78125rem] font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_30%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">
           Edit settings
           <ChevronDown size={13} aria-hidden className="transition-transform group-open:rotate-180" />
@@ -60,13 +55,6 @@ export function AssignmentSettings({
               <input id="contract-transcript" name="transcriptPolicy" type="text" required minLength={3} maxLength={200} defaultValue={contract.transcriptPolicy} className="rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-[0.8125rem] font-normal transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]" />
             </label>
           </div>
-          <label className="flex items-start gap-2.5 text-[0.8125rem] text-[var(--color-ink)]">
-            <input type="checkbox" name="personalRecordSideNotes" defaultChecked={contract.personalRecordSideNotes} className="mt-0.5 size-4 accent-[var(--color-accent-strong)]" />
-            <span>
-              <span className="block font-medium">Personal notes</span>
-              <span className="mt-0.5 block text-[0.75rem] leading-5 text-[var(--color-muted)]">Use the student&apos;s own past work when a professor-approved topic appears.</span>
-            </span>
-          </label>
           <div><ActionButton>Save settings</ActionButton></div>
         </form>
       </details>
@@ -78,14 +66,13 @@ export function RubricSummary({ criteria, version }: { criteria: RubricCriterion
   return (
     <section aria-labelledby="rubric-heading">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="rubric-heading" className="flex items-center gap-2 text-[1rem] font-semibold text-[var(--color-ink)]">
-          <ListChecks size={15} aria-hidden className="text-[var(--color-muted)]" />
+        <h2 id="rubric-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">
           Rubric <span className="text-[0.75rem] font-normal text-[var(--color-faint)]">v{version}</span>
         </h2>
         <TextLink href="/teach/atlas" className="text-[0.75rem]">Change with Atlas</TextLink>
       </div>
 
-      <div className="mt-4 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+      <div className="mt-4 space-y-1">
         {criteria.map((criterion) => (
           <div key={criterion.key} className="flex items-start justify-between gap-4 py-3">
             <div>
@@ -111,7 +98,7 @@ export function RubricSummary({ criteria, version }: { criteria: RubricCriterion
                 <th scope="col" className="pb-2.5 font-medium">Full credit</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+            <tbody className="divide-y divide-[var(--color-border)]">
               {criteria.map((criterion) => {
                 const fullCredit = criterion.levels.find((level) => level.level === "Exceeds") ?? criterion.levels[0];
                 return (

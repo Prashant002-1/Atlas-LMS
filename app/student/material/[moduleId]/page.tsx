@@ -31,7 +31,7 @@ export default async function StudentMaterialPage({ params }: { params: Promise<
       <BackLink href={`/student/course/${workspace.course.id}/modules`}>Modules</BackLink>
       <div className="mt-3"><PageHeader title={material.title} course={`Week ${material.week}`} /></div>
 
-      <section className="border-y border-[var(--color-border)] py-5">
+      <section className="py-5">
         {material.summary ? (
           <p className="max-w-3xl whitespace-pre-wrap text-[0.90625rem] leading-7">{material.summary}</p>
         ) : (
@@ -40,8 +40,8 @@ export default async function StudentMaterialPage({ params }: { params: Promise<
       </section>
 
       {workspace.relatedAssignments.length > 0 ? (
-        <section className="mt-6 border-y border-[var(--color-border)]">
-          <p className="border-b border-[var(--color-border)] px-5 py-3 text-[0.75rem] font-medium text-[var(--color-muted)]">Related assignments</p>
+        <section className="mt-6">
+          <p className="px-5 py-3 text-[0.75rem] font-medium text-[var(--color-muted)]">Related assignments</p>
           <div className="divide-y divide-[var(--color-border)]">
             {workspace.relatedAssignments.map((assignment) => (
               <div key={assignment.id} className="flex items-center justify-between gap-3 px-5 py-3">

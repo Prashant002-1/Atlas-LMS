@@ -88,7 +88,7 @@ export function GradebookTable({ columns, rows }: { columns: GradebookTableColum
         </div>
       </div>
 
-      <dl className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 border-y border-[var(--color-border)] py-2.5 text-[0.71875rem] text-[var(--color-muted)]">
+      <dl className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 py-2.5 text-[0.71875rem] text-[var(--color-muted)]">
         <GradebookFact label="Graded" value={graded} />
         <GradebookFact label="Submitted" value={submitted} />
         <GradebookFact label="Missing" value={missing} />

@@ -338,7 +338,8 @@ test("legacy blocks remain persisted but not rendered by the removed registry UI
   assertSourceIncludes("lib/agent/blocks.ts", "discriminatedUnion");
   assertSourceIncludes("lib/agent/blocks.ts", "BLOCK_SCHEMA_VERSION");
   assertSourceIncludes("lib/agent/blocks.ts", "export function parseStoredBlock");
-  assertSourceIncludes("components/teach/proposals.tsx", "legacy draft");
+  assertSourceIncludes("components/teach/proposals.tsx", ">Draft</span>");
+  assertSourceExcludes("components/teach/proposals.tsx", "legacy draft");
   assertSourceExcludes("components/teach/proposals.tsx", "BlockView");
 });
 

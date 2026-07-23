@@ -127,7 +127,7 @@ export default async function TeachCourseSetupPage() {
         }
       />
 
-      <section aria-labelledby="course-overview-heading" className="border-b border-[var(--color-border)] pb-7">
+      <section aria-labelledby="course-overview-heading" className="pb-7">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.34fr)]">
           <div className="min-w-0">
             <h2 id="course-overview-heading" className="text-[1.125rem] font-semibold text-[var(--color-ink)]">{course.name}</h2>
@@ -146,7 +146,7 @@ export default async function TeachCourseSetupPage() {
           </dl>
         </div>
 
-        <dl className="mt-7 grid border-y border-[var(--color-border)] sm:grid-cols-3 lg:grid-cols-6">
+        <dl className="mt-7 grid sm:grid-cols-3 lg:grid-cols-6">
           <CountFact label="Students" value={Number(rosterRows[0]?.value ?? 0)} href="/teach/students" />
           <CountFact label="Modules" value={Number(moduleRows[0]?.value ?? 0)} href="/teach/weeks" />
           <CountFact label="Assignments" value={Number(assignmentRows[0]?.value ?? 0)} href="/teach/assignments" />
@@ -156,7 +156,7 @@ export default async function TeachCourseSetupPage() {
         </dl>
       </section>
 
-      <section id="materials" aria-labelledby="materials-heading" className="scroll-mt-6 border-b border-[var(--color-border)] py-8">
+      <section id="materials" aria-labelledby="materials-heading" className="scroll-mt-6 py-8">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 id="materials-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Course materials</h2>
@@ -164,14 +164,11 @@ export default async function TeachCourseSetupPage() {
               {readyMaterials} ready / {courseVisibleMaterials} available to students / {materials.length} total
             </p>
           </div>
-          <p className="max-w-xl text-right text-[0.71875rem] leading-5 text-[var(--color-faint)]">
-            Ready extracted material is available to Atlas. Access controls what students can receive in course context.
-          </p>
         </div>
         {materials.length > 0 ? (
           <CourseMaterialTable rows={materials} />
         ) : (
-          <p className="border-y border-[var(--color-border)] px-3 py-8 text-center text-[0.8125rem] text-[var(--color-muted)]">
+          <p className="px-3 py-8 text-center text-[0.8125rem] text-[var(--color-muted)]">
             No course materials have been added.
           </p>
         )}
@@ -182,7 +179,7 @@ export default async function TeachCourseSetupPage() {
           <h2 id="syllabus-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Syllabus</h2>
           <span className="text-[0.6875rem] text-[var(--color-faint)]">Updated {longDate(course.updatedAt)}</span>
         </div>
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 border-y border-[var(--color-border)] px-3 py-3.5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 px-3 py-3.5">
           <p className="text-[0.8125rem] text-[var(--color-muted)]">{syllabusFact(course.syllabusMd)}</p>
           <TextLink href="/teach/syllabus" className="text-[0.78125rem]">Open the syllabus</TextLink>
         </div>
@@ -197,7 +194,7 @@ function EditCourseDialog({ course }: { course: { name: string; description: str
       mode="edit"
       triggerLabel="Edit course"
       title="Edit course"
-      description="Update the student-facing course name and description. Offering dates and course codes are managed by the institution."
+      description="Course codes and offering dates are managed by the institution."
       triggerVariant="secondary"
     >
       <form action={updateCourseDetails} className="grid gap-4">
@@ -209,7 +206,7 @@ function EditCourseDialog({ course }: { course: { name: string; description: str
           Description
           <textarea name="description" rows={4} maxLength={2000} defaultValue={course.description ?? ""} className={`${fieldClass} min-h-24 resize-y py-2.5 leading-6`} />
         </label>
-        <div className="flex justify-end border-t border-[var(--color-border)] pt-4">
+        <div className="flex justify-end pt-4">
           <ActionButton>Save course</ActionButton>
         </div>
       </form>
@@ -223,7 +220,6 @@ function AddMaterialDialog() {
       mode="create"
       triggerLabel="Add material"
       title="Add course material"
-      description="Upload source material or add an HTTPS link. Atlas processes documents, slides, assessments, media, Common Cartridge, and QTI packages for course grounding."
       triggerVariant="primary"
     >
       <div className="space-y-7">
@@ -238,7 +234,7 @@ function AddMaterialDialog() {
           </label>
           <label className="grid gap-1.5 text-[0.75rem] font-medium">
             Display name <span className="font-normal text-[var(--color-faint)]">Optional</span>
-            <input name="displayName" type="text" maxLength={240} placeholder="Uses the file name when empty" className={fieldClass} />
+            <input name="displayName" type="text" maxLength={240} className={fieldClass} />
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-1.5 text-[0.75rem] font-medium">
@@ -260,10 +256,9 @@ function AddMaterialDialog() {
           </div>
         </form>
 
-        <form action={addLinkedCourseMaterial} className="grid gap-4 border-t border-[var(--color-border)] pt-6">
+        <form action={addLinkedCourseMaterial} className="grid gap-4 pt-6">
           <div>
             <h3 className="text-[0.875rem] font-semibold text-[var(--color-ink)]">Link</h3>
-            <p className="mt-1 text-[0.71875rem] leading-5 text-[var(--color-muted)]">Add a stable HTTPS source for Atlas to process and cite.</p>
           </div>
           <label className="grid gap-1.5 text-[0.75rem] font-medium">
             Name

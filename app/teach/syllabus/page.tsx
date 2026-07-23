@@ -52,12 +52,12 @@ export default async function TeachSyllabusPage() {
         }
       />
 
-      <section aria-labelledby="syllabus-course-heading" className="border-b border-[var(--color-border)] pb-7">
+      <section aria-labelledby="syllabus-course-heading" className="pb-7">
         <h2 id="syllabus-course-heading" className="text-[1.125rem] font-semibold text-[var(--color-ink)]">{course.name}</h2>
         {course.description?.trim() ? (
           <p className="mt-2 max-w-3xl text-[0.84375rem] leading-6 text-[var(--color-muted)]">{course.description}</p>
         ) : null}
-        <dl className="mt-6 grid border-y border-[var(--color-border)] sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="mt-6 grid sm:grid-cols-2 lg:grid-cols-4">
           <BandFact label="Term" value={course.term ?? "Not set"} />
           <BandFact label="Starts" value={course.startDate ? longDate(course.startDate) : "Not set"} />
           <BandFact label="Ends" value={course.endDate ? longDate(course.endDate) : "Not set"} />
@@ -66,11 +66,11 @@ export default async function TeachSyllabusPage() {
       </section>
 
       {instructors.length > 0 ? (
-        <section aria-labelledby="syllabus-instructor-heading" className="border-b border-[var(--color-border)] py-7">
+        <section aria-labelledby="syllabus-instructor-heading" className="py-7">
           <h2 id="syllabus-instructor-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">
             {instructors.length === 1 ? "Instructor" : "Instructors"}
           </h2>
-          <ul className="mt-4 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+          <ul className="mt-4 divide-y divide-[var(--color-border)]">
             {instructors.map((person) => (
               <li key={person.id} className="grid gap-x-6 gap-y-1.5 px-3 py-3.5 sm:grid-cols-[minmax(0,0.42fr)_minmax(0,1fr)]">
                 <div className="min-w-0">
@@ -88,7 +88,7 @@ export default async function TeachSyllabusPage() {
         </section>
       ) : null}
 
-      <section aria-labelledby="syllabus-text-heading" className="border-b border-[var(--color-border)] py-7">
+      <section aria-labelledby="syllabus-text-heading" className="py-7">
         <div className="flex items-baseline justify-between gap-4">
           <h2 id="syllabus-text-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Course syllabus</h2>
           <span className="text-[0.6875rem] text-[var(--color-faint)]">Updated {longDate(course.updatedAt)}</span>
@@ -98,16 +98,16 @@ export default async function TeachSyllabusPage() {
             <Markdown className="text-[0.84375rem] leading-7">{course.syllabusMd}</Markdown>
           </div>
         ) : (
-          <p className="mt-4 border-y border-[var(--color-border)] py-6 text-[0.8125rem] text-[var(--color-muted)]">
+          <p className="mt-4 py-6 text-[0.8125rem] text-[var(--color-muted)]">
             No syllabus text yet.
           </p>
         )}
       </section>
 
-      <section aria-labelledby="syllabus-schedule-heading" className="border-b border-[var(--color-border)] py-7">
+      <section aria-labelledby="syllabus-schedule-heading" className="py-7">
         <h2 id="syllabus-schedule-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Weekly schedule</h2>
         {weeks.length > 0 ? (
-          <ol className="mt-4 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+          <ol className="mt-4 divide-y divide-[var(--color-border)]">
             {weeks.map((week) => (
               <li key={week.id} className="px-3 py-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -141,16 +141,16 @@ export default async function TeachSyllabusPage() {
             ))}
           </ol>
         ) : (
-          <p className="mt-4 border-y border-[var(--color-border)] py-6 text-[0.8125rem] text-[var(--color-muted)]">
+          <p className="mt-4 py-6 text-[0.8125rem] text-[var(--color-muted)]">
             No modules yet. The schedule fills in from the course modules.
           </p>
         )}
       </section>
 
-      <section aria-labelledby="syllabus-grading-heading" className="border-b border-[var(--color-border)] py-7">
+      <section aria-labelledby="syllabus-grading-heading" className="py-7">
         <h2 id="syllabus-grading-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Assignments and grading</h2>
         {work.length > 0 ? (
-          <div className="mt-4 overflow-x-auto border-y border-[var(--color-border)]">
+          <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[34rem] border-collapse text-left">
               <thead>
                 <tr className="text-[0.6875rem] text-[var(--color-faint)]">
@@ -177,7 +177,7 @@ export default async function TeachSyllabusPage() {
             </table>
           </div>
         ) : (
-          <p className="mt-4 border-y border-[var(--color-border)] py-6 text-[0.8125rem] text-[var(--color-muted)]">
+          <p className="mt-4 py-6 text-[0.8125rem] text-[var(--color-muted)]">
             No assignments yet.
           </p>
         )}
@@ -192,18 +192,15 @@ export default async function TeachSyllabusPage() {
           <h2 id="syllabus-policies-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Course policies</h2>
           <TextLink href="/teach/settings" className="text-[0.75rem]">Agent configuration</TextLink>
         </div>
-        <dl className="mt-4 grid border-y border-[var(--color-border)] sm:grid-cols-2 lg:grid-cols-5">
+        <dl className="mt-4 grid sm:grid-cols-2 lg:grid-cols-5">
           <BandFact label="Course agent" value={configuration.identity.name} />
           <BandFact label="Direct answers" value={directAnswerLabel(configuration.teaching.directAnswers)} />
           <BandFact label="Citations" value={configuration.teaching.citationMode === "required" ? "Required" : "When useful"} />
           <BandFact label="Challenge" value={titleCase(configuration.teaching.challengeLevel)} />
           <BandFact label="Daily student turns" value={String(configuration.limits.studentDailyTurns)} />
         </dl>
-        <blockquote className="mt-5 max-w-3xl border-l-2 border-[var(--color-accent-strong)] pl-4 text-[0.84375rem] leading-7 text-[var(--color-ink)]">
-          {agent.studentDisclosure}
-        </blockquote>
         {activeRules.length > 0 ? (
-          <ul className="mt-5 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+          <ul className="mt-5 divide-y divide-[var(--color-border)]">
             {activeRules.map((rule) => (
               <li key={rule.id} className="grid gap-x-6 gap-y-1 px-3 py-3 sm:grid-cols-[minmax(0,0.32fr)_minmax(0,1fr)] text-[0.78125rem]">
                 <span className="font-medium text-[var(--color-ink)]">{rule.title}</span>
@@ -232,7 +229,7 @@ function EditSyllabusDialog({ syllabusMd }: { syllabusMd: string | null }) {
             className={`${fieldClass} atlas-mono min-h-[60vh] resize-y py-3 text-[0.75rem] leading-6`}
           />
         </label>
-        <div className="flex justify-end border-t border-[var(--color-border)] pt-4">
+        <div className="flex justify-end pt-4">
           <ActionButton>Save syllabus</ActionButton>
         </div>
       </form>

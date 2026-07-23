@@ -50,7 +50,7 @@ export default async function SessionSubmissionPage({ params }: { params: Promis
         <span>{view.report?.status === "final" ? "Grade posted" : view.report ? "Draft grade" : "Not graded"}</span>
       </div>
 
-      <nav aria-label="Session sections" className="mt-5 flex gap-5 border-b border-[var(--color-border)] pb-3 text-[0.78125rem]">
+      <nav aria-label="Session sections" className="mt-5 flex gap-5 pb-3 text-[0.78125rem]">
         <a href="#grade" className="font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">Grade</a>
         <a href="#submission-draft" className="font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">Submission draft</a>
         <a href="#transcript" className="font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">Transcript</a>

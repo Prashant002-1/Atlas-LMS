@@ -40,7 +40,7 @@ export default async function StudentCourseGradesPage({ params }: { params: Prom
         <div className="space-y-6">
           {graded.length > 0 ? (
             <section>
-              <h2 className="border-b border-[var(--color-border)] pb-2.5 text-[0.8125rem] font-semibold text-[var(--color-ink)]">Returned</h2>
+              <h2 className="pb-2.5 text-[0.8125rem] font-semibold text-[var(--color-ink)]">Returned</h2>
               <div className="divide-y divide-[var(--color-border)]">
                 {graded.map((assignment) => (
                   <GradeRow key={assignment.id} assignment={assignment} />
@@ -51,7 +51,7 @@ export default async function StudentCourseGradesPage({ params }: { params: Prom
 
           {awaiting.length > 0 ? (
             <section>
-              <h2 className="border-b border-[var(--color-border)] pb-2.5 text-[0.8125rem] font-semibold text-[var(--color-ink)]">
+              <h2 className="pb-2.5 text-[0.8125rem] font-semibold text-[var(--color-ink)]">
                 Submitted, not yet graded
               </h2>
               <div className="divide-y divide-[var(--color-border)]">
@@ -68,7 +68,7 @@ export default async function StudentCourseGradesPage({ params }: { params: Prom
           ) : null}
         </div>
       ) : (
-        <p className="border-y border-[var(--color-border)] py-5 text-[0.8125rem] text-[var(--color-muted)]">No grades yet.</p>
+        <p className="py-5 text-[0.8125rem] text-[var(--color-muted)]">No grades yet.</p>
       )}
     </>
   );

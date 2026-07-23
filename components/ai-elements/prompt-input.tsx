@@ -6,6 +6,7 @@ import {
   type FormEventHandler,
   type ReactNode,
   type TextareaHTMLAttributes,
+  forwardRef,
 } from "react";
 import { ArrowUpIcon, Loader2Icon, SquareIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -79,20 +80,23 @@ export function PromptInputTools({ className, children }: { className?: string; 
   return <div className={cn("flex items-center gap-1", className)}>{children}</div>;
 }
 
-export function PromptInputButton({ className, children, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      type="button"
-      className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-control px-2.5 text-[0.78125rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-50",
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-}
+export const PromptInputButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement>>(
+  function PromptInputButton({ className, children, ...props }, ref) {
+    return (
+      <button
+        ref={ref}
+        type="button"
+        className={cn(
+          "inline-flex h-8 items-center gap-1.5 rounded-control px-2.5 text-[0.78125rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-50",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </button>
+    );
+  }
+);
 
 export function PromptInputSubmit({
   status = "ready",

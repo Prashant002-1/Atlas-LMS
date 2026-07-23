@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   FileCheck2,
   History,
-  Mic,
   PanelRightClose,
   PanelRightOpen,
   Plus,
@@ -37,6 +36,10 @@ import {
   PromptInputToolbar,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
+import {
+  VoiceTranscriptionButton,
+  type VoiceTranscriptionState,
+} from "@/components/ai-elements/voice-transcription-button";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput, type ToolState } from "@/components/ai-elements/tool";
 import { AtlasMark, StatusBadge, TextLink } from "@/components/atlas/primitives";
@@ -220,6 +223,8 @@ export function PlanningRoom(props: PlanningRoomProps) {
   const initialThreadId = props.threadId;
   const [railOpen, setRailOpen] = useState(false);
   const [railView, setRailView] = useState<"threads" | "drafts">("threads");
+  const [voiceState, setVoiceState] = useState<VoiceTranscriptionState>("idle");
+  const [voiceError, setVoiceError] = useState<string | null>(null);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -442,6 +447,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
         <div className="shrink-0 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)] to-transparent px-3 pb-3 pt-2 md:px-6 md:pb-5">
           <div className="mx-auto w-full max-w-[50rem]">
             {error ? <p className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{error.message || "Atlas could not finish that turn. Your message is saved."}</p> : null}
+            {voiceError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{voiceError}</p> : null}
             {steerQueue.length > 0 ? <p className="mb-2 text-[0.71875rem] text-[var(--color-muted)]" role="status">Steer queued · {steerQueue[0]}</p> : null}
             <PromptInput className="min-h-[3.25rem] flex-row items-end overflow-hidden shadow-[var(--shadow-floating)]" onSubmit={(message, event) => {
               const text = message.text.trim();
@@ -469,16 +475,9 @@ export function PlanningRoom(props: PlanningRoomProps) {
               <PromptInputTextarea className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-1.5 py-[0.8125rem]" placeholder={busy ? "Steer Atlas..." : "Ask Atlas..."} autoFocus />
               <PromptInputToolbar className="shrink-0 justify-end gap-0.5 px-1.5 py-1.5">
                 <PromptInputTools>
-                  <PromptInputButton
-                    disabled
-                    aria-label="Voice input coming soon"
-                    title="Voice input coming soon"
-                    className="size-9 justify-center rounded-full px-0 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Mic size={15} aria-hidden />
-                  </PromptInputButton>
+                  <VoiceTranscriptionButton onError={setVoiceError} onStateChange={setVoiceState} />
                 </PromptInputTools>
-                <PromptInputSubmit status={status} allowSubmitWhileBusy className="rounded-full" />
+                <PromptInputSubmit disabled={voiceState !== "idle"} status={status} allowSubmitWhileBusy className="rounded-full" />
               </PromptInputToolbar>
             </PromptInput>
           </div>

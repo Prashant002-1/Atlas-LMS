@@ -4,7 +4,7 @@
 
 ## 0. The shape being built
 
-One loop on five primitives: professor configures a **session assignment** (agent-drafted rubric from syllabus + outcomes, professor edits and approves, policy toggles) -> student works a live **session** (streaming conversation + evolving typed artifact panel + margin side-note cards from the **course record**) -> a pipeline turns the transcript into **journey evidence** (per-criterion levels with verbatim quotes) -> professor reviews cards and class rollups. Requirements: typed structured streaming (blocks, not free text), sessions that survive a refresh, an Atlas-owned model runtime, approval gates, Postgres as the record. Explicitly NOT needed: computer use, sandboxes, browsing, multi-agent swarms.
+One loop on five primitives: professor configures a **session assignment** (agent-drafted rubric from syllabus + outcomes, professor edits and approves, policy toggles) -> student works a live **session** (streaming conversation + evolving typed artifact panel + margin side-note cards from the **course record**) -> a pipeline turns the transcript into **journey evidence** (per-criterion levels with verbatim quotes) -> professor reviews cards and class rollups. Requirements: typed structured streaming (blocks, not free text), sessions that survive a refresh, an Atlas-owned model runtime, approval gates, Postgres as the record. Explicitly NOT needed: computer use, sandboxes, or multi-agent swarms. Current public sources enter only through the bounded, server-owned Exa read; it is not general browsing or arbitrary HTTP.
 
 ## 1. Accepted runtime
 

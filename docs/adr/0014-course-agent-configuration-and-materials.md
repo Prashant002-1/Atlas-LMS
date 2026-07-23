@@ -142,10 +142,11 @@ Native model input is deliberately narrow. First-party provider adapters may rec
 - Changes are versioned, attributed, inspectable, and concurrency-safe.
 - The student receives an honest explanation of how the agent will teach.
 - Model and provider infrastructure no longer leaks into teacher workflow.
+- External search is a separate server-owned policy layer. It is not part of the professor-facing configuration contract or its product surfaces.
 - Materials can represent real instructional source material and interoperable packages.
 - Ready-state and access checks prevent half-processed or instructor-only material from entering student context.
-- Documents attached to professor threads enter model context only after readable processing is ready and the thread's organization, course, and owner checks pass.
-- Documents attached to a student's personal Atlas enter bounded model context only after readable processing is ready and organization, student, and personal-session checks pass.
+- Documents attached to professor chats enter model context only after readable processing is ready and the chat's organization, course, and owner checks pass.
+- Documents attached to a student's personal Atlas chat enter bounded model context only after readable processing is ready and organization, student, and personal-session checks pass.
 - Existing course files and policies remain compatible.
 
 ### Costs

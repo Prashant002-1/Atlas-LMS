@@ -117,6 +117,9 @@ test("documented live tool registry matches the professor runtime", () => {
   assert.match(operator, /\.\.\.actions/);
   assert.match(runtime, /configure_agent: courseAgentConfigurationTool/);
   assert.match(runtime, /remember: personalMemoryTool/);
+  assert.match(runtime, /governedWebSearchTools/);
+  assert.match(runtime, /\.\.\.webSearch\.tools/);
+  assert.equal(readme.includes("`search_web`"), true);
   for (const draft of ["draft_ai_assignment", "draft_rubric", "draft_course"]) {
     assert.match(operator, new RegExp(`${draft}: legacy\\.${draft}`));
   }
@@ -153,6 +156,7 @@ test("documented configuration tool matches its schema and append-only write", (
   for (const field of ["expectedVersion", "studentDisclosure", "changeSummary", "directAnswers", "challengeLevel", "citationMode", "studentDailyTurns", "appliesTo"]) {
     assert.equal(docsText.includes(field), true);
   }
+  assert.doesNotMatch(tool, /webSearch|web-search policy/);
 });
 
 test("documented skill allowlist matches the Atlas manifest", () => {

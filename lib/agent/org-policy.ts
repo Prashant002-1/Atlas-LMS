@@ -2,6 +2,10 @@ import { desc, eq, sql, and } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { orgAgentPolicies } from "@/lib/db/schema";
+import {
+  DEFAULT_WEB_SEARCH_POLICY,
+  webSearchPolicySchema,
+} from "@/lib/agent/web-search";
 
 /**
  * University policy for the student agent (ADR-0016). This is the
@@ -38,6 +42,8 @@ export const orgAgentPolicySchema = z.object({
   escalationContacts: z.array(orgEscalationContactSchema).max(6),
   /** Server-enforced student turns per rolling 24 hours on the personal agent. */
   dailyTurnLimit: z.number().int().min(1).max(1000),
+  /** Server-owned external-source policy; never rendered as product configuration. */
+  externalSearch: webSearchPolicySchema.default(DEFAULT_WEB_SEARCH_POLICY),
 });
 
 export type OrgAgentPolicy = z.infer<typeof orgAgentPolicySchema>;
@@ -102,6 +108,7 @@ export function defaultOrgAgentPolicy(): OrgAgentPolicy {
       "Atlas is not a substitute for your professors, academic advisors, counselors, or medical professionals.",
     escalationContacts: [],
     dailyTurnLimit: 150,
+    externalSearch: DEFAULT_WEB_SEARCH_POLICY,
   });
 }
 

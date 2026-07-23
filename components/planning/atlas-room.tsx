@@ -193,6 +193,7 @@ const TOOL_TITLES: Record<string, string> = {
   "tool-inspect_lms": "Checking the course",
   "tool-read_gradebook": "Checking the gradebook",
   "tool-search_course": "Searching the course",
+  "tool-search_web": "Searching the web",
   "tool-mutate_lms": "Updating the LMS",
   "tool-load_skill": "Loading",
   "tool-draft_ai_assignment": "Preparing the AI assignment",
@@ -210,6 +211,7 @@ function toolLabel(part: LoosePart): string {
     return "Checking the gradebook";
   }
   if (type === "tool-search_course" && typeof input.query === "string") return `Searching for “${input.query}”`;
+  if (type === "tool-search_web" && typeof input.query === "string") return `Searching the web for “${input.query}”`;
   if (type === "tool-mutate_lms" && typeof input.action === "string") return input.action.replaceAll("_", " ");
   return TOOL_TITLES[type] ?? type.replace(/^tool-/, "").replaceAll("_", " ");
 }

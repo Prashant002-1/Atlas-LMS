@@ -2,8 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { z } from "zod";
 import {
   compileCourseAgentConfiguration,
+  courseAgentConfigurationInputSchema,
   courseAgentConfigurationSchema,
 } from "@/lib/agent/course-agent-config";
 
@@ -66,6 +68,49 @@ test("course agent configuration is typed and surface scoped", () => {
   );
 });
 
+test("stored configurations gain a default server policy that professor replacements cannot edit", () => {
+  const legacyConfiguration = Object.fromEntries(
+    Object.entries(sampleConfiguration).filter(([key]) => key !== "externalSearch")
+  );
+  const stored = courseAgentConfigurationSchema.parse(legacyConfiguration);
+  assert.equal(stored.externalSearch.enabled, true);
+  assert.equal(stored.externalSearch.maxResults, 5);
+
+  const replacement = Object.fromEntries(
+    Object.entries(sampleConfiguration).filter(([key]) => key !== "schemaVersion" && key !== "externalSearch")
+  );
+  assert.equal(courseAgentConfigurationInputSchema.safeParse(replacement).success, true);
+  assert.equal(courseAgentConfigurationInputSchema.safeParse({
+    ...replacement,
+    externalSearch: { enabled: false, maxResults: 1, allowedDomains: [], blockedDomains: [] },
+  }).success, false);
+
+  for (const forbidden of ["webSearch", "endpoint", "apiKey", "scopes", "browser"]) {
+    assert.equal(
+      courseAgentConfigurationInputSchema.safeParse({
+        ...replacement,
+        [forbidden]: "not-course-policy",
+      }).success,
+      false,
+      `configuration.${forbidden} must not be configurable`
+    );
+  }
+});
+
+test("complete-replacement configuration stays exact for Kimi-compatible tool schemas", () => {
+  const schema = z.toJSONSchema(courseAgentConfigurationInputSchema) as {
+    required?: string[];
+    properties?: Record<string, unknown>;
+  };
+  assert.equal(schema.required?.includes("externalSearch"), false);
+  assert.equal(Object.hasOwn(schema.properties ?? {}, "externalSearch"), false);
+
+  const serialized = JSON.stringify(schema);
+  for (const keyword of ["anyOf", "oneOf", "allOf"]) {
+    assert.equal(serialized.includes(`"${keyword}"`), false, `configuration must not serialize ${keyword}`);
+  }
+});
+
 test("Atlas owns append-only course agent configuration", () => {
   const schema = read("lib/db/course-agent-schema.ts");
   const config = read("lib/agent/course-agent-config.ts");
@@ -77,6 +122,7 @@ test("Atlas owns append-only course agent configuration", () => {
   assert.match(config, /pg_advisory_xact_lock/);
   assert.match(config, /expectedVersion/);
   assert.match(config, /sourceSessionId/);
+  assert.match(config, /externalSearch: currentConfiguration\.externalSearch/);
   assert.doesNotMatch(config, /courseAiPolicies/);
   assert.match(tool, /configure_agent/);
   assert.match(tool, /complete next version/);
@@ -112,6 +158,7 @@ test("the course agent is transparent in Course setup and conversation edited", 
   assert.doesNotMatch(page, /Model access/);
   assert.doesNotMatch(page, /API key/);
   assert.doesNotMatch(page, /resolvePlatformModel/);
+  assert.doesNotMatch(page, /Web search|webSearch|EXA_API_KEY/);
 
   // Settings describes the professor's own Atlas and carries no course agent editor.
   const settings = read("app/teach/settings/page.tsx");
@@ -121,6 +168,12 @@ test("the course agent is transparent in Course setup and conversation edited", 
   assert.doesNotMatch(settings, /Model access/);
   assert.doesNotMatch(settings, /API key/);
   assert.doesNotMatch(settings, /resolvePlatformModel/);
+  assert.doesNotMatch(settings, /Web search|webSearch|EXA_API_KEY/);
+
+  const syllabus = read("app/teach/syllabus/page.tsx");
+  const studentPolicies = read("app/student/atlas/policies/page.tsx");
+  assert.doesNotMatch(syllabus, /Web search|webSearch|EXA_API_KEY/);
+  assert.doesNotMatch(studentPolicies, /Web search|webSearch|EXA_API_KEY/);
 });
 
 test("materials have their own page and course setup stays a control center", () => {

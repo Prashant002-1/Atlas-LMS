@@ -15,6 +15,7 @@ import {
   buildStudentAtlasInstructions,
   buildStudentAtlasPack,
   buildStudentAtlasReference,
+  applicableStudentSearchCourseIds,
   titleStudentAtlasSessionFromIntent,
   type StudentAtlasScope,
 } from "@/lib/agent/student-atlas";
@@ -22,6 +23,7 @@ import { studentAtlasTools } from "@/lib/agent/student-atlas-tools";
 import { loadActiveOrgAgentPolicy } from "@/lib/agent/org-policy";
 import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
 import { loadReadyPersonalThreadDocumentContext } from "@/lib/course/documents";
+import { governedWebSearchTools } from "@/lib/agent/web-search";
 
 /**
  * One student personal turn on the durable AI SDK seam (ADR-0010, ADR-0016).
@@ -104,7 +106,18 @@ export async function runStudentAtlasTurn(args: {
   const modelMessages = currentMessage
     ? [...priorMessages, referenceMessage, currentMessage]
     : [referenceMessage];
-  const tools = studentAtlasTools({ scope, sessionId: session.id });
+  const applicableCourseIds = applicableStudentSearchCourseIds(args.userText, pack.enrolledCourses);
+  const coursePolicies = applicableCourseIds.flatMap((courseId) => {
+    const config = pack.courseAgents.get(courseId);
+    return config ? [config.configuration.externalSearch] : [];
+  });
+  const webSearch = governedWebSearchTools({
+    policies: [orgPolicy.policy.externalSearch, ...coursePolicies],
+  });
+  const tools = {
+    ...studentAtlasTools({ scope, sessionId: session.id }),
+    ...webSearch.tools,
+  };
 
   const stream = createUIMessageStream<StudentAtlasUIMessage>({
     execute: ({ writer }) => {

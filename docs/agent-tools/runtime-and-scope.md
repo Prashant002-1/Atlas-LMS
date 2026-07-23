@@ -36,7 +36,7 @@ Proof: [`lib/workspace/scope.ts`](../../lib/workspace/scope.ts), [`lib/agent/pro
 | Model steps | 16 |
 | Read result rows | generally 100 maximum |
 
-Course material upload is a separate Materials server action. Personal student uploads use the same bounded ingestion seam and are attached only to the student's personal Atlas thread. Each upload accepts at most 25 MB and the framework buffers are capped at 26 MB including multipart overhead.
+Course material upload is a separate Materials server action. Personal student uploads use the same bounded ingestion seam and are attached only to the student's personal Atlas chat. Each upload accepts at most 25 MB and the framework buffers are capped at 26 MB including multipart overhead.
 
 Proof: [`app/api/atlas/planning/route.ts`](../../app/api/atlas/planning/route.ts), [`lib/course/materials.ts`](../../lib/course/materials.ts), and [`next.config.mjs`](../../next.config.mjs).
 
@@ -48,7 +48,7 @@ Proof: [`app/api/atlas/planning/route.ts`](../../app/api/atlas/planning/route.ts
 4. Rebuild the current course context, active course agent configuration, professor memory, and ready chat-document context.
 5. Load fixed reviewed `.atlas` agent and guardrail files.
 6. Place current course data, course agent configuration, memory, bounded document content, and compacted history in a lower-authority reference message immediately before the current request.
-7. Run the 29-tool registry with a 16-step ceiling.
+7. Run the 29-tool base registry, plus `search_web` when policy and server credentials admit it, with a 16-step ceiling.
 8. Persist the complete assistant response and tool parts.
 9. Compact only after the assistant turn completes.
 
@@ -70,6 +70,20 @@ Course configuration may shape name, voice, teaching approach, answer policy, ch
 
 Proof: [`app/api/session/[assignmentId]/route.ts`](../../app/api/session/[assignmentId]/route.ts), [`lib/agent/session-runtime.ts`](../../lib/agent/session-runtime.ts), [`lib/agent/session-context.ts`](../../lib/agent/session-context.ts), and [`lib/agent/context.ts`](../../lib/agent/context.ts).
 
+## Conditional public web search
+
+`search_web` is server-owned and accepts one exact `query` object. The model cannot supply a URL, API key, provider option, result count, course selector, or arbitrary request body. It is omitted from the model-visible registry when the credential is absent or effective policy disables it. No product surface reports that configuration or availability.
+
+Fixed platform boundaries are intersected with every applicable policy. University policy may disable search, lower the five-source cap, allow only named domains, or block domains. A course carries the same server-owned policy shape. Professor Atlas applies its current course policy. Assessed sessions apply university and course policy. The personal student Atlas applies university policy plus a named course's policy; cross-course or ambiguous requests apply every enrolled course policy so a restrictive course cannot be bypassed.
+
+The tool sends one focused query to Exa's fixed HTTPS Search endpoint with `type: "auto"`, moderation enabled, the effective result bound, the effective domain constraints, and query-relevant highlights. Atlas validates and bounds the response, removes invalid or duplicate URLs, and returns source titles, URLs, optional dates and authors, and up to three excerpts per source. Prompts require Markdown-link citations for web-derived claims and treat all excerpts as untrusted reference data.
+
+Missing credentials omit the tool. Provider errors, invalid responses, and rate limits collapse to an empty source set without response bodies, credentials, or provider plumbing. The runtime does not turn those states into configuration copy for course actors.
+
+Proof: [`lib/agent/web-search.ts`](../../lib/agent/web-search.ts), [`lib/agent/professor-runtime.ts`](../../lib/agent/professor-runtime.ts), [`lib/agent/session-runtime.ts`](../../lib/agent/session-runtime.ts), and [`lib/agent/student-atlas-runtime.ts`](../../lib/agent/student-atlas-runtime.ts).
+
+Provider contract: [Exa Search API](https://exa.ai/docs/reference/search).
+
 ## Input and reference trust
 
 `guardProfessorInput` performs request-level lexical role-confusion checks. It is not the authorization boundary.
@@ -88,6 +102,6 @@ The professor conversation shows only:
 - actionable tool errors;
 - the assistant's result, including confirmation of a course agent configuration change.
 
-Completed reads and a completed run trace stay hidden. Teacher Settings shows the durable configuration record, version, disclosure, and provenance instead of raw prompt text or chain-of-thought.
+Completed reads and a completed run trace stay hidden. Course setup shows the durable course-agent configuration, version, disclosure, and provenance. Instructor Settings describes the professor's own Atlas and its curated memory. Neither surface exposes raw prompt text, search infrastructure, or chain-of-thought.
 
-Proof: [`components/planning/atlas-room.tsx`](../../components/planning/atlas-room.tsx) and [`app/teach/settings/page.tsx`](../../app/teach/settings/page.tsx).
+Proof: [`components/planning/atlas-room.tsx`](../../components/planning/atlas-room.tsx), [`app/teach/course/page.tsx`](../../app/teach/course/page.tsx), and [`app/teach/settings/page.tsx`](../../app/teach/settings/page.tsx).

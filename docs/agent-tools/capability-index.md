@@ -8,6 +8,7 @@ This index answers "can Atlas do X?" for the live professor and personal student
 | --- | --- | --- |
 | Read course, roster, content, files, submissions, sessions, rubrics, policies, calendar facts, drafts, and chats | Yes | the matching `inspect_lms` resource |
 | Search assignments, modules, pages, files, announcements, and students | Yes | `search_course` |
+| Search current public web sources | When server policy permits it | `search_web` returns bounded excerpts and citation URLs |
 | Read course, assignment, roster, or individual-student grade data | Yes | `read_gradebook` |
 | Compute course or assignment grade distributions | Yes | `read_gradebook { view: "distribution" }` |
 | Create, edit, publish, or unpublish an assignment | Yes | `create_assignment`, `update_assignment`, `publish_assignment` |
@@ -41,7 +42,7 @@ Teacher Materials can also upload or link course material through its separate s
 | Choose another organization or course inside a tool call | No | scope is closed over from the authenticated route |
 | Read another organization or unselected course | No | executors repeat organization and current-course predicates |
 | Use arbitrary SQL | No | no SQL-string input or SQL execution tool exists |
-| Use shell, filesystem mutation, browser, web search, HTTP, email, or general code execution | No | no such tool is in the returned registry |
+| Use shell, filesystem mutation, browser control, arbitrary HTTP, email, or general code execution | No | `search_web` accepts only a query and calls one fixed server-owned search endpoint |
 | Expose platform credentials, model settings, or endpoints | No | model resolution happens before tools and platform details are absent from course-actor settings |
 | Expand authority through course agent configuration | No | configuration changes teaching behavior only; fixed tools and scopes remain authoritative |
 | Replace fixed assignment or grading rules through course configuration | No | assessed-session rules and assignment contracts compile before course configuration |

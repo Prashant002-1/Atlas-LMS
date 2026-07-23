@@ -258,7 +258,8 @@ test("phase 4 closes the loop on the professor side", () => {
   assertServerAction("lib/instructor/session-actions.ts", "refreshClassRollup");
   assertServerAction("lib/instructor/session-actions.ts", "proposePracticeSet");
   assertSourceIncludes("lib/agent/practice-proposal.ts", "parseStoredBlock");
-  assertServerAction("lib/instructor/session-actions.ts", "updateSessionContract");
+  assertSourceExcludes("lib/instructor/session-actions.ts", "updateSessionContract");
+  assertSourceIncludes("lib/agent/lms-operator.ts", 'action: z.literal("update_session_contract")');
   assertServerAction("lib/instructor/session-actions.ts", "updateRubricWeights");
   assertSourceIncludes("lib/instructor/session-actions.ts", "rescaleCriterionToWeight");
 

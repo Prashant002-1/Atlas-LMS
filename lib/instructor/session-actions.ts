@@ -378,39 +378,6 @@ function describeWeakest(stats: unknown): string | null {
   return worst && worst.low > 0 ? worst.key : null;
 }
 
-/* ── the session contract (per-assignment policy) ───────────── */
-
-/** Direct record edit: the professor's per-assignment session contract. */
-export async function updateSessionContract(formData: FormData) {
-  const actor = await requireInstructorActor();
-  const course = await requireCourse(actor);
-  const assignmentId = String(formData.get("assignmentId") ?? "");
-  const bundle = assignmentId ? await loadSessionAssignmentBundle(actor.orgId, assignmentId) : null;
-  if (!bundle || bundle.assignment.courseId !== course.id) {
-    throw new Error("Session assignment unavailable.");
-  }
-
-  const instructions = String(formData.get("instructions") ?? "").trim();
-  if (instructions.length < 10 || instructions.length > 2000) {
-    throw new Error("Session brief must be 10 to 2000 characters.");
-  }
-  const durationMinutes = Number(formData.get("durationMinutes"));
-  if (!Number.isInteger(durationMinutes) || durationMinutes < 5 || durationMinutes > 240) {
-    throw new Error("Duration must be a whole number of minutes between 5 and 240.");
-  }
-  const transcriptPolicy = String(formData.get("transcriptPolicy") ?? "").trim();
-  if (transcriptPolicy.length < 3 || transcriptPolicy.length > 200) {
-    throw new Error("Transcript policy must be 3 to 200 characters.");
-  }
-  await db
-    .update(sessionAssignments)
-    .set({ instructions, durationMinutes, transcriptPolicy, updatedAt: new Date() })
-    .where(and(eq(sessionAssignments.orgId, actor.orgId), eq(sessionAssignments.assignmentId, assignmentId)));
-
-  revalidateCockpit(assignmentId);
-  redirect(`/teach/ai-assignments/${assignmentId}`);
-}
-
 /* ── rubric weights (honest versioning) ─────────────────────── */
 
 /**

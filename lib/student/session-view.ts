@@ -71,7 +71,6 @@ export type StudentSessionView =
         instructions: string;
         durationMinutes: number;
         groundingScope: string[];
-        transcriptPolicy: string;
         personalRecordSideNotes: boolean;
       };
       criteria: RubricCriterion[];
@@ -156,7 +155,6 @@ export async function loadStudentSessionView(user: Actor, assignmentId: string):
       instructions: bundle.config.instructions,
       durationMinutes: bundle.config.durationMinutes,
       groundingScope: Array.isArray(bundle.config.groundingScope) ? (bundle.config.groundingScope as string[]) : [],
-      transcriptPolicy: bundle.config.transcriptPolicy,
       personalRecordSideNotes: bundle.config.personalRecordSideNotes,
     },
     criteria: bundle.criteria,

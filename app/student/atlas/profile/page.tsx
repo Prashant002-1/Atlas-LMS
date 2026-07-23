@@ -133,7 +133,7 @@ export default async function StudentAtlasProfilePage() {
       <section aria-labelledby="cando-heading" className="py-8">
         <h2 id="cando-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">What Atlas can do</h2>
         <ul className="mt-3 divide-y divide-[var(--color-border)] text-[0.8125rem] leading-5 text-[var(--color-muted)]">
-          <li className="px-3 py-2.5">Explain published course material within each course's rules</li>
+          <li className="px-3 py-2.5">Explain published course material within the rules for each course</li>
           <li className="px-3 py-2.5">Plan study time around what is due and where points were lost</li>
           <li className="px-3 py-2.5">Track assignments, dates, and announcements across your courses</li>
           <li className="px-3 py-2.5">Read your own grades and results with you</li>

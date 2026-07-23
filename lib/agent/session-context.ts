@@ -78,7 +78,7 @@ export async function buildSessionPack(args: {
       `Brief: ${bundle.config.instructions}`,
       `Duration: about ${bundle.config.durationMinutes} minutes.`,
       `Grounding scope: ${(Array.isArray(bundle.config.groundingScope) ? (bundle.config.groundingScope as string[]) : []).join(", ") || "course material"}.`,
-      `Transcript policy: ${bundle.config.transcriptPolicy}.`,
+      `The full assessed-session transcript is part of the instructor-visible course record.`,
       `Personal-record side notes: ${bundle.config.personalRecordSideNotes ? "ON (the server may surface cards from the student's own record)" : "OFF"}.`,
     ].join("\n")
   );

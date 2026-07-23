@@ -783,9 +783,9 @@ export const rubrics = pgTable(
 /**
  * Session assignments, the per-ASSIGNMENT policy and contract object. Where
  * course_ai_policies governs the course-wide study surface, this row governs
- * one assessed work session: duration, grounding scope, transcript policy,
- * the personal-record side-note toggle, and the professor-sanctioned side-note
- * triggers. `planningSessionId` records provenance: the professor's planning
+ * one assessed work session: duration, grounding scope, the personal-record
+ * side-note toggle, and the professor-sanctioned side-note triggers.
+ * `planningSessionId` records provenance: the professor's planning
  * session with the agent that this configuration came out of.
  */
 export const sessionAssignments = pgTable(
@@ -808,7 +808,6 @@ export const sessionAssignments = pgTable(
     durationMinutes: integer("duration_minutes").notNull().default(30),
     // Display labels for what the session may ground on, e.g. ["Syllabus", "Weeks 4-6"].
     groundingScope: jsonb("grounding_scope").notNull().default([]),
-    transcriptPolicy: text("transcript_policy").notNull().default("shared on request / for review"),
     // The professor toggle that gates every personal-record side note.
     personalRecordSideNotes: boolean("personal_record_side_notes").notNull().default(false),
     // Professor-sanctioned triggers: [{ topic, keywords[], sourcePageSlug? }].

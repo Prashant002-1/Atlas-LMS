@@ -140,8 +140,8 @@ hierarchy now says what the product means:
   round removed the tab's direct-creation form as off-thesis: you chat with
   Atlas when you need an AI assignment. To make that true rather than
   claimed, the professor profile gained `propose_ai_assignment`: the whole
-  AI assignment (brief, duration, transcript policy, side-notes toggle, and
-  the rubric, shaped in conversation or started from the standard
+  AI assignment (brief, duration, side-notes toggle, and the rubric, shaped in
+  conversation or started from the standard
   four-criterion frame) as ONE `ai_assignment` block behind Review.
   Applying writes the next rubric version and the session-assignment row in
   one transaction; dup guards refuse a second config or a second pending

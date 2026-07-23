@@ -86,12 +86,13 @@ Request:
   instructions?: string; // 10 to 2,000
   durationMinutes?: number; // integer 5 to 240
   groundingScope?: string[]; // each 1 to 200, maximum 12
-  transcriptPolicy?: string; // 3 to 200
   personalRecordSideNotes?: boolean;
 }
 ```
 
 Reads `session_assignments` joined to scoped `assignments`. The target must already be an AI assignment. Updates only supplied fields plus `updatedAt`.
+
+Assessed-session transcripts are always stored with the submission and available to instructors. This action cannot change that invariant.
 
 This action does not change the rubric or side-note trigger list.
 

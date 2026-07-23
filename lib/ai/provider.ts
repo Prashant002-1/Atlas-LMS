@@ -90,7 +90,7 @@ export function createChatModel(spec: ChatModelSpec): LanguageModel {
 
 function googleApiKeyFromEnv(): string | undefined {
   // @ai-sdk/google reads GOOGLE_GENERATIVE_AI_API_KEY; accept GEMINI_API_KEY as an alias.
-  return process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GEMINI_API_KEY;
+  return process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
 }
 
 /** The env API key for a provider, or undefined when none is set. */

@@ -33,6 +33,7 @@ const requiredRoutes = [
   "/teach/account",
   "/teach/atlas",
   "/api/atlas/planning",
+  "/api/transcription",
   "/teach/ai-assignments",
   "/teach/ai-assignments/[assignmentId]",
   "/teach/ai-assignments/journey/[submissionId]",

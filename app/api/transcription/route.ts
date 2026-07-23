@@ -3,9 +3,9 @@ import { auth } from "@/lib/auth";
 import { isRetryableError } from "@/lib/ai/provider";
 import { isTranscriptionConfigured, transcribeAudio } from "@/lib/ai/transcription";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
-const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 20 * 1024 * 1024;
 const MAX_REQUEST_BYTES = MAX_AUDIO_BYTES + 64 * 1024;
 const MAX_TRANSCRIPT_CHARACTERS = 4000;
 const SUPPORTED_AUDIO_TYPES = new Set(["audio/wav", "audio/x-wav", "audio/wave"]);

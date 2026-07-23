@@ -1,4 +1,5 @@
 export const TRANSCRIPTION_SAMPLE_RATE = 16_000;
+export const MAX_TRANSCRIPTION_RECORDING_SECONDS = 10 * 60;
 
 /** Downmix browser-decoded audio and encode it as Gemini-supported mono PCM WAV. */
 export function encodeTranscriptionWav(
@@ -20,7 +21,8 @@ export function encodeTranscriptionWav(
     }
   }
 
-  const samples = resampleLinear(mono, sourceSampleRate, TRANSCRIPTION_SAMPLE_RATE);
+  const resampled = resampleLinear(mono, sourceSampleRate, TRANSCRIPTION_SAMPLE_RATE);
+  const samples = resampled.subarray(0, MAX_TRANSCRIPTION_RECORDING_SECONDS * TRANSCRIPTION_SAMPLE_RATE);
   const bytes = new Uint8Array(44 + samples.length * 2);
   const view = new DataView(bytes.buffer);
 

@@ -3,12 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Mic, Square } from "lucide-react";
 import { PromptInputButton } from "@/components/ai-elements/prompt-input";
-import { encodeTranscriptionWav } from "@/lib/audio/transcription-wav";
+import {
+  encodeTranscriptionWav,
+  MAX_TRANSCRIPTION_RECORDING_SECONDS,
+} from "@/lib/audio/transcription-wav";
 import { cn } from "@/lib/utils";
 
 export type VoiceTranscriptionState = "idle" | "requesting" | "recording" | "transcribing";
 
-const MAX_RECORDING_MS = 5 * 60_000;
+const MAX_RECORDING_SECONDS = MAX_TRANSCRIPTION_RECORDING_SECONDS;
+const MAX_RECORDING_MS = MAX_RECORDING_SECONDS * 1000;
+const COUNTDOWN_SECONDS = 30;
 
 export function VoiceTranscriptionButton({
   onError,
@@ -174,8 +179,12 @@ export function VoiceTranscriptionButton({
 
   const recording = phase === "recording";
   const waiting = phase === "requesting" || phase === "transcribing";
+  const remainingSeconds = Math.max(0, MAX_RECORDING_SECONDS - elapsedSeconds);
+  const endingSoon = recording && remainingSeconds <= COUNTDOWN_SECONDS;
   const label = recording
-    ? "Stop voice recording"
+    ? endingSoon
+      ? `Stop voice recording, ${remainingSeconds} seconds remaining`
+      : "Stop voice recording"
     : phase === "requesting"
       ? "Waiting for microphone permission"
       : phase === "transcribing"
@@ -193,14 +202,19 @@ export function VoiceTranscriptionButton({
       className={cn(
         "shrink-0 justify-center rounded-full px-0",
         recording
-          ? "h-9 w-auto min-w-14 gap-2 bg-[color-mix(in_oklch,var(--color-danger)_10%,transparent)] px-2.5 text-[var(--color-danger)] hover:bg-[color-mix(in_oklch,var(--color-danger)_16%,transparent)] hover:text-[var(--color-danger)]"
+          ? cn(
+              "h-9 w-auto min-w-14 gap-2 bg-[color-mix(in_oklch,var(--color-danger)_10%,transparent)] px-2.5 text-[var(--color-danger)] hover:bg-[color-mix(in_oklch,var(--color-danger)_16%,transparent)] hover:text-[var(--color-danger)]",
+              endingSoon && "border border-[color-mix(in_oklch,var(--color-danger)_32%,transparent)]"
+            )
           : "size-9"
       )}
     >
       {recording ? (
         <>
           <Square size={12} fill="currentColor" aria-hidden />
-          <span className="atlas-mono text-[0.6875rem] tabular-nums">{formatElapsed(elapsedSeconds)}</span>
+          <span className="atlas-mono text-[0.6875rem] tabular-nums">
+            {endingSoon ? `-${formatElapsed(remainingSeconds)}` : formatElapsed(elapsedSeconds)}
+          </span>
         </>
       ) : waiting ? (
         <Loader2 size={15} className="animate-spin" aria-hidden />

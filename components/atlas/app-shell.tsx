@@ -4,8 +4,8 @@ import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BookOpenCheck,
   CalendarDays,
+  ClipboardList,
   ClipboardCheck,
   Compass,
   GraduationCap,
@@ -13,9 +13,12 @@ import {
   LayoutDashboard,
   Megaphone,
   MessagesSquare,
+  Files,
+  Library,
+  Plug,
   PanelLeftClose,
   PanelLeftOpen,
-  Send,
+  ScrollText,
   Settings,
   SlidersHorizontal,
   Table2,
@@ -41,16 +44,19 @@ const ICONS = {
   aiwork: MessagesSquare,
   review: ClipboardCheck,
   weeks: Layers3,
-  work: Send,
+  assignments: ClipboardList,
   students: UsersRound,
   settings: Settings,
   setup: SlidersHorizontal,
-  course: BookOpenCheck,
+  syllabus: ScrollText,
   study: GraduationCap,
   compass: Compass,
   calendar: CalendarDays,
   announce: Megaphone,
   gradebook: Table2,
+  resources: Library,
+  books: Files,
+  integrations: Plug,
 } satisfies Record<string, NavIconComponent>;
 
 export type ShellNavChild = {
@@ -62,7 +68,8 @@ export type ShellNavChild = {
 export type NavItem = {
   href: string;
   label: string;
-  icon: keyof typeof ICONS;
+  icon?: keyof typeof ICONS;
+  compactLabel?: string;
   exact?: boolean;
   children?: ShellNavChild[];
 };
@@ -169,13 +176,13 @@ export function AppShell({
               <div key={section.label ?? `section-${index}`} className={index > 0 ? "mt-5" : undefined}>
                 {index > 0 && shellCollapsed ? <div className="mx-1 mb-4 h-px bg-[var(--color-border)]" aria-hidden /> : null}
                 {section.label && !shellCollapsed ? (
-                  <p className="atlas-mono mb-1.5 px-2.5 text-[0.65625rem] font-medium uppercase tracking-[0.09em] text-[var(--color-faint)]">
+                  <p className="mb-1.5 px-2.5 text-[0.65625rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">
                     {section.label}
                   </p>
                 ) : null}
                 <div className="space-y-0.5">
                   {section.items.map((item) => {
-                    const Icon = ICONS[item.icon];
+                    const Icon = item.icon ? ICONS[item.icon] : null;
                     const active = isActive(item);
                     const showChildren = !shellCollapsed && active && item.children && item.children.length > 0;
                     return (
@@ -192,7 +199,11 @@ export function AppShell({
                               : "text-[var(--color-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"
                           }`}
                         >
-                          <Icon size={16} strokeWidth={2} aria-hidden className="shrink-0" />
+                          {Icon ? <Icon size={16} strokeWidth={2} aria-hidden className="shrink-0" /> : shellCollapsed ? (
+                            <span className="text-[0.625rem] font-semibold tracking-[-0.02em] text-[var(--color-muted)]">
+                              {item.compactLabel ?? item.label.slice(0, 2).toUpperCase()}
+                            </span>
+                          ) : null}
                           {!shellCollapsed ? <span className="truncate">{item.label}</span> : null}
                         </Link>
                         {showChildren ? (

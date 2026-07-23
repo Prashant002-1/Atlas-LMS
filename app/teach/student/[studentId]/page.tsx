@@ -55,7 +55,7 @@ function StudentRecord({ workspace }: { workspace: InstructorStudentWorkspace })
         </section>
         <aside className="grid content-start gap-3 border-t border-[var(--color-border)] pt-4 text-[0.8125rem] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
           <RecordFact label="Standing" value={student.standing} />
-          <RecordFact label="Work" value={workspace.work.length} />
+          <RecordFact label="Assignments" value={workspace.work.length} />
           <RecordFact label="Last active" value={student.lastActivityAt ? formatShortDate(student.lastActivityAt) : "-"} />
         </aside>
       </div>
@@ -65,9 +65,9 @@ function StudentRecord({ workspace }: { workspace: InstructorStudentWorkspace })
 
 function StudentWorkList({ work }: { work: InstructorStudentWorkItem[] }) {
   return (
-    <Panel title="Work" action={<StatusBadge tone="neutral">{work.length}</StatusBadge>}>
+    <Panel title="Assignments" action={<StatusBadge tone="neutral">{work.length}</StatusBadge>}>
       <div className="divide-y divide-[var(--color-border)]">
-        {work.length > 0 ? work.map((item) => <StudentWorkRow key={item.assignmentId ?? item.title} item={item} />) : <EmptyRecord title="No work" detail="No published assignments." />}
+        {work.length > 0 ? work.map((item) => <StudentWorkRow key={item.assignmentId ?? item.title} item={item} />) : <EmptyRecord title="No assignments" detail="No published assignments." />}
       </div>
     </Panel>
   );
@@ -80,7 +80,7 @@ function StudentWorkRow({ item }: { item: InstructorStudentWorkItem }) {
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
           <p className="text-[0.875rem] font-semibold leading-5 text-[var(--color-ink)]">
-            {item.assignmentId ? <TextLink href={`/teach/work/${item.assignmentId}`}>{item.title}</TextLink> : item.title}
+            {item.assignmentId ? <TextLink href={`/teach/assignments/${item.assignmentId}`}>{item.title}</TextLink> : item.title}
           </p>
           <p className="mt-1 text-[0.75rem] text-[var(--color-muted)]">{workMeta(item)}</p>
           {item.detail ? <p className="mt-2 text-[0.8125rem] leading-5 text-[var(--color-muted)]">{item.detail}</p> : null}

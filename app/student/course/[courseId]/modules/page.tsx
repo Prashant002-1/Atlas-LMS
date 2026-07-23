@@ -3,7 +3,6 @@ import { loadStudentCourseWorkspace } from "@/lib/student/workspace";
 import { isOverdue, opensLabel } from "@/lib/student/format";
 import { PageHeader } from "@/components/teach/page-header";
 import { RecordRow } from "@/components/atlas/primitives";
-import { EmptyState } from "@/components/atlas/record";
 
 /** Every published module in the course, in order, each opening its material. */
 export default async function StudentCourseModulesPage({ params }: { params: Promise<{ courseId: string }> }) {
@@ -22,10 +21,10 @@ export default async function StudentCourseModulesPage({ params }: { params: Pro
 
   return (
     <>
-      <PageHeader title="Modules" course={`${workspace.course.code} / ${workspace.course.name}`} />
+      <PageHeader title="Modules" />
 
       {workspace.materials.length > 0 ? (
-        <div className="divide-y divide-[var(--color-border)] rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+        <div className="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
           {workspace.materials.map((material) => {
             /* A module whose unlock date has not passed yet is still ahead. */
             const opensAhead = material.unlockAt ? !isOverdue(material.unlockAt) : false;
@@ -35,14 +34,14 @@ export default async function StudentCourseModulesPage({ params }: { params: Pro
                 href={`/student/material/${material.id}`}
                 aside={
                   opensAhead && material.unlockAt ? (
-                    <span className="atlas-mono text-[0.6875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                    <span className="text-[0.6875rem] text-[var(--color-faint)]">
                       {opensLabel(material.unlockAt)}
                     </span>
                   ) : undefined
                 }
               >
                 <span className="flex min-w-0 items-baseline gap-3.5">
-                  <span className="atlas-mono w-5 shrink-0 text-[0.8125rem] tabular-nums text-[var(--color-faint)]">
+                  <span className="w-5 shrink-0 text-[0.8125rem] tabular-nums text-[var(--color-faint)]">
                     {material.week}
                   </span>
                   <span className="min-w-0">
@@ -57,9 +56,7 @@ export default async function StudentCourseModulesPage({ params }: { params: Pro
           })}
         </div>
       ) : (
-        <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-          <EmptyState art="atlas" title="No modules yet" detail="Published material appears here module by module." />
-        </div>
+        <p className="border-y border-[var(--color-border)] py-5 text-[0.8125rem] text-[var(--color-muted)]">No modules yet.</p>
       )}
     </>
   );

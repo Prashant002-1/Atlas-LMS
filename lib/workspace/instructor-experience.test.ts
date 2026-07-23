@@ -45,9 +45,9 @@ test("the syllabus is its own composed surface, synchronized with the record", (
 test("the students page leads with the roster", () => {
   const page = read("app/teach/students/page.tsx");
   const roster = page.indexOf("Roster (");
-  const work = page.indexOf(">Work<");
+  const work = page.indexOf(">Assignments<");
   assert.ok(roster > -1, "students page names the roster");
-  assert.ok(work > -1, "students page keeps the work section");
+  assert.ok(work > -1, "students page keeps the assignment progress section");
   assert.ok(roster < work, "the roster renders before the course work");
 });
 

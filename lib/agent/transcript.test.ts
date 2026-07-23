@@ -50,6 +50,7 @@ test("final artifact is the last VALID artifact state", () => {
     ]
   );
   assert.ok(normalized.finalArtifact);
+  assert.ok("tiers" in normalized.finalArtifact);
   assert.equal(normalized.finalArtifact.tiers[0].name, "Basic");
 });
 
@@ -104,7 +105,7 @@ test("submission body renders the frozen artifact deterministically", () => {
   assert.ok(body.includes("Expected risk: Minimal cannibalization."));
 
   const empty = renderFinalArtifactBody(null, "Maya Patel");
-  assert.ok(empty.includes("without a final artifact state"));
+  assert.ok(empty.includes("without a submission draft"));
 });
 
 test("span splitting reassembles the exact text with the right coverage", () => {

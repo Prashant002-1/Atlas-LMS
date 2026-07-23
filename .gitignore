@@ -40,3 +40,5 @@ Thumbs.db
 .claude/
 .cursor/
 public/fonts/
+/.swc
+/.workflow-data

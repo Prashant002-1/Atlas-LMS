@@ -53,7 +53,7 @@ const checks: SmokeCheck[] = [
     path: "/teach",
     status: 200,
     auth: { email: "instructor@demo.edu", password: "atlas1234", redirectTo: "/teach" },
-    includes: ["Overview", "Work", "Modules", "Announcements", "ECON-241"],
+    includes: ["Overview", "Assignments", "Atlas briefing", "Announcements", "ECON-241"],
   },
   {
     name: "atlas planning room",
@@ -86,6 +86,13 @@ const checks: SmokeCheck[] = [
     includes: ["Syllabus", "Weekly schedule", "Assignments and grading", "Course policies", "Export PDF"],
   },
   {
+    name: "instructor integrations",
+    path: "/teach/integrations",
+    status: 200,
+    auth: { email: "instructor@demo.edu", password: "atlas1234", redirectTo: "/teach/integrations" },
+    includes: ["Integrations", "Connected tools", "No tools connected", "LTI 1.3", "instructor-only"],
+  },
+  {
     name: "ai assignments tab",
     path: "/teach/ai-assignments",
     status: 200,
@@ -99,6 +106,20 @@ const checks: SmokeCheck[] = [
     status: 200,
     auth: { email: "student@demo.edu", password: "atlas1234", redirectTo: "/student" },
     includes: ["Home", "Courses", "ECON-241", "Intermediate Microeconomics", "open"],
+  },
+  {
+    name: "student resources",
+    path: "/student/resources",
+    status: 200,
+    auth: { email: "student@demo.edu", password: "atlas1234", redirectTo: "/student/resources" },
+    includes: ["University resources", "Academic support", "Library and research", "Student services"],
+  },
+  {
+    name: "student books",
+    path: "/student/books",
+    status: 200,
+    auth: { email: "student@demo.edu", password: "atlas1234", redirectTo: "/student/books" },
+    includes: ["Books", "No books listed", "course reading lists"],
   },
 ];
 

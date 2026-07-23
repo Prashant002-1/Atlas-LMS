@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
+import Link from "next/link";
 import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import { gradeSubmission, markSubmissionMissing } from "@/lib/instructor/actions";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,9 @@ export type SubmissionReviewRow = {
   score: number | null;
   grade: string | null;
   body: string | null;
+  sessionSubmissionId: string | null;
+  draftScore: number | null;
+  draftReportStatus: "draft" | "final" | null;
 };
 
 type SubmissionFilter = "all" | SubmissionReviewRow["status"];
@@ -123,7 +127,11 @@ export function SubmissionReviewTable({
                   <Fragment key={key}>
                     <tr className={cn("text-[0.8125rem] transition", open ? "bg-[var(--color-surface-muted)]" : "hover:bg-[var(--color-surface-muted)]")}>
                       <th scope="row" className="px-3 py-3.5 font-medium text-[var(--color-ink)]">
-                        {row.studentName}
+                        {row.sessionSubmissionId ? (
+                          <Link href={`/teach/ai-assignments/session/${row.sessionSubmissionId}`} className="underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] transition hover:text-[var(--color-accent-strong)]">
+                            {row.studentName}
+                          </Link>
+                        ) : row.studentName}
                         <span className="mt-0.5 block text-[0.71875rem] font-normal text-[var(--color-faint)]">{row.standing}</span>
                       </th>
                       <td className="max-w-xs px-3 py-3.5 text-[var(--color-muted)]">{responsePreview(row.body)}</td>
@@ -177,7 +185,10 @@ function SubmissionReview({
   return (
     <div className="grid gap-5 border-t border-[var(--color-border)] pt-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.65fr)]">
       <section aria-label={`${row.studentName} response`}>
-        <h3 className="text-[0.75rem] font-semibold text-[var(--color-ink)]">Student response</h3>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-[0.75rem] font-semibold text-[var(--color-ink)]">Student response</h3>
+          {row.sessionSubmissionId ? <Link href={`/teach/ai-assignments/session/${row.sessionSubmissionId}`} className="text-[0.71875rem] font-medium text-[var(--color-accent-strong)] underline underline-offset-[3px]">Open full session</Link> : null}
+        </div>
         {row.body?.trim() ? (
           <p className="mt-2 max-w-3xl whitespace-pre-wrap border-l-2 border-[var(--color-border-strong)] pl-3 text-[0.84375rem] leading-6 text-[var(--color-muted)]">{row.body}</p>
         ) : (
@@ -187,11 +198,20 @@ function SubmissionReview({
 
       <section aria-label={`${row.studentName} grade`} className="border-t border-[var(--color-border)] pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
         <h3 className="text-[0.75rem] font-semibold text-[var(--color-ink)]">{row.status === "graded" ? "Update grade" : "Grade"}</h3>
-        {canGrade && row.studentId ? (
+        {row.sessionSubmissionId ? (
+          <div className="mt-3">
+            <p className="text-[0.8125rem] text-[var(--color-muted)]">
+              {row.draftScore !== null
+                ? `${row.draftReportStatus === "final" ? "Posted" : "Agent draft"}: ${Math.round(row.draftScore)}${typeof pointsPossible === "number" ? ` / ${Math.round(pointsPossible)}` : ""}`
+                : "The automatic draft grade is still being prepared."}
+            </p>
+            <Link href={`/teach/ai-assignments/session/${row.sessionSubmissionId}`} className="mt-3 inline-flex min-h-9 items-center rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 text-[0.8125rem] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]">Review session grade</Link>
+          </div>
+        ) : canGrade && row.studentId ? (
           <form action={gradeSubmission} className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
             <input type="hidden" name="assignmentId" value={assignmentId} />
             <input type="hidden" name="studentId" value={row.studentId} />
-            <input type="hidden" name="returnTo" value={`/teach/work/${assignmentId}`} />
+            <input type="hidden" name="returnTo" value={`/teach/assignments/${assignmentId}`} />
             <label className="grid gap-1 text-[0.71875rem] font-medium text-[var(--color-muted)]">
               Score
               <input name="score" type="number" min={0} max={pointsPossible ?? undefined} step="0.01" defaultValue={row.score ?? ""} required className="min-h-9 rounded-control border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[0.8125rem] text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-strong)]" />
@@ -208,7 +228,7 @@ function SubmissionReview({
           <form action={markSubmissionMissing} className="mt-3">
             <input type="hidden" name="assignmentId" value={assignmentId} />
             <input type="hidden" name="studentId" value={row.studentId} />
-            <input type="hidden" name="returnTo" value={`/teach/work/${assignmentId}`} />
+            <input type="hidden" name="returnTo" value={`/teach/assignments/${assignmentId}`} />
             <button type="submit" className="inline-flex min-h-9 items-center rounded-control border border-[var(--color-border-strong)] px-3 text-[0.8125rem] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-warn)] hover:text-[var(--color-warn)]">Mark missing</button>
           </form>
         ) : (
@@ -231,6 +251,10 @@ function responsePreview(body: string | null): string {
 
 function gradeLabel(row: SubmissionReviewRow, pointsPossible: number | null): string {
   if (row.grade) return row.grade;
+  if (row.draftScore !== null) {
+    const score = Math.round(row.draftScore);
+    return typeof pointsPossible === "number" ? `Draft ${score} / ${Math.round(pointsPossible)}` : `Draft ${score}`;
+  }
   if (row.score === null) return "-";
   return typeof pointsPossible === "number"
     ? `${Math.round(row.score)} / ${Math.round(pointsPossible)}`

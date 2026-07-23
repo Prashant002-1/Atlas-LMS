@@ -9,12 +9,12 @@ const read = (relative: string) => readFileSync(path.join(root, relative), "utf8
 const visibleSurfaces = [
   "app/teach/weeks/page.tsx",
   "app/teach/week/[moduleId]/page.tsx",
-  "app/teach/work/page.tsx",
-  "app/teach/work/[assignmentId]/page.tsx",
+  "app/teach/assignments/page.tsx",
+  "app/teach/assignments/[assignmentId]/page.tsx",
   "app/teach/student/[studentId]/page.tsx",
   "app/teach/settings/page.tsx",
   "app/student/material/[moduleId]/page.tsx",
-  "app/student/work/[assignmentId]/page.tsx",
+  "app/student/assignments/[assignmentId]/page.tsx",
   "components/teach/proposals.tsx",
 ];
 
@@ -37,7 +37,7 @@ test("settings describe course knowledge, not objective tracking", () => {
 });
 
 test("objective relationships may persist silently through ordinary edits", () => {
-  const assignment = read("app/teach/work/[assignmentId]/page.tsx");
+  const assignment = read("app/teach/assignments/[assignmentId]/page.tsx");
   const courseModule = read("app/teach/week/[moduleId]/page.tsx");
   assert.ok(assignment.includes('type="hidden" name="objectiveCode"'));
   assert.ok(courseModule.includes('type="hidden" name="objectiveCode"'));

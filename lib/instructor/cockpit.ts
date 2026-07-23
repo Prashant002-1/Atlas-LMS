@@ -37,6 +37,7 @@ import {
   type SideNoteCard,
 } from "@/lib/agent/session-parts";
 import { classRollupStatsSchema, type ClassRollupStats } from "@/lib/agent/rollup";
+import { publicWorkflowRunId } from "@/lib/agent/run-claims";
 import { deriveJourneyState, JOURNEY_STATE_ORDER, type JourneyState } from "@/lib/instructor/journey-state";
 
 /**
@@ -323,7 +324,7 @@ export async function loadAssignmentCockpit(actor: Actor | null | undefined, ass
 
   const bundle = await loadSessionAssignmentBundle(orgId, assignmentId);
   if (!bundle || bundle.assignment.courseId !== course.id) {
-    return { problem: { title: "Not a work session", detail: "This assignment is not a session assignment in the course in view." } };
+    return { problem: { title: "Session unavailable", detail: "This assignment is not configured for a session in the course in view." } };
   }
 
   const { grid, counts } = await loadJourneyGrid(orgId, course.id, bundle);
@@ -575,7 +576,7 @@ export type PlanningRoomView =
       /** Every planning thread in the course, newest first. */
       threads: PlanningThreadRef[];
       /** The thread on screen, hydrated from rows; null renders a fresh room. */
-      active: { id: string; title: string; messages: UIMessage[] } | null;
+      active: { id: string; title: string; messages: UIMessage[]; activeRunId: string | null } | null;
       /** Drafts this thread produced, so reopened cards show today's status. */
       drafts: PlanningDraftRef[];
       /** The course's AI assignments by name, for grounded conversation openers. */
@@ -603,18 +604,19 @@ export async function loadPlanningRoom(
 
   const threads = await listCommandSessions(threadScope);
 
-  let active: { id: string; title: string; messages: UIMessage[] } | null = null;
+  let active: { id: string; title: string; messages: UIMessage[]; activeRunId: string | null } | null = null;
   if (requestedThreadId && requestedThreadId !== "new") {
     const thread = await loadCommandSession(threadScope, requestedThreadId);
     if (!thread) {
       return { problem: { title: "Thread unavailable", detail: "This planning thread is not yours in the course in view." } };
     }
     const turnRows = await loadFullSessionTurns(orgId, thread.id);
-    active = { id: thread.id, title: thread.title ?? "Planning thread", messages: turnsToUIMessages(turnRows) };
+    active = { id: thread.id, title: thread.title ?? "Planning thread", messages: turnsToUIMessages(turnRows), activeRunId: publicWorkflowRunId(thread.activeRunId) };
   } else if (!requestedThreadId && threads.length > 0) {
     const newest = threads[0];
     const turnRows = await loadFullSessionTurns(orgId, newest.id);
-    active = { id: newest.id, title: newest.title, messages: turnsToUIMessages(turnRows) };
+    const thread = await loadCommandSession(threadScope, newest.id);
+    active = { id: newest.id, title: newest.title, messages: turnsToUIMessages(turnRows), activeRunId: publicWorkflowRunId(thread?.activeRunId) };
   }
 
   const draftRows = active

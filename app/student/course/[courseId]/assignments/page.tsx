@@ -3,12 +3,11 @@ import { loadStudentCourseWorkspace, type StudentAssignment } from "@/lib/studen
 import { dueLabel, isOverdue, shortDate } from "@/lib/student/format";
 import { PageHeader } from "@/components/teach/page-header";
 import { RecordRow, StatusBadge } from "@/components/atlas/primitives";
-import { EmptyState } from "@/components/atlas/record";
 
 const tone = { graded: "good", submitted: "accent", open: "neutral", missing: "warn" } as const;
 const label = { graded: "Graded", submitted: "Submitted", open: "Open", missing: "Missing" } as const;
 
-/** Every published assignment: the open work first, then what is already in. */
+/** Every published assignment: open assignments first, then submitted records. */
 export default async function StudentCourseAssignmentsPage({ params }: { params: Promise<{ courseId: string }> }) {
   const session = await auth();
   const { courseId } = await params;
@@ -28,11 +27,11 @@ export default async function StudentCourseAssignmentsPage({ params }: { params:
 
   return (
     <>
-      <PageHeader title="Assignments" course={`${workspace.course.code} / ${workspace.course.name}`} />
+      <PageHeader title="Assignments" />
 
       <section>
-        <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Open</h2>
-        <div className="mt-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+        <h2 className="mb-2 text-[1rem] font-semibold text-[var(--color-ink)]">Open</h2>
+        <div>
           {open.length > 0 ? (
             <div className="divide-y divide-[var(--color-border)]">
               {open.map((assignment) => (
@@ -40,17 +39,17 @@ export default async function StudentCourseAssignmentsPage({ params }: { params:
               ))}
             </div>
           ) : done.length > 0 ? (
-            <EmptyState art="summit" title="Everything is in" detail="No open work in this course right now." />
+            <p className="py-5 text-[0.8125rem] text-[var(--color-muted)]">No open assignments.</p>
           ) : (
-            <EmptyState art="atlas" title="No assignments yet" detail="Published work appears here." />
+            <p className="py-5 text-[0.8125rem] text-[var(--color-muted)]">No assignments yet.</p>
           )}
         </div>
       </section>
 
       {done.length > 0 ? (
         <section className="mt-7">
-          <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">Turned in</h2>
-          <div className="mt-2.5 divide-y divide-[var(--color-border)] rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
+          <h2 className="mb-2 text-[1rem] font-semibold text-[var(--color-ink)]">Submitted</h2>
+          <div className="divide-y divide-[var(--color-border)]">
             {done.map((assignment) => (
               <AssignmentRow key={assignment.id} assignment={assignment} />
             ))}
@@ -76,7 +75,7 @@ function AssignmentRow({ assignment }: { assignment: StudentAssignment }) {
 
   return (
     <RecordRow
-      href={`/student/work/${assignment.id}`}
+      href={`/student/assignments/${assignment.id}`}
       aside={<StatusBadge tone={tone[assignment.status]}>{label[assignment.status]}</StatusBadge>}
     >
       <span className="block truncate text-[0.875rem] font-medium">{assignment.name}</span>
@@ -85,7 +84,7 @@ function AssignmentRow({ assignment }: { assignment: StudentAssignment }) {
           overdue ? "font-medium text-[var(--color-danger)]" : "text-[var(--color-muted)]"
         }`}
       >
-        {facts.length > 0 ? facts.join(" / ") : "No due date"}
+        {facts.length > 0 ? facts.join(", ") : "No due date"}
       </span>
     </RecordRow>
   );

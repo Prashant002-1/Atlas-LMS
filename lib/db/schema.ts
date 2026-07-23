@@ -656,12 +656,21 @@ export const agentSessions = pgTable(
     summary: text("summary"),
     compactedThroughTurn: integer("compacted_through_turn").notNull().default(0),
     totalTurns: integer("total_turns").notNull().default(0),
+    // A workflow run, not the browser connection, owns in-flight generation.
+    // The run id lets any page instance reconnect to the same durable stream.
+    activeRunId: text("active_run_id"),
+    activeRunStartedAt: timestamp("active_run_started_at", { withTimezone: true }),
+    // Assessed sessions schedule one server-owned deadline on their first turn.
+    // Professor command sessions leave these fields null.
+    deadlineAt: timestamp("deadline_at", { withTimezone: true }),
+    deadlineRunId: text("deadline_run_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     index("agent_sessions_user_idx").on(t.userId, t.updatedAt),
     index("agent_sessions_anchor_idx").on(t.courseId, t.surface, t.anchorType, t.anchorId),
+    index("agent_sessions_active_run_idx").on(t.activeRunId),
   ]
 );
 
@@ -843,8 +852,8 @@ export const sessionAssignments = pgTable(
 
 /**
  * Artifact states, one snapshot per revision of the student's evolving
- * deliverable (e.g. the pricing table). Written when the agent's
- * update_artifact tool call lands; turnIndex ties the snapshot to the
+ * deliverable (e.g. the pricing table). Written when an agent artifact tool
+ * call lands; turnIndex ties the snapshot to the
  * assistant turn that produced it so the drill-in can replay the evolution.
  */
 export const sessionArtifactStates = pgTable(

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { type UIMessage } from "ai";
+import { WorkflowChatTransport } from "@ai-sdk/workflow";
 import {
   CheckCircle2,
   FileCheck2,
@@ -21,7 +22,13 @@ import {
 } from "@/components/ai-elements/conversation";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import { Response } from "@/components/ai-elements/response";
-import { Shimmer } from "@/components/ai-elements/shimmer";
+import {
+  messageHasVisibleOutput,
+  PromptCheckpointRail,
+  promptAnchorId,
+  promptCheckpointLabel,
+  ThinkingIndicator,
+} from "@/components/ai-elements/agent-status";
 import {
   PromptInput,
   PromptInputButton,
@@ -63,6 +70,7 @@ export type PlanningRoomProps = {
   threadTitle: string;
   course: { id: string; code: string; name: string; term: string | null };
   initialMessages: UIMessage[];
+  activeRunId: string | null;
   threads: PlanningThreadRef[];
   drafts: PlanningDraftRef[];
   work: PlanningWorkRef[];
@@ -73,11 +81,6 @@ const STATUS_TONE = { pending: "accent", approved: "good", rejected: "neutral", 
 const STATUS_LABEL = { pending: "Ready", approved: "Approved", rejected: "Dismissed", applied: "Applied" } as const;
 
 type LoosePart = { type?: unknown; state?: unknown; input?: unknown; output?: unknown; data?: unknown; text?: unknown } & Record<string, unknown>;
-
-type PromptCheckpoint = {
-  id: string;
-  label: string;
-};
 
 type RunContext = {
   sessionId: string;
@@ -213,25 +216,6 @@ function isActionResult(part: LoosePart): boolean {
   return output?.ok === true && typeof output.action === "string" && typeof output.summary === "string";
 }
 
-function isDraftTool(type: string) {
-  return type === "tool-draft_ai_assignment" || type === "tool-draft_rubric" || type === "tool-draft_course";
-}
-
-function promptAnchorId(messageId: string) {
-  return `atlas-prompt-${encodeURIComponent(messageId)}`;
-}
-
-function promptCheckpointLabel(message: UIMessage, index: number) {
-  const text = (message.parts as LoosePart[])
-    .filter((part) => part.type === "text" && typeof part.text === "string")
-    .map((part) => String(part.text))
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
-  const excerpt = text.length > 72 ? `${text.slice(0, 69)}...` : text;
-  return excerpt || `Prompt ${index + 1}`;
-}
-
 export function PlanningRoom(props: PlanningRoomProps) {
   const initialThreadId = props.threadId;
   const [railOpen, setRailOpen] = useState(false);
@@ -249,19 +233,54 @@ export function PlanningRoom(props: PlanningRoomProps) {
     window.localStorage.setItem("atlas-harness-rail", open ? "open" : "closed");
   }
 
-  const { messages, sendMessage, status, error, stop } = useChat({
+  const runStorageKey = `atlas-active-run:planning:${props.threadId}`;
+  const [steerQueue, setSteerQueue] = useState<string[]>([]);
+  const steerQueueRef = useRef<string[]>([]);
+  const transport = useMemo(() => new WorkflowChatTransport<UIMessage>({
+    api: "/api/atlas/planning",
+    prepareSendMessagesRequest: ({ messages: outgoing }) => ({
+      body: {
+        sessionId: threadIdFromMessages(outgoing) ?? initialThreadId,
+        message: outgoing[outgoing.length - 1],
+      },
+    }),
+    onChatSendMessage: (response) => {
+      const runId = response.headers.get("x-workflow-run-id");
+      if (!runId) return;
+      window.localStorage.setItem(runStorageKey, runId);
+    },
+    onChatEnd: () => {
+      window.localStorage.removeItem(runStorageKey);
+    },
+    prepareReconnectToStreamRequest: ({ ...rest }) => {
+      const runId = window.localStorage.getItem(runStorageKey);
+      if (!runId) throw new Error("No active Atlas run to resume.");
+      return { ...rest, api: `/api/agent-runs/${encodeURIComponent(runId)}/stream` };
+    },
+  }), [initialThreadId, runStorageKey]);
+
+  useEffect(() => {
+    if (props.activeRunId) window.localStorage.setItem(runStorageKey, props.activeRunId);
+    else window.localStorage.removeItem(runStorageKey);
+  }, [props.activeRunId, runStorageKey]);
+
+  const { messages, sendMessage, status, error } = useChat({
     id: `planning-${props.threadId}`,
     messages: props.initialMessages,
-    transport: new DefaultChatTransport({
-      api: "/api/atlas/planning",
-      prepareSendMessagesRequest: ({ messages: outgoing }) => ({
-        body: {
-          sessionId: threadIdFromMessages(outgoing) ?? initialThreadId,
-          message: outgoing[outgoing.length - 1],
-        },
-      }),
-    }),
+    resume: Boolean(props.activeRunId),
+    transport,
+    onError: (chatError) => console.error("Atlas planning stream failed", chatError),
+    onFinish: ({ isAbort, isDisconnect }) => {
+      if (isAbort || isDisconnect) return;
+      const [next, ...rest] = steerQueueRef.current;
+      if (!next) return;
+      steerQueueRef.current = rest;
+      setSteerQueue(rest);
+      window.setTimeout(() => sendMessage({ text: next }), 0);
+    },
   });
+
+  const sendPlanningMessage = (text: string) => sendMessage({ text });
 
   const promptCheckpoints = useMemo(
     () => messages
@@ -328,7 +347,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
   const pendingReviewCount = props.pendingProposals + visibleDrafts.filter((draft) => draft.status === "pending" && !storedDraftIds.has(draft.proposalId)).length;
   const busy = status === "submitted" || status === "streaming";
   const lastMessage = messages[messages.length - 1];
-  const awaitingReply = busy && (!lastMessage || lastMessage.role === "user");
+  const awaitingReply = busy && !messageHasVisibleOutput(lastMessage);
   const firstWork = props.work[0] ?? null;
 
   return (
@@ -423,10 +442,17 @@ export function PlanningRoom(props: PlanningRoomProps) {
         <div className="shrink-0 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)] to-transparent px-3 pb-3 pt-2 md:px-6 md:pb-5">
           <div className="mx-auto w-full max-w-[50rem]">
             {error ? <p className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{error.message || "Atlas could not finish that turn. Your message is saved."}</p> : null}
+            {steerQueue.length > 0 ? <p className="mb-2 text-[0.71875rem] text-[var(--color-muted)]" role="status">Steer queued · {steerQueue[0]}</p> : null}
             <PromptInput className="min-h-[3.25rem] flex-row items-end overflow-hidden shadow-[var(--shadow-floating)]" onSubmit={(message, event) => {
               const text = message.text.trim();
-              if (!text || busy) return;
-              sendMessage({ text });
+              if (!text) return;
+              if (busy) {
+                const nextQueue = [...steerQueueRef.current, text];
+                steerQueueRef.current = nextQueue;
+                setSteerQueue(nextQueue);
+              } else {
+                sendPlanningMessage(text);
+              }
               const form = event.currentTarget;
               form.reset();
               const field = form.querySelector("textarea");
@@ -440,7 +466,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
               >
                 <Plus size={16} aria-hidden />
               </PromptInputButton>
-              <PromptInputTextarea className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-1.5 py-[0.8125rem]" placeholder="Ask Atlas..." disabled={busy} autoFocus />
+              <PromptInputTextarea className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-1.5 py-[0.8125rem]" placeholder={busy ? "Steer Atlas..." : "Ask Atlas..."} autoFocus />
               <PromptInputToolbar className="shrink-0 justify-end gap-0.5 px-1.5 py-1.5">
                 <PromptInputTools>
                   <PromptInputButton
@@ -452,7 +478,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
                     <Mic size={15} aria-hidden />
                   </PromptInputButton>
                 </PromptInputTools>
-                <PromptInputSubmit status={status} onStop={stop} className="rounded-full" />
+                <PromptInputSubmit status={status} allowSubmitWhileBusy className="rounded-full" />
               </PromptInputToolbar>
             </PromptInput>
           </div>
@@ -523,101 +549,10 @@ function PlanningMessageParts({ message, streaming, statusByProposal }: { messag
 
   if (streaming) {
     const activeTool = [...toolParts].reverse().find((part) => toolState(part) === "input-streaming" || toolState(part) === "input-available");
-    const hasText = parts.some((part) => part.type === "text" && typeof part.text === "string" && part.text.length > 0);
     if (activeTool) rendered.push(<ThinkingIndicator key="working" label={toolLabel(activeTool)} />);
-    else if (!hasText && !parts.some((part) => isDraftTool(String(part.type ?? "")) && toolState(part) === "output-available")) rendered.push(<ThinkingIndicator key="thinking" label="Thinking" />);
   }
 
   return <>{rendered}</>;
-}
-
-function ThinkingIndicator({ label }: { label: string }) {
-  return (
-    <div className="py-1" role="status" aria-live="polite">
-      <Shimmer as="span" duration={1.6} spread={1.5} className="text-[0.78125rem] font-medium">{label}</Shimmer>
-    </div>
-  );
-}
-
-function PromptCheckpointRail({ checkpoints }: { checkpoints: PromptCheckpoint[] }) {
-  const checkpointKey = checkpoints.map((checkpoint) => checkpoint.id).join("\u001f");
-  const [activeId, setActiveId] = useState<string | null>(() => checkpoints.at(-1)?.id ?? null);
-
-  useEffect(() => {
-    const ids = checkpointKey ? checkpointKey.split("\u001f") : [];
-    const anchors = ids.flatMap((id) => {
-      const element = document.getElementById(promptAnchorId(id));
-      return element ? [{ id, element }] : [];
-    });
-    const scrollRoot = anchors[0]?.element.closest('[role="log"]') as HTMLElement | null;
-
-    if (!scrollRoot || anchors.length === 0) return;
-
-    const measure = () => {
-      const rootTop = scrollRoot.getBoundingClientRect().top;
-      const threshold = rootTop + Math.min(120, scrollRoot.clientHeight * 0.2);
-      const atBottom = scrollRoot.scrollHeight - scrollRoot.scrollTop - scrollRoot.clientHeight <= 32;
-      let nextId = anchors[0].id;
-
-      for (const anchor of anchors) {
-        if (anchor.element.getBoundingClientRect().top <= threshold) nextId = anchor.id;
-        else break;
-      }
-      if (atBottom) nextId = anchors.at(-1)?.id ?? nextId;
-      setActiveId((current) => current === nextId ? current : nextId);
-    };
-
-    const frame = requestAnimationFrame(measure);
-    scrollRoot.addEventListener("scroll", measure, { passive: true });
-    window.addEventListener("resize", measure);
-    return () => {
-      cancelAnimationFrame(frame);
-      scrollRoot.removeEventListener("scroll", measure);
-      window.removeEventListener("resize", measure);
-    };
-  }, [checkpointKey]);
-
-  const jumpToPrompt = (id: string) => {
-    const prompt = document.getElementById(promptAnchorId(id));
-    if (!prompt) return;
-    setActiveId(id);
-    prompt.scrollIntoView({
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-      block: "start",
-    });
-  };
-
-  return (
-    <nav aria-label="Prompt checkpoints" className="pointer-events-none absolute inset-y-0 left-1.5 z-10 hidden items-center md:flex">
-      <ol className="pointer-events-auto flex max-h-[76%] flex-col py-2">
-        {checkpoints.map((checkpoint, index) => {
-          const active = checkpoint.id === activeId;
-          const tooltipId = `${promptAnchorId(checkpoint.id)}-tooltip`;
-          return (
-            <li key={checkpoint.id} className="relative">
-              <button
-                type="button"
-                onClick={() => jumpToPrompt(checkpoint.id)}
-                aria-label={`Jump to prompt ${index + 1}`}
-                aria-describedby={tooltipId}
-                aria-current={active ? "location" : undefined}
-                className="group/checkpoint flex h-4 w-5 items-center rounded-row focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent-strong)]"
-              >
-                <span className={cn("h-0.5 w-2 rounded-full bg-[var(--color-border-strong)] opacity-60 transition-[width,background-color,opacity] group-hover/checkpoint:w-2.5 group-hover/checkpoint:bg-[var(--color-muted)] group-hover/checkpoint:opacity-100", active && "w-2.5 bg-[var(--color-muted)] opacity-90")} aria-hidden />
-                <span
-                  id={tooltipId}
-                  role="tooltip"
-                  className="pointer-events-none absolute left-full top-1/2 z-20 ml-1.5 w-max max-w-[18rem] -translate-y-1/2 rounded-control border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-left text-[0.6875rem] font-normal leading-4 text-[var(--color-muted)] opacity-0 shadow-[var(--shadow-floating)] transition-opacity delay-150 group-hover/checkpoint:opacity-100 group-focus-visible/checkpoint:opacity-100"
-                >
-                  {checkpoint.label}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
-  );
 }
 
 function ActionReceipt({ summary }: { summary: string }) {

@@ -9,8 +9,10 @@ import {
   courses,
   enrollments,
   learningObjectives,
+  journeyReports,
   modules,
   sessionAssignments,
+  sessionSubmissions,
   submissions,
   users,
 } from "@/lib/db/schema";
@@ -75,6 +77,10 @@ export type InstructorAssignmentSubmission = {
   score?: number | null;
   grade?: string | null;
   body?: string | null;
+  /** Canonical AI-session drill-in reached from every assignment surface. */
+  sessionSubmissionId?: string | null;
+  draftScore?: number | null;
+  draftReportStatus?: "draft" | "final" | null;
 };
 
 export type InstructorStudentWorkItem = {
@@ -146,15 +152,6 @@ export type InstructorProposal = {
   thread: { id: string; title: string | null } | null;
 };
 
-/** One record change, stated as a fact: what record, what happened, when. */
-export type InstructorRecordChange = {
-  kind: "module" | "assignment" | "announcement" | "applied";
-  title: string;
-  event: string;
-  at: Date;
-  href: string;
-};
-
 export type InstructorWorkspace = {
   source: "database" | "unavailable";
   course: WorkspaceCourse;
@@ -169,7 +166,6 @@ export type InstructorWorkspace = {
   workProgress: InstructorWorkProgress[];
   notices: InstructorCourseNotice[];
   proposals: InstructorProposal[];
-  recentChanges: InstructorRecordChange[];
   problem?: {
     title: string;
     detail: string;
@@ -232,8 +228,6 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
         summaryMd: modules.summaryMd,
         position: modules.position,
         published: modules.published,
-        createdAt: modules.createdAt,
-        updatedAt: modules.updatedAt,
       })
       .from(modules)
       .where(and(eq(modules.orgId, actor.orgId), eq(modules.courseId, course.id)))
@@ -249,8 +243,6 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
         dueAt: assignments.dueAt,
         position: assignments.position,
         published: assignments.published,
-        createdAt: assignments.createdAt,
-        updatedAt: assignments.updatedAt,
       })
       .from(assignments)
       .where(and(eq(assignments.orgId, actor.orgId), eq(assignments.courseId, course.id)))
@@ -434,41 +426,6 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
       });
     }
 
-    /*
-     * Recent record changes, assembled from the rows themselves: a module or
-     * work row whose updatedAt moved past its createdAt was edited, an
-     * announcement has its posted date, an applied proposal has its decision
-     * date. Facts with links, newest first; nothing is scored or ranked.
-     */
-    const recentChanges: InstructorRecordChange[] = [
-      ...moduleRows.map((m) => ({
-        kind: "module" as const,
-        title: m.name,
-        event: changeEvent("Module", m.createdAt, m.updatedAt),
-        at: m.updatedAt ?? m.createdAt,
-        href: `/teach/week/${m.id}`,
-      })),
-      ...assignmentRows.map((a) => ({
-        kind: "assignment" as const,
-        title: a.name,
-        event: changeEvent("Work", a.createdAt, a.updatedAt),
-        at: a.updatedAt ?? a.createdAt,
-        href: `/teach/work/${a.id}`,
-      })),
-      ...noticeRows.flatMap((n) =>
-        n.postedAt
-          ? [{ kind: "announcement" as const, title: n.title, event: "Announcement posted", at: n.postedAt, href: "/teach/announcements" }]
-          : []
-      ),
-      ...proposals.flatMap((p) =>
-        p.status === "applied" && p.decidedAt
-          ? [{ kind: "applied" as const, title: p.title, event: "Applied from Review", at: p.decidedAt, href: "/teach/review" }]
-          : []
-      ),
-    ]
-      .sort((a, b) => b.at.getTime() - a.at.getTime())
-      .slice(0, 8);
-
     return {
       source: "database",
       course: {
@@ -488,17 +445,10 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
       workProgress: toWorkProgress(assignmentRows, assignmentAlignmentRows, objectiveRows, submissionRows, studentEnrollmentRows.length),
       notices: noticeRows,
       proposals,
-      recentChanges,
     };
   } catch {
     return unavailableWorkspace("Course unavailable", "This course could not be loaded.", scope);
   }
-}
-
-/** Added vs updated, read from the row's own timestamps. */
-function changeEvent(noun: string, createdAt: Date, updatedAt: Date | null): string {
-  if (!updatedAt || Math.abs(updatedAt.getTime() - createdAt.getTime()) < 60_000) return `${noun} added`;
-  return `${noun} updated`;
 }
 
 function proposalTitle(blocks: Block[], summary: string): string {
@@ -513,7 +463,7 @@ function proposalTitle(blocks: Block[], summary: string): string {
 
 function appliedRecordLink(itemType: string | null, itemId: string): InstructorProposalAppliedRecord | null {
   if (itemType === "module") return { label: "Material", href: `/teach/week/${itemId}` };
-  if (itemType === "assignment") return { label: "Work", href: `/teach/work/${itemId}` };
+  if (itemType === "assignment") return { label: "Assignment", href: `/teach/assignments/${itemId}` };
   if (itemType === "page" || itemType === "quiz") return { label: "Record", href: "/teach#map" };
   return null;
 }
@@ -756,7 +706,7 @@ export async function loadInstructorCalendar(
   const entries: InstructorCalendarEntry[] = [];
   for (const a of assignmentRows) {
     if (!a.dueAt || !inWindow(a.dueAt)) continue;
-    entries.push({ date: a.dueAt, kind: "due", title: a.name, href: `/teach/work/${a.id}`, published: a.published });
+    entries.push({ date: a.dueAt, kind: "due", title: a.name, href: `/teach/assignments/${a.id}`, published: a.published });
   }
   for (const m of moduleRows) {
     if (!m.unlockAt || !inWindow(m.unlockAt)) continue;
@@ -795,7 +745,7 @@ export async function loadInstructorAssignmentWorkspace(
     return {
       ...base,
       problem: {
-        title: "Work unavailable",
+        title: "Assignment unavailable",
         detail: "This work is not in a course you teach.",
       },
     };
@@ -872,8 +822,30 @@ export async function loadInstructorAssignmentWorkspace(
           )
       : [];
 
+  const sessionSubmissionRows =
+    studentIds.length > 0
+      ? await db
+          .select({
+            id: sessionSubmissions.id,
+            userId: sessionSubmissions.userId,
+            draftScore: journeyReports.overallScore,
+            reportStatus: journeyReports.status,
+          })
+          .from(sessionSubmissions)
+          .leftJoin(journeyReports, eq(journeyReports.submissionId, sessionSubmissions.id))
+          .where(
+            and(
+              eq(sessionSubmissions.orgId, actor.orgId),
+              eq(sessionSubmissions.courseId, workspace.course.id),
+              eq(sessionSubmissions.assignmentId, assignment.id ?? ""),
+              inArray(sessionSubmissions.userId, studentIds)
+            )
+          )
+      : [];
+
   const userById = new Map(studentRows.map((user) => [user.id, user]));
   const submissionByUser = new Map(submissionRows.map((submission) => [submission.userId, submission]));
+  const sessionSubmissionByUser = new Map(sessionSubmissionRows.map((submission) => [submission.userId, submission]));
   const roster = studentEnrollmentRows.map((enrollment) => {
     const user = userById.get(enrollment.userId);
     const submission = submissionByUser.get(enrollment.userId);
@@ -888,6 +860,9 @@ export async function loadInstructorAssignmentWorkspace(
       score: submission?.score,
       grade: submission?.grade,
       body: submission?.body,
+      sessionSubmissionId: sessionSubmissionByUser.get(enrollment.userId)?.id ?? null,
+      draftScore: sessionSubmissionByUser.get(enrollment.userId)?.draftScore ?? null,
+      draftReportStatus: sessionSubmissionByUser.get(enrollment.userId)?.reportStatus ?? null,
     };
   });
 
@@ -1077,7 +1052,6 @@ function unavailableWorkspace(title: string, detail: string, scope?: WorkspaceSc
     workProgress: [],
     notices: [],
     proposals: [],
-    recentChanges: [],
     problem: { title, detail },
   };
 }
@@ -1307,7 +1281,7 @@ function toStudentProgress(
           submission.grade ??
           scoreLabel(submission.score, assignment?.pointsPossible) ??
           (submission.missing ? "Missing" : submission.gradedAt ? "Graded" : "Submitted");
-        return `${assignment?.name ?? "Work"} / ${status}`;
+        return `${assignment?.name ?? "Assignment"}, ${status}`;
       })
       .slice(0, 2);
 

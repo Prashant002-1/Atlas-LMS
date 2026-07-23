@@ -15,6 +15,7 @@ import { buildSessionInstructions, buildSessionPack } from "@/lib/agent/session-
 import { fireSideNoteForTurn } from "@/lib/agent/side-notes";
 import {
   artifactUpdatesFromParts,
+  sessionArtifactToolSchemas,
   updateArtifactInputSchema,
   type SessionUIMessage,
 } from "@/lib/agent/session-parts";
@@ -46,11 +47,13 @@ export async function runSessionTurn(args: {
   courseAgent: ResolvedCourseAgentConfig;
   model: LanguageModel;
   userText: string;
+  /** The route persists input before it starts a durable workflow run. */
+  userTurnIndex?: number;
 }): Promise<Response> {
   const { session, bundle } = args;
 
   const userParts = [{ type: "text" as const, text: args.userText }];
-  const userTurnIndex = await persistSessionTurn(session, "user", userParts);
+  const userTurnIndex = args.userTurnIndex ?? await persistSessionTurn(session, "user", userParts);
 
   const sideNote = await fireSideNoteForTurn({
     session,
@@ -78,14 +81,25 @@ export async function runSessionTurn(args: {
   const priorArtifacts = await listArtifactStates(session.orgId, session.id);
   let revision = priorArtifacts.length;
 
-  const updateArtifact = tool({
+  const recordArtifactRevision = (artifactType: "pricing_table" | "structured_response", state: unknown) => {
+    const parsed = updateArtifactInputSchema.safeParse({ artifactType, state });
+    if (!parsed.success) return { ok: false as const, revision };
+    revision += 1;
+    return { ok: true as const, revision };
+  };
+
+  const updatePricingTable = tool({
     description:
-      "Snapshot the student's current deliverable state whenever they propose or revise it. Record their decisions verbatim; include revisionNote on every revision after the first.",
-    inputSchema: updateArtifactInputSchema,
-    execute: async () => {
-      revision += 1;
-      return { ok: true as const, revision };
-    },
+      "Snapshot the student's current pricing-table submission draft when they produce or revise a genuine pricing-plan deliverable. Preserve the student's decisions, wording, and numbers; include revisionNote after the first revision.",
+    inputSchema: sessionArtifactToolSchemas.update_pricing_table,
+    execute: async (state) => recordArtifactRevision("pricing_table", state),
+  });
+
+  const updateStructuredResponse = tool({
+    description:
+      "Snapshot the student's current submission draft for an ordinary non-pricing assignment. Preserve the student's claims, evidence, wording, and decisions; include revisionNote after the first revision.",
+    inputSchema: sessionArtifactToolSchemas.update_structured_response,
+    execute: async (state) => recordArtifactRevision("structured_response", state),
   });
 
   const modelMessages = await convertToModelMessages(history);
@@ -100,7 +114,10 @@ export async function runSessionTurn(args: {
         model: args.model,
         instructions,
         messages: modelMessages,
-        tools: { update_artifact: updateArtifact },
+        tools: {
+          update_pricing_table: updatePricingTable,
+          update_structured_response: updateStructuredResponse,
+        },
         stopWhen: isStepCount(4),
       });
 

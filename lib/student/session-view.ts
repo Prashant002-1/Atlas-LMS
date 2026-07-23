@@ -15,6 +15,7 @@ import {
   studentDisplayName,
 } from "@/lib/agent/session-store";
 import { parseJourneyScores, type RubricCriterion, type RubricLevelName, type SideNoteCard } from "@/lib/agent/session-parts";
+import { publicWorkflowRunId } from "@/lib/agent/run-claims";
 import { turnsFromSubmissionTranscript } from "@/lib/agent/grading";
 import type { UIMessage } from "ai";
 
@@ -75,13 +76,15 @@ export type StudentSessionView =
       };
       criteria: RubricCriterion[];
       sessionStartedAt: string | null;
+      deadlineAt: string | null;
+      activeRunId: string | null;
       messages: UIMessage[];
       artifacts: StudentSessionArtifact[];
       sideNotes: SideNoteCard[];
       submitted: boolean;
       submittedAt: string | null;
       studentName: string;
-      /** The journey report for the submitted session, when grading has run. */
+      /** The grade report for the submitted session, when grading has run. */
       report: StudentJourneyReportView | null;
       /** Submitted but not yet graded (no model configured, or grading failed). */
       gradingPending: boolean;
@@ -96,7 +99,7 @@ export async function loadStudentSessionView(user: Actor, assignmentId: string):
 
   const bundle = await loadSessionAssignmentBundle(user.orgId, assignmentId);
   if (!bundle) {
-    return { problem: { title: "Not a work session", detail: "This assignment is not configured as a work session." } };
+    return { problem: { title: "Session unavailable", detail: "This assignment is not configured for a session." } };
   }
 
   const enrollment = await activeStudentEnrollment(user.orgId, bundle.assignment.courseId, user.id);
@@ -158,6 +161,8 @@ export async function loadStudentSessionView(user: Actor, assignmentId: string):
     },
     criteria: bundle.criteria,
     sessionStartedAt: viewSession && turnRows.length > 0 ? viewSession.createdAt.toISOString() : null,
+    deadlineAt: viewSession?.deadlineAt?.toISOString() ?? null,
+    activeRunId: publicWorkflowRunId(viewSession?.activeRunId),
     messages: turnsToUIMessages(turnRows),
     artifacts: artifactRows.map((row) => ({ turnIndex: row.turnIndex, artifactType: row.artifactType, state: row.state })),
     sideNotes,

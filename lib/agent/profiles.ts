@@ -63,17 +63,17 @@ export const agentProfiles: Record<AgentProfileId, AgentProfile> = {
     surface: "cue",
     anchorType: "assignment",
     description:
-      "Runs one student's assessed session under the active course agent configuration, assignment contract, and rubric.",
+      "Acts as the professor-configured course agent for one student's assessed assignment session under the active configuration, contract, and rubric.",
     boundaries: {
       reads: [
         "the published course and ready course-visible materials",
         "the active course agent identity, teaching behavior, and assignment-scoped rules",
         "the session contract, rubric, and grounding scope for one assignment",
-        "this student's own past work and prior turns in this session",
+        "this student's own past submissions and prior turns in this session",
       ],
-      writes: ["its own session turns and artifact snapshots through update_artifact"],
+      writes: ["its own session turns and artifact snapshots through exact typed artifact tools"],
       never: [
-        "see another student's grades, transcript, work, or personal notes",
+        "see another student's grades, transcript, submission, or personal notes",
         "see unpublished or instructor-only material or the professor's private threads",
         "let course configuration weaken the assignment contract or rubric",
         "invent a personal note or change a grade",

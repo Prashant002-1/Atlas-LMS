@@ -27,7 +27,7 @@ export default async function TeachAiAssignmentsPage() {
     <>
       <PageHeader
         title="AI assignments"
-        course={`${view.course.code} / ${view.course.name}`}
+        course={`${view.course.code}, ${view.course.name}`}
         action={<ButtonLink href="/teach/settings" variant="secondary" size="sm">AI settings</ButtonLink>}
       />
 

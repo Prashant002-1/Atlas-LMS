@@ -20,6 +20,7 @@ const teacherSections: NavSection[] = [
       { href: "/teach/gradebook", label: "Gradebook", icon: "gradebook" },
       { href: "/teach/students", label: "Students", icon: "students" },
       { href: "/teach/syllabus", label: "Syllabus", icon: "syllabus" },
+      { href: "/teach/materials", label: "Materials", icon: "resources" },
       { href: "/teach/course", label: "Course setup", icon: "setup" },
     ],
   },

@@ -92,11 +92,14 @@ test("announcements support review, scheduling, and a durable Atlas drafting thr
   assert.equal(composer.includes("Put the announcement in Review"), false);
 });
 
-test("settings keeps its pinned sections in the full-width layout", () => {
-  const page = read("app/teach/settings/page.tsx");
-  assert.ok(page.includes("BoundaryRow"));
-  assert.ok(page.includes("SystemBoundaryRow"));
-  assert.ok(page.includes("Escalates to professor"));
+test("boundary rows follow their owners across the split", () => {
+  const settings = read("app/teach/settings/page.tsx");
+  assert.ok(settings.includes("SystemBoundaryRow"));
+  assert.ok(settings.includes("System boundaries"));
+
+  const courseSetup = read("app/teach/course/page.tsx");
+  assert.ok(courseSetup.includes("BoundaryRow"));
+  assert.ok(courseSetup.includes("Escalates to professor"));
 });
 
 test("instructor profile facts live on the user record and account page", () => {

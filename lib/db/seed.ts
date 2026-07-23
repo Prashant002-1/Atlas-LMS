@@ -14,6 +14,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
 import {
+  agentMemories,
   announcements,
   assignments,
   contentAlignments,
@@ -39,6 +40,7 @@ import {
   evidenceSpans,
   journeyReports,
   classRollups,
+  orgAgentPolicies,
 } from "./schema";
 import { demoPackage } from "./fixtures/package";
 import {
@@ -58,6 +60,7 @@ import {
 } from "./fixtures/v0-demo-world";
 import type { FixtureCourse } from "./fixtures/types";
 import { normalizeSessionTranscript } from "../agent/transcript";
+import { orgAgentPolicySchema } from "../agent/org-policy";
 import { buildRollupNarrative, computeClassRollupStats } from "../agent/rollup";
 import { hashPassword } from "../auth/password";
 
@@ -123,12 +126,88 @@ async function main() {
     }))
   );
 
+  /* university policy for the student agent (ADR-0016) */
+  const orgPolicy = orgAgentPolicySchema.parse({
+    schemaVersion: 1,
+    studentAgentEnabled: true,
+    authorityLabel: "Office of Student Success",
+    statement:
+      "Demo University provides Atlas to support your learning. Use it to understand course material, plan your studying, and read your own record. Work you submit must be your own; each course's rules decide how AI may be used for that course's work.",
+    permittedUses: [
+      "Explaining published course material",
+      "Planning and organizing study time",
+      "Reviewing your own grades, feedback, and standing",
+      "Practicing and checking your understanding before assessments",
+    ],
+    prohibitedUses: [
+      "Producing work you submit as your own, in any course",
+      "Working around a course rule or an assignment's conditions",
+      "Attempting to make Atlas act outside its purpose",
+      "Requesting another student's records or information",
+    ],
+    disclosureRequirement: "per_course",
+    dataNotice:
+      "Conversations stay inside Demo University's Atlas record and are not used to train models.",
+    notASubstitute:
+      "Atlas is not a substitute for your professors, academic advisors, counselors, or medical professionals.",
+    escalationContacts: [
+      { label: "Academic advising", contact: "advising@demo.edu" },
+      { label: "Counseling and wellness", contact: "wellness@demo.edu" },
+    ],
+    dailyTurnLimit: 150,
+  });
+  await db.insert(orgAgentPolicies).values({
+    id: idFor("orgAgentPolicy:demo:1"),
+    orgId,
+    version: 1,
+    schemaVersion: 1,
+    policy: orgPolicy,
+    changeSummary: "Initial university policy",
+    createdById: null,
+  });
+
   /* courses */
   let submissionCount = 0;
   for (const course of pkg.courses) {
     await seedCourse(db, orgId, course);
     submissionCount += course.submissions.length;
   }
+
+  /* the student agent's durable observations about the featured student */
+  const econ = pkg.courses[0];
+  const econCourseId = idFor(`course:${econ.code}:${econ.termSlug}`);
+  await db.insert(agentMemories).values([
+    {
+      id: idFor("memory:maya:elasticity"),
+      orgId,
+      userId: idFor("user:maya"),
+      profile: "student",
+      kind: "gap",
+      courseId: econCourseId,
+      content: "Loses points turning elasticity intuition into calculations; Exam 1 elasticity was 4/12 while other topics held.",
+      status: "active",
+    },
+    {
+      id: idFor("memory:maya:worked-examples"),
+      orgId,
+      userId: idFor("user:maya"),
+      profile: "student",
+      kind: "preference",
+      courseId: null,
+      content: "Learns fastest from one worked example before trying a problem alone.",
+      status: "active",
+    },
+    {
+      id: idFor("memory:maya:goal"),
+      orgId,
+      userId: idFor("user:maya"),
+      profile: "student",
+      kind: "goal",
+      courseId: econCourseId,
+      content: "Wants to bring the ECON-241 standing up before Exam 2 by fixing the elasticity gap.",
+      status: "active",
+    },
+  ]);
 
   function convertDates<T extends Record<string, unknown>>(rows: T[]): T[] {
     return rows.map((row) => {

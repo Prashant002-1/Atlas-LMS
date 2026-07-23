@@ -21,6 +21,12 @@ import { isInstructorLike } from "@/lib/auth/session";
 import { findEditableCourse } from "@/lib/instructor/workspace";
 import { applyProposal, dismissProposal } from "@/lib/agent/apply";
 import { createCommandSession, titleCommandSessionFromIntent } from "@/lib/agent/session";
+import {
+  classPoliciesSchema,
+  DEFAULT_GRADE_BANDS,
+  gradeScaleSchema,
+  parseClassPolicies,
+} from "@/lib/course/policies";
 
 export async function createModuleRecord(formData: FormData) {
   const user = await requireInstructorActor();
@@ -714,6 +720,116 @@ export async function updateCourseDetails(formData: FormData) {
   revalidatePath("/teach");
   revalidatePath("/teach/syllabus");
   revalidatePath("/student");
+  redirect("/teach/course");
+}
+
+/**
+ * The course letter scale, edited in Course setup. Blank rows are ignored;
+ * a scale equal to the platform default stores null so the course follows
+ * the default. Validation is the shared gradeScaleSchema, so the syllabus,
+ * the gradebook letters, and finalize read exactly what was saved.
+ */
+export async function updateGradeScale(formData: FormData) {
+  const user = await requireInstructorActor();
+  const course = await findEditableCourse({ id: user.id, orgId: user.orgId, role: user.role });
+  if (!course) {
+    throw new Error("No editable course found for this instructor.");
+  }
+
+  const bands: Array<{ letter: string; min: number }> = [];
+  for (let index = 0; index < 13; index += 1) {
+    const letter = String(formData.get(`letter${index}`) ?? "").trim().toUpperCase();
+    const minRaw = String(formData.get(`min${index}`) ?? "").trim();
+    if (!letter && !minRaw) continue;
+    const min = Number(minRaw);
+    if (!letter || !Number.isFinite(min)) {
+      throw new Error("Every band needs a letter and a minimum score.");
+    }
+    bands.push({ letter, min });
+  }
+  bands.sort((a, b) => b.min - a.min);
+
+  const parsed = gradeScaleSchema.safeParse(bands);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "That grade scale is not valid.");
+  }
+  const isDefault =
+    parsed.data.length === DEFAULT_GRADE_BANDS.length &&
+    parsed.data.every(
+      (band, index) => band.letter === DEFAULT_GRADE_BANDS[index].letter && band.min === DEFAULT_GRADE_BANDS[index].min
+    );
+
+  await db
+    .update(courses)
+    .set({ gradeScale: isDefault ? null : parsed.data, updatedAt: new Date() })
+    .where(and(eq(courses.orgId, user.orgId), eq(courses.id, course.id)));
+
+  revalidatePath("/teach/syllabus");
+  revalidatePath("/teach/gradebook");
+  redirect("/teach/course");
+}
+
+/** Add or update one class policy by title. */
+export async function saveClassPolicy(formData: FormData) {
+  const user = await requireInstructorActor();
+  const course = await findEditableCourse({ id: user.id, orgId: user.orgId, role: user.role });
+  if (!course) {
+    throw new Error("No editable course found for this instructor.");
+  }
+
+  const originalTitle = String(formData.get("originalTitle") ?? "").trim();
+  const title = compactField(formData.get("title"), "The policy needs a title.", 80);
+  const body = compactField(formData.get("body"), "The policy needs its text.", 1000);
+
+  const [row] = await db
+    .select({ classPolicies: courses.classPolicies })
+    .from(courses)
+    .where(and(eq(courses.orgId, user.orgId), eq(courses.id, course.id)))
+    .limit(1);
+  const current = parseClassPolicies(row?.classPolicies);
+  const next = current.filter(
+    (policy) => policy.title.toLowerCase() !== (originalTitle || title).toLowerCase()
+  );
+  next.push({ title, body });
+
+  const parsed = classPoliciesSchema.safeParse(next);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "That policy set is not valid.");
+  }
+
+  await db
+    .update(courses)
+    .set({ classPolicies: parsed.data, updatedAt: new Date() })
+    .where(and(eq(courses.orgId, user.orgId), eq(courses.id, course.id)));
+
+  revalidatePath("/teach/syllabus");
+  redirect("/teach/course");
+}
+
+/** Remove one class policy by title. */
+export async function removeClassPolicy(formData: FormData) {
+  const user = await requireInstructorActor();
+  const course = await findEditableCourse({ id: user.id, orgId: user.orgId, role: user.role });
+  if (!course) {
+    throw new Error("No editable course found for this instructor.");
+  }
+
+  const title = compactField(formData.get("title"), "Which policy?", 80);
+  const [row] = await db
+    .select({ classPolicies: courses.classPolicies })
+    .from(courses)
+    .where(and(eq(courses.orgId, user.orgId), eq(courses.id, course.id)))
+    .limit(1);
+  const next = parseClassPolicies(row?.classPolicies).filter(
+    (policy) => policy.title.toLowerCase() !== title.toLowerCase()
+  );
+
+  await db
+    .update(courses)
+    .set({ classPolicies: next, updatedAt: new Date() })
+    .where(and(eq(courses.orgId, user.orgId), eq(courses.id, course.id)));
+
+  revalidatePath("/teach/syllabus");
   redirect("/teach/course");
 }
 

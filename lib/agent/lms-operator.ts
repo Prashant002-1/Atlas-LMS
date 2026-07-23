@@ -26,6 +26,7 @@ import {
 } from "@/lib/db/schema";
 import { applyProposal, dismissProposal } from "@/lib/agent/apply";
 import { gradeLetterFor, runGradingForSubmission } from "@/lib/agent/grading";
+import { gradeBandsForCourse } from "@/lib/course/policies";
 import { loadAtlasSkill } from "@/lib/agent/atlas-harness";
 import { practiceQuestionSchema } from "@/lib/agent/blocks";
 import { recomputeClassRollup } from "@/lib/agent/rollup";
@@ -964,9 +965,14 @@ async function mutateLms(scope: ProfessorScope, sessionId: string, model: Langua
         .limit(1);
       if (!row) return { ok: false, error: "That draft session grade is not in this course." };
       if (row.report.status === "final") return { ok: false, error: "That session grade is already final." };
+      const [scaleRow] = await db
+        .select({ gradeScale: courses.gradeScale })
+        .from(courses)
+        .where(and(eq(courses.id, scope.courseId), eq(courses.orgId, scope.orgId)))
+        .limit(1);
       const now = new Date();
       const score = row.report.overallScore;
-      const grade = gradeLetterFor(score);
+      const grade = gradeLetterFor(score, gradeBandsForCourse(scaleRow?.gradeScale));
       const fallbackBody = renderFinalArtifactBody(row.submission.finalArtifact, row.studentName ?? "Student");
       await db.transaction(async (tx) => {
         await tx.update(journeyReports).set({ status: "final", finalizedAt: now, finalizedById: scope.instructorId, updatedAt: now }).where(and(eq(journeyReports.id, row.report.id), eq(journeyReports.orgId, scope.orgId), eq(journeyReports.courseId, scope.courseId)));

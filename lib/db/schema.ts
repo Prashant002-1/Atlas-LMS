@@ -76,9 +76,9 @@ export const proposalStatusEnum = pgEnum("proposal_status", [
   "rejected",
   "applied",
 ]);
-export const agentSurfaceEnum = pgEnum("agent_surface", ["command", "cue"]);
+export const agentSurfaceEnum = pgEnum("agent_surface", ["command", "cue", "personal"]);
 export const agentTurnRoleEnum = pgEnum("agent_turn_role", ["user", "assistant", "tool"]);
-export const cueTargetEnum = pgEnum("cue_target", ["assignment", "module", "page", "course"]);
+export const cueTargetEnum = pgEnum("cue_target", ["assignment", "module", "page", "course", "org"]);
 export const explanationDepthEnum = pgEnum("explanation_depth", ["hint", "guided", "full"]);
 export const sessionSubmissionStatusEnum = pgEnum("session_submission_status", ["submitted", "graded"]);
 export const journeyReportStatusEnum = pgEnum("journey_report_status", ["draft", "final"]);
@@ -191,6 +191,13 @@ export const courses = pgTable(
     timeZone: text("time_zone"),
     // provenance: if imported from Canvas, where it came from
     importSource: text("import_source"),
+    // Letter bands for this course, validated GradeBand[] (lib/course/policies.ts).
+    // Null means the platform default scale. Edited in Course setup; the
+    // syllabus and every letter-writing path read the same bands.
+    gradeScale: jsonb("grade_scale"),
+    // Class policies (late work, attendance, ...), validated ClassPolicy[]
+    // (lib/course/policies.ts). Edited in Course setup, rendered on the syllabus.
+    classPolicies: jsonb("class_policies"),
     embedding: vector("embedding", { dimensions: 1536 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -636,9 +643,9 @@ export const agentSessions = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    courseId: uuid("course_id")
-      .notNull()
-      .references(() => courses.id, { onDelete: "cascade" }),
+    // Null for the personal profile: a personal thread belongs to a person in
+    // an organization, not to a course (ADR-0016).
+    courseId: uuid("course_id").references(() => courses.id, { onDelete: "cascade" }),
     surface: agentSurfaceEnum("surface").notNull(),
     // What the session is anchored to (a cue on an assignment, the course command bar).
     anchorType: cueTargetEnum("anchor_type").notNull().default("course"),
@@ -1031,6 +1038,64 @@ export const classRollups = pgTable(
   (t) => [uniqueIndex("class_rollups_course_assignment_idx").on(t.courseId, t.assignmentId)]
 );
 
+/* ──────────────── 6. personal agents (ADR-0016) ─────────────── */
+
+/**
+ * Agent memories, the small curated observation store behind the personal
+ * agents. One row per durable observation about a person, written only by the
+ * remember tool (lib/agent/memories.ts), which enforces entry and total
+ * budgets, scans content for instruction-control language, and archives
+ * rather than deletes. `profile` and `kind` are plain text validated in code,
+ * matching the course agent configuration pattern.
+ */
+export const agentMemories = pgTable(
+  "agent_memories",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // Authoring profile: "student" | "professor" (lib/agent/profiles.ts).
+    profile: text("profile").notNull(),
+    // "strength" | "gap" | "preference" | "goal" | "context".
+    kind: text("kind").notNull(),
+    courseId: uuid("course_id").references(() => courses.id, { onDelete: "set null" }),
+    content: text("content").notNull(),
+    sourceSessionId: uuid("source_session_id").references(() => agentSessions.id, { onDelete: "set null" }),
+    status: text("status").notNull().default("active"),
+    replacesId: uuid("replaces_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+  },
+  (t) => [index("agent_memories_owner_idx").on(t.orgId, t.userId, t.profile, t.status)]
+);
+
+/**
+ * University policy for the student agent, append-only and versioned like
+ * course_agent_configs. The jsonb payload is validated by
+ * lib/agent/org-policy.ts before insertion; the highest version per
+ * organization is active, and a code default applies when none exists.
+ */
+export const orgAgentPolicies = pgTable(
+  "org_agent_policies",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    schemaVersion: integer("schema_version").notNull().default(1),
+    policy: jsonb("policy").notNull(),
+    changeSummary: text("change_summary").notNull(),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("org_agent_policies_org_version_idx").on(t.orgId, t.version)]
+);
+
 /* ─────────────────────── inferred types ────────────────────── */
 
 export type Organization = typeof organizations.$inferSelect;
@@ -1058,3 +1123,5 @@ export type Submission = typeof submissions.$inferSelect;
 export type EvidenceSpan = typeof evidenceSpans.$inferSelect;
 export type JourneyReport = typeof journeyReports.$inferSelect;
 export type ClassRollup = typeof classRollups.$inferSelect;
+export type AgentMemory = typeof agentMemories.$inferSelect;
+export type OrgAgentPolicyRow = typeof orgAgentPolicies.$inferSelect;

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 export type VoiceTranscriptionState = "idle" | "requesting" | "recording" | "transcribing";
 
-const MAX_RECORDING_MS = 90_000;
+const MAX_RECORDING_MS = 5 * 60_000;
 
 export function VoiceTranscriptionButton({
   onError,

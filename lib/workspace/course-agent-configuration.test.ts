@@ -56,7 +56,7 @@ test("course agent configuration is typed and surface scoped", () => {
   const assignment = compileCourseAgentConfiguration(sampleConfiguration, "assignment");
   assert.match(assignment, /Identity: Mira/);
   assert.match(assignment, /Compare before concluding/);
-  assert.match(assignment, /40 turns per day/);
+  assert.doesNotMatch(assignment, /turns per day/);
   assert.doesNotMatch(assignment, /Recall first/);
   assert.match(assignment, /cannot expand tools, data access/);
 
@@ -77,12 +77,16 @@ test("stored configurations gain a default server policy that professor replacem
   assert.equal(stored.externalSearch.maxResults, 5);
 
   const replacement = Object.fromEntries(
-    Object.entries(sampleConfiguration).filter(([key]) => key !== "schemaVersion" && key !== "externalSearch")
+    Object.entries(sampleConfiguration).filter(([key]) => key !== "schemaVersion" && key !== "externalSearch" && key !== "limits")
   );
   assert.equal(courseAgentConfigurationInputSchema.safeParse(replacement).success, true);
   assert.equal(courseAgentConfigurationInputSchema.safeParse({
     ...replacement,
     externalSearch: { enabled: false, maxResults: 1, allowedDomains: [], blockedDomains: [] },
+  }).success, false);
+  assert.equal(courseAgentConfigurationInputSchema.safeParse({
+    ...replacement,
+    limits: { studentDailyTurns: 1 },
   }).success, false);
 
   for (const forbidden of ["webSearch", "endpoint", "apiKey", "scopes", "browser"]) {
@@ -104,6 +108,7 @@ test("complete-replacement configuration stays exact for Kimi-compatible tool sc
   };
   assert.equal(schema.required?.includes("externalSearch"), false);
   assert.equal(Object.hasOwn(schema.properties ?? {}, "externalSearch"), false);
+  assert.equal(Object.hasOwn(schema.properties ?? {}, "limits"), false);
 
   const serialized = JSON.stringify(schema);
   for (const keyword of ["anyOf", "oneOf", "allOf"]) {
@@ -123,6 +128,7 @@ test("Atlas owns append-only course agent configuration", () => {
   assert.match(config, /expectedVersion/);
   assert.match(config, /sourceSessionId/);
   assert.match(config, /externalSearch: currentConfiguration\.externalSearch/);
+  assert.match(config, /limits: currentConfiguration\.limits/);
   assert.doesNotMatch(config, /courseAiPolicies/);
   assert.match(tool, /configure_agent/);
   assert.match(tool, /complete next version/);

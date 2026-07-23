@@ -128,6 +128,7 @@ export type FixtureCourse = {
   termSlug: string;
   description: string;
   syllabusMd: string;
+  classPolicies?: Array<{ title: string; body: string }>;
   status: "published" | "archived";
   instructorKey: string;
   objectives: FixtureObjective[];

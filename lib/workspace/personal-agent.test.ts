@@ -230,6 +230,8 @@ test("the instructor split holds: Settings is Atlas, Course setup is the course"
   assert.match(courseSetup, /Change with Atlas/);
   assert.match(courseSetup, /action=\{updateGradeScale\}/);
   assert.match(courseSetup, /action=\{saveClassPolicy\}/);
+  assert.match(courseSetup, /title=\{`\$\{course\.code\}: \$\{course\.name\}`\}/);
+  assert.doesNotMatch(courseSetup, /Created in Atlas|Time zone|Daily student turns|syllabus-heading/);
   assert.doesNotMatch(courseSetup, /CountFact/);
   assert.doesNotMatch(courseSetup, /CourseMaterialTable/);
 

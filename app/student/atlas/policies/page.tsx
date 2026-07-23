@@ -58,7 +58,6 @@ export default async function StudentAtlasPoliciesPage() {
           <PolicyRow label="Disclosure" value={disclosureLabel(policy.disclosureRequirement)} />
           <PolicyRow label="Your data" value={policy.dataNotice} />
           <PolicyRow label="People first" value={policy.notASubstitute} />
-          <PolicyRow label="Daily limit" value={`${policy.dailyTurnLimit} messages per rolling day`} />
         </dl>
 
         {policy.escalationContacts.length > 0 ? (
@@ -87,10 +86,9 @@ export default async function StudentAtlasPoliciesPage() {
                   <span className="atlas-mono mr-2 text-[0.75rem] font-normal text-[var(--color-faint)]">{course.code}</span>
                   {course.name}
                 </h3>
-                <dl className="mt-2 grid sm:grid-cols-2 lg:grid-cols-4">
+                <dl className="mt-2 grid sm:grid-cols-2 lg:grid-cols-3">
                   <CourseFact label="Direct answers" value={directAnswerLabel(course.directAnswers)} />
                   <CourseFact label="Citations" value={course.citations === "required" ? "Required" : "When useful"} />
-                  <CourseFact label="Daily turns in course" value={String(course.dailyTurns)} />
                   <CourseFact label="Agent" value={course.agentName} />
                 </dl>
                 <p className="mt-2 px-3 text-[0.78125rem] leading-5 text-[var(--color-muted)]">{course.disclosure}</p>

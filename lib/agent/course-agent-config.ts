@@ -53,7 +53,7 @@ export const courseAgentConfigurationSchema = z.object({
 });
 
 export const courseAgentConfigurationInputSchema = courseAgentConfigurationSchema
-  .omit({ schemaVersion: true, externalSearch: true })
+  .omit({ schemaVersion: true, externalSearch: true, limits: true })
   .strict();
 
 export type CourseAgentConfiguration = z.infer<typeof courseAgentConfigurationSchema>;
@@ -301,6 +301,7 @@ export async function writeCourseAgentConfig(args: {
       schemaVersion: 1,
       ...configurationInput,
       externalSearch: currentConfiguration.externalSearch,
+      limits: currentConfiguration.limits,
     });
     assertConfigurationTextIsSafe(configuration);
 
@@ -353,7 +354,6 @@ export function compileCourseAgentConfiguration(
     `Challenge level: ${configuration.teaching.challengeLevel}.`,
     `Citations: ${configuration.teaching.citationMode === "required" ? "Cite the course material used." : "Cite course material when it materially supports the response."}`,
     `Direct answers: ${directAnswer}`,
-    `Student turn limit: ${configuration.limits.studentDailyTurns} turns per day. The server enforces this limit.`,
     configuration.boundaries.supports.length
       ? `Support:\n${configuration.boundaries.supports.map((item) => `- ${item}`).join("\n")}`
       : "",
@@ -383,7 +383,6 @@ export function renderCourseAgentConfigForReference(config: ResolvedCourseAgentC
     `Direct answers: ${configuration.teaching.directAnswers}`,
     `Challenge: ${configuration.teaching.challengeLevel}`,
     `Citations: ${configuration.teaching.citationMode}`,
-    `Student daily turns: ${configuration.limits.studentDailyTurns}`,
     `Supports: ${configuration.boundaries.supports.join(" | ") || "none"}`,
     `Avoids: ${configuration.boundaries.avoids.join(" | ") || "none"}`,
     `Escalates when: ${configuration.boundaries.escalatesWhen.join(" | ") || "none"}`,

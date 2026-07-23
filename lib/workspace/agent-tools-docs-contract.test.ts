@@ -153,9 +153,10 @@ test("documented configuration tool matches its schema and append-only write", (
   assert.match(tool, /courseAgentConfigurationInputSchema/);
   assert.match(config, /insert\(courseAgentConfigs\)/);
   assert.doesNotMatch(config, /update\(courseAgentConfigs\)/);
-  for (const field of ["expectedVersion", "studentDisclosure", "changeSummary", "directAnswers", "challengeLevel", "citationMode", "studentDailyTurns", "appliesTo"]) {
+  for (const field of ["expectedVersion", "studentDisclosure", "changeSummary", "directAnswers", "challengeLevel", "citationMode", "appliesTo"]) {
     assert.equal(docsText.includes(field), true);
   }
+  assert.equal(docsText.includes("studentDailyTurns"), false);
   assert.doesNotMatch(tool, /webSearch|web-search policy/);
 });
 

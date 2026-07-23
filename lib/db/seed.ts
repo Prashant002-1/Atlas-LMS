@@ -426,6 +426,7 @@ async function seedCourse(db: Db, orgId: string, c: FixtureCourse) {
     termId: idFor(`term:${term.slug}`),
     description: c.description,
     syllabusMd: c.syllabusMd,
+    classPolicies: c.classPolicies ?? null,
     status: c.status,
     createdById: idFor(`user:${c.instructorKey}`),
     startDate: termStart,

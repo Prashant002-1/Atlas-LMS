@@ -289,7 +289,6 @@ export type CourseRuleFacts = {
   agentName: string;
   directAnswers: "never" | "after_attempt" | "when_asked";
   citations: "required" | "when_useful";
-  dailyTurns: number;
   disclosure: string;
   studyRules: Array<{ title: string; instruction: string }>;
 };
@@ -314,7 +313,6 @@ function courseRuleFacts(
     agentName: configuration.identity.name,
     directAnswers: configuration.teaching.directAnswers,
     citations: configuration.teaching.citationMode,
-    dailyTurns: configuration.limits.studentDailyTurns,
     disclosure: config.studentDisclosure,
     studyRules: configuration.rules
       .filter((rule) => rule.enabled && rule.appliesTo.includes("study"))

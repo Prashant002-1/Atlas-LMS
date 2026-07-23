@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -27,6 +27,8 @@ export default async function TeachAnnouncementPage({ params }: { params: Promis
       title: announcements.title,
       messageMd: announcements.messageMd,
       postedAt: announcements.postedAt,
+      published: announcements.published,
+      scheduled: sql<boolean>`${announcements.postedAt} > now()`,
       authorName: users.name,
       authorEmail: users.email,
     })
@@ -52,7 +54,6 @@ export default async function TeachAnnouncementPage({ params }: { params: Promis
   }
 
   const author = record.authorName ?? record.authorEmail ?? "Course staff";
-
   return (
     <>
       <BackLink href="/teach/announcements">Announcements</BackLink>
@@ -64,7 +65,7 @@ export default async function TeachAnnouncementPage({ params }: { params: Promis
         <header className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1 pb-4">
           <p className="text-[0.8125rem] font-medium text-[var(--color-ink)]">{author}</p>
           <time dateTime={record.postedAt?.toISOString()} className="text-[0.75rem] tabular-nums text-[var(--color-muted)]">
-            {record.postedAt ? fullTimestamp(record.postedAt) : "Draft"}
+            {record.published && record.postedAt ? `${record.scheduled ? "Scheduled for " : ""}${fullTimestamp(record.postedAt)}` : "Draft"}
           </time>
         </header>
         <div className="py-6">

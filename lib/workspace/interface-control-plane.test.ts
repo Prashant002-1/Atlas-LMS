@@ -96,11 +96,13 @@ test("teacher assignment states are dated and filterable", () => {
 
 test("creation and edits open as deliberate dialogs", () => {
   const announcements = source("app/teach/announcements/page.tsx");
+  const announcementComposer = source("components/teach/announcement-composer.tsx");
   const modules = source("app/teach/weeks/page.tsx");
   const moduleDetail = source("app/teach/week/[moduleId]/page.tsx");
   const assignmentDetail = source("app/teach/assignments/[assignmentId]/page.tsx");
 
-  assert.equal(announcements.includes("NewAnnouncementDialog"), true);
+  assert.equal(announcements.includes("AnnouncementComposer"), true);
+  assert.equal(announcementComposer.includes("RecordDialog"), true);
   assert.equal(announcements.includes("AnnouncementList"), true);
   assert.equal(announcements.includes("Post to course"), false);
   assert.equal(source("app/teach/announcements/[announcementId]/page.tsx").includes("Markdown"), true);

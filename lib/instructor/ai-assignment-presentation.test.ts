@@ -26,17 +26,24 @@ test("AI assignment students render as a searchable filterable table", () => {
   assert.equal(table.includes("StatusBadge"), false);
 });
 
-test("assignment settings and rubric are visible before class activity and edit on demand", () => {
+test("assignment contract and rubric are read first and changed in their Atlas thread", () => {
   const page = read("app/teach/ai-assignments/[assignmentId]/page.tsx");
   const setup = read("components/cockpit/contract-rubric.tsx");
+  const operator = read("lib/agent/lms-operator.ts");
 
   assert.ok(page.includes("AssignmentSettings"));
   assert.ok(page.includes("RubricSummary"));
   assert.ok(page.indexOf('aria-label="Assignment setup"') < page.indexOf("<SummaryFact"));
-  assert.ok(setup.includes("Session settings"));
-  assert.ok(setup.includes("Edit settings"));
+  assert.ok(setup.includes("Session contract"));
   assert.ok(setup.includes("View level descriptions"));
   assert.ok(setup.includes("Change with Atlas"));
+  assert.ok(page.includes("view.contract.planningSessionId"));
+  assert.ok(page.includes("atlasChangeHref"));
+  assert.ok(operator.includes("planningSessionId: sessionId"));
+  assert.equal(setup.includes("<form"), false);
+  assert.equal(setup.includes("<textarea"), false);
+  assert.equal(setup.includes("updateSessionContract"), false);
+  assert.equal(setup.includes("Edit settings"), false);
   assert.equal(page.includes("RubricEditor"), false);
   assert.equal(setup.includes("updateRubricWeights"), false);
   assert.equal(setup.includes("Weights must sum"), false);

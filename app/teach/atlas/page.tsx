@@ -7,10 +7,10 @@ import { PlanningRoom } from "@/components/planning/planning-room";
 export default async function TeachAtlasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ thread?: string }>;
+  searchParams: Promise<{ thread?: string; prompt?: string }>;
 }) {
   const session = await auth();
-  const { thread } = await searchParams;
+  const { thread, prompt } = await searchParams;
   const view = await loadPlanningRoom(session?.user, thread);
 
   if (view.problem) {
@@ -37,6 +37,7 @@ export default async function TeachAtlasPage({
       drafts={thread === "new" ? [] : view.drafts}
       work={view.work}
       pendingProposals={view.pendingProposals}
+      initialInput={typeof prompt === "string" ? prompt.slice(0, 4000) : ""}
     />
   );
 }

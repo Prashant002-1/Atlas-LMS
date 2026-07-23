@@ -800,7 +800,7 @@ async function uniquePageSlug(scope: ProfessorScope, title: string) {
   return slug;
 }
 
-async function mutateLms(scope: ProfessorScope, model: LanguageModel, input: MutateLmsInput): Promise<LmsActionOutput> {
+async function mutateLms(scope: ProfessorScope, sessionId: string, model: LanguageModel, input: MutateLmsInput): Promise<LmsActionOutput> {
   try {
     if (input.action === "create_assignment") {
       const [{ position }] = await db.select({ position: sql<number>`coalesce(max(${assignments.position}), 0)::int` }).from(assignments).where(and(eq(assignments.orgId, scope.orgId), eq(assignments.courseId, scope.courseId)));
@@ -926,7 +926,7 @@ async function mutateLms(scope: ProfessorScope, model: LanguageModel, input: Mut
         .where(and(eq(sessionAssignments.orgId, scope.orgId), eq(sessionAssignments.courseId, scope.courseId), eq(sessionAssignments.assignmentId, input.assignmentId), eq(assignments.orgId, scope.orgId), eq(assignments.courseId, scope.courseId)))
         .limit(1);
       if (!target) return { ok: false, error: "That assignment is not an AI assignment in this course." };
-      const set: Partial<typeof sessionAssignments.$inferInsert> = { updatedAt: new Date() };
+      const set: Partial<typeof sessionAssignments.$inferInsert> = { planningSessionId: sessionId, updatedAt: new Date() };
       if (input.instructions !== undefined) set.instructions = input.instructions;
       if (input.durationMinutes !== undefined) set.durationMinutes = input.durationMinutes;
       if (input.groundingScope !== undefined) set.groundingScope = input.groundingScope;
@@ -1029,7 +1029,7 @@ async function mutateLms(scope: ProfessorScope, model: LanguageModel, input: Mut
   }
 }
 
-function directActionTools(args: { scope: ProfessorScope; model: LanguageModel }) {
+function directActionTools(args: { scope: ProfessorScope; sessionId: string; model: LanguageModel }) {
   const entries = mutateLmsSchema.options.map((option) => {
     const action = option.shape.action.value as MutateLmsAction;
     const inputShape = { ...option.shape };
@@ -1044,7 +1044,7 @@ function directActionTools(args: { scope: ProfessorScope; model: LanguageModel }
         execute: async (input): Promise<LmsActionOutput> => {
           const parsed = mutateLmsSchema.safeParse({ action, ...(input as Record<string, unknown>) });
           if (!parsed.success) return { ok: false, error: "The LMS action input was invalid." };
-          return mutateLms(args.scope, args.model, parsed.data);
+          return mutateLms(args.scope, args.sessionId, args.model, parsed.data);
         },
       }),
     ] as const;
@@ -1084,7 +1084,7 @@ export function professorOperatorTools(args: { scope: ProfessorScope; sessionId:
     },
   });
 
-  const actions = directActionTools({ scope: args.scope, model: args.model });
+  const actions = directActionTools({ scope: args.scope, sessionId: args.sessionId, model: args.model });
 
   return {
     inspect_lms,

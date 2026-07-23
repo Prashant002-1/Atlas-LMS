@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   agentSessions,
@@ -365,7 +365,7 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
       .from(changeProposals)
       .where(and(eq(changeProposals.orgId, actor.orgId), eq(changeProposals.courseId, course.id)))
       .orderBy(desc(changeProposals.createdAt))
-      .limit(10);
+      .limit(50);
 
     /* The Atlas threads the drafts came from, course-scoped, titles only. */
     const proposalSessionIds = [
@@ -393,7 +393,7 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
         postedAt: announcements.postedAt,
       })
       .from(announcements)
-      .where(and(eq(announcements.orgId, actor.orgId), eq(announcements.courseId, course.id), eq(announcements.published, true)))
+      .where(and(eq(announcements.orgId, actor.orgId), eq(announcements.courseId, course.id), eq(announcements.published, true), lte(announcements.postedAt, new Date())))
       .orderBy(desc(announcements.postedAt))
       .limit(5);
 

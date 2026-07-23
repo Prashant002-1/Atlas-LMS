@@ -17,6 +17,7 @@ const docs = [
   "write-review-delete-actions.md",
   "draft-tools.md",
   "course-agent-configuration.md",
+  "personal-memory.md",
   "database-access.md",
   "shared-schemas.md",
   "capability-index.md",
@@ -74,6 +75,7 @@ const tools = [
   "load_skill",
   ...actions,
   "configure_agent",
+  "remember",
   "draft_ai_assignment",
   "draft_rubric",
   "draft_course",
@@ -114,6 +116,7 @@ test("documented live tool registry matches the professor runtime", () => {
   assert.match(operator, /const actions = directActionTools/);
   assert.match(operator, /\.\.\.actions/);
   assert.match(runtime, /configure_agent: courseAgentConfigurationTool/);
+  assert.match(runtime, /remember: personalMemoryTool/);
   for (const draft of ["draft_ai_assignment", "draft_rubric", "draft_course"]) {
     assert.match(operator, new RegExp(`${draft}: legacy\\.${draft}`));
   }

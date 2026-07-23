@@ -122,31 +122,40 @@ test("creation and edits open as deliberate dialogs", () => {
   assert.equal(assignmentDetail.includes("<details"), false);
 });
 
-test("settings reflects the real Atlas control scopes", () => {
-  const page = source("app/teach/settings/page.tsx");
+test("settings describes the personal Atlas while Course setup owns the course", () => {
+  const settings = source("app/teach/settings/page.tsx");
   for (const expected of [
-    "Agent configuration",
-    "Teaching behavior",
-    "Course rules",
-    "Course knowledge",
-    "AI assignment contracts",
+    "Works for you",
+    "What Atlas can do",
+    "What Atlas remembers",
     "System boundaries",
-    "Version history",
-    "loadActiveCourseAgentConfig",
-    "courseMaterialRecords",
+    "listActiveMemories",
+    "agentProfiles",
   ]) {
-    assert.equal(page.includes(expected), true, `settings should include ${expected}`);
+    assert.equal(settings.includes(expected), true, `settings should include ${expected}`);
   }
-
   for (const excluded of [
     "resolvePlatformModel",
     "CHAT_PROVIDERS",
     "openai_compatible",
-    "studentDisclosure",
-    "configuration.identity.role",
-    "configuration.teaching.approach",
-    "Personal record",
+    "API key",
+    "loadActiveCourseAgentConfig",
+    "<form",
   ]) {
-    assert.equal(page.includes(excluded), false, `settings should not include ${excluded}`);
+    assert.equal(settings.includes(excluded), false, `settings should not include ${excluded}`);
+  }
+
+  const courseSetup = source("app/teach/course/page.tsx");
+  for (const expected of [
+    "Grade scale",
+    "Class policies",
+    "Course agent",
+    "Version history",
+    "loadActiveCourseAgentConfig",
+  ]) {
+    assert.equal(courseSetup.includes(expected), true, `course setup should include ${expected}`);
+  }
+  for (const excluded of ["Model access", "resolvePlatformModel", "CHAT_PROVIDERS"]) {
+    assert.equal(courseSetup.includes(excluded), false, `course setup should not include ${excluded}`);
   }
 });

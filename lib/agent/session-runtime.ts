@@ -62,9 +62,11 @@ export async function runSessionTurn(args: {
     turnIndex: userTurnIndex,
   });
 
+  const sessionCourseId = session.courseId;
+  if (!sessionCourseId) throw new Error("Assessed sessions are course-scoped.");
   const sessionPack = await buildSessionPack({
     orgId: session.orgId,
-    courseId: session.courseId,
+    courseId: sessionCourseId,
     studentId: session.userId,
     bundle,
   });

@@ -56,10 +56,12 @@ export async function concludeExpiredSession(args: { orgId: string; sessionId: s
 
       if (resolved) {
         try {
-          const courseAgent = await loadActiveCourseAgentConfig(args.orgId, session.courseId);
+          const sessionCourseId = session.courseId;
+          if (!sessionCourseId) throw new Error("Assessed sessions are course-scoped.");
+          const courseAgent = await loadActiveCourseAgentConfig(args.orgId, sessionCourseId);
           const sessionPack = await buildSessionPack({
             orgId: session.orgId,
-            courseId: session.courseId,
+            courseId: sessionCourseId,
             studentId: session.userId,
             bundle,
           });

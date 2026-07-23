@@ -2,22 +2,23 @@ import { z } from "zod";
 import type { UIMessage } from "ai";
 
 /**
- * Session stream contract, the typed parts a live work session may carry.
+ * Session stream contract, the typed parts a live assignment session may carry.
  *
  * Same discipline as the old block registry (one zod schema is the tool input,
  * the wire shape, and the persisted row), scoped to the v0 session surface:
  *
  *   - the artifact panel state (the student's evolving deliverable), carried
- *     as the update_artifact tool call the agent makes;
+ *     by exact artifact tools and normalized into one persisted contract;
  *   - side-note cards, carried as `data-side-note` parts the SERVER writes
  *     (the model never invents one, see lib/agent/side-notes.ts);
  *   - a transient session status line for submit/lock state changes.
  *
- * v0 is deliberately scenario-locked to the pricing artifact (camera-first,
- * no speculative generality). New artifact types register here first.
+ * Artifact types are registered here. The general structured response covers
+ * ordinary assignments, while the pricing table remains supported for seeded
+ * transcripts and assignments whose deliverable is genuinely a pricing plan.
  */
 
-export const SESSION_PART_SCHEMA_VERSION = "1" as const;
+export const SESSION_PART_SCHEMA_VERSION = "3" as const;
 
 /* ── artifact panel ─────────────────────────────────────────── */
 
@@ -35,15 +36,72 @@ export const pricingArtifactSchema = z.object({
   revisionNote: z.string().max(300).optional(),
 });
 
-export type PricingArtifact = z.infer<typeof pricingArtifactSchema>;
-
-/** Input schema for the agent's update_artifact tool. */
-export const updateArtifactInputSchema = z.object({
-  artifactType: z.literal("pricing_table"),
-  state: pricingArtifactSchema,
+export const structuredArtifactFieldSchema = z.object({
+  label: z.string().min(1).max(100),
+  value: z.string().min(1).max(800),
 });
 
+export const structuredArtifactSectionSchema = z
+  .object({
+    heading: z.string().min(1).max(120),
+    content: z.string().min(1).max(1_600).optional(),
+    fields: z.array(structuredArtifactFieldSchema).max(12).optional(),
+    items: z.array(z.string().min(1).max(400)).max(12).optional(),
+  })
+  .refine(
+    (section) => Boolean(section.content || section.fields?.length || section.items?.length),
+    "A structured response section must contain content, fields, or items."
+  );
+
+export const structuredArtifactSchema = z.object({
+  title: z.string().min(1).max(160),
+  summary: z.string().min(1).max(800).optional(),
+  sections: z.array(structuredArtifactSectionSchema).min(1).max(8),
+  revisionNote: z.string().max(300).optional(),
+});
+
+export type PricingArtifact = z.infer<typeof pricingArtifactSchema>;
+export type StructuredArtifact = z.infer<typeof structuredArtifactSchema>;
+
+/** Internal normalized contract for persistence, replay, and rendering. */
+export const updateArtifactInputSchema = z.discriminatedUnion("artifactType", [
+  z.object({
+    artifactType: z.literal("pricing_table"),
+    state: pricingArtifactSchema,
+  }),
+  z.object({
+    artifactType: z.literal("structured_response"),
+    state: structuredArtifactSchema,
+  }),
+]);
+
 export type UpdateArtifactInput = z.infer<typeof updateArtifactInputSchema>;
+export type SessionArtifact = UpdateArtifactInput["state"];
+
+/**
+ * Exact model-visible schemas. Kimi K3 rejects top-level union schemas, so the
+ * artifact discriminator stays in Atlas and each tool exposes one object.
+ */
+export const sessionArtifactToolSchemas = {
+  update_pricing_table: pricingArtifactSchema,
+  update_structured_response: structuredArtifactSchema,
+} as const;
+
+export function parseSessionArtifact(artifactType: string, state: unknown): UpdateArtifactInput | null {
+  const parsed = updateArtifactInputSchema.safeParse({ artifactType, state });
+  return parsed.success ? parsed.data : null;
+}
+
+/** Parse current wrapped values plus raw legacy pricing and structured states. */
+export function parseStoredSessionArtifact(value: unknown): UpdateArtifactInput | null {
+  const current = updateArtifactInputSchema.safeParse(value);
+  if (current.success) return current.data;
+  const pricing = pricingArtifactSchema.safeParse(value);
+  if (pricing.success) return { artifactType: "pricing_table", state: pricing.data };
+  const structured = structuredArtifactSchema.safeParse(value);
+  if (structured.success) return { artifactType: "structured_response", state: structured.data };
+  return null;
+}
 
 /* ── side-note cards ────────────────────────────────────────── */
 
@@ -162,8 +220,12 @@ export type SessionDataParts = {
 
 /** Tools the session agent can call. */
 export type SessionTools = {
-  update_artifact: {
-    input: UpdateArtifactInput;
+  update_pricing_table: {
+    input: PricingArtifact;
+    output: { ok: boolean; revision: number };
+  };
+  update_structured_response: {
+    input: StructuredArtifact;
     output: { ok: boolean; revision: number };
   };
 };
@@ -174,16 +236,36 @@ export type SessionUIMessage = UIMessage<never, SessionDataParts, SessionTools>;
 
 type LoosePart = { type?: unknown } & Record<string, unknown>;
 
+export function isArtifactToolPartType(type: unknown): boolean {
+  return (
+    type === "tool-update_pricing_table" ||
+    type === "tool-update_structured_response" ||
+    type === "tool-update_artifact"
+  );
+}
+
 /** Extract validated artifact updates from a message's parts, in order. */
 export function artifactUpdatesFromParts(parts: unknown): UpdateArtifactInput[] {
   if (!Array.isArray(parts)) return [];
   const updates: UpdateArtifactInput[] = [];
   for (const part of parts as LoosePart[]) {
-    if (part?.type !== "tool-update_artifact") continue;
     const state = part.state;
     if (state !== "input-available" && state !== "output-available") continue;
-    const parsed = updateArtifactInputSchema.safeParse(part.input);
-    if (parsed.success) updates.push(parsed.data);
+
+    if (part.type === "tool-update_pricing_table") {
+      const parsed = parseSessionArtifact("pricing_table", part.input);
+      if (parsed) updates.push(parsed);
+      continue;
+    }
+    if (part.type === "tool-update_structured_response") {
+      const parsed = parseSessionArtifact("structured_response", part.input);
+      if (parsed) updates.push(parsed);
+      continue;
+    }
+    if (part.type === "tool-update_artifact") {
+      const parsed = updateArtifactInputSchema.safeParse(part.input);
+      if (parsed.success) updates.push(parsed.data);
+    }
   }
   return updates;
 }

@@ -293,9 +293,9 @@ select {
 /*
  * Rendered Markdown. Everything the agent writes, command narration, block
  * bodies, cue answers, flows through the <Markdown> component into this scope.
- * Reading prose: Hanken body, Spectral headings, Plex Mono for code. Tuned to
- * the 14px stream so a drafted page or a streamed reply reads as typeset text,
- * never raw `#`/`**`/`-`.
+ * Reading prose uses Geist Sans throughout; code and tabular figures use Geist
+ * Mono. Tuned to the 14px stream so a drafted page or streamed reply reads as
+ * typeset text, never raw `#`/`**`/`-`.
  */
 .atlas-prose {
   font-size: 0.875rem;

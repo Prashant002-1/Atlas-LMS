@@ -99,7 +99,7 @@ export async function submitAssignment(formData: FormData) {
   }
 
   revalidatePath("/teach");
-  revalidatePath(`/teach/work/${assignment.id}`);
+  revalidatePath(`/teach/assignments/${assignment.id}`);
   revalidatePath(`/teach/student/${user.id}`);
   revalidatePath("/student");
   revalidatePath(returnTo);
@@ -109,7 +109,7 @@ export async function submitAssignment(formData: FormData) {
 
 function assignmentReturnPath(value: FormDataEntryValue | null, assignmentId: string) {
   const path = typeof value === "string" ? value : "";
-  return path === `/student/work/${assignmentId}` ? path : "/student";
+  return path === `/student/assignments/${assignmentId}` ? path : "/student";
 }
 
 /**
@@ -126,7 +126,7 @@ export async function submitSession(formData: FormData) {
 
   const bundle = await loadSessionAssignmentBundle(user.orgId, assignmentId);
   if (!bundle) {
-    throw new Error("This assignment is not a work session.");
+    throw new Error("This assignment is not configured for a session.");
   }
 
   const enrollment = await activeStudentEnrollment(user.orgId, bundle.assignment.courseId, user.id);
@@ -144,7 +144,7 @@ export async function submitSession(formData: FormData) {
     throw new Error("There is no open session to submit.");
   }
   if (session.totalTurns < 1) {
-    throw new Error("Work the session before submitting it.");
+    throw new Error("Begin the session before submitting it.");
   }
 
   const studentName = await studentDisplayName(user.orgId, user.id);
@@ -168,10 +168,10 @@ export async function submitSession(formData: FormData) {
   }
 
   revalidatePath("/teach");
-  revalidatePath(`/teach/work/${bundle.assignment.id}`);
+  revalidatePath(`/teach/assignments/${bundle.assignment.id}`);
   revalidatePath(`/teach/student/${user.id}`);
   revalidatePath("/student");
-  revalidatePath(`/student/work/${bundle.assignment.id}`);
+  revalidatePath(`/student/assignments/${bundle.assignment.id}`);
   revalidatePath(`/student/session/${bundle.assignment.id}`);
   redirect(`/student/session/${bundle.assignment.id}`);
 }

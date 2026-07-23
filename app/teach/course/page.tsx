@@ -149,7 +149,7 @@ export default async function TeachCourseSetupPage() {
         <dl className="mt-7 grid border-y border-[var(--color-border)] sm:grid-cols-3 lg:grid-cols-6">
           <CountFact label="Students" value={Number(rosterRows[0]?.value ?? 0)} href="/teach/students" />
           <CountFact label="Modules" value={Number(moduleRows[0]?.value ?? 0)} href="/teach/weeks" />
-          <CountFact label="Assignments" value={Number(assignmentRows[0]?.value ?? 0)} href="/teach/work" />
+          <CountFact label="Assignments" value={Number(assignmentRows[0]?.value ?? 0)} href="/teach/assignments" />
           <CountFact label="Pages" value={Number(pageRows[0]?.value ?? 0)} />
           <CountFact label="Assessments" value={Number(quizRows[0]?.value ?? 0)} />
           <CountFact label="Materials" value={materials.length} href="#materials" />

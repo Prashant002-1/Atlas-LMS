@@ -129,12 +129,12 @@ function AssignmentRow({ assignment }: { assignment: InstructorAssignment }) {
   return (
     <div className="group/assignment grid gap-2 px-3 py-3.5 transition hover:bg-[var(--color-surface-muted)] sm:grid-cols-[minmax(0,1fr)_8rem_5rem_1rem] sm:items-center">
       <div className="min-w-0">
-        {assignment.id ? <Link href={`/teach/work/${assignment.id}`} className="rounded-row text-[0.8125rem] font-semibold text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">{assignment.title}</Link> : <span className="text-[0.8125rem] font-semibold">{assignment.title}</span>}
+        {assignment.id ? <Link href={`/teach/assignments/${assignment.id}`} className="rounded-row text-[0.8125rem] font-semibold text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">{assignment.title}</Link> : <span className="text-[0.8125rem] font-semibold">{assignment.title}</span>}
         {assignment.detail ? <p className="mt-0.5 truncate text-[0.75rem] text-[var(--color-muted)]">{assignment.detail}</p> : null}
       </div>
       <span className="text-[0.75rem] tabular-nums text-[var(--color-muted)]">{assignment.dueAt ? assignment.dueAt.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "No due date"}</span>
       <span className="text-right text-[0.75rem] tabular-nums text-[var(--color-muted)]">{typeof assignment.points === "number" ? `${Math.round(assignment.points)} pts` : "-"}</span>
-      {assignment.id ? <Link href={`/teach/work/${assignment.id}`} aria-label={`Open ${assignment.title}`} className="hidden text-[var(--color-faint)] transition group-hover/assignment:translate-x-0.5 group-hover/assignment:text-[var(--color-ink)] sm:block"><ChevronRight size={15} aria-hidden /></Link> : null}
+      {assignment.id ? <Link href={`/teach/assignments/${assignment.id}`} aria-label={`Open ${assignment.title}`} className="hidden text-[var(--color-faint)] transition group-hover/assignment:translate-x-0.5 group-hover/assignment:text-[var(--color-ink)] sm:block"><ChevronRight size={15} aria-hidden /></Link> : null}
     </div>
   );
 }

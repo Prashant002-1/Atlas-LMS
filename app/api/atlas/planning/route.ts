@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import { and, eq, gte, sql } from "drizzle-orm";
+import { start } from "workflow/api";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { agentSessions, agentTurns } from "@/lib/db/schema";
 import { guardProfessorInput } from "@/lib/agent/atlas-harness";
 import { resolveModelForOrg } from "@/lib/agent/keys";
-import { runProfessorTurn } from "@/lib/agent/professor-runtime";
-import { createCommandSession, loadCommandSession } from "@/lib/agent/session";
+import { persistSessionTurn } from "@/lib/agent/session-store";
+import { createCommandSession, loadCommandSession, titleCommandSessionFromIntent } from "@/lib/agent/session";
+import { workflowStreamResponse } from "@/lib/agent/workflow-stream";
+import { activateAgentRun, claimActiveAgentRun, releaseAgentRunClaim } from "@/lib/agent/run-claims";
 import { resolveScope } from "@/lib/workspace/scope";
+import { professorTurnWorkflow } from "@/workflows/agent-session";
 
 export const maxDuration = 120;
 
@@ -134,11 +138,32 @@ export async function POST(request: Request) {
   if (thread.totalTurns >= MAX_THREAD_TURNS) {
     return NextResponse.json({ error: "This thread is full. Start a new one." }, { status: 409 });
   }
+  const runClaimId = await claimActiveAgentRun(thread.id);
+  if (!runClaimId) {
+    return NextResponse.json({ error: "Atlas is still working in this thread. Your next message can steer it when this response lands." }, { status: 409 });
+  }
 
-  return runProfessorTurn({
-    session: thread,
-    scope: { orgId: user.orgId, instructorId: user.id, courseId: scope.course.id },
-    model: resolved.model,
-    userText,
-  });
+  let run: Awaited<ReturnType<typeof start>> | null = null;
+  try {
+    await titleCommandSessionFromIntent(thread, userText);
+    await persistSessionTurn(thread, "user", [{ type: "text" as const, text: userText }]);
+
+    run = await start(professorTurnWorkflow, [{
+      orgId: user.orgId,
+      instructorId: user.id,
+      courseId: scope.course.id,
+      sessionId: thread.id,
+      userText,
+      runClaimId,
+    }]);
+    if (!(await activateAgentRun(thread.id, runClaimId, run.runId))) {
+      await run.cancel();
+      return NextResponse.json({ error: "Another Atlas run already owns this thread." }, { status: 409 });
+    }
+  } catch (error) {
+    if (!run) await releaseAgentRunClaim(thread.id, runClaimId);
+    throw error;
+  }
+
+  return workflowStreamResponse(run.readable, { "x-workflow-run-id": run.runId });
 }

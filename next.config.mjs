@@ -1,3 +1,5 @@
+import { withWorkflow } from "workflow/next";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Emit a standalone server bundle for the Docker image.
@@ -23,4 +25,4 @@ const nextConfig = {
   serverExternalPackages: ["pg", "pgvector"],
 };
 
-export default nextConfig;
+export default withWorkflow(nextConfig);

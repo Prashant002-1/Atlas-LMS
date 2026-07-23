@@ -25,6 +25,7 @@ const requiredRoutes = [
   "/student/course/[courseId]/assignments",
   "/student/course/[courseId]/grades",
   "/student/material/[moduleId]",
+  "/student/assignments/[assignmentId]",
   "/student/work/[assignmentId]",
   "/student/session/[assignmentId]",
   "/api/session/[assignmentId]",
@@ -37,6 +38,7 @@ const requiredRoutes = [
   "/teach/ai-assignments/journey/[submissionId]",
   "/teach/review",
   "/teach/weeks",
+  "/teach/assignments",
   "/teach/work",
   "/teach/announcements",
   "/teach/calendar",
@@ -47,6 +49,7 @@ const requiredRoutes = [
   "/teach/settings",
   "/teach/student/[studentId]",
   "/teach/week/[moduleId]",
+  "/teach/assignments/[assignmentId]",
   "/teach/work/[assignmentId]",
 ];
 
@@ -192,7 +195,7 @@ test("phase 2 mounts the session engine on the kept substrate", () => {
   assertSourceIncludes("app/student/session/[assignmentId]/page.tsx", "SessionRoom");
   assertSourceIncludes("components/session/session-room.tsx", "useChat");
   assertSourceIncludes("components/session/session-room.tsx", "data-side-note");
-  assertSourceIncludes("app/student/work/[assignmentId]/page.tsx", "loadSessionAssignmentBundle");
+  assertSourceIncludes("app/student/assignments/[assignmentId]/page.tsx", "loadSessionAssignmentBundle");
 });
 
 test("phase 3 makes the rubric read the transcript", () => {
@@ -219,7 +222,7 @@ test("phase 3 makes the rubric read the transcript", () => {
   assertServerAction("lib/student/actions.ts", "requestJourneyReview");
 
   // The student sees the evidence-backed report; the seed lands graded worlds.
-  assertSourceIncludes("app/student/session/[assignmentId]/page.tsx", "JourneyReportPanel");
+  assertSourceIncludes("components/session/session-room.tsx", "JourneyReportPanel");
   assertSourceIncludes("components/session/journey-report-panel.tsx", "requestJourneyReview");
   assertSourceIncludes("lib/db/seed.ts", "journeyReports");
   assertSourceIncludes("lib/db/seed.ts", "computeClassRollupStats");
@@ -259,7 +262,7 @@ test("phase 4 closes the loop on the professor side", () => {
   assertSourceIncludes("app/teach/ai-assignments/journey/[submissionId]/page.tsx", "ProfessorReportPanel");
   assertSourceIncludes("app/teach/ai-assignments/[assignmentId]/page.tsx", "JourneyGrid");
   assertSourceIncludes("app/teach/ai-assignments/[assignmentId]/page.tsx", "ClassInsight");
-  assertSourceIncludes("app/teach/work/[assignmentId]/page.tsx", "Journeys and rubric");
+  assertSourceIncludes("app/teach/assignments/[assignmentId]/page.tsx", "Sessions and grades");
 });
 
 test("issue 27: the professor plans with Atlas across the profile boundary", () => {
@@ -308,9 +311,9 @@ test("issue 27: the professor plans with Atlas across the profile boundary", () 
   assertSourceIncludes("components/teach/proposals.tsx", "session_rubric");
 
   // AI assignments are ordinary course records: named plainly, entered from
-  // the graded Work area, never showcased as a special list on the agent page.
-  assertSourceIncludes("app/teach/work/page.tsx", "AI assignment");
-  assertSourceIncludes("app/teach/work/[assignmentId]/page.tsx", "AI assignment");
+  // Assignments, never showcased as a special list on the agent page.
+  assertSourceIncludes("app/teach/assignments/page.tsx", "AI assignment");
+  assertSourceIncludes("app/teach/assignments/[assignmentId]/page.tsx", "AI assignment");
   assertSourceExcludes("app/teach/atlas/page.tsx", "Work sessions");
 
   // The type also has its own operational lens: the AI assignments tab in
@@ -402,22 +405,26 @@ test("issue 26: the shell holds the sharp radius scale by construction", () => {
   // Atlas is the mark or a plain label. Sparkle iconography is off-brand
   // and stays out of the product.
   const sparkleIcon = /\b(?:Sparkles?|WandSparkles|Wand2)\b/;
+  const bannedBookIcon = /\bBookOpen(?:Check)?\b/;
   for (const file of sourceFiles([path.join(root, "app"), path.join(root, "components")])) {
     const source = readFileSync(file, "utf8");
     assert.equal(sparkleIcon.test(source), false, `${path.relative(root, file)} uses sparkle iconography`);
+    assert.equal(bannedBookIcon.test(source), false, `${path.relative(root, file)} uses banned book iconography`);
   }
 });
 
 test("issue 26: workspaces present records and direct controls, not a task queue", () => {
-  // The professor overview is the course record: work, modules, announcements,
-  // recent changes, and direct creation. No attention management labels.
-  assertSourceIncludes("app/teach/page.tsx", '"Work"');
-  assertSourceIncludes("app/teach/page.tsx", '"Modules"');
-  assertSourceIncludes("app/teach/page.tsx", '"Announcements"');
-  assertSourceIncludes("app/teach/page.tsx", '"Recent changes"');
-  assertSourceIncludes("app/teach/page.tsx", "/teach/work?new=1");
+  // The professor overview stays lean: assignments, upcoming dates, a short
+  // deterministic Atlas briefing, announcements, and direct creation.
+  assertSourceIncludes("app/teach/page.tsx", ">Assignments<");
+  assertSourceIncludes("app/teach/page.tsx", ">Upcoming<");
+  assertSourceIncludes("app/teach/page.tsx", ">Atlas briefing<");
+  assertSourceIncludes("app/teach/page.tsx", ">Announcements<");
+  assertSourceExcludes("app/teach/page.tsx", '"Recent changes"');
+  assertSourceExcludes("lib/instructor/workspace.ts", "recentChanges");
+  assertSourceIncludes("app/teach/page.tsx", "/teach/assignments?new=1");
   assertSourceIncludes("app/teach/page.tsx", "/teach/weeks?new=1");
-  assertSourceIncludes("app/teach/page.tsx", "/teach/announcements#new");
+  assertSourceIncludes("app/teach/page.tsx", "/teach/announcements?new=1");
   for (const banned of ["Needs action", "Needs review", "To do", "course health", "Next up"]) {
     for (const file of sourceFiles([path.join(root, "app"), path.join(root, "components")])) {
       const source = readFileSync(file, "utf8");
@@ -441,8 +448,8 @@ test("issue 26: workspaces present records and direct controls, not a task queue
   assertSourceExcludes("lib/student/workspace.ts", "calendarEvents");
   assertSourceIncludes("app/student/calendar/page.tsx", "loadStudentCalendar");
 
-  // The overview states overdue work as a fact; it can never read "Nothing
-  // due" while an open assignment is past its date.
+  // The overview states overdue assignments as facts; it can never read
+  // "Nothing due" while an open assignment is past its date.
   assertSourceIncludes("lib/student/workspace.ts", "overdueCount");
   assertSourceIncludes("app/student/page.tsx", "card.overdue");
 });
@@ -477,10 +484,10 @@ test("record actions stay direct and editable by hand", () => {
   assertServerAction("lib/instructor/actions.ts", "markSubmissionMissing");
   assertServerAction("lib/student/actions.ts", "submitAssignment");
   assertSourceIncludes("app/teach/weeks/page.tsx", "action={publishModule}");
-  assertSourceIncludes("app/teach/work/page.tsx", "action={publishAssignment}");
+  assertSourceIncludes("components/teach/assignment-table.tsx", "action={publishAssignment}");
   assertSourceIncludes("app/teach/weeks/page.tsx", "action={createModuleRecord}");
   assertSourceExcludes("app/teach/page.tsx", "action={createModuleRecord}");
-  assertSourceIncludes("app/student/work/[assignmentId]/page.tsx", "action={submitAssignment}");
+  assertSourceIncludes("app/student/assignments/[assignmentId]/page.tsx", "action={submitAssignment}");
 });
 
 test("the demo data package is the seed's only source", () => {

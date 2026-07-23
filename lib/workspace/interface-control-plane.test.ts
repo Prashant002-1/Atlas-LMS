@@ -14,7 +14,7 @@ test("page-entry motion is reserved for the two overview routes", () => {
   assert.equal(motion.includes('pathname === "/teach" || pathname === "/student"'), true);
 
   for (const file of [
-    "app/teach/work/page.tsx",
+    "app/teach/assignments/page.tsx",
     "app/teach/weeks/page.tsx",
     "app/teach/review/page.tsx",
     "app/teach/students/page.tsx",
@@ -29,26 +29,26 @@ test("page-entry motion is reserved for the two overview routes", () => {
 test("published is quiet while draft and review remain visible", () => {
   for (const file of [
     "app/teach/page.tsx",
-    "app/teach/work/page.tsx",
+    "app/teach/assignments/page.tsx",
     "app/teach/weeks/page.tsx",
     "app/teach/week/[moduleId]/page.tsx",
-    "app/teach/work/[assignmentId]/page.tsx",
+    "app/teach/assignments/[assignmentId]/page.tsx",
     "app/student/session/[assignmentId]/page.tsx",
   ]) {
     assert.equal(source(file).includes('>Live<'), false, `${file} should not label the normal state Live`);
   }
 
-  assert.equal(source("components/teach/work-table.tsx").includes("Publish"), true);
+  assert.equal(source("components/teach/assignment-table.tsx").includes("Publish"), true);
   assert.equal(source("app/teach/weeks/page.tsx").includes("Review"), true);
-  assert.equal(source("app/teach/work/[assignmentId]/page.tsx").includes("Draft"), true);
+  assert.equal(source("app/teach/assignments/[assignmentId]/page.tsx").includes("Draft"), true);
 });
 
 test("publish and sign out use the quiet text scale", () => {
   for (const file of [
-    "components/teach/work-table.tsx",
+    "components/teach/assignment-table.tsx",
     "app/teach/weeks/page.tsx",
     "app/teach/week/[moduleId]/page.tsx",
-    "app/teach/work/[assignmentId]/page.tsx",
+    "app/teach/assignments/[assignmentId]/page.tsx",
   ]) {
     const page = source(file);
     assert.equal(page.includes("Check"), false, `${file} should not decorate Publish with a checkmark`);
@@ -85,12 +85,12 @@ test("gradebook is an explicit searchable comparison table", () => {
   assert.equal(page.includes('from "lucide-react"'), false);
 });
 
-test("teacher work states are dated and filterable", () => {
-  const page = source("app/teach/work/page.tsx");
-  const table = source("components/teach/work-table.tsx");
-  assert.equal(page.includes("WorkTable"), true);
+test("teacher assignment states are dated and filterable", () => {
+  const page = source("app/teach/assignments/page.tsx");
+  const table = source("components/teach/assignment-table.tsx");
+  assert.equal(page.includes("AssignmentTable"), true);
   for (const expected of ["Past due", "Upcoming", "No due date", "Draft", "Search assignments", "Filter assignments", "Not submitted"]) {
-    assert.equal(table.includes(expected), true, `Work should include ${expected}`);
+    assert.equal(table.includes(expected), true, `Assignments should include ${expected}`);
   }
 });
 
@@ -98,7 +98,7 @@ test("creation and edits open as deliberate dialogs", () => {
   const announcements = source("app/teach/announcements/page.tsx");
   const modules = source("app/teach/weeks/page.tsx");
   const moduleDetail = source("app/teach/week/[moduleId]/page.tsx");
-  const assignmentDetail = source("app/teach/work/[assignmentId]/page.tsx");
+  const assignmentDetail = source("app/teach/assignments/[assignmentId]/page.tsx");
 
   assert.equal(announcements.includes("NewAnnouncementDialog"), true);
   assert.equal(announcements.includes("AnnouncementList"), true);
@@ -108,7 +108,7 @@ test("creation and edits open as deliberate dialogs", () => {
   assert.equal(modules.includes("<details"), false);
   assert.equal(moduleDetail.includes("ModuleSwitcher"), true);
   assert.equal(moduleDetail.includes("EditModuleDialog"), true);
-  assert.equal(moduleDetail.includes('Panel title="Work"'), false);
+  assert.equal(moduleDetail.includes('Panel title="Assignments"'), false);
   const switcher = source("components/teach/module-switcher.tsx");
   assert.equal(switcher.includes("onMouseEnter"), true);
   assert.equal(switcher.includes("top-full"), true);

@@ -74,7 +74,7 @@ export async function createAssignmentRecord(formData: FormData) {
     throw new Error("No editable course found for this instructor.");
   }
 
-  const title = compactField(formData.get("title"), "Work title is required.", 220);
+  const title = compactField(formData.get("title"), "Assignment title is required.", 220);
   const description = optionalLongField(formData.get("description"), 1600);
   const dueAt = dateField(formData.get("dueDate"));
   const pointsPossible = positiveNumberField(formData.get("points")) ?? 100;
@@ -111,7 +111,7 @@ export async function createAssignmentRecord(formData: FormData) {
 
   revalidatePath("/teach");
   revalidatePath("/student");
-  redirect(createdId ? `/teach/work/${createdId}` : "/teach/work");
+  redirect(createdId ? `/teach/assignments/${createdId}` : "/teach/assignments");
 }
 
 export async function createObjectiveRecord(formData: FormData) {
@@ -215,9 +215,9 @@ export async function publishAssignment(formData: FormData) {
   }
 
   const assignmentId = String(formData.get("assignmentId") ?? "");
-  const returnTo = instructorWorkReturnPath(formData.get("returnTo"), assignmentId, "/teach");
+  const returnTo = instructorAssignmentReturnPath(formData.get("returnTo"), assignmentId, "/teach");
   if (!assignmentId) {
-    throw new Error("No work selected.");
+    throw new Error("No assignment selected.");
   }
 
   await db
@@ -228,7 +228,7 @@ export async function publishAssignment(formData: FormData) {
   revalidatePath("/teach");
   revalidatePath(returnTo);
   revalidatePath("/student");
-  revalidatePath(`/student/work/${assignmentId}`);
+  revalidatePath(`/student/assignments/${assignmentId}`);
   redirect(returnTo);
 }
 
@@ -266,15 +266,15 @@ export async function updateAssignmentRecord(formData: FormData) {
   }
 
   const assignmentId = String(formData.get("assignmentId") ?? "");
-  const title = compactField(formData.get("title"), "Work title is required.", 220);
+  const title = compactField(formData.get("title"), "Assignment title is required.", 220);
   const description = optionalLongField(formData.get("description"), 1600);
   const dueAt = dateField(formData.get("dueDate"));
   const pointsPossible = positiveNumberField(formData.get("points"));
   const objectiveCodes = objectiveCodesFromForm(formData);
-  const returnTo = instructorWorkReturnPath(formData.get("returnTo"), assignmentId, "/teach/work");
+  const returnTo = instructorAssignmentReturnPath(formData.get("returnTo"), assignmentId, "/teach/assignments");
 
   if (!assignmentId) {
-    throw new Error("No work selected.");
+    throw new Error("No assignment selected.");
   }
 
   await db.transaction(async (tx) => {
@@ -295,7 +295,7 @@ export async function updateAssignmentRecord(formData: FormData) {
   revalidatePath("/teach");
   revalidatePath(returnTo);
   revalidatePath("/student");
-  revalidatePath(`/student/work/${assignmentId}`);
+  revalidatePath(`/student/assignments/${assignmentId}`);
   redirect(returnTo);
 }
 
@@ -310,7 +310,7 @@ export async function gradeSubmission(formData: FormData) {
   const studentId = String(formData.get("studentId") ?? "");
   const score = numericScore(formData.get("score"));
   const grade = String(formData.get("grade") ?? "").trim();
-  const returnTo = instructorWorkReturnPath(formData.get("returnTo"), assignmentId);
+  const returnTo = instructorAssignmentReturnPath(formData.get("returnTo"), assignmentId);
 
   if (!assignmentId || !studentId) {
     throw new Error("No submission selected.");
@@ -326,7 +326,7 @@ export async function gradeSubmission(formData: FormData) {
     .limit(1);
 
   if (!assignment) {
-    throw new Error("Work unavailable.");
+    throw new Error("Assignment unavailable.");
   }
   if (assignment.pointsPossible && score > assignment.pointsPossible) {
     throw new Error("Score is above the points possible.");
@@ -403,7 +403,7 @@ export async function gradeSubmission(formData: FormData) {
   revalidatePath(returnTo);
   revalidatePath(`/teach/student/${studentId}`);
   revalidatePath("/student");
-  revalidatePath(`/student/work/${assignment.id}`);
+  revalidatePath(`/student/assignments/${assignment.id}`);
   redirect(returnTo);
 }
 
@@ -416,7 +416,7 @@ export async function markSubmissionMissing(formData: FormData) {
 
   const assignmentId = String(formData.get("assignmentId") ?? "");
   const studentId = String(formData.get("studentId") ?? "");
-  const returnTo = instructorWorkReturnPath(formData.get("returnTo"), assignmentId);
+  const returnTo = instructorAssignmentReturnPath(formData.get("returnTo"), assignmentId);
 
   if (!assignmentId || !studentId) {
     throw new Error("No student work selected.");
@@ -429,7 +429,7 @@ export async function markSubmissionMissing(formData: FormData) {
     .limit(1);
 
   if (!assignment) {
-    throw new Error("Work unavailable.");
+    throw new Error("Assignment unavailable.");
   }
 
   const [studentEnrollment] = await db
@@ -508,7 +508,7 @@ export async function markSubmissionMissing(formData: FormData) {
   revalidatePath(returnTo);
   revalidatePath(`/teach/student/${studentId}`);
   revalidatePath("/student");
-  revalidatePath(`/student/work/${assignment.id}`);
+  revalidatePath(`/student/assignments/${assignment.id}`);
   redirect(returnTo);
 }
 
@@ -551,7 +551,7 @@ export async function reviewCourseProposal(formData: FormData) {
       first?.itemType === "module"
         ? `/teach/week/${first.itemId}`
         : first?.itemType === "assignment"
-          ? `/teach/work/${first.itemId}`
+          ? `/teach/assignments/${first.itemId}`
           : "/teach/review";
   } else {
     await dismissProposal({ orgId: user.orgId, proposalId });
@@ -900,9 +900,9 @@ function assessmentWeightField(value: FormDataEntryValue | null) {
   return Math.round(percentage * 100) / 10000;
 }
 
-function instructorWorkReturnPath(value: FormDataEntryValue | null, assignmentId: string, fallback = "/teach/work") {
+function instructorAssignmentReturnPath(value: FormDataEntryValue | null, assignmentId: string, fallback = "/teach/assignments") {
   const path = typeof value === "string" ? value : "";
-  return path === `/teach/work/${assignmentId}` ? path : fallback;
+  return path === `/teach/assignments/${assignmentId}` ? path : fallback;
 }
 
 function instructorWeekReturnPath(value: FormDataEntryValue | null, moduleId: string, fallback = "/teach/weeks") {

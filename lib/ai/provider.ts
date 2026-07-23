@@ -49,6 +49,15 @@ const BUILTIN_CHAT_MODEL: Record<ChatProviderKind, string> = {
 };
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
+function supportsStructuredOutputs(baseURL: string): boolean {
+  try {
+    const endpoint = new URL(baseURL);
+    return endpoint.protocol === "https:" && endpoint.hostname === "opencode.ai" && endpoint.pathname.startsWith("/zen/");
+  } catch {
+    return false;
+  }
+}
+
 export function createChatModel(spec: ChatModelSpec): LanguageModel {
   switch (spec.provider) {
     case "openrouter":
@@ -72,6 +81,7 @@ export function createChatModel(spec: ChatModelSpec): LanguageModel {
         name: "atlas-compat",
         baseURL,
         apiKey: spec.apiKey ?? process.env.ATLAS_OPENAI_COMPAT_API_KEY,
+        supportsStructuredOutputs: supportsStructuredOutputs(baseURL),
       })(spec.modelId);
     }
   }

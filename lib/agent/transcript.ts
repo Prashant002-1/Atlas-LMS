@@ -1,4 +1,8 @@
-import { pricingArtifactSchema, type PricingArtifact } from "@/lib/agent/session-parts";
+import {
+  parseSessionArtifact,
+  parseStoredSessionArtifact,
+  type SessionArtifact,
+} from "@/lib/agent/session-parts";
 
 /**
  * Transcript normalization, the bridge between a live session and the grading
@@ -34,7 +38,7 @@ export type NormalizedArtifactState = {
 export type NormalizedTranscript = {
   turns: NormalizedTurn[];
   artifactStates: NormalizedArtifactState[];
-  finalArtifact: PricingArtifact | null;
+  finalArtifact: SessionArtifact | null;
   turnCount: number;
 };
 
@@ -86,11 +90,11 @@ export function normalizeSessionTranscript(
     state: row.state,
   }));
 
-  let finalArtifact: PricingArtifact | null = null;
+  let finalArtifact: SessionArtifact | null = null;
   for (let i = orderedArtifacts.length - 1; i >= 0; i -= 1) {
-    const parsed = pricingArtifactSchema.safeParse(orderedArtifacts[i].state);
-    if (parsed.success) {
-      finalArtifact = parsed.data;
+    const parsed = parseSessionArtifact(orderedArtifacts[i].artifactType, orderedArtifacts[i].state);
+    if (parsed) {
+      finalArtifact = parsed.state;
       break;
     }
   }
@@ -163,14 +167,29 @@ export function splitTextBySpans(text: string, ranges: SpanRange[]): TextSegment
 }
 
 /** Render the frozen artifact as the plain-text submission body for the gradebook row. */
-export function renderFinalArtifactBody(artifact: PricingArtifact | null, studentName: string): string {
-  if (!artifact) {
-    return `Pricing Strategy Session final submission by ${studentName}. Session transcript submitted without a final artifact state.`;
+export function renderFinalArtifactBody(artifact: unknown, studentName: string): string {
+  const parsed = parseStoredSessionArtifact(artifact);
+  if (!parsed) {
+    return `Assignment session submission by ${studentName}. Transcript submitted without a submission draft.`;
   }
-  const tierLines = artifact.tiers.map((tier) => `- ${tier.name}: $${tier.price.toFixed(2)} (${tier.fence})`);
+  if (parsed.artifactType === "pricing_table") {
+    const tierLines = parsed.state.tiers.map((tier) => `- ${tier.name}: $${tier.price.toFixed(2)} (${tier.fence})`);
+    return [
+      `Pricing Strategy Session final submission by ${studentName}. Recommended Pricing Tiers:`,
+      ...tierLines,
+      `Expected risk: ${parsed.state.expectedRisk}`,
+    ].join("\n");
+  }
+
+  const sectionLines = parsed.state.sections.flatMap((section) => [
+    section.heading,
+    section.content ?? "",
+    ...(section.fields ?? []).map((field) => `${field.label}: ${field.value}`),
+    ...(section.items ?? []).map((item) => `- ${item}`),
+  ]).filter(Boolean);
   return [
-    `Pricing Strategy Session final submission by ${studentName}. Recommended Pricing Tiers:`,
-    ...tierLines,
-    `Expected risk: ${artifact.expectedRisk}`,
-  ].join("\n");
+    `${parsed.state.title} submission by ${studentName}.`,
+    parsed.state.summary ?? "",
+    ...sectionLines,
+  ].filter(Boolean).join("\n");
 }

@@ -1,46 +1,46 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ListChecks } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RubricCriterion } from "@/lib/agent/session-parts";
 
-/**
- * Rubric panel, "what doing well looks like", visible from the first second
- * of the session. Scoring transparency is the pedagogy claim: the student
- * knows what is measured before they start, so the journey report later reads
- * as fair, not as an ambush.
- */
-export function RubricPanel({ criteria, className }: { criteria: RubricCriterion[]; className?: string }) {
+/** The assignment rubric stays visible while the student works. */
+export function RubricPanel({
+  criteria,
+  className,
+  plain = false,
+}: {
+  criteria: RubricCriterion[];
+  className?: string;
+  plain?: boolean;
+}) {
   const [openKey, setOpenKey] = useState<string | null>(null);
 
   return (
     <section
-      aria-label="What doing well looks like"
+      aria-label="Rubric"
       className={cn(
-        "rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-panel)]",
+        plain ? "" : "rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-4",
         className
       )}
     >
-      <p className="atlas-mono flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">
-        <ListChecks size={12} aria-hidden />
-        What doing well looks like
-      </p>
-      <ul className="mt-2.5 space-y-1">
+      <h2 className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Rubric</h2>
+      <ul className="mt-2 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
         {criteria.map((criterion) => {
           const open = openKey === criterion.key;
-          const meets = criterion.levels.find((l) => l.level === "Exceeds") ?? criterion.levels[0];
+          const target = criterion.levels.find((level) => level.level === "Exceeds") ?? criterion.levels[0];
           return (
-            <li key={criterion.key} className="rounded-row border border-transparent transition hover:border-[var(--color-border)]">
+            <li key={criterion.key}>
               <button
                 type="button"
                 aria-expanded={open}
                 onClick={() => setOpenKey(open ? null : criterion.key)}
-                className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left"
+                className="flex w-full items-center justify-between gap-2 py-2.5 text-left"
               >
-                <span className="text-[0.8125rem] font-medium text-[var(--color-ink)]">
+                <span className="text-[0.78125rem] font-medium leading-5 text-[var(--color-ink)]">
                   {criterion.name}
-                  <span className="ml-1.5 text-[0.71875rem] font-normal text-[var(--color-faint)]">{criterion.weight}%</span>
+                  <span className="ml-1.5 font-normal tabular-nums text-[var(--color-faint)]">{criterion.weight}%</span>
                 </span>
                 <ChevronDown
                   size={13}
@@ -48,13 +48,11 @@ export function RubricPanel({ criteria, className }: { criteria: RubricCriterion
                   className={cn("shrink-0 text-[var(--color-faint)] transition-transform", open && "rotate-180")}
                 />
               </button>
-              <div className={cn("px-2 pb-2", !open && "hidden")}>
-                <p className="text-[0.78125rem] leading-5 text-[var(--color-muted)]">{criterion.description}</p>
+              <div className={cn("pb-3", !open && "hidden")}>
+                <p className="text-[0.75rem] leading-5 text-[var(--color-muted)]">{criterion.description}</p>
                 <p className="mt-1.5 text-[0.75rem] leading-5 text-[var(--color-muted)]">
-                  <span className="atlas-mono text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-accent-strong)]">
-                    {meets.level}{" "}
-                  </span>
-                  {meets.descriptor}
+                  <span className="font-medium text-[var(--color-accent-strong)]">{target.level}: </span>
+                  {target.descriptor}
                 </p>
               </div>
             </li>

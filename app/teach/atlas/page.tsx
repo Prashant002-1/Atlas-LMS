@@ -32,6 +32,7 @@ export default async function TeachAtlasPage({
       threadTitle={thread === "new" ? "New thread" : view.active?.title ?? "New thread"}
       course={view.course}
       initialMessages={thread === "new" ? [] : view.active?.messages ?? []}
+      activeRunId={thread === "new" ? null : view.active?.activeRunId ?? null}
       threads={view.threads}
       drafts={thread === "new" ? [] : view.drafts}
       work={view.work}

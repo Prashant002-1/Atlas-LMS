@@ -47,6 +47,7 @@ export type StoredTurnRow = {
   turnIndex: number;
   role: "user" | "assistant" | "tool";
   parts: unknown;
+  createdAt?: Date;
 };
 
 export type StoredArtifactRow = {

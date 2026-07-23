@@ -78,7 +78,7 @@ export default async function StudentAtlasPoliciesPage() {
 
       <section aria-labelledby="course-rules-heading" className="py-8">
         <h2 id="course-rules-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Course rules</h2>
-        <p className="mt-1 text-[0.75rem] text-[var(--color-muted)]">Set by each professor. They apply when Atlas works with material and AI assignments in that course.</p>
+        <p className="mt-1 text-[0.75rem] text-[var(--color-muted)]">Set by each professor. They apply when Atlas works on that course&apos;s material and in its AI assignments.</p>
         {view.courseRules.length > 0 ? (
           <div className="mt-4 space-y-8">
             {view.courseRules.map((course) => (

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { getWorkflowMetadata, getWritable, sleep } from "workflow";
 import { db } from "@/lib/db";
 import { agentSessions } from "@/lib/db/schema";
@@ -59,10 +59,10 @@ async function streamProfessorTurnStep(args: ProfessorTurnArgs, runId: string) {
     const [session] = await db
       .select()
       .from(agentSessions)
-      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.orgId, args.orgId)))
+      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.orgId, args.orgId), isNull(agentSessions.archivedAt)))
       .limit(1);
     if (!session || session.userId !== args.instructorId || session.courseId !== args.courseId) {
-      throw new Error("Professor thread not found.");
+      throw new Error("Professor chat not found.");
     }
     const resolved = resolvePlatformModel();
     if (!resolved) throw new Error("Atlas's model runtime is not configured.");
@@ -89,7 +89,7 @@ async function streamStudentTurnStep(args: StudentTurnArgs, runId: string) {
     const [session] = await db
       .select()
       .from(agentSessions)
-      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.orgId, args.orgId)))
+      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.orgId, args.orgId), isNull(agentSessions.archivedAt)))
       .limit(1);
     if (!session || session.courseId !== args.courseId || session.anchorId !== args.assignmentId) {
       throw new Error("Student session not found.");
@@ -139,10 +139,10 @@ async function streamStudentAtlasTurnStep(args: StudentAtlasTurnArgs, runId: str
     const [session] = await db
       .select()
       .from(agentSessions)
-      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.orgId, args.orgId)))
+      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.orgId, args.orgId), isNull(agentSessions.archivedAt)))
       .limit(1);
     if (!session || session.userId !== args.studentId || session.surface !== "personal") {
-      throw new Error("Personal thread not found.");
+      throw new Error("Personal chat not found.");
     }
     const resolved = resolvePlatformModel();
     if (!resolved) throw new Error("Atlas's model runtime is not configured.");

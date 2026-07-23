@@ -148,7 +148,7 @@ export type InstructorProposal = {
   blocks: Block[];
   /** After apply: links to the records the blocks created. */
   appliedRecords: InstructorProposalAppliedRecord[];
-  /** The Atlas thread this draft was made in, for reopening the conversation. */
+  /** The Atlas chat this draft was made in, for reopening the conversation. */
   thread: { id: string; title: string | null } | null;
 };
 
@@ -367,7 +367,7 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
       .orderBy(desc(changeProposals.createdAt))
       .limit(50);
 
-    /* The Atlas threads the drafts came from, course-scoped, titles only. */
+    /* The Atlas chats the drafts came from, course-scoped, titles only. */
     const proposalSessionIds = [
       ...new Set(proposalRows.map((row) => row.sessionId).filter((value): value is string => value !== null)),
     ];

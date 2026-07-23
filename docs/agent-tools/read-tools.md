@@ -50,7 +50,7 @@ Reads one named LMS resource.
     | "policies"
     | "calendar"
     | "drafts"
-    | "threads";
+    | "chats";
   ids?: string[];       // UUIDs, maximum 20
   query?: string;       // trimmed, 1 to 160 characters
   assignmentId?: string;
@@ -84,7 +84,7 @@ Not every filter applies to every resource. The table below is the exact impleme
 | `policies` | one `course_ai_policies` row plus all joined `session_assignments` | `limit` applies to assignment policies | first record has `kind: "course"`; remaining records have `kind: "assignment"` and assignment name, instructions, duration, grounding scope, personal-note setting, triggers, updated time |
 | `calendar` | `assignments.dueAt` plus `modules.unlockAt` | `limit` | merged chronological list with `kind` equal to `assignment_due` or `module_opens`; only rows with a date are returned |
 | `drafts` | `change_proposals` | `ids`, summary `query`, `limit` | full proposal rows with created and decided times as ISO, newest first |
-| `threads` | professor-owned command/course `agent_sessions` | `ids`, title `query`, `limit` | id, title, turn count, compacted summary clipped to 2,000 chars, created and updated times as ISO, newest first |
+| `chats` | professor-owned command/course `agent_sessions` | `ids`, title `query`, `limit` | id, title, turn count, compacted summary clipped to 2,000 chars, created and updated times as ISO, newest first |
 
 ### Ordering
 
@@ -92,7 +92,7 @@ Ordering is resource-specific and implemented in SQL or after merge:
 
 - assignments and modules use position, then date where present;
 - pages use slug;
-- files, announcements, sessions, class results, drafts, and threads are newest first;
+- files, announcements, sessions, class results, drafts, and chats are newest first;
 - module items and practice sets use position;
 - calendar merges and sorts ISO timestamps ascending.
 

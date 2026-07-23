@@ -39,6 +39,7 @@ import {
 import { classRollupStatsSchema, type ClassRollupStats } from "@/lib/agent/rollup";
 import { publicWorkflowRunId } from "@/lib/agent/run-claims";
 import { deriveJourneyState, JOURNEY_STATE_ORDER, type JourneyState } from "@/lib/instructor/journey-state";
+import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
 
 /**
  * Session cockpit, the professor's read layer. Design rules:
@@ -571,11 +572,11 @@ export type PlanningRoomView =
   | {
       problem?: undefined;
       course: CockpitCourse;
-      /** Every planning thread in the course, newest first. */
+      /** Every planning chat in the course, newest first. */
       threads: PlanningThreadRef[];
-      /** The thread on screen, hydrated from rows; null renders a fresh room. */
-      active: { id: string; title: string; messages: UIMessage[]; activeRunId: string | null } | null;
-      /** Drafts this thread produced, so reopened cards show today's status. */
+      /** The chat on screen, hydrated from rows; null renders a fresh room. */
+      active: { id: string; title: string; messages: UIMessage<AtlasMessageMetadata>[]; activeRunId: string | null } | null;
+      /** Drafts this chat produced, so reopened cards show today's status. */
       drafts: PlanningDraftRef[];
       /** The course's AI assignments by name, for grounded conversation openers. */
       work: PlanningWorkRef[];
@@ -602,14 +603,14 @@ export async function loadPlanningRoom(
 
   const threads = await listCommandSessions(threadScope);
 
-  let active: { id: string; title: string; messages: UIMessage[]; activeRunId: string | null } | null = null;
+  let active: { id: string; title: string; messages: UIMessage<AtlasMessageMetadata>[]; activeRunId: string | null } | null = null;
   if (requestedThreadId && requestedThreadId !== "new") {
     const thread = await loadCommandSession(threadScope, requestedThreadId);
     if (!thread) {
-      return { problem: { title: "Thread unavailable", detail: "This planning thread is not yours in the course in view." } };
+      return { problem: { title: "Chat unavailable", detail: "This planning chat is not yours in the course in view." } };
     }
     const turnRows = await loadFullSessionTurns(orgId, thread.id);
-    active = { id: thread.id, title: thread.title ?? "Planning thread", messages: turnsToUIMessages(turnRows), activeRunId: publicWorkflowRunId(thread.activeRunId) };
+    active = { id: thread.id, title: thread.title ?? "Atlas chat", messages: turnsToUIMessages(turnRows), activeRunId: publicWorkflowRunId(thread.activeRunId) };
   } else if (!requestedThreadId && threads.length > 0) {
     const newest = threads[0];
     const turnRows = await loadFullSessionTurns(orgId, newest.id);

@@ -26,10 +26,13 @@ test("the student profile owns the personal org-wide session address", () => {
   assert.match(schema, /Null for the personal profile/);
   assert.match(schema, /export const agentMemories/);
   assert.match(schema, /export const orgAgentPolicies/);
+  assert.match(schema, /archivedAt: timestamp\("archived_at"/);
   assert.equal(existsSync(path.join(root, "drizzle/0008_personal_agents.sql")), true, "migration 0008 exists");
-  assert.match(read("drizzle/0008_personal_agents.sql"), /agent_memories/);
-  assert.match(read("drizzle/0008_personal_agents.sql"), /org_agent_policies/);
-  assert.match(read("drizzle/0008_personal_agents.sql"), /DROP NOT NULL/);
+  const migration = read("drizzle/0008_personal_agents.sql");
+  assert.match(migration, /agent_memories/);
+  assert.match(migration, /org_agent_policies/);
+  assert.match(migration, /DROP NOT NULL/);
+  assert.match(migration, /archived_at/);
 });
 
 test("memory is one budgeted write path that archives, never deletes", () => {
@@ -49,6 +52,57 @@ test("memory is one budgeted write path that archives, never deletes", () => {
   assert.match(read("lib/agent/professor-runtime.ts"), /profile: "professor"/);
   assert.match(read("lib/agent/student-atlas-tools.ts"), /remember: personalMemoryTool/);
   assert.match(read("lib/agent/student-atlas-tools.ts"), /profile: "student"/);
+});
+
+test("personal Atlas chats archive, restore, and never delete", () => {
+  const archive = read("lib/agent/chat-archive.ts");
+  const actions = read("lib/agent/chat-actions.ts");
+  const professorSessions = read("lib/agent/session.ts");
+  const studentSessions = read("lib/agent/student-atlas.ts");
+  const workflows = read("workflows/agent-session.ts");
+
+  for (const operation of ["archiveProfessorChat", "archiveStudentChat", "restoreProfessorChat", "restoreStudentChat"]) {
+    assert.match(archive, new RegExp(`export async function ${operation}`));
+  }
+  assert.match(archive, /isNull\(agentSessions\.activeRunId\)/);
+  assert.match(archive, /isNull\(agentSessions\.courseId\)/);
+  assert.match(archive, /isNull\(agentSessions\.anchorId\)/);
+  assert.match(archive, /isNotNull\(agentSessions\.archivedAt\)/);
+  assert.doesNotMatch(archive, /\.delete\(/);
+  assert.match(actions, /isInstructorLike/);
+  assert.match(actions, /user\.role !== "student"/);
+  assert.match(actions, /redirect\("\/teach\/atlas\?thread=new"\)/);
+  assert.match(actions, /redirect\("\/student\/atlas\?thread=new"\)/);
+  assert.match(professorSessions, /isNull\(agentSessions\.archivedAt\)/);
+  assert.match(studentSessions, /isNull\(agentSessions\.archivedAt\)/);
+  assert.equal((workflows.match(/isNull\(agentSessions\.archivedAt\)/g) ?? []).length, 3);
+
+  const professorSettings = read("app/teach/settings/page.tsx");
+  const studentProfile = read("app/student/atlas/profile/page.tsx");
+  assert.match(professorSettings, /Archived chats/);
+  assert.match(professorSettings, /restoreProfessorAtlasChat/);
+  assert.match(studentProfile, /Archived chats/);
+  assert.match(studentProfile, /restoreStudentAtlasChat/);
+});
+
+test("Atlas presents chats without rail dates and reveals message time in place", () => {
+  const professorRoom = read("components/planning/atlas-room.tsx");
+  const studentRoom = read("components/student/atlas-room.tsx");
+  const message = read("components/ai-elements/message.tsx");
+  const activity = read("components/ai-elements/agent-status.tsx");
+
+  for (const room of [professorRoom, studentRoom]) {
+    assert.match(room, />Chats</);
+    assert.match(room, /Archive chat/);
+    assert.match(room, /MessageTimestamp/);
+    assert.doesNotMatch(room, /thread\.updatedAt\).*toLocaleDateString/);
+  }
+  assert.match(message, /group-hover:opacity-100/);
+  assert.match(message, /group-focus-within:opacity-100/);
+  assert.match(message, /<time/);
+  assert.doesNotMatch(message, /role="tooltip"/);
+  assert.match(activity, /sentenceCaseActivity/);
+  assert.match(activity, /<Shimmer/);
 });
 
 test("the university policy is validated, versioned, and append-only", () => {
@@ -74,7 +128,7 @@ test("the student route fails closed on role, policy, and limits", () => {
   assert.match(route, /dailyTurnLimit/);
   assert.match(route, /guardStudentAtlasInput/);
   assert.match(route, /MAX_REQUEST_BYTES/);
-  assert.match(route, /MAX_THREAD_TURNS/);
+  assert.match(route, /MAX_CHAT_TURNS/);
   assert.match(route, /Retry-After/);
   assert.match(route, /claimActiveAgentRun/);
   assert.match(route, /resolvePlatformModel/);

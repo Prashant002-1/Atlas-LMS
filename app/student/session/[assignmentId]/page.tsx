@@ -31,12 +31,10 @@ export default async function StudentSessionPage({ params }: { params: Promise<{
       assignmentName={view.assignment.name}
       courseCode={view.course.code}
       agentName={courseAgent.configuration.identity.name}
-      agentDisclosure={courseAgent.studentDisclosure}
       brief={view.contract.instructions}
       durationMinutes={view.contract.durationMinutes}
       groundingScope={view.contract.groundingScope}
       transcriptPolicy={view.contract.transcriptPolicy}
-      personalRecordSideNotes={view.contract.personalRecordSideNotes}
       criteria={view.criteria}
       initialMessages={view.messages}
       initialArtifacts={view.artifacts}

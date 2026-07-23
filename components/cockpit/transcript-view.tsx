@@ -14,7 +14,7 @@ export function TranscriptView({
   criterionNames: Record<string, string>;
 }) {
   return (
-    <section aria-labelledby="session-transcript-heading" className="border-t border-[var(--color-border)] pt-6">
+    <section aria-labelledby="session-transcript-heading" className="pt-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 id="session-transcript-heading" className="text-[1.125rem] font-semibold text-[var(--color-ink)]">Session transcript</h2>
         <p className="text-[0.75rem] text-[var(--color-muted)]">Highlighted text was used in the grade.</p>

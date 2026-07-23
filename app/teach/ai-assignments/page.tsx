@@ -75,7 +75,6 @@ export default async function TeachAiAssignmentsPage() {
         <EmptyState
           art="atlas"
           title="No AI assignments"
-          detail="Set one up in a conversation with Atlas."
           action={<TextLink href="/teach/atlas" className="text-[0.8125rem]">Open Atlas</TextLink>}
         />
       )}

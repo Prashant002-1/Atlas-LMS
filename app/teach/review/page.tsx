@@ -34,7 +34,7 @@ export default async function TeachReviewPage() {
         </div>
       ) : (
         <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-          <EmptyState art="horizon" title="Nothing waiting" detail="Drafts from Atlas land here for your decision." />
+          <EmptyState art="horizon" title="No drafts" />
         </div>
       )}
 

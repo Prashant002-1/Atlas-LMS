@@ -98,7 +98,7 @@ export function ArtifactPanel({
 
       {!current ? (
         <p className="mt-3 text-[0.8125rem] leading-6 text-[var(--color-muted)]">
-          Your draft will appear here as the session develops.
+          No draft.
         </p>
       ) : current.artifactType === "pricing_table" ? (
         <PricingArtifactView
@@ -132,7 +132,7 @@ function StructuredArtifactView({
     <div className="mt-3">
       <h3 className="text-[0.875rem] font-semibold leading-6 text-[var(--color-ink)]">{current.title}</h3>
       {current.summary ? <p className="mt-1 text-[0.78125rem] leading-5 text-[var(--color-muted)]">{current.summary}</p> : null}
-      <div className="mt-3 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+      <div className="mt-3 space-y-3">
         {current.sections.map((section, sectionIndex) => (
           <section
             key={`${section.heading}-${sectionIndex}`}
@@ -141,7 +141,7 @@ function StructuredArtifactView({
             <h4 className="text-[0.75rem] font-semibold text-[var(--color-ink)]">{section.heading}</h4>
             {section.content ? <p className="mt-1 whitespace-pre-wrap text-[0.78125rem] leading-5 text-[var(--color-muted)]">{section.content}</p> : null}
             {section.fields?.length ? (
-              <dl className="mt-2 divide-y divide-[var(--color-border)]">
+              <dl className="mt-2 grid gap-2">
                 {section.fields.map((field, fieldIndex) => (
                   <div key={`${field.label}-${fieldIndex}`} className="grid gap-0.5 py-1.5 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-3">
                     <dt className="text-[0.6875rem] font-medium text-[var(--color-faint)]">{field.label}</dt>
@@ -182,22 +182,22 @@ function PricingArtifactView({
         <table className="w-full border-collapse text-[0.78125rem] leading-5">
           <caption className="sr-only">Pricing submission draft</caption>
           <thead>
-            <tr className="text-left text-[0.6875rem] text-[var(--color-muted)]">
-              <th className="border-b border-[var(--color-border)] py-1.5 pr-3 font-medium">Tier</th>
-              <th className="border-b border-[var(--color-border)] py-1.5 pr-3 font-medium">Price</th>
-              <th className="border-b border-[var(--color-border)] py-1.5 pr-3 font-medium">Segment</th>
-              <th className="border-b border-[var(--color-border)] py-1.5 font-medium">Fence</th>
+            <tr className="border-b border-[var(--color-border)] text-left text-[0.6875rem] text-[var(--color-muted)]">
+              <th className="py-1.5 pr-3 font-medium">Tier</th>
+              <th className="py-1.5 pr-3 font-medium">Price</th>
+              <th className="py-1.5 pr-3 font-medium">Segment</th>
+              <th className="py-1.5 font-medium">Fence</th>
             </tr>
           </thead>
           <tbody>
             {current.tiers.map((tier) => {
               const tierDiff = diff.get(tier.name);
               return (
-                <tr key={tier.name} className={cn(tierDiff?.added && "bg-[color-mix(in_oklch,var(--color-accent)_10%,transparent)]")}>
-                  <td className="border-b border-[var(--color-border)] py-2 pr-3 font-medium text-[var(--color-ink)]" title={tier.rationale}>{tier.name}</td>
-                  <td className={cn("border-b border-[var(--color-border)] py-2 pr-3 tabular-nums", tierDiff?.changed.has("price") && changedCell)}>${tier.price.toFixed(2)}</td>
-                  <td className={cn("border-b border-[var(--color-border)] py-2 pr-3 text-[var(--color-muted)]", tierDiff?.changed.has("targetSegment") && changedCell)}>{tier.targetSegment}</td>
-                  <td className={cn("border-b border-[var(--color-border)] py-2 text-[var(--color-muted)]", tierDiff?.changed.has("fence") && changedCell)}>{tier.fence}</td>
+                <tr key={tier.name} className={cn("border-b border-[var(--color-border)] last:border-b-0", tierDiff?.added && "bg-[color-mix(in_oklch,var(--color-accent)_10%,transparent)]")}>
+                  <td className="py-2 pr-3 font-medium text-[var(--color-ink)]" title={tier.rationale}>{tier.name}</td>
+                  <td className={cn("py-2 pr-3 tabular-nums", tierDiff?.changed.has("price") && changedCell)}>${tier.price.toFixed(2)}</td>
+                  <td className={cn("py-2 pr-3 text-[var(--color-muted)]", tierDiff?.changed.has("targetSegment") && changedCell)}>{tier.targetSegment}</td>
+                  <td className={cn("py-2 text-[var(--color-muted)]", tierDiff?.changed.has("fence") && changedCell)}>{tier.fence}</td>
                 </tr>
               );
             })}

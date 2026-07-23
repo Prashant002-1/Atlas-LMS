@@ -394,11 +394,9 @@ export async function updateSessionContract(formData: FormData) {
   if (transcriptPolicy.length < 3 || transcriptPolicy.length > 200) {
     throw new Error("Transcript policy must be 3 to 200 characters.");
   }
-  const personalRecordSideNotes = formData.get("personalRecordSideNotes") === "on";
-
   await db
     .update(sessionAssignments)
-    .set({ instructions, durationMinutes, transcriptPolicy, personalRecordSideNotes, updatedAt: new Date() })
+    .set({ instructions, durationMinutes, transcriptPolicy, updatedAt: new Date() })
     .where(and(eq(sessionAssignments.orgId, actor.orgId), eq(sessionAssignments.assignmentId, assignmentId)));
 
   revalidateCockpit(assignmentId);

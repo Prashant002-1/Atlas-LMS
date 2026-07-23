@@ -61,7 +61,7 @@ export default async function TeachAnnouncementPage({ params }: { params: Promis
       </div>
 
       <article className="max-w-4xl">
-        <header className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1 border-b border-[var(--color-border)] pb-4">
+        <header className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1 pb-4">
           <p className="text-[0.8125rem] font-medium text-[var(--color-ink)]">{author}</p>
           <time dateTime={record.postedAt?.toISOString()} className="text-[0.75rem] tabular-nums text-[var(--color-muted)]">
             {record.postedAt ? fullTimestamp(record.postedAt) : "Draft"}

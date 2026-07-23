@@ -28,7 +28,7 @@ export function ProfessorReportPanel({ report, submissionId }: { report: DrillIn
         </div>
       </div>
 
-      <div className="mt-5 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+      <div className="mt-5 divide-y divide-[var(--color-border)]">
         {report.criteria.map((criterion) => (
           <article key={criterion.key} className="grid gap-3 py-4 lg:grid-cols-[minmax(11rem,0.36fr)_minmax(0,1fr)]">
             <div>

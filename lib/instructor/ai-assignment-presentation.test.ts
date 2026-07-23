@@ -108,4 +108,20 @@ test("the design doctrine pins direct nouns and table-first management", () => {
   assert.ok(designSystem.includes("A session is a session"));
   assert.ok(designSystem.includes("Management surfaces are table-first"));
   assert.ok(designSystem.includes("Do not turn every section, metric, student, criterion, or status into a card"));
+  assert.ok(designSystem.includes("Ordinary behavior uses ordinary diction"));
+  assert.ok(designSystem.includes("Section headings do not carry decorative icons"));
+});
+
+test("ordinary surfaces do not narrate themselves or expose built-in agent behavior", () => {
+  const course = read("app/teach/course/page.tsx");
+  const review = read("app/teach/review/page.tsx");
+  const settings = read("app/teach/settings/page.tsx");
+  const assignmentSettings = read("components/cockpit/contract-rubric.tsx");
+
+  assert.equal(course.includes("Ready extracted material is available to Atlas"), false);
+  assert.equal(review.includes("Drafts from Atlas land here"), false);
+  assert.equal(settings.includes("Course teaching agent"), false);
+  assert.equal(settings.includes("The first conversation change will create version 1"), false);
+  assert.equal(assignmentSettings.includes("Personal notes"), false);
+  assert.equal(assignmentSettings.includes("ListChecks"), false);
 });

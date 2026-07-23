@@ -67,7 +67,7 @@ function StudentWorkList({ work }: { work: InstructorStudentWorkItem[] }) {
   return (
     <Panel title="Assignments" action={<StatusBadge tone="neutral">{work.length}</StatusBadge>}>
       <div className="divide-y divide-[var(--color-border)]">
-        {work.length > 0 ? work.map((item) => <StudentWorkRow key={item.assignmentId ?? item.title} item={item} />) : <EmptyRecord title="No assignments" detail="No published assignments." />}
+        {work.length > 0 ? work.map((item) => <StudentWorkRow key={item.assignmentId ?? item.title} item={item} />) : <EmptyRecord title="No assignments" />}
       </div>
     </Panel>
   );
@@ -92,7 +92,7 @@ function StudentWorkRow({ item }: { item: InstructorStudentWorkItem }) {
         </div>
       </div>
       {item.body?.trim() ? (
-        <div className="mt-3 border-t border-[var(--color-border)] pt-3">
+        <div className="mt-3 pt-3">
           <p className="text-[0.75rem] font-medium text-[var(--color-ink)]">Response</p>
           <p className="mt-2 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{item.body.trim()}</p>
         </div>

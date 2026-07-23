@@ -20,9 +20,8 @@ export async function AccountSettingsPage() {
 
   return (
     <div className="max-w-[46rem]">
-      <header className="border-b border-[var(--color-border)] pb-5">
+      <header className="pb-5">
         <h1 className="text-[1.375rem] font-semibold leading-7">Account settings</h1>
-        <p className="mt-1 text-[0.8125rem] leading-6 text-[var(--color-muted)]">Your profile across Atlas.</p>
       </header>
 
       <section aria-labelledby="profile-heading" className="py-7">
@@ -30,9 +29,9 @@ export async function AccountSettingsPage() {
         <AccountProfileForm name={displayName} email={profile.email} image={profile.image} instructor={instructor} />
       </section>
 
-      <section aria-labelledby="account-heading" className="border-t border-[var(--color-border)] py-7">
+      <section aria-labelledby="account-heading" className="py-7">
         <h2 id="account-heading" className="text-[0.9375rem] font-semibold text-[var(--color-ink)]">Account</h2>
-        <dl className="mt-4 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)] text-[0.8125rem]">
+        <dl className="mt-4 space-y-1 text-[0.8125rem]">
           <AccountFact label="Email" value={profile.email} />
           <AccountFact label="Role" value={roleLabel(profile.role)} />
           <AccountFact label="Institution" value={institutionName} />

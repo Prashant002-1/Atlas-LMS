@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   FileCheck2,
   History,
-  Mic,
   PanelRightClose,
   PanelRightOpen,
   Plus,
@@ -37,6 +36,10 @@ import {
   PromptInputToolbar,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
+import {
+  VoiceTranscriptionButton,
+  type VoiceTranscriptionState,
+} from "@/components/ai-elements/voice-transcription-button";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput, type ToolState } from "@/components/ai-elements/tool";
 import { AtlasMark, StatusBadge, TextLink } from "@/components/atlas/primitives";
@@ -181,7 +184,7 @@ const TOOL_TITLES: Record<string, string> = {
   "tool-read_gradebook": "Checking the gradebook",
   "tool-search_course": "Searching the course",
   "tool-mutate_lms": "Updating the LMS",
-  "tool-load_skill": "Loading the workflow",
+  "tool-load_skill": "Loading",
   "tool-draft_ai_assignment": "Preparing the AI assignment",
   "tool-draft_rubric": "Preparing the rubric",
   "tool-draft_course": "Preparing course work",
@@ -220,6 +223,8 @@ export function PlanningRoom(props: PlanningRoomProps) {
   const initialThreadId = props.threadId;
   const [railOpen, setRailOpen] = useState(false);
   const [railView, setRailView] = useState<"threads" | "drafts">("threads");
+  const [voiceState, setVoiceState] = useState<VoiceTranscriptionState>("idle");
+  const [voiceError, setVoiceError] = useState<string | null>(null);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -442,6 +447,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
         <div className="shrink-0 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)] to-transparent px-3 pb-3 pt-2 md:px-6 md:pb-5">
           <div className="mx-auto w-full max-w-[50rem]">
             {error ? <p className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{error.message || "Atlas could not finish that turn. Your message is saved."}</p> : null}
+            {voiceError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{voiceError}</p> : null}
             {steerQueue.length > 0 ? <p className="mb-2 text-[0.71875rem] text-[var(--color-muted)]" role="status">Steer queued · {steerQueue[0]}</p> : null}
             <PromptInput className="min-h-[3.25rem] flex-row items-end overflow-hidden shadow-[var(--shadow-floating)]" onSubmit={(message, event) => {
               const text = message.text.trim();
@@ -469,16 +475,9 @@ export function PlanningRoom(props: PlanningRoomProps) {
               <PromptInputTextarea className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-1.5 py-[0.8125rem]" placeholder={busy ? "Steer Atlas..." : "Ask Atlas..."} autoFocus />
               <PromptInputToolbar className="shrink-0 justify-end gap-0.5 px-1.5 py-1.5">
                 <PromptInputTools>
-                  <PromptInputButton
-                    disabled
-                    aria-label="Voice input coming soon"
-                    title="Voice input coming soon"
-                    className="size-9 justify-center rounded-full px-0 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Mic size={15} aria-hidden />
-                  </PromptInputButton>
+                  <VoiceTranscriptionButton onError={setVoiceError} onStateChange={setVoiceState} />
                 </PromptInputTools>
-                <PromptInputSubmit status={status} allowSubmitWhileBusy className="rounded-full" />
+                <PromptInputSubmit disabled={voiceState !== "idle"} status={status} allowSubmitWhileBusy className="rounded-full" />
               </PromptInputToolbar>
             </PromptInput>
           </div>
@@ -599,9 +598,9 @@ function AiAssignmentDraftCard({ draft, status }: { draft: AiAssignmentDraftOutp
   return (
     <DraftFrame eyebrow={`AI assignment · ${draft.assignmentName}`} status={status}>
       <div className="overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)]">
-        <div className="border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3.5 py-2.5">
+        <div className="bg-[var(--color-surface-muted)] px-3.5 py-2.5">
           <p className="text-[0.8125rem] leading-5 text-[var(--color-ink)]">{draft.instructions}</p>
-          <p className="atlas-mono mt-1.5 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">{draft.durationMinutes} min · notes {draft.personalRecordSideNotes ? "on" : "off"} · transcript {draft.transcriptPolicy}</p>
+          <p className="atlas-mono mt-1.5 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">{draft.durationMinutes} min · transcript {draft.transcriptPolicy}</p>
         </div>
         <RubricCard title={draft.usedStandardFrame ? "Rubric · standard frame" : "Rubric"} criteria={draft.criteria} className="rounded-none border-0" />
       </div>
@@ -614,8 +613,8 @@ function CourseDraftCard({ draft, status }: { draft: CourseDraftOutput; status: 
   return (
     <DraftFrame eyebrow="Course draft" status={status}>
       <div className="overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)]">
-        <p className="border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3.5 py-2.5 text-[0.8125rem] font-medium text-[var(--color-ink)]">{draft.summary}</p>
-        <ul className="divide-y divide-[var(--color-border)]">
+        <p className="bg-[var(--color-surface-muted)] px-3.5 py-2.5 text-[0.8125rem] font-medium text-[var(--color-ink)]">{draft.summary}</p>
+        <ul className="space-y-1">
           {draft.records.map((record, index) => <li key={index} className="flex items-baseline justify-between gap-3 px-3.5 py-2 text-[0.78125rem]"><span className="min-w-0 text-[var(--color-ink)]">{record.title}</span><span className="atlas-mono shrink-0 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">{record.type.replaceAll("_", " ")}</span></li>)}
         </ul>
       </div>
@@ -628,7 +627,7 @@ function ThreadDraftsPanel({ drafts, pendingProposals }: { drafts: PlanningDraft
   return (
     <div>
       <div className="mb-2 flex items-center justify-between px-2"><p className="text-[0.6875rem] text-[var(--color-faint)]">This thread</p>{pendingProposals > 0 ? <TextLink href="/teach/review" className="text-[0.6875rem]">Open Review</TextLink> : null}</div>
-      <ul className="divide-y divide-[var(--color-border)]">
+      <ul className="space-y-1">
         {drafts.map((draft) => <li key={draft.proposalId} className="flex items-start justify-between gap-3 px-2 py-3"><div className="min-w-0"><p className="text-[0.78125rem] leading-5 text-[var(--color-ink)]">{draft.summary}</p><p className="mt-0.5 text-[0.65625rem] text-[var(--color-faint)]">{new Date(draft.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p></div><StatusBadge tone={STATUS_TONE[draft.status]}>{STATUS_LABEL[draft.status]}</StatusBadge></li>)}
       </ul>
     </div>
@@ -636,7 +635,7 @@ function ThreadDraftsPanel({ drafts, pendingProposals }: { drafts: PlanningDraft
 }
 
 function ThreadsPanel({ threads, activeId }: { threads: PlanningThreadRef[]; activeId: string }) {
-  if (threads.length === 0) return <div className="px-2 py-8 text-center"><History size={18} className="mx-auto text-[var(--color-faint)]" aria-hidden /><p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">Your first thread starts here.</p></div>;
+  if (threads.length === 0) return <div className="px-2 py-8 text-center"><History size={18} className="mx-auto text-[var(--color-faint)]" aria-hidden /><p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">No threads.</p></div>;
   return (
     <ul className="space-y-0.5">
       {threads.map((thread) => {

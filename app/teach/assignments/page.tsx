@@ -51,8 +51,8 @@ export default async function TeachAssignmentsPage({ searchParams }: { searchPar
       {rows.length > 0 ? (
         <AssignmentTable rows={rows} nowIso={new Date().toISOString()} />
       ) : (
-        <div className="border-y border-[var(--color-border)]">
-          <EmptyState art="atlas" title="No assignments" detail="Create the first assignment for this course." />
+        <div>
+          <EmptyState art="atlas" title="No assignments" />
         </div>
       )}
     </>
@@ -65,7 +65,6 @@ function NewAssignmentDialog({ defaultOpen }: { defaultOpen: boolean }) {
       mode="create"
       triggerLabel="New assignment"
       title="New assignment"
-      description="Create the assignment record. It stays a draft until you publish it."
       triggerVariant="primary"
       defaultOpen={defaultOpen}
     >
@@ -76,7 +75,7 @@ function NewAssignmentDialog({ defaultOpen }: { defaultOpen: boolean }) {
         </label>
         <label className="grid gap-1.5 text-[0.75rem] font-medium">
           Instructions
-          <textarea name="description" rows={6} placeholder="The task, the deliverable, and what a strong submission looks like." className={`${fieldClass} min-h-36 resize-y py-2.5 leading-6`} />
+          <textarea name="description" rows={6} className={`${fieldClass} min-h-36 resize-y py-2.5 leading-6`} />
         </label>
         <div className="grid grid-cols-2 gap-4">
           <label className="grid gap-1.5 text-[0.75rem] font-medium">
@@ -88,7 +87,7 @@ function NewAssignmentDialog({ defaultOpen }: { defaultOpen: boolean }) {
             <input name="points" type="number" min={1} defaultValue={100} className={fieldClass} />
           </label>
         </div>
-        <div className="flex justify-end border-t border-[var(--color-border)] pt-4">
+        <div className="flex justify-end pt-4">
           <ActionButton>Create assignment</ActionButton>
         </div>
       </form>

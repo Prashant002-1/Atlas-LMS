@@ -206,7 +206,7 @@ export function Panel({
   return (
     <section id={id} className={`rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)] ${className}`}>
       {title || action ? (
-        <header className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] px-5 py-4">
+        <header className="flex items-start justify-between gap-4 px-5 py-4">
           <div>
             {eyebrow ? <p className="text-[0.75rem] font-medium text-[var(--color-muted)]">{eyebrow}</p> : null}
             {title ? <h2 className="mt-1 text-[1rem] font-semibold text-[var(--color-ink)]">{title}</h2> : null}
@@ -242,7 +242,7 @@ export function CommandBand({
         </div>
         {children ? <div className="grid gap-2 text-[0.8125rem] sm:grid-cols-2">{children}</div> : null}
       </div>
-      {after ? <div className="mt-4 border-t border-[var(--color-border)] pt-4">{after}</div> : null}
+      {after ? <div className="mt-4 pt-4">{after}</div> : null}
     </section>
   );
 }

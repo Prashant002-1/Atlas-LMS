@@ -33,7 +33,7 @@ export function JourneyReportPanel({
             {report.status === "final" ? "Posted by your professor" : "Draft grade"}
           </p>
         </div>
-        <div className="mt-3 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+        <div className="mt-3 space-y-1">
           {report.criteria.map((criterion) => (
             <details key={criterion.key} className="group py-2.5">
               <summary className="flex cursor-pointer list-none items-start justify-between gap-3">
@@ -62,7 +62,7 @@ export function JourneyReportPanel({
   }
 
   return (
-    <section aria-labelledby="student-grade-heading" className="border-y border-[var(--color-border)] py-5">
+    <section aria-labelledby="student-grade-heading" className="py-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 id="student-grade-heading" className="text-[1.125rem] font-semibold text-[var(--color-ink)]">Grade</h2>
@@ -74,7 +74,7 @@ export function JourneyReportPanel({
         <p className="text-[0.75rem] text-[var(--color-muted)]">{report.status === "final" ? "Posted by your professor" : "Draft grade"}</p>
       </div>
 
-      <div className="mt-5 divide-y divide-[var(--color-border)] border-t border-[var(--color-border)]">
+      <div className="mt-5 space-y-1">
         {report.criteria.map((criterion) => (
           <article key={criterion.key} className="grid gap-3 py-4 md:grid-cols-[minmax(11rem,0.36fr)_minmax(0,1fr)]">
             <div>

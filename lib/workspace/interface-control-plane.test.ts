@@ -124,7 +124,6 @@ test("settings reflects the real Atlas control scopes", () => {
   const page = source("app/teach/settings/page.tsx");
   for (const expected of [
     "Agent configuration",
-    "Student experience",
     "Teaching behavior",
     "Course rules",
     "Course knowledge",
@@ -137,7 +136,15 @@ test("settings reflects the real Atlas control scopes", () => {
     assert.equal(page.includes(expected), true, `settings should include ${expected}`);
   }
 
-  for (const excluded of ["resolvePlatformModel", "CHAT_PROVIDERS", "openai_compatible"]) {
+  for (const excluded of [
+    "resolvePlatformModel",
+    "CHAT_PROVIDERS",
+    "openai_compatible",
+    "studentDisclosure",
+    "configuration.identity.role",
+    "configuration.teaching.approach",
+    "Personal record",
+  ]) {
     assert.equal(page.includes(excluded), false, `settings should not include ${excluded}`);
   }
 });

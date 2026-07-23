@@ -57,12 +57,10 @@ export type SessionRoomProps = {
   assignmentName: string;
   courseCode: string;
   agentName: string;
-  agentDisclosure: string;
   brief: string;
   durationMinutes: number;
   groundingScope: string[];
   transcriptPolicy: string;
-  personalRecordSideNotes: boolean;
   criteria: RubricCriterion[];
   initialMessages: UIMessage[];
   initialArtifacts: Array<{ turnIndex: number; artifactType: string; state: unknown }>;
@@ -333,7 +331,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                         <h2 className="atlas-serif text-[1.75rem] font-semibold leading-tight text-[var(--color-ink)]">Begin the assignment</h2>
                         <p className="max-w-[36rem] text-[0.875rem] leading-6 text-[var(--color-muted)]">{props.brief}</p>
                       </div>
-                      <dl className="grid max-w-[36rem] gap-3 border-y border-[var(--color-border)] py-3 text-[0.75rem] sm:grid-cols-3">
+                      <dl className="grid max-w-[36rem] gap-3 py-3 text-[0.75rem] sm:grid-cols-3">
                         <div><dt className="text-[var(--color-faint)]">Time</dt><dd className="mt-0.5 font-medium text-[var(--color-ink)]">{props.durationMinutes} minutes</dd></div>
                         <div><dt className="text-[var(--color-faint)]">Rubric</dt><dd className="mt-0.5 font-medium text-[var(--color-ink)]">{props.criteria.length} criteria</dd></div>
                         <div><dt className="text-[var(--color-faint)]">Transcript</dt><dd className="mt-0.5 font-medium text-[var(--color-ink)]">Part of submission</dd></div>
@@ -424,10 +422,10 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
             </div>
             <div className="min-h-0 w-[min(21rem,92vw)] flex-1 overflow-y-auto">
               <AssignmentDetails {...props} deadlineAt={deadlineAt} started={started} />
-              <div className="border-t border-[var(--color-border)] px-4 py-4"><ArtifactPanel revisions={revisions} plain /></div>
-              <div className="border-t border-[var(--color-border)] px-4 py-4"><RubricPanel criteria={props.criteria} plain /></div>
-              {props.report ? <div className="border-t border-[var(--color-border)] px-4 py-4"><JourneyReportPanel report={props.report} assignmentId={props.assignmentId} compact /></div> : null}
-              {props.gradingPending ? <div className="border-t border-[var(--color-border)] px-4 py-4"><h2 className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Grade pending</h2><p className="mt-1 text-[0.75rem] leading-5 text-[var(--color-muted)]">Your submission is saved and waiting for grading.</p></div> : null}
+              <div className="px-4 py-4"><ArtifactPanel revisions={revisions} plain /></div>
+              <div className="px-4 py-4"><RubricPanel criteria={props.criteria} plain /></div>
+              {props.report ? <div className="px-4 py-4"><JourneyReportPanel report={props.report} assignmentId={props.assignmentId} compact /></div> : null}
+              {props.gradingPending ? <div className="px-4 py-4"><h2 className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Grade pending</h2><p className="mt-1 text-[0.75rem] leading-5 text-[var(--color-muted)]">Your submission is saved and waiting for grading.</p></div> : null}
             </div>
             {!props.submitted && started ? <div className="shrink-0 border-t border-[var(--color-border)] p-4"><SubmitSessionControl assignmentId={props.assignmentId} /></div> : null}
           </aside>
@@ -477,15 +475,10 @@ function AssignmentDetails(props: SessionRoomProps & { started: boolean }) {
         <SessionTimer deadlineAt={props.deadlineAt} durationMinutes={props.durationMinutes} running={props.started && !props.submitted} />
       </div>
       <p className="mt-2 text-[0.78125rem] leading-5 text-[var(--color-muted)]">{props.brief}</p>
-      <dl className="mt-3 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)] text-[0.71875rem] leading-5">
+      <dl className="mt-3 space-y-1 text-[0.71875rem] leading-5">
         {props.groundingScope.length > 0 ? <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2 py-2"><dt className="text-[var(--color-faint)]">Course material</dt><dd className="text-[var(--color-muted)]">{props.groundingScope.join(", ")}</dd></div> : null}
         <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2 py-2"><dt className="text-[var(--color-faint)]">Transcript</dt><dd className="text-[var(--color-muted)]">{props.transcriptPolicy}</dd></div>
-        <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2 py-2"><dt className="text-[var(--color-faint)]">Course notes</dt><dd className="text-[var(--color-muted)]">{props.personalRecordSideNotes ? "May use your own past course results" : "Off"}</dd></div>
       </dl>
-      <details className="mt-3">
-        <summary className="cursor-pointer text-[0.75rem] font-medium text-[var(--color-ink)]">About {props.agentName}</summary>
-        <p className="mt-1.5 text-[0.71875rem] leading-5 text-[var(--color-muted)]">{props.agentDisclosure}</p>
-      </details>
     </section>
   );
 }

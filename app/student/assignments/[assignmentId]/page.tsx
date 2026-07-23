@@ -41,14 +41,14 @@ export default async function StudentAssignmentPage({ params }: { params: Promis
         <PageHeader title={assignment.name} course={meta(assignment)} action={<StatusBadge tone={tone[assignment.status]}>{label[assignment.status]}</StatusBadge>} />
       </div>
 
-      <section className="border-y border-[var(--color-border)] py-5">
+      <section className="py-5">
         {assignment.description ? (
           <p className="max-w-3xl whitespace-pre-wrap text-[0.90625rem] leading-7">{assignment.description}</p>
         ) : (
           <p className="text-[0.875rem] text-[var(--color-muted)]">No instructions are attached.</p>
         )}
         {workspace.relatedMaterials.length > 0 ? (
-          <div className="mt-5 border-t border-[var(--color-border)] pt-4">
+          <div className="mt-5 pt-4">
             <p className="text-[0.75rem] font-medium text-[var(--color-muted)]">Course material</p>
             <div className="mt-2 space-y-1">
               {workspace.relatedMaterials.map((material) => (
@@ -62,7 +62,7 @@ export default async function StudentAssignmentPage({ params }: { params: Promis
       </section>
 
       {sessionBundle ? (
-        <section className="mt-4 border-y border-[var(--color-border)] py-5">
+        <section className="mt-4 py-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Assignment session</p>
@@ -78,7 +78,7 @@ export default async function StudentAssignmentPage({ params }: { params: Promis
       ) : null}
 
       {assignment.status === "graded" ? (
-        <section className="mt-6 border-y border-[var(--color-border)] py-5">
+        <section className="mt-6 py-5">
           <p className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Grade</p>
           <p className="mt-2 text-[1.25rem] font-semibold">
             {typeof assignment.score === "number" ? Math.round(assignment.score) : ""}
@@ -89,7 +89,7 @@ export default async function StudentAssignmentPage({ params }: { params: Promis
       ) : null}
 
       {assignment.response ? (
-        <section className="mt-6 border-y border-[var(--color-border)] py-5">
+        <section className="mt-6 py-5">
           <p className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Your response</p>
           <p className="mt-2 max-w-3xl whitespace-pre-wrap text-[0.875rem] leading-6">{assignment.response}</p>
         </section>

@@ -51,10 +51,9 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
         {view.assignment.dueAt ? <span>Due {shortDate(view.assignment.dueAt)}</span> : null}
         {view.assignment.pointsPossible ? <span>{Math.round(view.assignment.pointsPossible)} points</span> : null}
         <span>{view.contract.durationMinutes} minute session</span>
-        <span>Personal record notes {view.contract.personalRecordSideNotes ? "on" : "off"}</span>
       </div>
 
-      <section aria-label="Assignment setup" className="mt-8 grid gap-7 border-y border-[var(--color-border)] py-6 lg:grid-cols-2 lg:gap-0">
+      <section aria-label="Assignment setup" className="mt-8 grid gap-7 py-6 lg:grid-cols-2 lg:gap-0">
         <div className="lg:pr-8">
           <AssignmentSettings assignmentId={view.assignment.id} contract={view.contract} />
         </div>
@@ -63,7 +62,7 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
         </div>
       </section>
 
-      <dl className="mt-8 grid border-y border-[var(--color-border)] sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="mt-8 grid sm:grid-cols-2 lg:grid-cols-4">
         <SummaryFact label="Submitted" value={`${view.counts.submitted} / ${view.counts.students}`} />
         <SummaryFact label="Draft grades" value={String(draftGrades)} />
         <SummaryFact label="Graded" value={String(view.counts.final)} />

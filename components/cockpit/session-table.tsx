@@ -97,7 +97,7 @@ export function SessionTable({ rows, maxScore }: { rows: JourneyGridRow[]; maxSc
         </div>
       </div>
 
-      <div className="mt-4 overflow-hidden border-y border-[var(--color-border)]">
+      <div className="mt-4 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[44rem] border-collapse text-left">
             <thead>

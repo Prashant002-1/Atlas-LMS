@@ -57,8 +57,8 @@ export default async function TeachAnnouncementsPage({ searchParams }: { searchP
       {rows.length > 0 ? (
         <AnnouncementList rows={rows} />
       ) : (
-        <div className="border-y border-[var(--color-border)]">
-          <EmptyState art="atlas" title="No announcements" detail="Publish the first announcement for this course." />
+        <div>
+          <EmptyState art="atlas" title="No announcements" />
         </div>
       )}
     </>
@@ -71,7 +71,6 @@ function NewAnnouncementDialog({ defaultOpen }: { defaultOpen: boolean }) {
       mode="create"
       triggerLabel="New announcement"
       title="New announcement"
-      description="Publish a timestamped message to everyone in the course. Markdown is supported for longer updates."
       triggerVariant="primary"
       defaultOpen={defaultOpen}
     >
@@ -82,9 +81,9 @@ function NewAnnouncementDialog({ defaultOpen }: { defaultOpen: boolean }) {
         </label>
         <label className="grid gap-1.5 text-[0.75rem] font-medium">
           Message
-          <textarea name="message" rows={12} required maxLength={4000} placeholder="Write the announcement..." className={`${fieldClass} min-h-64 resize-y py-3 leading-6`} />
+          <textarea name="message" rows={12} required maxLength={4000} className={`${fieldClass} min-h-64 resize-y py-3 leading-6`} />
         </label>
-        <div className="flex justify-end border-t border-[var(--color-border)] pt-4">
+        <div className="flex justify-end pt-4">
           <ActionButton>Publish announcement</ActionButton>
         </div>
       </form>

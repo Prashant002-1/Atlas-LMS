@@ -61,7 +61,6 @@ export default async function StudentOverviewPage() {
             <EmptyState
               art="horizon"
               title="Nothing due"
-              detail="No open assignment has a deadline ahead of you."
               action={<TextLink href="/student/calendar" className="text-[0.8125rem]">Open the calendar</TextLink>}
             />
           </div>
@@ -80,7 +79,7 @@ export default async function StudentOverviewPage() {
           </StaggerGrid>
         ) : (
           <div className="mt-2.5 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-            <EmptyState art="atlas" title="No courses" detail="You are not enrolled in anything yet." />
+            <EmptyState art="atlas" title="No courses" />
           </div>
         )}
       </section>

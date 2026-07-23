@@ -80,16 +80,13 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
       {workspace.materials.length > 0 ? <AssignmentMaterials materials={workspace.materials} /> : null}
 
       {sessionBundle ? (
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-y border-[var(--color-border)] py-3">
-          <div>
-            <p className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">AI assignment</p>
-            <p className="mt-0.5 text-[0.75rem] text-[var(--color-muted)]">Students complete this assignment in a session with Atlas.</p>
-          </div>
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 py-3">
+          <p className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">AI assignment</p>
           <ButtonLink href={`/teach/ai-assignments/${assignmentId}`} variant="secondary" size="sm">Sessions and grades</ButtonLink>
         </div>
       ) : null}
 
-      <dl className="mt-8 grid border-y border-[var(--color-border)] sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="mt-8 grid sm:grid-cols-2 lg:grid-cols-4">
         <SummaryFact label="Submitted" value={`${progress?.submitted ?? 0} / ${workspace.submissions.length}`} />
         <SummaryFact label="Graded" value={String(progress?.graded ?? 0)} />
         <SummaryFact label="Missing" value={String(progress?.missing ?? 0)} />
@@ -115,7 +112,7 @@ function PublishControl({ assignmentId }: { assignmentId: string }) {
 
 function AssignmentMaterials({ materials }: { materials: InstructorAssignmentWorkspace["materials"] }) {
   return (
-    <section aria-labelledby="course-material-heading" className="mt-6 max-w-4xl border-t border-[var(--color-border)] pt-4">
+    <section aria-labelledby="course-material-heading" className="mt-6 max-w-4xl pt-4">
       <h2 id="course-material-heading" className="text-[0.75rem] font-medium text-[var(--color-muted)]">Course material</h2>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-[0.8125rem]">
         {materials.map((material) => (
@@ -131,7 +128,7 @@ function AssignmentMaterials({ materials }: { materials: InstructorAssignmentWor
 function AssignmentEditDialog({ assignment }: { assignment: InstructorAssignment }) {
   if (!assignment.id) return null;
   return (
-    <RecordDialog mode="edit" triggerLabel="Edit assignment" title="Edit assignment" description="Update the assignment without exposing an editing form in the grading workspace." triggerVariant="secondary">
+    <RecordDialog mode="edit" triggerLabel="Edit assignment" title="Edit assignment" triggerVariant="secondary">
       <form action={updateAssignmentRecord} className="grid gap-4">
         <input type="hidden" name="assignmentId" value={assignment.id} />
         <input type="hidden" name="returnTo" value={`/teach/assignments/${assignment.id}`} />
@@ -154,7 +151,7 @@ function AssignmentEditDialog({ assignment }: { assignment: InstructorAssignment
             <input name="points" type="number" min={0.01} step="0.01" defaultValue={assignment.points ?? ""} className={fieldClass} />
           </label>
         </div>
-        <div className="flex justify-end border-t border-[var(--color-border)] pt-4"><ActionButton>Save assignment</ActionButton></div>
+        <div className="flex justify-end pt-4"><ActionButton>Save assignment</ActionButton></div>
       </form>
     </RecordDialog>
   );

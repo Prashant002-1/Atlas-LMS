@@ -2,11 +2,11 @@ import type { ReactNode } from "react";
 import { EMPTY_STATE_ART, type EmptyStateArt } from "@/components/atlas/illustrations";
 
 
-export function EmptyRecord({ title, detail }: { title: string; detail: string }) {
+export function EmptyRecord({ title, detail }: { title: string; detail?: string }) {
   return (
     <div className="py-5">
       <p className="text-[0.875rem] font-semibold text-[var(--color-ink)]">{title}</p>
-      <p className="mt-1 text-[0.8125rem] leading-5 text-[var(--color-muted)]">{detail}</p>
+      {detail ? <p className="mt-1 text-[0.8125rem] leading-5 text-[var(--color-muted)]">{detail}</p> : null}
     </div>
   );
 }
@@ -24,7 +24,7 @@ export function EmptyState({
 }: {
   art: EmptyStateArt;
   title: string;
-  detail: string;
+  detail?: string;
   action?: ReactNode;
 }) {
   const Art = EMPTY_STATE_ART[art];
@@ -32,7 +32,7 @@ export function EmptyState({
     <div className="flex flex-col items-center px-6 py-9 text-center">
       <Art className="text-[var(--color-faint)]" />
       <p className="mt-4 text-[0.875rem] font-semibold text-[var(--color-ink)]">{title}</p>
-      <p className="mt-1 max-w-sm text-[0.8125rem] leading-5 text-[var(--color-muted)]">{detail}</p>
+      {detail ? <p className="mt-1 max-w-sm text-[0.8125rem] leading-5 text-[var(--color-muted)]">{detail}</p> : null}
       {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );
@@ -102,4 +102,3 @@ export function ObjectiveChecklist({
     </fieldset>
   );
 }
-

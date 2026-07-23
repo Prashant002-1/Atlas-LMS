@@ -51,7 +51,7 @@ export function RubricCard({ title, criteria, compare, compact = false, classNam
 
   return (
     <div className={cn("overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)]", className)}>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3.5 py-2.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 bg-[var(--color-surface-muted)] px-3.5 py-2.5">
         <p className="min-w-0 text-[0.84375rem] font-semibold text-[var(--color-ink)]">{title ?? "Rubric"}</p>
         <p className="atlas-mono text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">
           {criteria.length} criteria · {totalWeight} pts
@@ -59,7 +59,7 @@ export function RubricCard({ title, criteria, compare, compact = false, classNam
         </p>
       </div>
 
-      <ul className={cn("divide-y divide-[var(--color-border)]", compact ? "" : "")}>
+      <ul className={cn("space-y-1", compact ? "" : "")}>
         {criteria.map((criterion) => {
           const entry = diffByKey.get(criterion.key) ?? null;
           const weightMoved = entry?.state === "changed" && entry.weightFrom !== null && entry.weightFrom !== entry.weightTo;
@@ -124,7 +124,7 @@ export function RubricCard({ title, criteria, compare, compact = false, classNam
       </ul>
 
       {diff && diff.removed.length > 0 ? (
-        <p className="border-t border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3.5 py-2 text-[0.71875rem] leading-4 text-[var(--color-muted)]">
+        <p className="bg-[var(--color-surface-muted)] px-3.5 py-2 text-[0.71875rem] leading-4 text-[var(--color-muted)]">
           Not carried over:{" "}
           {diff.removed.map((removed, index) => (
             <span key={removed.key}>

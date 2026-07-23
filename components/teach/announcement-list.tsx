@@ -40,7 +40,7 @@ export function AnnouncementList({ rows }: { rows: AnnouncementListRow[] }) {
         </label>
       </div>
 
-      <div className="mt-4 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+      <div className="mt-4 divide-y divide-[var(--color-border)]">
         {visibleRows.map((row) => (
           <Link
             key={row.id}

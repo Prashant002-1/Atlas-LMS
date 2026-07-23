@@ -39,11 +39,10 @@ export default async function TeachGradebookPage() {
       {columns.length > 0 && rows.length > 0 ? (
         <GradebookTable columns={columns} rows={rows} />
       ) : (
-        <div className="border-y border-[var(--color-border)]">
+        <div>
           <EmptyState
             art="atlas"
-            title="Nothing to grade yet"
-            detail={rows.length === 0 ? "No one is enrolled in this course yet." : "This course has no assignments yet."}
+            title={rows.length === 0 ? "No students" : "No assignments"}
           />
         </div>
       )}

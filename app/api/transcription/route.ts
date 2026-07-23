@@ -5,7 +5,7 @@ import { isTranscriptionConfigured, transcribeAudio } from "@/lib/ai/transcripti
 
 export const maxDuration = 60;
 
-const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
 const MAX_REQUEST_BYTES = MAX_AUDIO_BYTES + 64 * 1024;
 const MAX_TRANSCRIPT_CHARACTERS = 4000;
 const SUPPORTED_AUDIO_TYPES = new Set(["audio/wav", "audio/x-wav", "audio/wave"]);

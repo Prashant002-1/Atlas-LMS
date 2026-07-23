@@ -3,7 +3,7 @@ import { loadPlanningRoom } from "@/lib/instructor/cockpit";
 import { PageHeader } from "@/components/teach/page-header";
 import { PlanningRoom } from "@/components/planning/planning-room";
 
-/** Atlas occupies the working viewport. Threads and drafts stay in its optional rail. */
+/** Atlas occupies the working viewport. Chats and drafts stay in its optional rail. */
 export default async function TeachAtlasPage({
   searchParams,
 }: {
@@ -29,7 +29,7 @@ export default async function TeachAtlasPage({
     <PlanningRoom
       key={roomKey}
       threadId={activeId}
-      threadTitle={thread === "new" ? "New thread" : view.active?.title ?? "New thread"}
+      threadTitle={thread === "new" ? "New chat" : view.active?.title ?? "New chat"}
       course={view.course}
       initialMessages={thread === "new" ? [] : view.active?.messages ?? []}
       activeRunId={thread === "new" ? null : view.active?.activeRunId ?? null}

@@ -18,6 +18,7 @@ import { parseJourneyScores, type RubricCriterion, type RubricLevelName, type Si
 import { publicWorkflowRunId } from "@/lib/agent/run-claims";
 import { turnsFromSubmissionTranscript } from "@/lib/agent/grading";
 import type { UIMessage } from "ai";
+import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
 
 /**
  * Student session view, everything the session surface needs in one load.
@@ -77,7 +78,7 @@ export type StudentSessionView =
       sessionStartedAt: string | null;
       deadlineAt: string | null;
       activeRunId: string | null;
-      messages: UIMessage[];
+      messages: UIMessage<AtlasMessageMetadata>[];
       artifacts: StudentSessionArtifact[];
       sideNotes: SideNoteCard[];
       submitted: boolean;

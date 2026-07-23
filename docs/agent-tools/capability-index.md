@@ -6,7 +6,7 @@ This index answers "can Atlas do X?" for the live professor agent.
 
 | Job | Supported? | How |
 | --- | --- | --- |
-| Read course, roster, content, files, submissions, sessions, rubrics, policies, calendar facts, drafts, and threads | Yes | the matching `inspect_lms` resource |
+| Read course, roster, content, files, submissions, sessions, rubrics, policies, calendar facts, drafts, and chats | Yes | the matching `inspect_lms` resource |
 | Search assignments, modules, pages, files, announcements, and students | Yes | `search_course` |
 | Read course, assignment, roster, or individual-student grade data | Yes | `read_gradebook` |
 | Compute course or assignment grade distributions | Yes | `read_gradebook { view: "distribution" }` |

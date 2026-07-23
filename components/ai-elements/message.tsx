@@ -39,3 +39,28 @@ export function MessageContent({ className, children, ...props }: HTMLAttributes
     </div>
   );
 }
+
+export function MessageTimestamp({ createdAt }: { createdAt?: string }) {
+  if (!createdAt) return null;
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return null;
+  const label = date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  return (
+    <time
+      dateTime={date.toISOString()}
+      className={cn(
+        "min-h-4 text-[0.625rem] leading-4 text-[var(--color-faint)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
+        "group-[.is-user]:text-right group-[.is-assistant]:text-left"
+      )}
+    >
+      {label}
+    </time>
+  );
+}

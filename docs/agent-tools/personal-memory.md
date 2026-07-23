@@ -31,7 +31,7 @@ and [`lib/agent/student-atlas-runtime.ts`](../../lib/agent/student-atlas-runtime
 - An exact duplicate `add` is a quiet no-op ("Already noted.").
 - `replace` and `remove` archive the previous row (`status = archived`,
   `archived_at`, `replaces_id`) instead of deleting, so every change keeps
-  provenance, including the thread that made it (`source_session_id`).
+  provenance, including the chat that made it (`source_session_id`).
 - Results use the direct-action shape `{ ok, action: "remember", summary }`,
   so the rooms render a quiet receipt.
 

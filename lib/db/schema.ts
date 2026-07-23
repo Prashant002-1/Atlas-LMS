@@ -643,7 +643,7 @@ export const agentSessions = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    // Null for the personal profile: a personal thread belongs to a person in
+    // Null for the personal profile: a personal chat belongs to a person in
     // an organization, not to a course (ADR-0016).
     courseId: uuid("course_id").references(() => courses.id, { onDelete: "cascade" }),
     surface: agentSurfaceEnum("surface").notNull(),
@@ -664,6 +664,9 @@ export const agentSessions = pgTable(
     // Professor command sessions leave these fields null.
     deadlineAt: timestamp("deadline_at", { withTimezone: true }),
     deadlineRunId: text("deadline_run_id"),
+    // Atlas chats are never deleted. Archived chats leave the active rail but
+    // keep their turns, proposals, summaries, and provenance intact.
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -671,6 +674,7 @@ export const agentSessions = pgTable(
     index("agent_sessions_user_idx").on(t.userId, t.updatedAt),
     index("agent_sessions_anchor_idx").on(t.courseId, t.surface, t.anchorType, t.anchorId),
     index("agent_sessions_active_run_idx").on(t.activeRunId),
+    index("agent_sessions_archive_idx").on(t.orgId, t.userId, t.surface, t.archivedAt),
   ]
 );
 

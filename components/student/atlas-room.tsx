@@ -5,14 +5,14 @@ import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
 import { type UIMessage } from "ai";
 import { WorkflowChatTransport } from "@ai-sdk/workflow";
-import { CheckCircle2, History, PanelRightClose, PanelRightOpen, Plus } from "lucide-react";
+import { Archive, CheckCircle2, History, PanelRightClose, PanelRightOpen, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Conversation,
   ConversationContent,
   ConversationEmptyState,
 } from "@/components/ai-elements/conversation";
-import { Message, MessageContent } from "@/components/ai-elements/message";
+import { Message, MessageContent, MessageTimestamp } from "@/components/ai-elements/message";
 import { Response } from "@/components/ai-elements/response";
 import {
   messageHasVisibleOutput,
@@ -36,6 +36,10 @@ import {
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput, type ToolState } from "@/components/ai-elements/tool";
 import { AtlasMark } from "@/components/atlas/primitives";
+import { archiveStudentAtlasChat } from "@/lib/agent/chat-actions";
+import { atlasMessageMetadataNow, type AtlasMessageMetadata } from "@/lib/agent/ui-message";
+
+type StudentAtlasChatMessage = UIMessage<AtlasMessageMetadata>;
 
 export type StudentThreadRef = {
   id: string;
@@ -48,7 +52,7 @@ export type StudentAtlasRoomProps = {
   threadId: string;
   threadTitle: string;
   studentName: string;
-  initialMessages: UIMessage[];
+  initialMessages: StudentAtlasChatMessage[];
   activeRunId: string | null;
   threads: StudentThreadRef[];
   firstCourse: { id: string; code: string } | null;
@@ -132,7 +136,7 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
   const runStorageKey = `atlas-active-run:student:${props.threadId}`;
   const [steerQueue, setSteerQueue] = useState<string[]>([]);
   const steerQueueRef = useRef<string[]>([]);
-  const transport = useMemo(() => new WorkflowChatTransport<UIMessage>({
+  const transport = useMemo(() => new WorkflowChatTransport<StudentAtlasChatMessage>({
     api: "/api/atlas/student",
     prepareSendMessagesRequest: ({ messages: outgoing }) => ({
       body: {
@@ -160,7 +164,7 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
     else window.localStorage.removeItem(runStorageKey);
   }, [props.activeRunId, runStorageKey]);
 
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, status, error } = useChat<StudentAtlasChatMessage>({
     id: `student-atlas-${props.threadId}`,
     messages: props.initialMessages,
     resume: Boolean(props.activeRunId),
@@ -172,7 +176,7 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
       if (!next) return;
       steerQueueRef.current = rest;
       setSteerQueue(rest);
-      window.setTimeout(() => sendMessage({ text: next }), 0);
+      window.setTimeout(() => sendMessage({ text: next, metadata: atlasMessageMetadataNow() }), 0);
     },
   });
 
@@ -182,6 +186,7 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
       .map((message, index) => ({ id: message.id, label: promptCheckpointLabel(message, index) })),
     [messages]
   );
+  const sendStudentMessage = (text: string) => sendMessage({ text, metadata: atlasMessageMetadataNow() });
 
   const learnedThreadId = useMemo(() => threadIdFromMessages(messages), [messages]);
   const visibleThreads = useMemo(() => {
@@ -190,8 +195,8 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
     const firstText = (firstUserMessage?.parts as LoosePart[] | undefined)?.find(
       (part) => part.type === "text" && typeof part.text === "string"
     )?.text;
-    const compact = typeof firstText === "string" ? firstText.replace(/\s+/g, " ").trim() : "New thread";
-    const title = compact.length > 64 ? `${compact.slice(0, 61)}...` : compact || "New thread";
+    const compact = typeof firstText === "string" ? firstText.replace(/\s+/g, " ").trim() : "New chat";
+    const title = compact.length > 64 ? `${compact.slice(0, 61)}...` : compact || "New chat";
     return [
       { id: learnedThreadId, title, userTurnCount: 1, updatedAt: new Date().toISOString() },
       ...props.threads,
@@ -206,6 +211,7 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
   const activeThreadTitle =
     visibleThreads.find((thread) => thread.id === (learnedThreadId ?? props.threadId))?.title ?? props.threadTitle;
   const busy = status === "submitted" || status === "streaming";
+  const activeChatId = learnedThreadId ?? props.threadId;
   const lastMessage = messages[messages.length - 1];
   const awaitingReply = busy && !messageHasVisibleOutput(lastMessage);
   const firstName = props.studentName.split(/\s+/)[0] || "there";
@@ -242,10 +248,18 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            <Link href="/student/atlas?thread=new" aria-label="New thread" title="New thread" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
+            {activeChatId !== "new" ? (
+              <form action={archiveStudentAtlasChat}>
+                <input type="hidden" name="chatId" value={activeChatId} />
+                <button type="submit" disabled={busy} aria-label="Archive chat" title="Archive chat" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
+                  <Archive size={15} aria-hidden />
+                </button>
+              </form>
+            ) : null}
+            <Link href="/student/atlas?thread=new" aria-label="New chat" title="New chat" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
               <Plus size={16} aria-hidden />
             </Link>
-            <button type="button" onClick={() => updateRail(!railOpen)} aria-label={railOpen ? "Close threads" : "Open threads"} aria-expanded={railOpen} title={railOpen ? "Close threads" : "Threads"} className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
+            <button type="button" onClick={() => updateRail(!railOpen)} aria-label={railOpen ? "Close chats" : "Open chats"} aria-expanded={railOpen} title={railOpen ? "Close chats" : "Chats"} className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
               {railOpen ? <PanelRightClose size={16} aria-hidden /> : <PanelRightOpen size={16} aria-hidden />}
             </button>
           </div>
@@ -266,11 +280,11 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
                       </p>
                     </div>
                     <Suggestions className="justify-start">
-                      <Suggestion suggestion="What is due this week?" onClick={(text) => sendMessage({ text })} />
+                      <Suggestion suggestion="What is due this week?" onClick={sendStudentMessage} />
                       {props.firstCourse ? (
-                        <Suggestion suggestion={`Where am I losing points in ${props.firstCourse.code}?`} onClick={(text) => sendMessage({ text })} />
+                        <Suggestion suggestion={`Where am I losing points in ${props.firstCourse.code}?`} onClick={sendStudentMessage} />
                       ) : null}
-                      <Suggestion suggestion="Plan my studying for the next two weeks." onClick={(text) => sendMessage({ text })} />
+                      <Suggestion suggestion="Plan my studying for the next two weeks." onClick={sendStudentMessage} />
                     </Suggestions>
                   </div>
                 </ConversationEmptyState>
@@ -285,6 +299,7 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
                     <MessageContent>
                       <StudentMessageParts message={message} streaming={busy && index === messages.length - 1 && message.role === "assistant"} />
                     </MessageContent>
+                    <MessageTimestamp createdAt={message.metadata?.createdAt} />
                   </Message>
                 ))
               )}
@@ -307,7 +322,7 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
                 steerQueueRef.current = nextQueue;
                 setSteerQueue(nextQueue);
               } else {
-                sendMessage({ text });
+                sendStudentMessage(text);
               }
               const form = event.currentTarget;
               form.reset();
@@ -334,11 +349,11 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
         </div>
       </section>
 
-      {railOpen ? <button type="button" aria-label="Close threads" className="fixed inset-0 z-30 bg-black/30 lg:hidden" onClick={() => updateRail(false)} /> : null}
+      {railOpen ? <button type="button" aria-label="Close chats" className="fixed inset-0 z-30 bg-black/30 lg:hidden" onClick={() => updateRail(false)} /> : null}
       <aside aria-hidden={!railOpen} inert={!railOpen} className={cn("fixed inset-y-0 right-0 z-40 flex w-[min(22rem,92vw)] flex-col overflow-hidden border-l bg-[var(--color-surface)] shadow-[var(--shadow-floating)] transition-[transform,opacity,width,border-color] duration-[220ms] ease-out lg:static lg:z-auto lg:translate-x-0 lg:shadow-none", railOpen ? "translate-x-0 border-[var(--color-border)] opacity-100 lg:w-[21rem]" : "pointer-events-none translate-x-full border-transparent opacity-0 lg:w-0 lg:translate-x-0")}>
         <div className="flex h-14 w-[min(21rem,92vw)] shrink-0 items-center justify-between border-b border-[var(--color-border)] px-3">
-          <p className="px-2 text-[0.75rem] font-medium text-[var(--color-ink)]">Threads</p>
-          <button type="button" onClick={() => updateRail(false)} aria-label="Close threads" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"><PanelRightClose size={15} aria-hidden /></button>
+          <p className="px-2 text-[0.75rem] font-medium text-[var(--color-ink)]">Chats</p>
+          <button type="button" onClick={() => updateRail(false)} aria-label="Close chats" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"><PanelRightClose size={15} aria-hidden /></button>
         </div>
         <div className="min-h-0 w-[min(21rem,92vw)] flex-1 overflow-y-auto px-3 py-3">
           <ThreadsPanel threads={visibleThreads} activeId={learnedThreadId ?? props.threadId} />
@@ -410,7 +425,7 @@ function ThreadsPanel({ threads, activeId }: { threads: StudentThreadRef[]; acti
     return (
       <div className="px-2 py-8 text-center">
         <History size={18} className="mx-auto text-[var(--color-faint)]" aria-hidden />
-        <p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">No threads.</p>
+        <p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">No chats.</p>
       </div>
     );
   }
@@ -422,9 +437,6 @@ function ThreadsPanel({ threads, activeId }: { threads: StudentThreadRef[]; acti
           <li key={thread.id}>
             <Link href={`/student/atlas?thread=${thread.id}`} aria-current={active ? "page" : undefined} className={cn("block rounded-row px-2.5 py-2.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]", active ? "bg-[var(--color-surface-muted)]" : "hover:bg-[var(--color-surface-muted)]")}>
               <span className={cn("block truncate text-[0.78125rem]", active ? "font-medium text-[var(--color-ink)]" : "text-[var(--color-muted)]")}>{thread.title}</span>
-              <span className="mt-1 block text-[0.65625rem] text-[var(--color-faint)]">
-                {new Date(thread.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-              </span>
             </Link>
           </li>
         );

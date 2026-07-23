@@ -1,17 +1,18 @@
 import { generateText, type ModelMessage, type UIMessage } from "ai";
-import { and, asc, desc, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { agentSessions, agentTurns, changeProposals, proposalBlocks, type AgentSession } from "@/lib/db/schema";
 import { parseStoredBlock, type Block } from "@/lib/agent/blocks";
 import { agentProfiles } from "@/lib/agent/profiles";
 import { estimateTokens } from "@/lib/agent/context";
 import { fallbackModel } from "@/lib/ai/provider";
+import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
 
 /**
  * Sessions, persistent, anchored, compacted.
  *
  * Cue sessions are one per (user, course, surface, anchor). The professor's
- * command surface supports multiple durable course-scoped sessions, selected by
+ * command surface supports multiple durable course-scoped chats, selected by
  * id in the UI. History past the compaction threshold rolls into a summary;
  * recent turns travel verbatim. Identifiers (record ids, codes) are preserved
  * verbatim through compaction so grounding never drifts.
@@ -57,18 +58,19 @@ function commandSessionFilter(scope: CommandSessionScope) {
     eq(agentSessions.courseId, scope.courseId),
     eq(agentSessions.surface, professorProfile.surface),
     eq(agentSessions.anchorType, professorProfile.anchorType),
-    sql`${agentSessions.anchorId} IS NULL`
+    sql`${agentSessions.anchorId} IS NULL`,
+    isNull(agentSessions.archivedAt)
   );
 }
 
 function titleFromIntent(intent: string): string {
   const compact = intent.replace(/\s+/g, " ").trim();
-  if (!compact) return "Course command session";
+  if (!compact) return "Atlas chat";
   return compact.length > 64 ? `${compact.slice(0, 61)}...` : compact;
 }
 
 function sessionTitle(session: Pick<AgentSession, "title">): string {
-  return session.title?.trim() || "Course command session";
+  return session.title?.trim() || "Atlas chat";
 }
 
 export async function resumeOrCreateSession(scope: SessionScope): Promise<AgentSession> {
@@ -83,7 +85,8 @@ export async function resumeOrCreateSession(scope: SessionScope): Promise<AgentS
         eq(agentSessions.courseId, scope.courseId),
         eq(agentSessions.surface, scope.surface),
         eq(agentSessions.anchorType, scope.anchor.type),
-        anchorId ? eq(agentSessions.anchorId, anchorId) : sql`${agentSessions.anchorId} IS NULL`
+        anchorId ? eq(agentSessions.anchorId, anchorId) : sql`${agentSessions.anchorId} IS NULL`,
+        isNull(agentSessions.archivedAt)
       )
     )
     .orderBy(asc(agentSessions.createdAt))
@@ -114,7 +117,7 @@ export async function createCommandSession(scope: CommandSessionScope): Promise<
       surface: professorProfile.surface,
       anchorType: professorProfile.anchorType,
       anchorId: null,
-      title: "Course command session",
+      title: "Atlas chat",
     })
     .returning();
   return created;
@@ -140,7 +143,7 @@ export async function resumeLatestCommandSession(scope: CommandSessionScope): Pr
 }
 
 export async function titleCommandSessionFromIntent(session: AgentSession, intent: string): Promise<void> {
-  if (session.title?.trim() && session.title !== "Course command session") return;
+  if (session.title?.trim() && session.title !== "Course command session" && session.title !== "Atlas chat") return;
   if (session.totalTurns > 0) return;
   const title = titleFromIntent(intent);
   await db.update(agentSessions).set({ title, updatedAt: new Date() }).where(eq(agentSessions.id, session.id));
@@ -204,12 +207,13 @@ export type TurnRecord = {
   turnIndex: number;
   role: "user" | "assistant" | "tool";
   parts: unknown;
+  createdAt?: Date;
 };
 
 /** The verbatim turns the next run should carry (everything after the compaction mark). */
 export async function loadActiveTurns(session: AgentSession): Promise<TurnRecord[]> {
   const rows = await db
-    .select({ turnIndex: agentTurns.turnIndex, role: agentTurns.role, parts: agentTurns.parts })
+    .select({ turnIndex: agentTurns.turnIndex, role: agentTurns.role, parts: agentTurns.parts, createdAt: agentTurns.createdAt })
     .from(agentTurns)
     .where(and(eq(agentTurns.sessionId, session.id), gt(agentTurns.turnIndex, session.compactedThroughTurn)))
     .orderBy(asc(agentTurns.turnIndex));
@@ -301,12 +305,13 @@ export async function compactIfNeeded(session: AgentSession): Promise<void> {
 }
 
 /** Stored turns → UIMessages for client rendering (history hydration). */
-export function turnsToUIMessages(turns: TurnRecord[]): UIMessage[] {
+export function turnsToUIMessages(turns: TurnRecord[]): UIMessage<AtlasMessageMetadata>[] {
   return turns
     .filter((t) => t.role !== "tool")
     .map((t) => ({
       id: `turn-${t.turnIndex}`,
       role: t.role === "user" ? ("user" as const) : ("assistant" as const),
+      metadata: t.createdAt ? { createdAt: t.createdAt.toISOString() } : undefined,
       parts: Array.isArray(t.parts) ? (t.parts as UIMessage["parts"]) : [{ type: "text" as const, text: String(t.parts ?? "") }],
     }));
 }

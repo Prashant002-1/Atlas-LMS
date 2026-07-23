@@ -41,7 +41,7 @@ Definition of done:
 
 Completed:
 
-- Kept and cleaned the reusable substrate: `agentSessions`, `agentTurns`, `changeProposals`, `proposalBlocks`, `courseAiPolicies`, BYOK, context-pack discipline, and the apply gate.
+- Kept and cleaned the reusable substrate: `agentSessions`, `agentTurns`, `changeProposals`, `proposalBlocks`, `courseAiPolicies`, the platform provider registry, context-pack discipline, and the apply gate.
 - Added the v0 fixture contract and typed payloads for scenario slots, session assignment, rubric, student sessions, artifact states, side-note cards, evidence spans, journey reports, class rollup, and validation.
 - Replaced the old multi-course catalog with a single active ECON-241 demo world: one professor, 31 students, current mid-semester workload, active latest note, full session transcripts, journey reports, and deterministic rollups.
 - Seed now loads the active demo package plus current-schema agent sessions, turns, proposals, and proposal blocks.
@@ -92,7 +92,7 @@ Built:
 
 - Native rows: `evidence_spans` (verbatim quotes located by turn + char offsets, string-verified before storage), `journey_reports` (per-criterion `{level, score, rationale, evidenceSpans[]}`, draft until the professor finalizes, grader provenance recorded), `class_rollups` (one per course + assignment). Migration `drizzle/0002_v0_grading_pipeline.sql`; `db:push` equivalent.
 - The pipeline (`lib/agent/grading.ts`), per criterion: extract candidate quotes from STUDENT turns only -> verify every quote by exact string match against the frozen transcript, with one feedback re-extraction on total failure, then drop -> judge the level from the criterion's own descriptors plus verified evidence with surrounding context and the frozen artifact -> score is the rubric level's points, a deterministic mapping; the model never picks a number. No verifiable evidence stores a Missing-level draft for professor review; a model failure aborts the run and stores nothing (a grading outage never grades a student down).
-- Decisions at this door, resolved: single-model grading shipped; the council (3 models + chair synthesis) stays deferred behind the `judgeCriterion` seam until final-grade stakes warrant it. Grading runs synchronously on submit through the org BYOK model; `npm run regrade` covers pending/forced regrades and the calibration pilot.
+- Decisions at this door, resolved: single-model grading shipped; the council (3 models + chair synthesis) stays deferred behind the `judgeCriterion` seam until final-grade stakes warrant it. Grading runs synchronously on submit through Atlas's platform model; `npm run regrade` covers pending/forced regrades and the calibration pilot.
 - Class rollups (`lib/agent/rollup.ts`): deterministic aggregation over stored reports and side notes (criterion level counts, average/median, side-note topic fire counts, review requests), computed by code and never asserted; the narrative is a template sentence built from those numbers, with an optional model paraphrase that may only repeat them and falls back to the template.
 - Student payoff: the session page renders the journey report (four criteria, levels, rubric points, rationale, verified evidence quotes with the surrounding exchange one click away) plus a "Request professor review" chip that stamps the report for the Phase 4 queue. Draft reports say so: the professor confirms before it counts.
 - Seed lands the graded world: 112 evidence spans and 28 journey reports (20 final where the gradebook shows a grade, 8 draft) for the frozen sessions, and a class rollup computed through the same aggregation code the live pipeline uses. Seeded gradebook scores now EQUAL their journey report sums (Strong 100, Steady 80, Recoverer 86, Struggling 49, Delegator 34), with a fixture check pinning the invariant; delegation earning almost nothing is the story, not a bug.
@@ -105,7 +105,7 @@ Definition of done:
 
 Follow-up validation, owned by Phase 5:
 
-- One live calibration run with a real model key: `npm run regrade -- --all` over the 28 seeded transcripts, then eyeball archetype plausibility (the calibration pilot against professor blind grades comes before anyone calls it a grade).
+- One live calibration run with platform model credentials: `npm run regrade -- --all` over the 28 seeded transcripts, then eyeball archetype plausibility (the calibration pilot against professor blind grades comes before anyone calls it a grade).
 
 ## Phase 4 - Professor surfaces
 
@@ -131,7 +131,7 @@ Definition of done:
 
 Follow-up validation, owned by Phase 5:
 
-- A live end-to-end walk with a real model key and seeded db: edit a weight, watch v2 appear; open a draft journey, spot-check highlighted evidence, finalize; refresh insight; propose the practice set and apply it in Review.
+- A live end-to-end walk with platform model credentials and seeded db: edit a weight, watch v2 appear; open a draft journey, spot-check highlighted evidence, finalize; refresh insight; propose the practice set and apply it in Review.
 
 ## Phase 5 - Polish and recording
 
@@ -144,7 +144,7 @@ Build:
 - Use the active demo world as the source of truth unless the scenario changes.
 - Keep only on-camera polish in scope.
 - Run the live grading calibration over the 28 seeded transcripts before presenting output as a grade.
-- Walk the full seeded loop with a real model key: revise a rubric, inspect and finalize a draft journey, refresh class insight, then propose and apply the practice set.
+- Walk the full seeded loop with platform model credentials: revise a rubric, inspect and finalize a draft journey, refresh class insight, then propose and apply the practice set.
 - Record against the real seeded data and the same live product path used for interviews.
 
 Definition of done:

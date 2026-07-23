@@ -19,7 +19,7 @@ The student agent must be a real manifestation of the professor without turning 
 
 ### 1. The existing course-agent boundary remains load-bearing
 
-Every accepted student turn continues to resolve the active version of `course_agent_configs` inside the authenticated organization and course. The route verifies the student role, active enrollment, assignment contract, submission state, turn budget, and institution model before generation.
+Every accepted student turn continues to resolve the active version of `course_agent_configs` inside the authenticated organization and course. The route verifies the student role, active enrollment, assignment contract, submission state, turn budget, and Atlas platform model before generation.
 
 `compileCourseAgentConfiguration` supplies the professor-defined identity, voice, teaching approach, answer policy, challenge level, citations, boundaries, limits, and enabled rules. Fixed assessed-session rules and the assignment contract remain higher authority. Configuration cannot add tools, widen scope, reveal other students, or weaken the rule that the student produces the submission.
 

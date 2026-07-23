@@ -4,7 +4,7 @@ import { start } from "workflow/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { agentSessions, agentTurns } from "@/lib/db/schema";
-import { resolveModelForOrg } from "@/lib/agent/keys";
+import { resolvePlatformModel } from "@/lib/ai/platform-model";
 import { loadActiveCourseAgentConfig } from "@/lib/agent/course-agent-config";
 import { persistSessionTurn } from "@/lib/agent/session-store";
 import { workflowStreamResponse } from "@/lib/agent/workflow-stream";
@@ -127,10 +127,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ ass
     );
   }
 
-  const resolved = await resolveModelForOrg(user.orgId);
+  const resolved = resolvePlatformModel();
   if (!resolved) {
     return NextResponse.json(
-      { error: "Atlas is temporarily unavailable for this institution. Contact your administrator." },
+      { error: "Atlas's model runtime is temporarily unavailable. Please try again later." },
       { status: 503 }
     );
   }

@@ -14,7 +14,7 @@ import {
   submitSessionRecord,
 } from "@/lib/agent/session-store";
 import { runGradingForSubmission } from "@/lib/agent/grading";
-import { resolveModelForOrg } from "@/lib/agent/keys";
+import { resolvePlatformModel } from "@/lib/ai/platform-model";
 import { journeyReports } from "@/lib/db/schema";
 
 export async function submitAssignment(formData: FormData) {
@@ -154,7 +154,7 @@ export async function submitSession(formData: FormData) {
   // undoes the submission: the report stays pending and can be regraded
   // (npm run regrade) once the cause is fixed.
   try {
-    const resolved = await resolveModelForOrg(user.orgId);
+    const resolved = resolvePlatformModel();
     if (resolved) {
       await runGradingForSubmission({
         orgId: user.orgId,

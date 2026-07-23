@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { agentSessions, journeyReports } from "@/lib/db/schema";
 import { loadActiveCourseAgentConfig } from "@/lib/agent/course-agent-config";
 import { runGradingForSubmission } from "@/lib/agent/grading";
-import { resolveModelForOrg } from "@/lib/agent/keys";
+import { resolvePlatformModel } from "@/lib/ai/platform-model";
 import { buildSessionInstructions, buildSessionPack } from "@/lib/agent/session-context";
 import { turnsToUIMessages } from "@/lib/agent/session";
 import {
@@ -46,7 +46,7 @@ export async function concludeExpiredSession(args: { orgId: string; sessionId: s
   const bundle = await loadSessionAssignmentBundle(args.orgId, session.anchorId);
   if (!bundle) throw new Error("Session assignment contract not found.");
 
-  let resolved = await resolveModelForOrg(args.orgId);
+  let resolved = resolvePlatformModel();
   let submission = await getSessionSubmission(args.orgId, session.id);
 
   if (!submission) {
@@ -113,7 +113,7 @@ export async function concludeExpiredSession(args: { orgId: string; sessionId: s
     .limit(1);
 
   if (!existingReport) {
-    resolved ??= await resolveModelForOrg(args.orgId);
+    resolved ??= resolvePlatformModel();
     if (resolved) {
       await runGradingForSubmission({
         orgId: args.orgId,

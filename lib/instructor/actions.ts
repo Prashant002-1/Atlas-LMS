@@ -20,6 +20,7 @@ import {
 import { isInstructorLike } from "@/lib/auth/session";
 import { findEditableCourse } from "@/lib/instructor/workspace";
 import { applyProposal, dismissProposal } from "@/lib/agent/apply";
+import { createCommandSession, titleCommandSessionFromIntent } from "@/lib/agent/session";
 
 export async function createModuleRecord(formData: FormData) {
   const user = await requireInstructorActor();
@@ -541,6 +542,8 @@ export async function reviewCourseProposal(formData: FormData) {
   }
 
   let redirectTo = "/teach/review";
+  const requestedReturnTo = String(formData.get("returnTo") ?? "");
+  const returnTo = requestedReturnTo === "/teach/review" || requestedReturnTo.startsWith("/teach/review?") ? requestedReturnTo : null;
   if (decision === "approved") {
     const applied = await applyProposal({ orgId: user.orgId, courseId: course.id, userId: user.id, proposalId });
     const first = applied[0];
@@ -555,8 +558,9 @@ export async function reviewCourseProposal(formData: FormData) {
   }
 
   revalidatePath("/teach");
+  revalidatePath("/teach/review");
   revalidatePath("/student");
-  redirect(redirectTo);
+  redirect(returnTo ?? redirectTo);
 }
 
 /**
@@ -617,10 +621,7 @@ export async function updateCourseAiPolicy(formData: FormData) {
   redirect("/teach/settings");
 }
 
-/**
- * Post an announcement: a one-way course post, published on creation with
- * the posting time as its record fact. There is no inbox and no thread.
- */
+/** One announcement record. Future posting times become visible by query time. */
 export async function createAnnouncementRecord(formData: FormData) {
   const user = await requireInstructorActor();
   const course = await findEditableCourse({ id: user.id, orgId: user.orgId, role: user.role });
@@ -630,6 +631,21 @@ export async function createAnnouncementRecord(formData: FormData) {
 
   const title = compactField(formData.get("title"), "Announcement title is required.", 200);
   const message = optionalLongField(formData.get("message"), 4000);
+  if (!message) {
+    throw new Error("Announcement message is required.");
+  }
+  const intent = String(formData.get("intent") ?? "now");
+  let postedAt = new Date();
+  if (intent === "scheduled") {
+    const scheduledFor = String(formData.get("scheduledFor") ?? "");
+    const scheduledDate = new Date(scheduledFor);
+    if (Number.isNaN(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now()) {
+      throw new Error("Choose a future date and time for the announcement.");
+    }
+    postedAt = scheduledDate;
+  } else if (intent !== "now") {
+    throw new Error("Invalid announcement publication choice.");
+  }
 
   await db.insert(announcements).values({
     orgId: user.orgId,
@@ -637,13 +653,42 @@ export async function createAnnouncementRecord(formData: FormData) {
     authorId: user.id,
     title,
     messageMd: message,
-    postedAt: new Date(),
+    postedAt,
     published: true,
   });
 
   revalidatePath("/teach");
   revalidatePath("/student");
   redirect("/teach/announcements");
+}
+
+/** Open a durable professor thread with an announcement request ready to send. */
+export async function startAnnouncementDraftThread(formData: FormData) {
+  const user = await requireInstructorActor();
+  const course = await findEditableCourse({ id: user.id, orgId: user.orgId, role: user.role });
+  if (!course) {
+    throw new Error("No editable course found for this instructor.");
+  }
+
+  const subject = optionalCompactField(formData.get("subject"), 200);
+  const brief = optionalLongField(formData.get("brief"), 2000);
+  if (!brief) {
+    throw new Error("Describe what students need to know.");
+  }
+
+  const prompt = [
+    `Help me write one announcement for ${course.code}.`,
+    subject ? `Subject: ${subject}` : null,
+    `What students need to know: ${brief}`,
+    "Do not post it until I explicitly confirm the final wording.",
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
+  const thread = await createCommandSession({ orgId: user.orgId, userId: user.id, courseId: course.id });
+  await titleCommandSessionFromIntent(thread, prompt);
+
+  const query = new URLSearchParams({ thread: thread.id, prompt });
+  redirect(`/teach/atlas?${query.toString()}`);
 }
 
 /**

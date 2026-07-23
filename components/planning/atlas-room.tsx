@@ -78,6 +78,8 @@ export type PlanningRoomProps = {
   drafts: PlanningDraftRef[];
   work: PlanningWorkRef[];
   pendingProposals: number;
+  /** Optional composer seed from a direct course workflow. Never auto-submitted. */
+  initialInput?: string;
 };
 
 const STATUS_TONE = { pending: "accent", approved: "good", rejected: "neutral", applied: "good" } as const;
@@ -472,7 +474,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
               >
                 <Plus size={16} aria-hidden />
               </PromptInputButton>
-              <PromptInputTextarea className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-1.5 py-[0.8125rem]" placeholder={busy ? "Steer Atlas..." : "Ask Atlas..."} autoFocus />
+              <PromptInputTextarea defaultValue={props.initialInput} className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-1.5 py-[0.8125rem]" placeholder={busy ? "Steer Atlas..." : "Ask Atlas..."} autoFocus />
               <PromptInputToolbar className="shrink-0 justify-end gap-0.5 px-1.5 py-1.5">
                 <PromptInputTools>
                   <VoiceTranscriptionButton onError={setVoiceError} onStateChange={setVoiceState} />

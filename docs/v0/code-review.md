@@ -16,7 +16,7 @@ Roughly **55-65% survived as KEEP or ADAPT - but what survived is plumbing and p
 | Academic core: terms, courses, enrollments, assignments | ADAPT | The course-record anchor survives; shrink the unused breadth (quizzes, calendarEvents, assignmentGroups, moduleItems) for a one-course v0 |
 | submissions | DISCARD as-is | One row per (assignment, user) with scalar score/grade; no room for transcript, per-criterion scores, or evidence. The new shape is different in kind |
 | Alignment Graph (learningObjectives, outcomes, alignments) | ADAPT | Demoted to substrate per the new Vision; outcome codes remain the rubric-drafting source |
-| courseAiPolicies | ADAPT | Closest ancestor of the policy primitive, but per-COURSE and shaped for cue gating. v0 needs per-ASSIGNMENT policy with grounding scope and side-note controls. Unique index on courseId alone confirms the gap |
+| courseAiPolicies | ADAPT | Closest ancestor of the policy primitive, but per-COURSE and shaped for cue gating. v0 needs a per-assignment contract for grounding scope and side-note triggers. Instructor transcript access and personal-record notes later became fixed platform behavior. Unique index on courseId alone confirms the gap |
 | agentSessions / agentTurns | ADAPT | Nearly the session primitive already: anchored, persistent, FTS-indexed turns, compaction. Needs a session kind (professor planning vs student live) and artifact-state tracking |
 | changeProposals / proposalBlocks | ADAPT | Propose-never-perform as rows is exactly right; every registered block type is course-authoring content. No session-assignment, artifact-state, grade, or journey blocks exist |
 | cueEvents | DISCARD | Rate-limiting for cue buttons; the new loop has no cue buttons |

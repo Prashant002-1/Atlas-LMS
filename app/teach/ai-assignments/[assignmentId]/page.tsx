@@ -33,7 +33,7 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
     (sum, criterion) => sum + criterion.levels.reduce((max, level) => Math.max(max, level.score), 0),
     0
   );
-  const draftGrades = view.counts.draft + view.counts.reviewRequested;
+  const draftGrades = view.counts.draft;
   const changeWithAtlasHref = atlasChangeHref(
     view.contract.planningSessionId,
     `Review the session contract and rubric for ${view.assignment.name} with me. Wait for my specific changes before updating the assignment.`
@@ -57,11 +57,11 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
         <span>{view.contract.durationMinutes} minute session</span>
       </div>
 
-      <section aria-label="Assignment setup" className="mt-8 grid gap-7 py-6 lg:grid-cols-2 lg:gap-0">
-        <div className="lg:pr-8">
+      <section aria-label="Assignment setup" className="mt-7 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+        <div>
           <AssignmentSettings contract={view.contract} changeHref={changeWithAtlasHref} />
         </div>
-        <div className="border-t border-[var(--color-border)] pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+        <div>
           <RubricSummary criteria={view.rubric.criteria} version={view.rubric.version} changeHref={changeWithAtlasHref} />
         </div>
       </section>

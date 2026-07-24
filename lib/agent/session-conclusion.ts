@@ -1,9 +1,8 @@
 import { convertToModelMessages, generateText } from "ai";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { agentSessions, journeyReports } from "@/lib/db/schema";
+import { agentSessions } from "@/lib/db/schema";
 import { loadActiveCourseAgentConfig } from "@/lib/agent/course-agent-config";
-import { runGradingForSubmission } from "@/lib/agent/grading";
 import { resolvePlatformModel } from "@/lib/ai/platform-model";
 import { buildSessionInstructions, buildSessionPack } from "@/lib/agent/session-context";
 import { turnsToUIMessages } from "@/lib/agent/session";
@@ -29,9 +28,9 @@ function hasDeadlineConclusion(turns: Awaited<ReturnType<typeof loadFullSessionT
 }
 
 /**
- * Close, submit, and draft-grade an elapsed assessed session. Every operation
+ * Close and submit an elapsed assessed session. Every operation
  * is record-first and idempotent so a workflow replay cannot create a second
- * submission, conclusion, or report.
+ * submission or conclusion. The deadline workflow owns grading afterward.
  */
 export async function concludeExpiredSession(args: { orgId: string; sessionId: string }) {
   const [session] = await db
@@ -46,7 +45,7 @@ export async function concludeExpiredSession(args: { orgId: string; sessionId: s
   const bundle = await loadSessionAssignmentBundle(args.orgId, session.anchorId);
   if (!bundle) throw new Error("Session assignment contract not found.");
 
-  let resolved = resolvePlatformModel();
+  const resolved = resolvePlatformModel();
   let submission = await getSessionSubmission(args.orgId, session.id);
 
   if (!submission) {
@@ -81,7 +80,7 @@ export async function concludeExpiredSession(args: { orgId: string; sessionId: s
                   {
                     type: "text",
                     text: [
-                      "The instructor-set time limit has elapsed. Conclude the assessed session now.",
+                      "The time has elapsed. Conclude the assessed session now.",
                       "Do not ask another question and do not invite more work in this session.",
                       "Briefly summarize what the student demonstrated and what remained unfinished, using only this transcript.",
                       "State that the work is being submitted automatically and that the rubric result is a reviewable draft, with a fair evidence trail and a way to request instructor review.",
@@ -106,24 +105,6 @@ export async function concludeExpiredSession(args: { orgId: string; sessionId: s
 
     const studentName = await studentDisplayName(args.orgId, session.userId);
     ({ submission } = await submitSessionRecord({ session, bundle, studentName }));
-  }
-
-  const [existingReport] = await db
-    .select({ id: journeyReports.id })
-    .from(journeyReports)
-    .where(and(eq(journeyReports.orgId, args.orgId), eq(journeyReports.submissionId, submission.id)))
-    .limit(1);
-
-  if (!existingReport) {
-    resolved ??= resolvePlatformModel();
-    if (resolved) {
-      await runGradingForSubmission({
-        orgId: args.orgId,
-        submissionId: submission.id,
-        model: resolved.model,
-        graderLabel: `${resolved.provider}:${resolved.modelId}`,
-      });
-    }
   }
 
   return { submissionId: submission.id };

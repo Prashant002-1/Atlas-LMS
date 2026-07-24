@@ -40,6 +40,40 @@ export type ChatModelSpec = {
   baseURL?: string;
 };
 
+const DEFAULT_COMPACTION_INPUT_THRESHOLD_TOKENS = 160_000;
+const COMPACTION_CONTEXT_FRACTION = 0.5;
+const COMPACTION_SUMMARY_MIN_FRACTION = 0.1;
+const COMPACTION_SUMMARY_TARGET_FRACTION = 0.125;
+const COMPACTION_SUMMARY_MAX_FRACTION = 0.15;
+
+export type CompactionSummaryTokenBudget = {
+  sourceTokens: number;
+  minTokens: number;
+  targetTokens: number;
+  maxTokens: number;
+};
+
+/** Context windows Atlas can identify from provider model ids. */
+const MODEL_CONTEXT_WINDOWS: ReadonlyArray<{ patterns: readonly string[]; tokens: number }> = [
+  {
+    patterns: [
+      "claude-fable-5",
+      "claude-mythos-5",
+      "claude-mythos-preview",
+      "claude-opus-4-8",
+      "claude-opus-4-7",
+      "claude-opus-4-6",
+      "claude-sonnet-5",
+      "claude-sonnet-4-6",
+    ],
+    tokens: 1_000_000,
+  },
+  {
+    patterns: ["claude-3-7-sonnet", "claude-sonnet-4-5", "claude-opus-4-5", "claude-haiku-4-5"],
+    tokens: 200_000,
+  },
+];
+
 /** Best-effort built-in model ids. All overridable via env; opencode/compat must set ATLAS_CHAT_MODEL. */
 const BUILTIN_CHAT_MODEL: Record<ChatProviderKind, string> = {
   openrouter: "openai/gpt-4.1",
@@ -86,6 +120,38 @@ export function createChatModel(spec: ChatModelSpec): LanguageModel {
       })(spec.modelId);
     }
   }
+}
+
+function languageModelId(model: LanguageModel): string {
+  return typeof model === "string" ? model : model.modelId;
+}
+
+/** Known provider context capacity, or undefined when the model id is not in Atlas's registry. */
+export function modelContextWindowTokens(model: LanguageModel): number | undefined {
+  const modelId = languageModelId(model).toLowerCase();
+  return MODEL_CONTEXT_WINDOWS.find(({ patterns }) => patterns.some((pattern) => modelId.includes(pattern)))?.tokens;
+}
+
+/** Compact at half the known context window; unknown models use the safe 160k fallback. */
+export function compactionInputThresholdTokens(model: LanguageModel): number {
+  const contextWindow = modelContextWindowTokens(model);
+  return contextWindow
+    ? Math.floor(contextWindow * COMPACTION_CONTEXT_FRACTION)
+    : DEFAULT_COMPACTION_INPUT_THRESHOLD_TOKENS;
+}
+
+/** Allocate 10% to 15% of the pre-compaction input to the continuation summary. */
+export function compactionSummaryTokenBudget(inputTokens?: number): CompactionSummaryTokenBudget {
+  const sourceTokens =
+    inputTokens !== undefined && Number.isFinite(inputTokens) && inputTokens > 0
+      ? Math.floor(inputTokens)
+      : DEFAULT_COMPACTION_INPUT_THRESHOLD_TOKENS;
+  return {
+    sourceTokens,
+    minTokens: Math.floor(sourceTokens * COMPACTION_SUMMARY_MIN_FRACTION),
+    targetTokens: Math.floor(sourceTokens * COMPACTION_SUMMARY_TARGET_FRACTION),
+    maxTokens: Math.floor(sourceTokens * COMPACTION_SUMMARY_MAX_FRACTION),
+  };
 }
 
 function googleApiKeyFromEnv(): string | undefined {

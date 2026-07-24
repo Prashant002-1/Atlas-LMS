@@ -112,7 +112,7 @@ test("professor, assessed-session, and student runtimes compose search with thei
 
   assert.match(assessed, /loadActiveOrgAgentPolicy/);
   assert.match(assessed, /courseAgent\.configuration\.externalSearch/);
-  assert.match(assessed, /update_structured_response: updateStructuredResponse/);
+  assert.match(assessed, /update_artifact: updateArtifact/);
   assert.match(assessed, /\.\.\.webSearch\.tools/);
 
   assert.match(personal, /applicableStudentSearchCourseIds/);

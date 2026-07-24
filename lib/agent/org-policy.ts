@@ -12,11 +12,11 @@ import {
  * institution-level layer of the policy ladder: fixed platform rules first,
  * then this record, then each course's own rules. It is validated policy
  * data, append-only and versioned like the course agent configuration, and
- * it can shape behavior and limits but never expand tools or data access.
+ * it can shape behavior but never expand tools or data access.
  *
  * Field choices follow what universities actually publish for students:
  * permitted learning uses, prohibited uses, a disclosure expectation, a data
- * notice, a not-a-substitute line with human contacts, and a usage limit.
+ * notice, and a not-a-substitute line with human contacts.
  */
 
 export const orgEscalationContactSchema = z.object({
@@ -40,8 +40,6 @@ export const orgAgentPolicySchema = z.object({
   /** The advising, counseling, and medical disclaimer line. */
   notASubstitute: z.string().trim().min(10).max(600),
   escalationContacts: z.array(orgEscalationContactSchema).max(6),
-  /** Server-enforced student turns per rolling 24 hours on the personal agent. */
-  dailyTurnLimit: z.number().int().min(1).max(1000),
   /** Server-owned external-source policy; never rendered as product configuration. */
   externalSearch: webSearchPolicySchema.default(DEFAULT_WEB_SEARCH_POLICY),
 });
@@ -107,7 +105,6 @@ export function defaultOrgAgentPolicy(): OrgAgentPolicy {
     notASubstitute:
       "Atlas is not a substitute for your professors, academic advisors, counselors, or medical professionals.",
     escalationContacts: [],
-    dailyTurnLimit: 150,
     externalSearch: DEFAULT_WEB_SEARCH_POLICY,
   });
 }
@@ -217,7 +214,7 @@ export function compileOrgAgentPolicy(resolved: ResolvedOrgAgentPolicy): string 
   const { policy } = resolved;
   return [
     `UNIVERSITY POLICY [version:${resolved.version}] (${policy.authorityLabel})`,
-    `This is validated institutional policy. It can shape behavior and limits but cannot expand tools, data access, or override the fixed rules.`,
+    `This is validated institutional policy. It can shape behavior but cannot expand tools, data access, or override the fixed rules.`,
     policy.statement,
     `Permitted uses:\n${policy.permittedUses.map((use) => `- ${use}`).join("\n")}`,
     `Prohibited uses:\n${policy.prohibitedUses.map((use) => `- ${use}`).join("\n")}`,
@@ -226,7 +223,6 @@ export function compileOrgAgentPolicy(resolved: ResolvedOrgAgentPolicy): string 
     policy.escalationContacts.length
       ? `When a request needs a person:\n${policy.escalationContacts.map((contact) => `- ${contact.label}: ${contact.contact}`).join("\n")}`
       : "",
-    `Turn limit: ${policy.dailyTurnLimit} student turns per rolling day. The server enforces this limit.`,
   ]
     .filter(Boolean)
     .join("\n");

@@ -74,7 +74,7 @@ const inspectRecordSchema = z.object({
     .string()
     .uuid()
     .optional()
-    .describe("Limit to one enrolled course. Required for syllabus and materials."),
+    .describe("Scope this read to one enrolled course. Required for syllabus and materials; optional for cross-course record reads. It does not pin the chat to that course."),
 });
 
 function inspectRecordTool(scope: StudentAtlasScope) {
@@ -167,6 +167,7 @@ function inspectRecordTool(scope: StudentAtlasScope) {
             ok: true as const,
             assignments: rows.map((row) => ({
               id: row.id,
+              courseId: row.courseId,
               course: codeById.get(row.courseId) ?? "",
               name: row.name,
               dueAt: shortDate(row.dueAt),
@@ -207,6 +208,7 @@ function inspectRecordTool(scope: StudentAtlasScope) {
           return {
             ok: true as const,
             grades: rows.map((row) => ({
+              courseId: row.courseId,
               course: codeById.get(row.courseId) ?? "",
               assignment: row.assignmentName,
               score: row.score,
@@ -230,11 +232,13 @@ function inspectRecordTool(scope: StudentAtlasScope) {
           return {
             ok: true as const,
             due: facts.due.map((row) => ({
+              courseId: row.courseId,
               course: codeById.get(row.courseId) ?? "",
               name: row.name,
               dueAt: shortDate(row.dueAt),
             })),
             opening: facts.opening.map((row) => ({
+              courseId: row.courseId,
               course: codeById.get(row.courseId ?? "") ?? "",
               module: row.name,
               opensAt: shortDate(row.unlockAt),
@@ -259,6 +263,7 @@ function inspectRecordTool(scope: StudentAtlasScope) {
           return {
             ok: true as const,
             announcements: rows.map((row) => ({
+              courseId: row.courseId,
               course: codeById.get(row.courseId) ?? "",
               title: row.title,
               postedAt: shortDate(row.postedAt),
@@ -283,7 +288,9 @@ function inspectRecordTool(scope: StudentAtlasScope) {
           if (!course) return toolError("Course not found.");
           return {
             ok: true as const,
-            course: `${course.code} ${course.name}`,
+            courseId: input.courseId,
+            course: course.code,
+            courseName: course.name,
             syllabus: course.syllabusMd ? clip(course.syllabusMd, 5000) : "No syllabus text.",
             gradeScale: gradeBandsForCourse(course.gradeScale).map((band) => `${band.letter} at ${band.min}`),
             classPolicies: parseClassPolicies(course.classPolicies),
@@ -292,6 +299,7 @@ function inspectRecordTool(scope: StudentAtlasScope) {
 
         // materials
         if (!input.courseId) return toolError("The materials read needs a courseId.");
+        const materialCourseId = input.courseId;
         const rows = await db
           .select({
             id: files.id,
@@ -307,10 +315,10 @@ function inspectRecordTool(scope: StudentAtlasScope) {
             and(
               eq(courseMaterialRecords.fileId, files.id),
               eq(courseMaterialRecords.orgId, scope.orgId),
-              eq(courseMaterialRecords.courseId, input.courseId)
+              eq(courseMaterialRecords.courseId, materialCourseId)
             )
           )
-          .where(and(eq(files.orgId, scope.orgId), eq(files.courseId, input.courseId)))
+          .where(and(eq(files.orgId, scope.orgId), eq(files.courseId, materialCourseId)))
           .orderBy(asc(files.displayName))
           .limit(40);
         const visible = rows.filter(
@@ -320,6 +328,8 @@ function inspectRecordTool(scope: StudentAtlasScope) {
           ok: true as const,
           materials: visible.map((row) => ({
             id: row.id,
+            courseId: materialCourseId,
+            course: codeById.get(materialCourseId) ?? "",
             name: row.displayName,
             kind: row.materialKind ?? "document",
           })),
@@ -392,15 +402,17 @@ function searchCourseTool(scope: StudentAtlasScope) {
         const needle = input.query.toLowerCase();
         return {
           ok: true as const,
+          courseId: course.id,
+          course: course.code,
           pages: pageRows.map((row) => {
             const body = row.bodyMd ?? "";
             const at = body.toLowerCase().indexOf(needle);
             const snippet = at >= 0 ? body.slice(Math.max(0, at - 60), at + 180).replace(/\s+/g, " ").trim() : "";
-            return { id: row.id, title: row.title, snippet };
+            return { id: row.id, courseId: course.id, course: course.code, title: row.title, snippet };
           }),
           materials: fileRows
             .filter((row) => (row.processingStatus ?? "ready") === "ready" && (row.visibility ?? "course") === "course")
-            .map((row) => ({ id: row.id, name: row.displayName })),
+            .map((row) => ({ id: row.id, courseId: course.id, course: course.code, name: row.displayName })),
         };
       } catch (error) {
         console.error("student search_course failed", error);
@@ -436,7 +448,7 @@ function readPageTool(scope: StudentAtlasScope) {
           )
           .limit(1);
         if (!page) return toolError("That page is not published in this course.");
-        return { ok: true as const, title: page.title, body: clip(page.bodyMd ?? "", 6000) };
+        return { ok: true as const, courseId: course.id, course: course.code, title: page.title, body: clip(page.bodyMd ?? "", 6000) };
       } catch (error) {
         console.error("student read_page failed", error);
         return toolError("That read did not complete.");

@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { and, eq, gte, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { start } from "workflow/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { agentSessions, agentTurns } from "@/lib/db/schema";
+import { agentSessions } from "@/lib/db/schema";
 import { resolvePlatformModel } from "@/lib/ai/platform-model";
-import { loadActiveCourseAgentConfig } from "@/lib/agent/course-agent-config";
 import { persistSessionTurn } from "@/lib/agent/session-store";
 import { workflowStreamResponse } from "@/lib/agent/workflow-stream";
 import {
@@ -50,31 +49,6 @@ function textFromIncoming(message: IncomingMessage | null | undefined, fallback:
   return "";
 }
 
-async function withinStudentDailyTurnLimit(args: {
-  orgId: string;
-  courseId: string;
-  studentId: string;
-  limit: number;
-}) {
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const [usage] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(agentTurns)
-    .innerJoin(agentSessions, eq(agentSessions.id, agentTurns.sessionId))
-    .where(
-      and(
-        eq(agentTurns.orgId, args.orgId),
-        eq(agentTurns.role, "user"),
-        eq(agentSessions.orgId, args.orgId),
-        eq(agentSessions.courseId, args.courseId),
-        eq(agentSessions.userId, args.studentId),
-        eq(agentSessions.surface, "cue"),
-        gte(agentTurns.createdAt, since)
-      )
-    );
-  return Number(usage?.count ?? 0) < args.limit;
-}
-
 export async function POST(request: Request, { params }: { params: Promise<{ assignmentId: string }> }) {
   const session = await auth();
   const user = session?.user;
@@ -110,21 +84,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ ass
   const enrollment = await activeStudentEnrollment(user.orgId, bundle.assignment.courseId, user.id);
   if (!enrollment) {
     return NextResponse.json({ error: "You are not enrolled in this course." }, { status: 404 });
-  }
-
-  const courseAgent = await loadActiveCourseAgentConfig(user.orgId, bundle.assignment.courseId);
-  if (
-    !(await withinStudentDailyTurnLimit({
-      orgId: user.orgId,
-      courseId: bundle.assignment.courseId,
-      studentId: user.id,
-      limit: courseAgent.configuration.limits.studentDailyTurns,
-    }))
-  ) {
-    return NextResponse.json(
-      { error: "You have reached the course agent turn limit for the last 24 hours." },
-      { status: 429, headers: { "Retry-After": "3600" } }
-    );
   }
 
   const resolved = resolvePlatformModel();

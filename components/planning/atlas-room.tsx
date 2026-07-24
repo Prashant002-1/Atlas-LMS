@@ -130,7 +130,6 @@ type AiAssignmentDraftOutput = {
   assignmentName: string;
   instructions: string;
   durationMinutes: number;
-  personalRecordSideNotes: boolean;
   criteria: RubricCriterion[];
   usedStandardFrame: boolean;
   note: string | null;

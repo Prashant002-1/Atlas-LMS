@@ -78,8 +78,8 @@ export async function buildSessionPack(args: {
       `Brief: ${bundle.config.instructions}`,
       `Duration: about ${bundle.config.durationMinutes} minutes.`,
       `Grounding scope: ${(Array.isArray(bundle.config.groundingScope) ? (bundle.config.groundingScope as string[]) : []).join(", ") || "course material"}.`,
-      `The full assessed-session transcript is part of the instructor-visible course record.`,
-      `Personal-record side notes: ${bundle.config.personalRecordSideNotes ? "ON (the server may surface cards from the student's own record)" : "OFF"}.`,
+      `The instructor can review the complete session transcript.`,
+      `The server may surface side-note cards from this student's own record.`,
     ].join("\n")
   );
 
@@ -88,14 +88,12 @@ export async function buildSessionPack(args: {
   const recordLines = Object.entries(topicRecords).map(
     ([topic, record]) => `${topic}: ${record.score}/${record.max} on ${record.examLabel}`
   );
-  if (bundle.config.personalRecordSideNotes) {
-    push(
-      "student_record",
-      recordLines.length
-        ? ["THIS STUDENT'S OWN RECORD (visible to the student; never share other students' data)", ...recordLines].join("\n")
-        : ""
-    );
-  }
+  push(
+    "student_record",
+    recordLines.length
+      ? ["THIS STUDENT'S OWN RECORD (visible to the student; never share other students' data)", ...recordLines].join("\n")
+      : ""
+  );
 
   if (bundle.config.planningSessionId) {
     const [planning] = await db
@@ -142,9 +140,9 @@ export function buildSessionInstructions(args: {
     `These rules and the assignment contract override the course configuration whenever they conflict.`,
     `1. Never produce the deliverable for the student. If asked to just give the design or the answer, decline in one sentence and hand the move back with a question. Delegated work earns nothing under the rubric, and you may say so.`,
     `2. Ask one focused question at a time. Make the student frame the problem before solution talk unless the assignment itself requires a different sequence.`,
-    `3. When the student produces or revises substantive assignment content, capture the current submission draft. Use update_pricing_table only when the deliverable is genuinely a pricing plan; otherwise use update_structured_response. Record the student's own claims, decisions, evidence, wording, and numbers. Do not improve the submission silently. Include a short revisionNote on every revision after the first.`,
-    `4. When the submission draft stabilizes, test it against the brief and rubric before accepting it. Push on the weakest claim, assumption, method, or decision that applies to this assignment, and reward revision over defensiveness.`,
-    `5. Use the ready course material in the context pack as the primary source for course facts. Never invent course facts, grades, policies, sources, or professor plans.`,
+    `3. When the student produces or revises substantive assignment content, capture the current submission draft with update_artifact. Structure the artifact around this assignment's actual deliverable. Record the student's own claims, decisions, evidence, wording, and numbers. Do not improve the submission silently. After the first revision, include a short revisionNote describing what changed; it appears with the draft in both the student session and instructor review.`,
+    `4. When the submission draft stabilizes, pressure-test it against the brief and rubric before treating it as the student's final submission draft. This is tutoring before submission, not grading. Push on the weakest claim, assumption, method, or decision that applies to this assignment, and reward revision over defensiveness.`,
+    `5. Stay grounded in the ready course material in the context pack. Never invent course facts, grades, policies, sources, or professor plans.`,
     `6. Side-note cards may appear in the student's margin, injected by the platform from their own record. If the student refers to one, engage with it naturally. Never fabricate such claims yourself.`,
     `7. If the student asks what a good session looks like, summarize the rubric criteria plainly.`,
     `8. Keep replies short: a few sentences plus one question. This is a conversation, not a lecture.`,

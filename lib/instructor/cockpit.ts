@@ -80,7 +80,6 @@ export type JourneyGridRow = {
   /** criterionKey -> level, in rubric order, when a report exists. */
   levels: Array<{ key: string; name: string; level: RubricLevelName }> | null;
   submittedAt: string | null;
-  reviewRequestedAt: string | null;
 };
 
 export type JourneyGridCounts = {
@@ -88,7 +87,6 @@ export type JourneyGridCounts = {
   submitted: number;
   final: number;
   draft: number;
-  reviewRequested: number;
   pendingGrading: number;
   inSession: number;
   notStarted: number;
@@ -115,7 +113,6 @@ export type AssignmentCockpitView =
         instructions: string;
         durationMinutes: number;
         groundingScope: string[];
-        personalRecordSideNotes: boolean;
         planningSessionId: string | null;
       };
       rubric: { id: string; version: number; criteria: RubricCriterion[]; hasReports: boolean };
@@ -148,7 +145,6 @@ export type DrillInReport = {
   overallScore: number;
   maxScore: number;
   graderLabel: string | null;
-  reviewRequestedAt: string | null;
   finalizedAt: string | null;
   finalizedByName: string | null;
   createdAt: string;
@@ -230,7 +226,6 @@ async function loadJourneyGrid(
         id: journeyReports.id,
         status: journeyReports.status,
         overallScore: journeyReports.overallScore,
-        reviewRequestedAt: journeyReports.reviewRequestedAt,
         scores: journeyReports.scores,
       },
     })
@@ -269,7 +264,6 @@ async function loadJourneyGrid(
     const state = deriveJourneyState({
       hasSubmission: Boolean(submission),
       reportStatus: report ? report.status : null,
-      reviewRequested: Boolean(report?.reviewRequestedAt),
       hasOpenSession: openSessionUsers.has(student.userId),
     });
 
@@ -291,7 +285,6 @@ async function loadJourneyGrid(
       overallScore: report ? report.overallScore : null,
       levels,
       submittedAt: submission ? submission.submittedAt.toISOString() : null,
-      reviewRequestedAt: report?.reviewRequestedAt ? report.reviewRequestedAt.toISOString() : null,
     };
   });
 
@@ -305,7 +298,6 @@ async function loadJourneyGrid(
     submitted: grid.filter((row) => row.submissionId).length,
     final: grid.filter((row) => row.state === "final").length,
     draft: grid.filter((row) => row.state === "draft").length,
-    reviewRequested: grid.filter((row) => row.state === "review_requested").length,
     pendingGrading: grid.filter((row) => row.state === "pending_grading").length,
     inSession: grid.filter((row) => row.state === "in_session").length,
     notStarted: grid.filter((row) => row.state === "not_started").length,
@@ -339,7 +331,7 @@ export async function loadAssignmentCockpit(actor: Actor | null | undefined, ass
   if (rollupRow) {
     const stats = classRollupStatsSchema.safeParse(rollupRow.stats);
     if (stats.success) {
-      const gradedNow = counts.final + counts.draft + counts.reviewRequested;
+      const gradedNow = counts.final + counts.draft;
       insight = {
         stats: stats.data,
         narrative: rollupRow.narrativeDraft,
@@ -384,7 +376,6 @@ export async function loadAssignmentCockpit(actor: Actor | null | undefined, ass
       instructions: bundle.config.instructions,
       durationMinutes: bundle.config.durationMinutes,
       groundingScope: Array.isArray(bundle.config.groundingScope) ? (bundle.config.groundingScope as string[]) : [],
-      personalRecordSideNotes: bundle.config.personalRecordSideNotes,
       planningSessionId: bundle.config.planningSessionId,
     },
     rubric: {
@@ -542,7 +533,6 @@ function buildDrillInReport(
     overallScore: report.overallScore,
     maxScore: criteria.reduce((sum, criterion) => sum + criterion.maxScore, 0),
     graderLabel: report.graderLabel,
-    reviewRequestedAt: report.reviewRequestedAt ? report.reviewRequestedAt.toISOString() : null,
     finalizedAt: report.finalizedAt ? report.finalizedAt.toISOString() : null,
     finalizedByName,
     createdAt: report.createdAt.toISOString(),
@@ -680,7 +670,6 @@ export type AiAssignmentIndexRow = {
   pointsPossible: number | null;
   published: boolean;
   durationMinutes: number;
-  personalRecordSideNotes: boolean;
   rubricVersion: number;
   criteriaCount: number;
   /** Null for drafts (unpublished work has no sessions by construction). */
@@ -693,7 +682,6 @@ export type AiAssignmentPolicyFacts = {
   allowPractice: boolean;
   allowQuestions: boolean;
   citationsRequired: boolean;
-  studentDailyLimit: number;
 };
 
 export type AiAssignmentIndexView =
@@ -723,7 +711,6 @@ export async function loadAiAssignmentIndex(actor?: Actor | null): Promise<AiAss
     .select({
       assignmentId: sessionAssignments.assignmentId,
       durationMinutes: sessionAssignments.durationMinutes,
-      personalRecordSideNotes: sessionAssignments.personalRecordSideNotes,
       name: assignments.name,
       dueAt: assignments.dueAt,
       pointsPossible: assignments.pointsPossible,
@@ -751,7 +738,6 @@ export async function loadAiAssignmentIndex(actor?: Actor | null): Promise<AiAss
       pointsPossible: config.pointsPossible,
       published: config.published,
       durationMinutes: config.durationMinutes,
-      personalRecordSideNotes: config.personalRecordSideNotes,
       rubricVersion: config.rubricVersion,
       criteriaCount: parseRubricCriteria(config.rubricCriteria)?.length ?? 0,
       counts,
@@ -765,7 +751,6 @@ export async function loadAiAssignmentIndex(actor?: Actor | null): Promise<AiAss
       allowPractice: courseAiPolicies.allowPractice,
       allowQuestions: courseAiPolicies.allowQuestions,
       citationsRequired: courseAiPolicies.citationsRequired,
-      studentDailyLimit: courseAiPolicies.studentDailyLimit,
     })
     .from(courseAiPolicies)
     .where(and(eq(courseAiPolicies.orgId, orgId), eq(courseAiPolicies.courseId, course.id)))

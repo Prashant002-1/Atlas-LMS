@@ -46,8 +46,8 @@ Student-facing behavior is governed by a ladder, strictest first:
    (`org_agent_policies`), owned by the institution (student success or
    academic affairs). Typed fields follow what universities actually publish:
    permitted learning uses, prohibited uses, disclosure expectation, a data
-   notice, a not-a-substitute line, escalation contacts, and a daily turn
-   limit. The highest version is active; a code default applies when an
+   notice, a not-a-substitute line, and escalation contacts. The highest
+   version is active; a code default applies when an
    organization has not written one.
 3. Course rules, the existing `course_agent_configs` object. Rules already
    carry `appliesTo: ["study", "assignment"]`; the personal agent applies each
@@ -56,8 +56,8 @@ Student-facing behavior is governed by a ladder, strictest first:
    the fixed rules state that the strictest applicable layer wins.
 
 Enforcement stays architectural, not rhetorical: route guards check role,
-enrollment, organization, and the university policy switch; the turn limits are
-counted server side; every tool executor repeats organization and enrollment
+enrollment, organization, and the university policy switch; every tool executor
+repeats organization and enrollment
 predicates; the model never sees a write path beyond its typed tools.
 
 External search follows the same ladder without becoming course-actor

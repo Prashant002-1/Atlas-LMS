@@ -13,6 +13,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ass
   return NextResponse.json({
     submitted: view.submitted,
     reportReady: Boolean(view.report),
+    grading: view.grading,
     activeRunId: view.activeRunId,
     deadlineAt: view.deadlineAt,
   });

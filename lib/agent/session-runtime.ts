@@ -95,28 +95,22 @@ export async function runSessionTurn(args: {
   const priorArtifacts = await listArtifactStates(session.orgId, session.id);
   let revision = priorArtifacts.length;
 
-  const recordArtifactRevision = (artifactType: "pricing_table" | "structured_response", state: unknown) => {
-    const parsed = updateArtifactInputSchema.safeParse({ artifactType, state });
+  const recordArtifactRevision = (state: unknown) => {
+    const parsed = updateArtifactInputSchema.safeParse({ artifactType: "structured_response", state });
     if (!parsed.success) return { ok: false as const, revision };
     revision += 1;
     return { ok: true as const, revision };
   };
 
-  const updatePricingTable = tool({
+  const updateArtifact = tool({
     description:
-      "Snapshot the student's current pricing-table submission draft when they produce or revise a genuine pricing-plan deliverable. Preserve the student's decisions, wording, and numbers; include revisionNote after the first revision.",
-    inputSchema: sessionArtifactToolSchemas.update_pricing_table,
-    execute: async (state) => recordArtifactRevision("pricing_table", state),
-  });
-
-  const updateStructuredResponse = tool({
-    description:
-      "Snapshot the student's current submission draft for an ordinary non-pricing assignment. Preserve the student's claims, evidence, wording, and decisions; include revisionNote after the first revision.",
-    inputSchema: sessionArtifactToolSchemas.update_structured_response,
-    execute: async (state) => recordArtifactRevision("structured_response", state),
+      "Snapshot the student's current submission draft for this assignment. Structure the artifact around the actual deliverable and preserve the student's claims, evidence, wording, decisions, and numbers. Include revisionNote after the first revision.",
+    inputSchema: sessionArtifactToolSchemas.update_artifact,
+    execute: async (state) => recordArtifactRevision(state),
   });
 
   const modelMessages = await convertToModelMessages(history);
+  let peakInputTokens: number | undefined;
 
   const stream = createUIMessageStream<SessionUIMessage>({
     execute: ({ writer }) => {
@@ -129,11 +123,15 @@ export async function runSessionTurn(args: {
         instructions,
         messages: modelMessages,
         tools: {
-          update_pricing_table: updatePricingTable,
-          update_structured_response: updateStructuredResponse,
+          update_artifact: updateArtifact,
           ...webSearch.tools,
         },
         stopWhen: isStepCount(4),
+        onStepEnd: ({ usage }) => {
+          if (usage.inputTokens !== undefined) {
+            peakInputTokens = Math.max(peakInputTokens ?? 0, usage.inputTokens);
+          }
+        },
       });
 
       const createdAt = new Date().toISOString();
@@ -151,7 +149,7 @@ export async function runSessionTurn(args: {
       if (parts.length === 0) return;
       const assistantTurnIndex = await persistSessionTurn(session, "assistant", parts);
       await persistArtifactStates(session, assistantTurnIndex, artifactUpdatesFromParts(parts));
-      await compactIfNeeded(session);
+      await compactIfNeeded(session, { model: args.model, inputTokens: peakInputTokens });
     },
   });
 

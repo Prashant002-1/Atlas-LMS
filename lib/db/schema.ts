@@ -82,7 +82,17 @@ export const agentTurnRoleEnum = pgEnum("agent_turn_role", ["user", "assistant",
 export const cueTargetEnum = pgEnum("cue_target", ["assignment", "module", "page", "course", "org"]);
 export const explanationDepthEnum = pgEnum("explanation_depth", ["hint", "guided", "full"]);
 export const sessionSubmissionStatusEnum = pgEnum("session_submission_status", ["submitted", "graded"]);
+export const sessionGradingStatusEnum = pgEnum("session_grading_status", [
+  "pending",
+  "queued",
+  "running",
+  "retrying",
+  "completed",
+  "failed",
+]);
 export const journeyReportStatusEnum = pgEnum("journey_report_status", ["draft", "final"]);
+
+export type SessionGradingStatus = (typeof sessionGradingStatusEnum.enumValues)[number];
 
 /* ──────────────────── 1. tenancy & auth ─────────────────── */
 
@@ -626,7 +636,6 @@ export const courseAiPolicies = pgTable(
     personaStyle: text("persona_style"),
     // The professor's own guidance, injected verbatim into student-facing runs.
     customInstructions: text("custom_instructions"),
-    studentDailyLimit: integer("student_daily_limit").notNull().default(40),
     // Opt-in, aggregated struggle signal back to the professor. Never surveillance.
     shareStruggleSignal: boolean("share_struggle_signal").notNull().default(false),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -793,9 +802,9 @@ export const rubrics = pgTable(
 /**
  * Session assignments, the per-ASSIGNMENT policy and contract object. Where
  * course_ai_policies governs the course-wide study surface, this row governs
- * one assessed work session: duration, grounding scope, the personal-record
- * side-note toggle, and the professor-sanctioned side-note triggers.
- * `planningSessionId` records provenance: the professor's planning
+ * one assessed work session: duration, grounding scope, and the professor-sanctioned
+ * side-note triggers. Transcripts are always instructor-accessible and personal-record
+ * side notes are always active. `planningSessionId` records provenance: the professor's planning
  * session with the agent that this configuration came out of.
  */
 export const sessionAssignments = pgTable(
@@ -818,8 +827,6 @@ export const sessionAssignments = pgTable(
     durationMinutes: integer("duration_minutes").notNull().default(30),
     // Display labels for what the session may ground on, e.g. ["Syllabus", "Weeks 4-6"].
     groundingScope: jsonb("grounding_scope").notNull().default([]),
-    // The professor toggle that gates every personal-record side note.
-    personalRecordSideNotes: boolean("personal_record_side_notes").notNull().default(false),
     // Professor-sanctioned triggers: [{ topic, keywords[], sourcePageSlug? }].
     // Drafted during planning, approved with the assignment; the runtime never
     // invents a trigger that is not in this list.
@@ -916,6 +923,9 @@ export const sessionSubmissions = pgTable(
     turnCount: integer("turn_count").notNull().default(0),
     rubricId: uuid("rubric_id").references(() => rubrics.id, { onDelete: "set null" }),
     rubricVersion: integer("rubric_version").notNull().default(1),
+    gradingStatus: sessionGradingStatusEnum("grading_status").notNull().default("pending"),
+    gradingWorkflowRunId: text("grading_workflow_run_id"),
+    gradingAttempt: integer("grading_attempt").notNull().default(0),
     submittedAt: timestamp("submitted_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
@@ -971,7 +981,7 @@ export const evidenceSpans = pgTable(
  * per-criterion {level, score, rationale, evidenceSpans[]} where score comes
  * from the rubric's own level descriptors, never from the model choosing a
  * number. Reports are DRAFTS until the professor finalizes them (AI drafts,
- * educator publishes); the student may request review on a draft.
+ * educator publishes).
  */
 export const journeyReports = pgTable(
   "journey_reports",
@@ -1005,7 +1015,6 @@ export const journeyReports = pgTable(
     status: journeyReportStatusEnum("status").notNull().default("draft"),
     // Provenance: which model graded this draft ("openai:gpt-4.1"), or "seed".
     graderLabel: text("grader_label"),
-    reviewRequestedAt: timestamp("review_requested_at", { withTimezone: true }),
     // The publish audit: AI drafts, the educator publishes. Who confirmed the
     // grade and when; null while the report is a draft.
     finalizedAt: timestamp("finalized_at", { withTimezone: true }),

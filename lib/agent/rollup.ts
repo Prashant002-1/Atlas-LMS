@@ -21,7 +21,6 @@ export const classRollupStatsSchema = z.object({
   overallAverage: z.number(),
   overallMedian: z.number(),
   sideNoteTopicCounts: z.record(z.string(), z.number().int().nonnegative()),
-  reviewRequestedCount: z.number().int().nonnegative(),
 });
 
 export type ClassRollupStats = z.infer<typeof classRollupStatsSchema>;
@@ -29,7 +28,6 @@ export type ClassRollupStats = z.infer<typeof classRollupStatsSchema>;
 export type RollupReportInput = {
   scores: unknown;
   overallScore: number;
-  reviewRequestedAt: Date | string | null;
 };
 
 export type RollupSideNoteInput = {
@@ -49,11 +47,9 @@ export function computeClassRollupStats(input: {
 }): ClassRollupStats {
   const criterionCounts: Record<string, Record<RubricLevelName, number>> = {};
   const overallScores: number[] = [];
-  let reviewRequestedCount = 0;
 
   for (const report of input.reports) {
     overallScores.push(report.overallScore);
-    if (report.reviewRequestedAt) reviewRequestedCount += 1;
     const scores = parseJourneyScores(report.scores);
     if (!scores) continue;
     for (const [criterionKey, grade] of Object.entries(scores)) {
@@ -92,7 +88,6 @@ export function computeClassRollupStats(input: {
     overallAverage,
     overallMedian,
     sideNoteTopicCounts,
-    reviewRequestedCount,
   };
 }
 
@@ -120,10 +115,6 @@ export function buildRollupNarrative(stats: ClassRollupStats): string {
   if (topics.length > 0) {
     const [topic, count] = topics[0];
     sentences.push(`The ${topic} side note fired in ${count} sessions.`);
-  }
-
-  if (stats.reviewRequestedCount > 0) {
-    sentences.push(`${stats.reviewRequestedCount} review request${stats.reviewRequestedCount === 1 ? "" : "s"} pending.`);
   }
 
   return sentences.join(" ");
@@ -162,7 +153,6 @@ export async function recomputeClassRollup(args: {
     .select({
       scores: journeyReports.scores,
       overallScore: journeyReports.overallScore,
-      reviewRequestedAt: journeyReports.reviewRequestedAt,
     })
     .from(journeyReports)
     .where(

@@ -46,21 +46,23 @@ test("artifact updates extract from tool parts and reject junk", () => {
   };
   const updates = artifactUpdatesFromParts([
     { type: "text", text: "hello" },
+    { type: "tool-update_artifact", state: "output-available", input: structuredState },
     { type: "tool-update_pricing_table", state: "output-available", input: pricingState },
     { type: "tool-update_structured_response", state: "input-available", input: structuredState },
     { type: "tool-update_artifact", state: "output-available", input: { artifactType: "pricing_table", state: pricingState } },
     { type: "tool-update_pricing_table", state: "input-streaming", input: pricingState },
     { type: "tool-update_artifact", state: "output-available", input: { artifactType: "pricing_table", state: { nope: 1 } } },
   ]);
-  assert.equal(updates.length, 3);
-  assert.deepEqual(updates.map((update) => update.artifactType), ["pricing_table", "structured_response", "pricing_table"]);
-  const pricingUpdate = updates[0];
-  if (pricingUpdate.artifactType !== "pricing_table") assert.fail("first update should be a pricing table");
+  assert.equal(updates.length, 4);
+  assert.deepEqual(updates.map((update) => update.artifactType), ["structured_response", "pricing_table", "structured_response", "pricing_table"]);
+  const pricingUpdate = updates[1];
+  if (pricingUpdate.artifactType !== "pricing_table") assert.fail("second update should be a pricing table");
   assert.equal(pricingUpdate.state.tiers[0].name, "Basic");
   assert.deepEqual(artifactUpdatesFromParts("not an array"), []);
 });
 
 test("model-visible artifact tools serialize without union composition", () => {
+  assert.deepEqual(Object.keys(sessionArtifactToolSchemas), ["update_artifact"]);
   for (const [name, schema] of Object.entries(sessionArtifactToolSchemas)) {
     const json = JSON.stringify(z.toJSONSchema(schema));
     for (const keyword of ["anyOf", "oneOf", "allOf"]) {

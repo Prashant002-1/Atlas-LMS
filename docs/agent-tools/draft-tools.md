@@ -17,7 +17,6 @@ Creates one pending AI assignment proposal for an existing ordinary assignment.
   assignmentId: string; // UUID
   brief: string;        // 10 to 2,000
   durationMinutes?: number; // integer 5 to 240, default 30
-  personalRecordSideNotes?: boolean; // default false
   criteria?: RubricDraftCriterion[]; // 2 to 8
   note?: string; // maximum 400
 }
@@ -59,7 +58,6 @@ No `rubrics`, `session_assignments`, or `assignments` row is changed until apply
   assignmentName: string;
   instructions: string;
   durationMinutes: number;
-  personalRecordSideNotes: boolean;
   criteria: RubricCriterion[];
   usedStandardFrame: boolean;
   note: string | null;

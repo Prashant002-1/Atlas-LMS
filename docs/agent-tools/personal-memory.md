@@ -21,7 +21,7 @@ and [`lib/agent/student-atlas-runtime.ts`](../../lib/agent/student-atlas-runtime
 
 ## Behavior
 
-- The active store is hard-capped in code: at most 40 entries and 2,200 total
+- The active store is hard-capped in code: at most 80 entries and 4,400 total
   characters per person per profile. An over-budget `add` or `replace` returns
   a structured error telling the agent to consolidate first; the model cannot
   argue past the cap.

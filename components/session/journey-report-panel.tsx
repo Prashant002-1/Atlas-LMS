@@ -1,4 +1,3 @@
-import { requestJourneyReview } from "@/lib/student/actions";
 import { cn } from "@/lib/utils";
 import type { StudentJourneyReportView } from "@/lib/student/session-view";
 
@@ -11,11 +10,9 @@ const levelColor = {
 
 export function JourneyReportPanel({
   report,
-  assignmentId,
   compact = false,
 }: {
   report: StudentJourneyReportView;
-  assignmentId: string;
   compact?: boolean;
 }) {
   if (compact) {
@@ -30,7 +27,7 @@ export function JourneyReportPanel({
             </p>
           </div>
           <p className="text-right text-[0.6875rem] leading-4 text-[var(--color-faint)]">
-            {report.status === "final" ? "Posted by your professor" : "Draft grade"}
+            {report.status === "final" ? "Final grade" : "Draft grade"}
           </p>
         </div>
         <div className="mt-3 space-y-1">
@@ -56,7 +53,6 @@ export function JourneyReportPanel({
             </details>
           ))}
         </div>
-        <ReviewControl report={report} assignmentId={assignmentId} compact />
       </section>
     );
   }
@@ -71,7 +67,7 @@ export function JourneyReportPanel({
             <span className="text-[0.875rem] font-normal text-[var(--color-muted)]"> / {Math.round(report.maxScore)}</span>
           </p>
         </div>
-        <p className="text-[0.75rem] text-[var(--color-muted)]">{report.status === "final" ? "Posted by your professor" : "Draft grade"}</p>
+        <p className="text-[0.75rem] text-[var(--color-muted)]">{report.status === "final" ? "Final grade" : "Draft grade"}</p>
       </div>
 
       <div className="mt-5 space-y-1">
@@ -105,38 +101,6 @@ export function JourneyReportPanel({
           </article>
         ))}
       </div>
-      <ReviewControl report={report} assignmentId={assignmentId} />
     </section>
-  );
-}
-
-function ReviewControl({
-  report,
-  assignmentId,
-  compact = false,
-}: {
-  report: StudentJourneyReportView;
-  assignmentId: string;
-  compact?: boolean;
-}) {
-  return (
-    <div className={cn("flex flex-wrap items-center gap-3", compact ? "mt-3 justify-start" : "mt-4 justify-end")}>
-      {report.reviewRequestedAt ? (
-        <p className="text-[0.71875rem] text-[var(--color-muted)]">
-          Professor review requested {new Date(report.reviewRequestedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-        </p>
-      ) : (
-        <form action={requestJourneyReview}>
-          <input type="hidden" name="reportId" value={report.id} />
-          <input type="hidden" name="assignmentId" value={assignmentId} />
-          <button
-            type="submit"
-            className="inline-flex min-h-8 items-center rounded-control border border-[var(--color-border-strong)] px-2.5 text-[0.75rem] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-ink)] hover:text-[var(--color-ink)]"
-          >
-            Request professor review
-          </button>
-        </form>
-      )}
-    </div>
   );
 }

@@ -276,7 +276,6 @@ Exception handling handles errors gracefully during execution. If an error occur
     personaName: "The Code Architect",
     personaStyle: "Precise, structural, focusing on clean code practices and tracing logic flow.",
     customInstructions: "Do not provide complete code blocks or solutions. Instead, prompt the student with logical questions, traceback interpretations, or pseudocode snippets to guide their learning process.",
-    studentDailyLimit: 50,
     shareStruggleSignal: true,
   },
 };

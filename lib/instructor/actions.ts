@@ -582,7 +582,6 @@ export async function updateCourseAiPolicy(formData: FormData) {
 
   const depthRaw = String(formData.get("explanationDepth") ?? "guided");
   const explanationDepth = depthRaw === "hint" || depthRaw === "full" ? depthRaw : "guided";
-  const dailyLimit = positiveNumberField(formData.get("studentDailyLimit"));
   const personaName = optionalCompactField(formData.get("personaName"), 80);
   const personaStyle = optionalLongField(formData.get("personaStyle"), 600);
   const customInstructions = optionalLongField(formData.get("customInstructions"), 2000);
@@ -600,7 +599,6 @@ export async function updateCourseAiPolicy(formData: FormData) {
       personaName,
       personaStyle,
       customInstructions,
-      studentDailyLimit: dailyLimit ? Math.min(Math.round(dailyLimit), 500) : 40,
       shareStruggleSignal: formData.get("shareStruggleSignal") === "on",
       updatedAt: new Date(),
     })
@@ -615,7 +613,6 @@ export async function updateCourseAiPolicy(formData: FormData) {
         personaName,
         personaStyle,
         customInstructions,
-        studentDailyLimit: dailyLimit ? Math.min(Math.round(dailyLimit), 500) : 40,
         shareStruggleSignal: formData.get("shareStruggleSignal") === "on",
         updatedAt: new Date(),
       },

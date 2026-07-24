@@ -13,6 +13,7 @@ import {
   uploadCourseMaterial,
 } from "@/lib/instructor/course-material-actions";
 import { PageHeader } from "@/components/teach/page-header";
+import { scopeLabel } from "@/lib/workspace/term-label";
 import { ActionButton } from "@/components/atlas/primitives";
 import { RecordDialog } from "@/components/teach/record-dialog";
 import {
@@ -86,11 +87,33 @@ export default async function TeachMaterialsPage() {
 
   return (
     <>
+      {/*
+        The header says where you are, not how many of what. Three counts in the
+        eyebrow turned a location marker into a dashboard, and the table below
+        already carries state per row. The counts stay, as facts under the title.
+      */}
       <PageHeader
         title="Materials"
-        course={`${course.code} / ${readyMaterials} ready / ${courseVisibleMaterials} available to students / ${materials.length} total`}
+        course={scopeLabel({ code: course.code, termName: course.term })}
         action={<AddMaterialDialog />}
       />
+
+      {materials.length > 0 ? (
+        <dl className="-mt-4 mb-7 flex flex-wrap gap-x-6 gap-y-1 text-[0.78125rem] text-[var(--color-muted)]">
+          <div className="flex gap-1.5">
+            <dt>Files</dt>
+            <dd className="font-medium tabular-nums text-[var(--color-ink)]">{materials.length}</dd>
+          </div>
+          <div className="flex gap-1.5">
+            <dt>Ready</dt>
+            <dd className="font-medium tabular-nums text-[var(--color-ink)]">{readyMaterials}</dd>
+          </div>
+          <div className="flex gap-1.5">
+            <dt>Visible to students</dt>
+            <dd className="font-medium tabular-nums text-[var(--color-ink)]">{courseVisibleMaterials}</dd>
+          </div>
+        </dl>
+      ) : null}
 
       {materials.length > 0 ? (
         <CourseMaterialTable rows={materials} />

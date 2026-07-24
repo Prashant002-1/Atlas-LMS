@@ -450,9 +450,23 @@ export const submissions = pgTable(
     missing: boolean("missing").notNull().default(false),
     excused: boolean("excused").notNull().default(false),
     workflowState: text("workflow_state"),
+    /**
+     * What the student handed in. A submission is not one shape: text, an
+     * uploaded file, a link, or an assessed Atlas session. The type says which
+     * of `body`, `url`, and the attached documents carries the work, so a
+     * surface can render a file submission without pretending it is prose.
+     */
     submissionType: text("submission_type"),
     body: text("body"),
     url: text("url"),
+    /**
+     * The instructor's comment to this student on this submission. Separate
+     * from the score because a number and a reason are different things: the
+     * gradebook reads the score, the student reads this.
+     */
+    feedback: text("feedback"),
+    feedbackAt: timestamp("feedback_at", { withTimezone: true }),
+    feedbackById: uuid("feedback_by_id").references(() => users.id, { onDelete: "set null" }),
     // Per-topic score breakdown when the grader recorded one (e.g. an exam graded
     // by topic: { "elasticity": 4, ... }). This is the student-record source the
     // session side-note trigger joins against; flat topic -> points shape.

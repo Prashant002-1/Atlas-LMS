@@ -178,8 +178,9 @@ test("phase 2 mounts the session engine on the kept substrate", () => {
   assertSourceIncludes("lib/db/schema.ts", "export const sessionArtifactStates");
   assertSourceIncludes("lib/db/schema.ts", "export const sessionSideNotes");
   assertSourceIncludes("lib/db/schema.ts", "export const sessionSubmissions");
-  assertSourceIncludes("lib/db/schema.ts", "personalRecordSideNotes");
+  assertSourceExcludes("lib/db/schema.ts", "personalRecordSideNotes");
   assertSourceIncludes("lib/db/schema.ts", "topicScores");
+  assert.equal(existsSync(path.join(root, "drizzle/0009_remove_obsolete_agent_settings.sql")), true);
 
   // The runtime seam: turn-persisted streams on plain AI SDK 7 (ADR-0010).
   assertSourceIncludes("lib/agent/session-runtime.ts", "export async function runSessionTurn");
@@ -188,9 +189,9 @@ test("phase 2 mounts the session engine on the kept substrate", () => {
   assertSourceIncludes("app/api/session/[assignmentId]/route.ts", "resolvePlatformModel");
   assertSourceIncludes("app/api/session/[assignmentId]/route.ts", 'user.role !== "student"');
 
-  // Side notes are server-triggered, policy-gated, and record-composed.
+  // Side notes are server-triggered, always active, and record-composed.
   assertSourceIncludes("lib/agent/side-notes.ts", "export function evaluateSideNote");
-  assertSourceIncludes("lib/agent/side-notes.ts", "personalRecordSideNotes");
+  assertSourceExcludes("lib/agent/side-notes.ts", "personalRecordSideNotes");
   assertSourceExcludes("lib/agent/side-notes.ts", "generateText");
 
   // Submit freezes a normalized transcript for the grading pipeline.

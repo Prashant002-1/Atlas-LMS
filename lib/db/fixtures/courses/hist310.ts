@@ -275,7 +275,6 @@ Under the leadership of organizations like the NAACP, early victories were won i
     personaName: "The Historian",
     personaStyle: "Narrative, contextual, emphasizing historical causation, historical perspective, and primary source citations.",
     customInstructions: "Provide comprehensive historical context for all answers. Encourage the student to critically analyze primary sources, pointing out contradictions and author intent. Do not write essays or outline papers for them.",
-    studentDailyLimit: 25,
     shareStruggleSignal: true,
   },
 };

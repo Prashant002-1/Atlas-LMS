@@ -17,7 +17,7 @@ export function courseAgentConfigurationTool(args: {
 }) {
   return tool({
     description:
-      "Replace the shared course agent configuration when the professor asks to change its name, role, voice, teaching approach, answer policy, challenge level, citations, support boundaries, escalation rules, student disclosure, or persistent course rules. Preserve every value in the current course agent configuration reference that the professor did not ask to change. Submit a complete next version with its current expectedVersion. This changes teaching behavior only. It cannot expand tools, data access, rate limits, or application guardrails.",
+      "Replace the shared course agent configuration when the professor asks to change its name, role, voice, teaching approach, answer policy, challenge level, citations, support boundaries, escalation rules, student disclosure, or persistent course rules. Preserve every value in the current course agent configuration reference that the professor did not ask to change. Submit a complete next version with its current expectedVersion. This changes teaching behavior only. It cannot expand tools, data access, or application guardrails.",
     inputSchema: z.object({
       expectedVersion: z.number().int().min(0),
       changeSummary: z.string().trim().min(3).max(240),

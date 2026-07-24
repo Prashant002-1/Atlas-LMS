@@ -187,7 +187,6 @@ test("ECON policy encodes the professor-controlled AI contract", () => {
   assert.equal(course.policy.citationsRequired, true);
   assert.equal(course.policy.shareStruggleSignal, true);
   assert.equal(course.policy.personaName, "The Strategist");
-  assert.equal(course.policy.studentDailyLimit, 40);
   assert.ok(course.policy.customInstructions?.includes("Do not give students direct answers"));
 });
 

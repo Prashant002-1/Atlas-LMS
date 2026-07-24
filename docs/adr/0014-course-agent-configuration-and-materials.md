@@ -43,7 +43,6 @@ The configuration schema supports:
 - identity: name, role, and voice;
 - teaching: approach, Socratic default, direct-answer policy, challenge level, and citation mode;
 - boundaries: what the course agent supports, avoids, and escalates;
-- limits: student turns per rolling 24-hour window;
 - rules: stable id, title, instruction, enabled state, and study or AI-assignment scope.
 
 Free text remains inside bounded string fields, but it is data inside a validated structure. A lexical guard rejects instruction-control language such as attempts to replace privileged prompts or disable authorization.

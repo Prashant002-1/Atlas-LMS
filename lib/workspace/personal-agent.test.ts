@@ -37,7 +37,8 @@ test("the student profile owns the personal org-wide session address", () => {
 
 test("memory is one budgeted write path that archives, never deletes", () => {
   const memories = read("lib/agent/memories.ts");
-  assert.match(memories, /MEMORY_ACTIVE_BUDGET_CHARS = 2200/);
+  assert.match(memories, /MEMORY_ACTIVE_BUDGET_CHARS = 4400/);
+  assert.match(memories, /MEMORY_ACTIVE_MAX_ENTRIES = 80/);
   assert.match(memories, /MEMORY_ENTRY_MAX_CHARS = 240/);
   assert.match(memories, /assertMemoryTextIsSafe/);
   assert.match(memories, /"add", "replace", "remove"/);
@@ -109,7 +110,7 @@ test("the university policy is validated, versioned, and append-only", () => {
   const policy = read("lib/agent/org-policy.ts");
   assert.match(policy, /orgAgentPolicySchema/);
   assert.match(policy, /studentAgentEnabled/);
-  assert.match(policy, /dailyTurnLimit/);
+  assert.doesNotMatch(policy, /dailyTurnLimit/);
   assert.match(policy, /notASubstitute/);
   assert.match(policy, /escalationContacts/);
   assert.match(policy, /pg_advisory_xact_lock/);
@@ -121,11 +122,11 @@ test("the university policy is validated, versioned, and append-only", () => {
   assert.match(read("lib/db/seed.ts"), /Office of Student Success/);
 });
 
-test("the student route fails closed on role, policy, and limits", () => {
+test("the student route fails closed on role, policy, and abuse controls", () => {
   const route = read("app/api/atlas/student/route.ts");
   assert.match(route, /user\.role !== "student"/);
   assert.match(route, /studentAgentEnabled/);
-  assert.match(route, /dailyTurnLimit/);
+  assert.doesNotMatch(route, /dailyTurnLimit|rolling day/i);
   assert.match(route, /guardStudentAtlasInput/);
   assert.match(route, /MAX_REQUEST_BYTES/);
   assert.match(route, /MAX_CHAT_TURNS/);
@@ -150,6 +151,8 @@ test("the student runtime rides the durable seam with the ladder in order", () =
   assert.match(context, /renderMemoriesForReference/);
   assert.match(context, /<untrusted_student_record/);
   assert.match(context, /isNull\(agentSessions\.courseId\)/);
+  assert.match(context, /Keep course records strictly separated/);
+  assert.match(context, /retain its courseId and course code/);
 
   const workflow = read("workflows/agent-session.ts");
   assert.match(workflow, /studentAtlasTurnWorkflow/);
@@ -165,6 +168,8 @@ test("student tools read the student's own record and nothing else", () => {
   assert.match(tools, /inspect_record/);
   assert.match(tools, /search_course/);
   assert.match(tools, /read_page/);
+  assert.match(tools, /It does not pin the chat to that course/);
+  assert.ok((tools.match(/courseId:/g) ?? []).length >= 10, "course-specific tool results retain courseId");
   assert.doesNotMatch(tools, /\.update\(/);
   assert.doesNotMatch(tools, /\.insert\(/);
   assert.doesNotMatch(tools, /\.delete\(/);

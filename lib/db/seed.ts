@@ -154,7 +154,6 @@ async function main() {
       { label: "Academic advising", contact: "advising@demo.edu" },
       { label: "Counseling and wellness", contact: "wellness@demo.edu" },
     ],
-    dailyTurnLimit: 150,
   });
   await db.insert(orgAgentPolicies).values({
     id: idFor("orgAgentPolicy:demo:1"),
@@ -258,7 +257,6 @@ async function main() {
     instructions: v0SessionAssignment.instructions,
     durationMinutes: v0SessionAssignment.durationMinutes,
     groundingScope: v0SessionAssignment.groundingScope,
-    personalRecordSideNotes: v0SessionAssignment.personalRecordSideNotes,
     sideNoteTriggers: v0SessionAssignment.sideNoteTriggers,
     planningSessionId: v0SessionAssignment.planningSessionId,
   });
@@ -612,7 +610,6 @@ async function seedCourse(db: Db, orgId: string, c: FixtureCourse) {
     personaName: c.policy.personaName ?? null,
     personaStyle: c.policy.personaStyle ?? null,
     customInstructions: c.policy.customInstructions ?? null,
-    studentDailyLimit: c.policy.studentDailyLimit,
     shareStruggleSignal: c.policy.shareStruggleSignal,
   });
 }

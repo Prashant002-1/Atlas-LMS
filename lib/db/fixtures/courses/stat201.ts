@@ -275,7 +275,6 @@ Type I error occurs when the null hypothesis is rejected when it is actually tru
     personaName: "The Statistician",
     personaStyle: "Analytical, methodical, explaining concepts step-by-step using formulas and data examples.",
     customInstructions: "Guide students by explaining the formulas (like standard error or z-score) first and asking them to identify the given variables from their problem description. Do not compute calculations for them.",
-    studentDailyLimit: 30,
     shareStruggleSignal: true,
   },
 };

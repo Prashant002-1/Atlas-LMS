@@ -43,9 +43,6 @@ export const courseAgentConfigurationSchema = z.object({
     avoids: z.array(z.string().trim().min(3).max(220)).max(12),
     escalatesWhen: z.array(z.string().trim().min(3).max(220)).max(12),
   }),
-  limits: z.object({
-    studentDailyTurns: z.number().int().min(1).max(500),
-  }),
   rules: z
     .array(courseAgentRuleSchema)
     .max(24)
@@ -53,7 +50,7 @@ export const courseAgentConfigurationSchema = z.object({
 });
 
 export const courseAgentConfigurationInputSchema = courseAgentConfigurationSchema
-  .omit({ schemaVersion: true, externalSearch: true, limits: true })
+  .omit({ schemaVersion: true, externalSearch: true })
   .strict();
 
 export type CourseAgentConfiguration = z.infer<typeof courseAgentConfigurationSchema>;
@@ -144,9 +141,6 @@ function defaultConfiguration(): CourseAgentConfiguration {
         "The request depends on a professor decision",
         "The course material does not support a reliable answer",
       ],
-    },
-    limits: {
-      studentDailyTurns: 40,
     },
     rules: [],
   });

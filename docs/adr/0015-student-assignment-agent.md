@@ -32,9 +32,9 @@ The runtime may compose the server-owned `search_web` read alongside the exact a
 Atlas normalizes artifact state into an internal discriminated union:
 
 - `structured_response` represents ordinary assignment drafts as titled sections with content, labeled fields, or lists;
-- `pricing_table` remains supported for existing seeded transcripts and assignments whose deliverable is genuinely a pricing plan.
+- `pricing_table` remains supported for existing seeded transcripts.
 
-The model-facing surface exposes `update_structured_response` and `update_pricing_table` as exact object tools. This avoids provider-incompatible union schemas without weakening either input contract. Stream parsing normalizes both direct tools and still accepts historical `update_artifact` parts. Existing raw pricing artifacts remain readable. New structured artifacts flow through the same persistence and grading path without a database migration.
+The model-facing surface exposes one exact object tool, `update_artifact`, whose sections adapt to the assignment's actual deliverable. This avoids provider-incompatible union schemas and demo-shaped assignment branching. Stream parsing still accepts historical `update_pricing_table`, `update_structured_response`, and wrapped `update_artifact` parts. Existing raw pricing artifacts remain readable. New structured artifacts flow through the same persistence and grading path.
 
 ### 3. The student session uses the same conversation substrate as the professor agent
 

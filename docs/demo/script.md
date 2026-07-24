@@ -153,7 +153,7 @@ The demo world needs a **memory**, not just seeded courses. The side-note beat i
 - [ ] **The professor's prior planning session with the agent** (Exam 2 / practice set discussion, topics flagged) - this is the side note's source and appears in her session history on camera
 - [ ] ~31 students with varied journey outcomes (the review-grid needs believable spread: some Exceeds, some Developing, one or two "delegated everything and it earned nothing")
 - [ ] Professor persona with a stated intent ("they pattern-match formulas; I want to see if they can reason about X")
-- [ ] The assignment itself, configured: rubric, duration, grounding scope, side-note toggle ON
+- [ ] The assignment itself, configured: rubric, duration, grounding scope, and sanctioned side-note triggers
 
 This is a content-design task as much as a build task. Do it before the UI - it is the difference between a demo and a diorama.
 

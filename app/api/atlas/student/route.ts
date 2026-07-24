@@ -105,8 +105,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: inputGuard.reason }, { status: 400 });
   }
 
-  // The university policy layer: the institution can switch the student agent
-  // off, and its daily turn limit is enforced here, on the server.
+  // The university policy layer can switch the student agent off.
   const orgPolicy = await loadActiveOrgAgentPolicy(user.orgId);
   if (!orgPolicy.policy.studentAgentEnabled) {
     return NextResponse.json(
@@ -117,13 +116,6 @@ export async function POST(request: Request) {
 
   const scope = { orgId: user.orgId, studentId: user.id };
 
-  const dayWindow = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  if ((await studentAtlasTurnsSince(scope, dayWindow)) >= orgPolicy.policy.dailyTurnLimit) {
-    return NextResponse.json(
-      { error: "You have reached the university's daily limit for Atlas. It resets over the next day." },
-      { status: 429, headers: { "Retry-After": String(60 * 60) } }
-    );
-  }
   const rateWindow = new Date(Date.now() - RATE_WINDOW_MINUTES * 60_000);
   if ((await studentAtlasTurnsSince(scope, rateWindow)) >= MAX_TURNS_PER_WINDOW) {
     return NextResponse.json(

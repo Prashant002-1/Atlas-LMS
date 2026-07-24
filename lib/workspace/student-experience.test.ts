@@ -15,11 +15,10 @@ test("the student session is the professor-configured assignment agent", () => {
   const context = read("lib/agent/session-context.ts");
   const room = read("components/session/session-room.tsx");
 
-  assert.ok(route.includes("loadActiveCourseAgentConfig"));
-  assert.ok(route.includes("withinStudentDailyTurnLimit"));
+  assert.equal(route.includes("withinStudentDailyTurnLimit"), false);
   assert.ok(context.includes("compileCourseAgentConfiguration"));
   assert.ok(context.includes("FIXED ASSESSED-SESSION RULES"));
-  assert.ok(context.includes("if (bundle.config.personalRecordSideNotes)"));
+  assert.equal(context.includes("personalRecordSideNotes"), false);
   assert.ok(room.includes("student-assignment-session-root"));
   assert.ok(room.includes("Conversation"));
   assert.ok(room.includes("PromptInput"));
@@ -31,8 +30,9 @@ test("the student session is the professor-configured assignment agent", () => {
 
 test("artifact state supports ordinary assignments and legacy pricing transcripts", () => {
   const runtime = read("lib/agent/session-runtime.ts");
-  assert.ok(runtime.includes("sessionArtifactToolSchemas.update_pricing_table"));
-  assert.ok(runtime.includes("sessionArtifactToolSchemas.update_structured_response"));
+  assert.ok(runtime.includes("sessionArtifactToolSchemas.update_artifact"));
+  assert.equal(runtime.includes("sessionArtifactToolSchemas.update_pricing_table"), false);
+  assert.equal(runtime.includes("sessionArtifactToolSchemas.update_structured_response"), false);
   assert.equal(runtime.includes("inputSchema: updateArtifactInputSchema"), false);
 
   const structured = updateArtifactInputSchema.parse({

@@ -78,7 +78,6 @@ export type AiAssignmentProposalOutput =
       assignmentName: string;
       instructions: string;
       durationMinutes: number;
-      personalRecordSideNotes: boolean;
       criteria: RubricCriterion[];
       usedStandardFrame: boolean;
       note: string | null;
@@ -110,7 +109,6 @@ const aiAssignmentDraftSchema = z.object({
   assignmentId: z.string().uuid().describe("An existing assignment id returned by inspect_course."),
   brief: z.string().min(10).max(2000).describe("The problem, deliverable, and session instructions the student sees."),
   durationMinutes: z.number().int().min(5).max(240).optional(),
-  personalRecordSideNotes: z.boolean().optional(),
   criteria: z.array(rubricDraftCriterionSchema).min(2).max(8).optional(),
   note: z.string().max(400).optional(),
 });
@@ -258,7 +256,6 @@ async function inspectCourse(
         name: assignments.name,
         instructions: sessionAssignments.instructions,
         durationMinutes: sessionAssignments.durationMinutes,
-        personalRecordSideNotes: sessionAssignments.personalRecordSideNotes,
         rubricId: rubrics.id,
         rubricVersion: rubrics.version,
         rubricCriteria: rubrics.criteria,
@@ -274,7 +271,6 @@ async function inspectCourse(
       name: row.name,
       instructions: row.instructions,
       durationMinutes: row.durationMinutes,
-      personalRecordSideNotes: row.personalRecordSideNotes,
       rubric: { id: row.rubricId, version: row.rubricVersion, criteria: parseRubricCriteria(row.rubricCriteria) ?? [] },
     }));
     return { ok: true, domain: input.domain, asOf, records, count: records.length };
@@ -381,7 +377,6 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
         title: `Run ${target.name} as an AI assignment`,
         instructions: draft.brief,
         durationMinutes: draft.durationMinutes ?? 30,
-        personalRecordSideNotes: draft.personalRecordSideNotes ?? false,
         criteria,
       };
       const blockData = {
@@ -389,7 +384,6 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
         title: block.title,
         instructions: block.instructions,
         durationMinutes: block.durationMinutes,
-        personalRecordSideNotes: block.personalRecordSideNotes,
         criteria: block.criteria,
       };
       const roundTrip = parseStoredBlock("ai_assignment", blockData);
@@ -460,7 +454,6 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
           assignmentName: target.name,
           instructions: block.instructions,
           durationMinutes: block.durationMinutes,
-          personalRecordSideNotes: block.personalRecordSideNotes,
           criteria,
           usedStandardFrame,
           note: draft.note ?? null,

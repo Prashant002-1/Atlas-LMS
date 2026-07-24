@@ -14,12 +14,11 @@ import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
  *     (the model never invents one, see lib/agent/side-notes.ts);
  *   - a transient session status line for submit/lock state changes.
  *
- * Artifact types are registered here. The general structured response covers
- * ordinary assignments, while the pricing table remains supported for seeded
- * transcripts and assignments whose deliverable is genuinely a pricing plan.
+ * New sessions use one assignment-neutral structured artifact. The pricing
+ * table schema remains only to replay historical seeded transcripts.
  */
 
-export const SESSION_PART_SCHEMA_VERSION = "3" as const;
+export const SESSION_PART_SCHEMA_VERSION = "4" as const;
 
 /* ── artifact panel ─────────────────────────────────────────── */
 
@@ -80,12 +79,11 @@ export type UpdateArtifactInput = z.infer<typeof updateArtifactInputSchema>;
 export type SessionArtifact = UpdateArtifactInput["state"];
 
 /**
- * Exact model-visible schemas. Kimi K3 rejects top-level union schemas, so the
- * artifact discriminator stays in Atlas and each tool exposes one object.
+ * Exact model-visible schema. Kimi K3 rejects top-level union schemas, so the
+ * artifact discriminator stays in Atlas and the tool exposes one object.
  */
 export const sessionArtifactToolSchemas = {
-  update_pricing_table: pricingArtifactSchema,
-  update_structured_response: structuredArtifactSchema,
+  update_artifact: structuredArtifactSchema,
 } as const;
 
 export function parseSessionArtifact(artifactType: string, state: unknown): UpdateArtifactInput | null {
@@ -221,11 +219,7 @@ export type SessionDataParts = {
 
 /** Tools the session agent can call. */
 export type SessionTools = {
-  update_pricing_table: {
-    input: PricingArtifact;
-    output: { ok: boolean; revision: number };
-  };
-  update_structured_response: {
+  update_artifact: {
     input: StructuredArtifact;
     output: { ok: boolean; revision: number };
   };
@@ -264,8 +258,13 @@ export function artifactUpdatesFromParts(parts: unknown): UpdateArtifactInput[] 
       continue;
     }
     if (part.type === "tool-update_artifact") {
-      const parsed = updateArtifactInputSchema.safeParse(part.input);
-      if (parsed.success) updates.push(parsed.data);
+      const current = parseSessionArtifact("structured_response", part.input);
+      if (current) {
+        updates.push(current);
+        continue;
+      }
+      const historical = updateArtifactInputSchema.safeParse(part.input);
+      if (historical.success) updates.push(historical.data);
     }
   }
   return updates;

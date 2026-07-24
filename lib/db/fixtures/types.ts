@@ -117,7 +117,6 @@ export type FixtureCoursePolicy = {
   personaStyle?: string;
   /** Professor's own guidance injected into student-facing AI responses. */
   customInstructions?: string;
-  studentDailyLimit: number;
   /** Opt-in aggregated struggle signal to the professor. */
   shareStruggleSignal: boolean;
 };
@@ -264,7 +263,6 @@ export type V0SessionAssignment = {
   instructions: string;
   durationMinutes: number;
   groundingScope: string[];
-  personalRecordSideNotes: boolean;
   /** Professor-sanctioned side-note triggers; the runtime never invents one. */
   sideNoteTriggers: V0SideNoteTrigger[];
   /** Provenance: the professor's planning session this configuration came out of. */

@@ -115,7 +115,6 @@ export type AssignmentCockpitView =
         instructions: string;
         durationMinutes: number;
         groundingScope: string[];
-        personalRecordSideNotes: boolean;
         planningSessionId: string | null;
       };
       rubric: { id: string; version: number; criteria: RubricCriterion[]; hasReports: boolean };
@@ -384,7 +383,6 @@ export async function loadAssignmentCockpit(actor: Actor | null | undefined, ass
       instructions: bundle.config.instructions,
       durationMinutes: bundle.config.durationMinutes,
       groundingScope: Array.isArray(bundle.config.groundingScope) ? (bundle.config.groundingScope as string[]) : [],
-      personalRecordSideNotes: bundle.config.personalRecordSideNotes,
       planningSessionId: bundle.config.planningSessionId,
     },
     rubric: {
@@ -680,7 +678,6 @@ export type AiAssignmentIndexRow = {
   pointsPossible: number | null;
   published: boolean;
   durationMinutes: number;
-  personalRecordSideNotes: boolean;
   rubricVersion: number;
   criteriaCount: number;
   /** Null for drafts (unpublished work has no sessions by construction). */
@@ -693,7 +690,6 @@ export type AiAssignmentPolicyFacts = {
   allowPractice: boolean;
   allowQuestions: boolean;
   citationsRequired: boolean;
-  studentDailyLimit: number;
 };
 
 export type AiAssignmentIndexView =
@@ -723,7 +719,6 @@ export async function loadAiAssignmentIndex(actor?: Actor | null): Promise<AiAss
     .select({
       assignmentId: sessionAssignments.assignmentId,
       durationMinutes: sessionAssignments.durationMinutes,
-      personalRecordSideNotes: sessionAssignments.personalRecordSideNotes,
       name: assignments.name,
       dueAt: assignments.dueAt,
       pointsPossible: assignments.pointsPossible,
@@ -751,7 +746,6 @@ export async function loadAiAssignmentIndex(actor?: Actor | null): Promise<AiAss
       pointsPossible: config.pointsPossible,
       published: config.published,
       durationMinutes: config.durationMinutes,
-      personalRecordSideNotes: config.personalRecordSideNotes,
       rubricVersion: config.rubricVersion,
       criteriaCount: parseRubricCriteria(config.rubricCriteria)?.length ?? 0,
       counts,
@@ -765,7 +759,6 @@ export async function loadAiAssignmentIndex(actor?: Actor | null): Promise<AiAss
       allowPractice: courseAiPolicies.allowPractice,
       allowQuestions: courseAiPolicies.allowQuestions,
       citationsRequired: courseAiPolicies.citationsRequired,
-      studentDailyLimit: courseAiPolicies.studentDailyLimit,
     })
     .from(courseAiPolicies)
     .where(and(eq(courseAiPolicies.orgId, orgId), eq(courseAiPolicies.courseId, course.id)))

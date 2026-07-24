@@ -626,7 +626,6 @@ export const courseAiPolicies = pgTable(
     personaStyle: text("persona_style"),
     // The professor's own guidance, injected verbatim into student-facing runs.
     customInstructions: text("custom_instructions"),
-    studentDailyLimit: integer("student_daily_limit").notNull().default(40),
     // Opt-in, aggregated struggle signal back to the professor. Never surveillance.
     shareStruggleSignal: boolean("share_struggle_signal").notNull().default(false),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -793,9 +792,9 @@ export const rubrics = pgTable(
 /**
  * Session assignments, the per-ASSIGNMENT policy and contract object. Where
  * course_ai_policies governs the course-wide study surface, this row governs
- * one assessed work session: duration, grounding scope, the personal-record
- * side-note toggle, and the professor-sanctioned side-note triggers.
- * `planningSessionId` records provenance: the professor's planning
+ * one assessed work session: duration, grounding scope, and the professor-sanctioned
+ * side-note triggers. Transcripts are always instructor-accessible and personal-record
+ * side notes are always active. `planningSessionId` records provenance: the professor's planning
  * session with the agent that this configuration came out of.
  */
 export const sessionAssignments = pgTable(
@@ -818,8 +817,6 @@ export const sessionAssignments = pgTable(
     durationMinutes: integer("duration_minutes").notNull().default(30),
     // Display labels for what the session may ground on, e.g. ["Syllabus", "Weeks 4-6"].
     groundingScope: jsonb("grounding_scope").notNull().default([]),
-    // The professor toggle that gates every personal-record side note.
-    personalRecordSideNotes: boolean("personal_record_side_notes").notNull().default(false),
     // Professor-sanctioned triggers: [{ topic, keywords[], sourcePageSlug? }].
     // Drafted during planning, approved with the assignment; the runtime never
     // invents a trigger that is not in this list.

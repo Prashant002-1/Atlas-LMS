@@ -81,7 +81,7 @@ export async function concludeExpiredSession(args: { orgId: string; sessionId: s
                   {
                     type: "text",
                     text: [
-                      "The instructor-set time limit has elapsed. Conclude the assessed session now.",
+                      "The time has elapsed. Conclude the assessed session now.",
                       "Do not ask another question and do not invite more work in this session.",
                       "Briefly summarize what the student demonstrated and what remained unfinished, using only this transcript.",
                       "State that the work is being submitted automatically and that the rubric result is a reviewable draft, with a fair evidence trail and a way to request instructor review.",

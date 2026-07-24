@@ -1,11 +1,11 @@
-import { generateText, type ModelMessage, type UIMessage } from "ai";
+import { generateText, type LanguageModel, type ModelMessage, type UIMessage } from "ai";
 import { and, asc, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { agentSessions, agentTurns, changeProposals, proposalBlocks, type AgentSession } from "@/lib/db/schema";
 import { parseStoredBlock, type Block } from "@/lib/agent/blocks";
 import { agentProfiles } from "@/lib/agent/profiles";
 import { estimateTokens } from "@/lib/agent/context";
-import { fallbackModel } from "@/lib/ai/provider";
+import { compactionInputThresholdTokens, fallbackModel } from "@/lib/ai/provider";
 import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
 
 /**
@@ -43,8 +43,6 @@ export type CommandSessionSummary = {
   updatedAt: string;
 };
 
-/** Verbatim-history budget; beyond this the older turns roll into the summary. */
-const COMPACT_THRESHOLD_TOKENS = 12_000;
 /** How many recent turns always stay verbatim. */
 const KEEP_RECENT_TURNS = 6;
 
@@ -271,14 +269,20 @@ function turnText(parts: unknown): string {
 }
 
 /**
- * Roll old history into the session summary when the verbatim tail outgrows the
- * budget. Runs after a completed turn, off the hot path. Keeps record ids,
- * objective codes, and decisions verbatim so later turns can still cite them.
+ * Roll old history into the session summary after a completed model step reaches
+ * half its known context window. Unknown models use a 160k input-token trigger.
+ * Keeps record ids, objective codes, and decisions verbatim so later turns can
+ * still cite them.
  */
-export async function compactIfNeeded(session: AgentSession): Promise<void> {
+export async function compactIfNeeded(
+  session: AgentSession,
+  options: { model: LanguageModel; inputTokens?: number }
+): Promise<void> {
   const turns = await loadActiveTurns(session);
   const tailTokens = turns.reduce((sum, t) => sum + estimateTokens(JSON.stringify(t.parts ?? "")), 0);
-  if (tailTokens < COMPACT_THRESHOLD_TOKENS || turns.length <= KEEP_RECENT_TURNS) return;
+  const observedInputTokens = options.inputTokens ?? tailTokens;
+  const thresholdTokens = compactionInputThresholdTokens(options.model);
+  if (observedInputTokens < thresholdTokens || turns.length <= KEEP_RECENT_TURNS) return;
 
   const toCompact = turns.slice(0, turns.length - KEEP_RECENT_TURNS);
   const transcript = toCompact.map((t) => `${t.role.toUpperCase()}: ${turnText(t.parts).slice(0, 2000)}`).join("\n\n");

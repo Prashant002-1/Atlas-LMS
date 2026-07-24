@@ -112,6 +112,7 @@ export async function runProfessorTurn(args: {
     }),
     ...webSearch.tools,
   };
+  let peakInputTokens: number | undefined;
 
   const stream = createUIMessageStream<ProfessorUIMessage>({
     execute: ({ writer }) => {
@@ -134,6 +135,11 @@ export async function runProfessorTurn(args: {
         messages: modelMessages,
         tools,
         stopWhen: isStepCount(16),
+        onStepEnd: ({ usage }) => {
+          if (usage.inputTokens !== undefined) {
+            peakInputTokens = Math.max(peakInputTokens ?? 0, usage.inputTokens);
+          }
+        },
       });
       const createdAt = new Date().toISOString();
       writer.merge(toUIMessageStream({
@@ -149,7 +155,7 @@ export async function runProfessorTurn(args: {
       const parts = responseMessage?.parts ?? [];
       if (parts.length === 0) return;
       await persistSessionTurn(session, "assistant", parts);
-      await compactIfNeeded(session);
+      await compactIfNeeded(session, { model: args.model, inputTokens: peakInputTokens });
     },
   });
 

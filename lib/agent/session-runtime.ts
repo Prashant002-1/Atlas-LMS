@@ -117,6 +117,7 @@ export async function runSessionTurn(args: {
   });
 
   const modelMessages = await convertToModelMessages(history);
+  let peakInputTokens: number | undefined;
 
   const stream = createUIMessageStream<SessionUIMessage>({
     execute: ({ writer }) => {
@@ -134,6 +135,11 @@ export async function runSessionTurn(args: {
           ...webSearch.tools,
         },
         stopWhen: isStepCount(4),
+        onStepEnd: ({ usage }) => {
+          if (usage.inputTokens !== undefined) {
+            peakInputTokens = Math.max(peakInputTokens ?? 0, usage.inputTokens);
+          }
+        },
       });
 
       const createdAt = new Date().toISOString();
@@ -151,7 +157,7 @@ export async function runSessionTurn(args: {
       if (parts.length === 0) return;
       const assistantTurnIndex = await persistSessionTurn(session, "assistant", parts);
       await persistArtifactStates(session, assistantTurnIndex, artifactUpdatesFromParts(parts));
-      await compactIfNeeded(session);
+      await compactIfNeeded(session, { model: args.model, inputTokens: peakInputTokens });
     },
   });
 

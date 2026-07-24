@@ -1,4 +1,5 @@
 import { generateText, Output, type LanguageModel } from "ai";
+import { DEFAULT_GRADE_BANDS, type GradeBand } from "@/lib/course/policies";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -160,15 +161,16 @@ export function scoreForLevel(criterion: RubricCriterion, level: RubricLevelName
 }
 
 /**
- * Letter for a 0-100 score, the same mapping the demo world grades with.
- * Used when finalize writes the gradebook row from a journey report.
+ * Letter for a 0-100 score. The platform default bands are the demo world's
+ * grading; a course may carry its own validated scale (courses.grade_scale,
+ * lib/course/policies.ts), and every letter-writing path passes it through
+ * here so the syllabus, the gradebook, and finalize agree by construction.
  */
-export function gradeLetterFor(score: number): string {
-  if (score >= 90) return "A";
-  if (score >= 80) return "B";
-  if (score >= 70) return "C";
-  if (score >= 60) return "D";
-  return "F";
+export function gradeLetterFor(score: number, bands: GradeBand[] = DEFAULT_GRADE_BANDS): string {
+  for (const band of bands) {
+    if (score >= band.min) return band.letter;
+  }
+  return bands[bands.length - 1]?.letter ?? "F";
 }
 
 /* ── prompts ────────────────────────────────────────────────── */

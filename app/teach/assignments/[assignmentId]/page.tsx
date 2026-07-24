@@ -3,8 +3,10 @@ import { ActionButton, BackLink, ButtonLink, TextLink } from "@/components/atlas
 import { PageHeader } from "@/components/teach/page-header";
 import { SubmissionReviewTable, type SubmissionReviewRow } from "@/components/teach/submission-review-table";
 import { RecordDialog } from "@/components/teach/record-dialog";
+import { DocumentAttachmentSection } from "@/components/documents/document-attachments";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
+import { listDocumentAttachments } from "@/lib/course/documents";
 import { publishAssignment, updateAssignmentRecord } from "@/lib/instructor/actions";
 import {
   type InstructorAssignment,
@@ -36,6 +38,14 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
   }
 
   const assignment = workspace.assignment;
+  const attachedDocuments = session.user.orgId && workspace.course.id
+    ? await listDocumentAttachments({
+        orgId: session.user.orgId,
+        courseId: workspace.course.id,
+        owner: { type: "assignment", id: assignmentId },
+        audience: "instructor",
+      })
+    : [];
   const progress = workspace.progress;
   const rows: SubmissionReviewRow[] = workspace.submissions.map((submission, index) => ({
     rowId: submission.studentId ?? `roster-${index}`,
@@ -78,6 +88,12 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
       {assignment.detail ? <p className="mt-6 max-w-4xl whitespace-pre-wrap text-[0.90625rem] leading-7 text-[var(--color-ink)]">{assignment.detail}</p> : null}
 
       {workspace.materials.length > 0 ? <AssignmentMaterials materials={workspace.materials} /> : null}
+
+      <DocumentAttachmentSection
+        items={attachedDocuments}
+        audience="instructor"
+        owner={{ type: "assignment", id: assignmentId, returnTo: `/teach/assignments/${assignmentId}` }}
+      />
 
       {sessionBundle ? (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 py-3">
@@ -135,19 +151,19 @@ function AssignmentEditDialog({ assignment }: { assignment: InstructorAssignment
         {assignment.objectiveCodes.map((code) => <input key={code} type="hidden" name="objectiveCode" value={code} />)}
         <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Title
-          <input name="title" type="text" defaultValue={assignment.title} required autoFocus className={fieldClass} />
+          <input name="title" type="text" defaultValue={assignment.title} required autoFocus maxLength={220} className={fieldClass} />
         </label>
         <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Description
-          <textarea name="description" rows={10} defaultValue={assignment.detail ?? ""} className={`${fieldClass} min-h-56 resize-y py-3 leading-6`} />
+          <textarea name="description" rows={10} maxLength={1600} defaultValue={assignment.detail ?? ""} className={`${fieldClass} min-h-56 resize-y py-3 leading-6`} />
         </label>
         <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
           <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
-            Due
+            Due date
             <input name="dueDate" type="date" defaultValue={dateInputValue(assignment.dueAt)} className={fieldClass} />
           </label>
           <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
-            Points
+            Points possible
             <input name="points" type="number" min={0.01} step="0.01" defaultValue={assignment.points ?? ""} className={fieldClass} />
           </label>
         </div>

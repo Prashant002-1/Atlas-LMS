@@ -78,7 +78,6 @@ export type AiAssignmentProposalOutput =
       assignmentName: string;
       instructions: string;
       durationMinutes: number;
-      transcriptPolicy: string;
       personalRecordSideNotes: boolean;
       criteria: RubricCriterion[];
       usedStandardFrame: boolean;
@@ -111,7 +110,6 @@ const aiAssignmentDraftSchema = z.object({
   assignmentId: z.string().uuid().describe("An existing assignment id returned by inspect_course."),
   brief: z.string().min(10).max(2000).describe("The problem, deliverable, and session instructions the student sees."),
   durationMinutes: z.number().int().min(5).max(240).optional(),
-  transcriptPolicy: z.string().min(3).max(200).optional(),
   personalRecordSideNotes: z.boolean().optional(),
   criteria: z.array(rubricDraftCriterionSchema).min(2).max(8).optional(),
   note: z.string().max(400).optional(),
@@ -260,7 +258,6 @@ async function inspectCourse(
         name: assignments.name,
         instructions: sessionAssignments.instructions,
         durationMinutes: sessionAssignments.durationMinutes,
-        transcriptPolicy: sessionAssignments.transcriptPolicy,
         personalRecordSideNotes: sessionAssignments.personalRecordSideNotes,
         rubricId: rubrics.id,
         rubricVersion: rubrics.version,
@@ -277,7 +274,6 @@ async function inspectCourse(
       name: row.name,
       instructions: row.instructions,
       durationMinutes: row.durationMinutes,
-      transcriptPolicy: row.transcriptPolicy,
       personalRecordSideNotes: row.personalRecordSideNotes,
       rubric: { id: row.rubricId, version: row.rubricVersion, criteria: parseRubricCriteria(row.rubricCriteria) ?? [] },
     }));
@@ -385,7 +381,6 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
         title: `Run ${target.name} as an AI assignment`,
         instructions: draft.brief,
         durationMinutes: draft.durationMinutes ?? 30,
-        transcriptPolicy: draft.transcriptPolicy ?? "shared on request / for review",
         personalRecordSideNotes: draft.personalRecordSideNotes ?? false,
         criteria,
       };
@@ -394,7 +389,6 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
         title: block.title,
         instructions: block.instructions,
         durationMinutes: block.durationMinutes,
-        transcriptPolicy: block.transcriptPolicy,
         personalRecordSideNotes: block.personalRecordSideNotes,
         criteria: block.criteria,
       };
@@ -466,7 +460,6 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
           assignmentName: target.name,
           instructions: block.instructions,
           durationMinutes: block.durationMinutes,
-          transcriptPolicy: block.transcriptPolicy,
           personalRecordSideNotes: block.personalRecordSideNotes,
           criteria,
           usedStandardFrame,

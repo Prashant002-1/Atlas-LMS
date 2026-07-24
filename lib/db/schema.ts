@@ -21,6 +21,7 @@ import {
   timestamp,
   jsonb,
   primaryKey,
+  check,
   uniqueIndex,
   index,
   vector,
@@ -76,9 +77,9 @@ export const proposalStatusEnum = pgEnum("proposal_status", [
   "rejected",
   "applied",
 ]);
-export const agentSurfaceEnum = pgEnum("agent_surface", ["command", "cue"]);
+export const agentSurfaceEnum = pgEnum("agent_surface", ["command", "cue", "personal"]);
 export const agentTurnRoleEnum = pgEnum("agent_turn_role", ["user", "assistant", "tool"]);
-export const cueTargetEnum = pgEnum("cue_target", ["assignment", "module", "page", "course"]);
+export const cueTargetEnum = pgEnum("cue_target", ["assignment", "module", "page", "course", "org"]);
 export const explanationDepthEnum = pgEnum("explanation_depth", ["hint", "guided", "full"]);
 export const sessionSubmissionStatusEnum = pgEnum("session_submission_status", ["submitted", "graded"]);
 export const journeyReportStatusEnum = pgEnum("journey_report_status", ["draft", "final"]);
@@ -191,6 +192,13 @@ export const courses = pgTable(
     timeZone: text("time_zone"),
     // provenance: if imported from Canvas, where it came from
     importSource: text("import_source"),
+    // Letter bands for this course, validated GradeBand[] (lib/course/policies.ts).
+    // Null means the platform default scale. Edited in Course setup; the
+    // syllabus and every letter-writing path read the same bands.
+    gradeScale: jsonb("grade_scale"),
+    // Class policies (late work, attendance, ...), validated ClassPolicy[]
+    // (lib/course/policies.ts). Edited in Course setup, rendered on the syllabus.
+    classPolicies: jsonb("class_policies"),
     embedding: vector("embedding", { dimensions: 1536 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -369,9 +377,10 @@ export const files = pgTable(
     orgId: uuid("org_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    courseId: uuid("course_id")
-      .notNull()
-      .references(() => courses.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id").references(() => courses.id, { onDelete: "cascade" }),
+    // Personal Atlas documents belong directly to the student and have no
+    // course. Course files keep owner_user_id null.
+    ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "cascade" }),
     displayName: text("display_name").notNull(),
     filename: text("filename"),
     contentType: text("content_type"),
@@ -382,7 +391,11 @@ export const files = pgTable(
     embedding: vector("embedding", { dimensions: 1536 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [index("files_course_idx").on(t.courseId)]
+  (t) => [
+    check("files_one_scope_check", sql`num_nonnulls(${t.courseId}, ${t.ownerUserId}) = 1`),
+    index("files_course_idx").on(t.courseId),
+    index("files_owner_idx").on(t.orgId, t.ownerUserId),
+  ]
 );
 
 export const announcements = pgTable(
@@ -636,9 +649,9 @@ export const agentSessions = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    courseId: uuid("course_id")
-      .notNull()
-      .references(() => courses.id, { onDelete: "cascade" }),
+    // Null for the personal profile: a personal chat belongs to a person in
+    // an organization, not to a course (ADR-0016).
+    courseId: uuid("course_id").references(() => courses.id, { onDelete: "cascade" }),
     surface: agentSurfaceEnum("surface").notNull(),
     // What the session is anchored to (a cue on an assignment, the course command bar).
     anchorType: cueTargetEnum("anchor_type").notNull().default("course"),
@@ -657,6 +670,9 @@ export const agentSessions = pgTable(
     // Professor command sessions leave these fields null.
     deadlineAt: timestamp("deadline_at", { withTimezone: true }),
     deadlineRunId: text("deadline_run_id"),
+    // Atlas chats are never deleted. Archived chats leave the active rail but
+    // keep their turns, proposals, summaries, and provenance intact.
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -664,6 +680,7 @@ export const agentSessions = pgTable(
     index("agent_sessions_user_idx").on(t.userId, t.updatedAt),
     index("agent_sessions_anchor_idx").on(t.courseId, t.surface, t.anchorType, t.anchorId),
     index("agent_sessions_active_run_idx").on(t.activeRunId),
+    index("agent_sessions_archive_idx").on(t.orgId, t.userId, t.surface, t.archivedAt),
   ]
 );
 
@@ -776,9 +793,9 @@ export const rubrics = pgTable(
 /**
  * Session assignments, the per-ASSIGNMENT policy and contract object. Where
  * course_ai_policies governs the course-wide study surface, this row governs
- * one assessed work session: duration, grounding scope, transcript policy,
- * the personal-record side-note toggle, and the professor-sanctioned side-note
- * triggers. `planningSessionId` records provenance: the professor's planning
+ * one assessed work session: duration, grounding scope, the personal-record
+ * side-note toggle, and the professor-sanctioned side-note triggers.
+ * `planningSessionId` records provenance: the professor's planning
  * session with the agent that this configuration came out of.
  */
 export const sessionAssignments = pgTable(
@@ -801,7 +818,6 @@ export const sessionAssignments = pgTable(
     durationMinutes: integer("duration_minutes").notNull().default(30),
     // Display labels for what the session may ground on, e.g. ["Syllabus", "Weeks 4-6"].
     groundingScope: jsonb("grounding_scope").notNull().default([]),
-    transcriptPolicy: text("transcript_policy").notNull().default("shared on request / for review"),
     // The professor toggle that gates every personal-record side note.
     personalRecordSideNotes: boolean("personal_record_side_notes").notNull().default(false),
     // Professor-sanctioned triggers: [{ topic, keywords[], sourcePageSlug? }].
@@ -1031,6 +1047,64 @@ export const classRollups = pgTable(
   (t) => [uniqueIndex("class_rollups_course_assignment_idx").on(t.courseId, t.assignmentId)]
 );
 
+/* ──────────────── 6. personal agents (ADR-0016) ─────────────── */
+
+/**
+ * Agent memories, the small curated observation store behind the personal
+ * agents. One row per durable observation about a person, written only by the
+ * remember tool (lib/agent/memories.ts), which enforces entry and total
+ * budgets, scans content for instruction-control language, and archives
+ * rather than deletes. `profile` and `kind` are plain text validated in code,
+ * matching the course agent configuration pattern.
+ */
+export const agentMemories = pgTable(
+  "agent_memories",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // Authoring profile: "student" | "professor" (lib/agent/profiles.ts).
+    profile: text("profile").notNull(),
+    // "strength" | "gap" | "preference" | "goal" | "context".
+    kind: text("kind").notNull(),
+    courseId: uuid("course_id").references(() => courses.id, { onDelete: "set null" }),
+    content: text("content").notNull(),
+    sourceSessionId: uuid("source_session_id").references(() => agentSessions.id, { onDelete: "set null" }),
+    status: text("status").notNull().default("active"),
+    replacesId: uuid("replaces_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+  },
+  (t) => [index("agent_memories_owner_idx").on(t.orgId, t.userId, t.profile, t.status)]
+);
+
+/**
+ * University policy for the student agent, append-only and versioned like
+ * course_agent_configs. The jsonb payload is validated by
+ * lib/agent/org-policy.ts before insertion; the highest version per
+ * organization is active, and a code default applies when none exists.
+ */
+export const orgAgentPolicies = pgTable(
+  "org_agent_policies",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    schemaVersion: integer("schema_version").notNull().default(1),
+    policy: jsonb("policy").notNull(),
+    changeSummary: text("change_summary").notNull(),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("org_agent_policies_org_version_idx").on(t.orgId, t.version)]
+);
+
 /* ─────────────────────── inferred types ────────────────────── */
 
 export type Organization = typeof organizations.$inferSelect;
@@ -1058,3 +1132,5 @@ export type Submission = typeof submissions.$inferSelect;
 export type EvidenceSpan = typeof evidenceSpans.$inferSelect;
 export type JourneyReport = typeof journeyReports.$inferSelect;
 export type ClassRollup = typeof classRollups.$inferSelect;
+export type AgentMemory = typeof agentMemories.$inferSelect;
+export type OrgAgentPolicyRow = typeof orgAgentPolicies.$inferSelect;

@@ -3,6 +3,10 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { agentSessions, users } from "@/lib/db/schema";
 import { courseAgentConfigs } from "@/lib/db/course-agent-schema";
+import {
+  DEFAULT_WEB_SEARCH_POLICY,
+  webSearchPolicySchema,
+} from "@/lib/agent/web-search";
 
 /**
  * Course agent configuration is professor-controlled policy data, not a raw
@@ -32,6 +36,8 @@ export const courseAgentConfigurationSchema = z.object({
     challengeLevel: z.enum(["supportive", "adaptive", "rigorous"]),
     citationMode: z.enum(["required", "when_useful"]),
   }),
+  /** Server-owned policy. It is not part of professor-facing configuration. */
+  externalSearch: webSearchPolicySchema.default(DEFAULT_WEB_SEARCH_POLICY),
   boundaries: z.object({
     supports: z.array(z.string().trim().min(3).max(220)).max(12),
     avoids: z.array(z.string().trim().min(3).max(220)).max(12),
@@ -46,7 +52,9 @@ export const courseAgentConfigurationSchema = z.object({
     .refine((rules) => new Set(rules.map((rule) => rule.id)).size === rules.length, "Course agent rule ids must be unique."),
 });
 
-export const courseAgentConfigurationInputSchema = courseAgentConfigurationSchema.omit({ schemaVersion: true });
+export const courseAgentConfigurationInputSchema = courseAgentConfigurationSchema
+  .omit({ schemaVersion: true, externalSearch: true, limits: true })
+  .strict();
 
 export type CourseAgentConfiguration = z.infer<typeof courseAgentConfigurationSchema>;
 export type CourseAgentRule = z.infer<typeof courseAgentRuleSchema>;
@@ -120,6 +128,7 @@ function defaultConfiguration(): CourseAgentConfiguration {
       challengeLevel: "adaptive",
       citationMode: "required",
     },
+    externalSearch: DEFAULT_WEB_SEARCH_POLICY,
     boundaries: {
       supports: [
         "Explain published course material",
@@ -246,11 +255,7 @@ export async function writeCourseAgentConfig(args: {
   studentDisclosure: string;
   changeSummary: string;
 }) {
-  const configuration = courseAgentConfigurationSchema.parse({
-    schemaVersion: 1,
-    ...args.configuration,
-  });
-  assertConfigurationTextIsSafe(configuration);
+  const configurationInput = courseAgentConfigurationInputSchema.parse(args.configuration);
   const studentDisclosure = z.string().trim().min(20).max(600).parse(args.studentDisclosure);
   const changeSummary = z.string().trim().min(3).max(240).parse(args.changeSummary);
 
@@ -274,11 +279,11 @@ export async function writeCourseAgentConfig(args: {
       )
       .limit(1);
     if (!sourceSession) {
-      throw new Error("The source Atlas thread is not available in this course.");
+      throw new Error("The source Atlas chat is not available in this course.");
     }
 
     const [current] = await tx
-      .select({ version: courseAgentConfigs.version })
+      .select({ version: courseAgentConfigs.version, configuration: courseAgentConfigs.configuration })
       .from(courseAgentConfigs)
       .where(and(eq(courseAgentConfigs.orgId, args.orgId), eq(courseAgentConfigs.courseId, args.courseId)))
       .orderBy(desc(courseAgentConfigs.version))
@@ -287,6 +292,18 @@ export async function writeCourseAgentConfig(args: {
     if (currentVersion !== args.expectedVersion) {
       throw new Error(`The course agent changed from version ${args.expectedVersion} to ${currentVersion}. Read the current configuration and try again.`);
     }
+
+    const currentConfiguration = current ? parseStoredConfiguration(current.configuration) : defaultConfiguration();
+    if (!currentConfiguration) {
+      throw new Error("The active course agent configuration is invalid. No fallback configuration was used.");
+    }
+    const configuration = courseAgentConfigurationSchema.parse({
+      schemaVersion: 1,
+      ...configurationInput,
+      externalSearch: currentConfiguration.externalSearch,
+      limits: currentConfiguration.limits,
+    });
+    assertConfigurationTextIsSafe(configuration);
 
     const [created] = await tx
       .insert(courseAgentConfigs)
@@ -337,7 +354,6 @@ export function compileCourseAgentConfiguration(
     `Challenge level: ${configuration.teaching.challengeLevel}.`,
     `Citations: ${configuration.teaching.citationMode === "required" ? "Cite the course material used." : "Cite course material when it materially supports the response."}`,
     `Direct answers: ${directAnswer}`,
-    `Student turn limit: ${configuration.limits.studentDailyTurns} turns per day. The server enforces this limit.`,
     configuration.boundaries.supports.length
       ? `Support:\n${configuration.boundaries.supports.map((item) => `- ${item}`).join("\n")}`
       : "",
@@ -367,7 +383,6 @@ export function renderCourseAgentConfigForReference(config: ResolvedCourseAgentC
     `Direct answers: ${configuration.teaching.directAnswers}`,
     `Challenge: ${configuration.teaching.challengeLevel}`,
     `Citations: ${configuration.teaching.citationMode}`,
-    `Student daily turns: ${configuration.limits.studentDailyTurns}`,
     `Supports: ${configuration.boundaries.supports.join(" | ") || "none"}`,
     `Avoids: ${configuration.boundaries.avoids.join(" | ") || "none"}`,
     `Escalates when: ${configuration.boundaries.escalatesWhen.join(" | ") || "none"}`,

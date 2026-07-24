@@ -58,6 +58,14 @@ export default async function StudentLayout({ children }: { children: ReactNode 
         ]
       : []),
     {
+      label: "Atlas",
+      items: [
+        { href: "/student/atlas", label: "Atlas", icon: "atlas", exact: true },
+        { href: "/student/atlas/profile", label: "Profile", icon: "profile" },
+        { href: "/student/atlas/policies", label: "Policies", icon: "policies" },
+      ],
+    },
+    {
       label: "University",
       items: [
         { href: "/student/resources", label: "Resources", icon: "resources" },

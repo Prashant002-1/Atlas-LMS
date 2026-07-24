@@ -183,9 +183,12 @@ export async function fireSideNoteForTurn(args: {
     const firedTopics = fired.map((row) => row.topic);
     if (triggers.every((trigger) => firedTopics.includes(trigger.topic))) return null;
 
+    const sessionCourseId = args.session.courseId;
+    if (!sessionCourseId) return null;
+
     const topicRecords = await loadStudentTopicRecords({
       orgId: args.session.orgId,
-      courseId: args.session.courseId,
+      courseId: sessionCourseId,
       studentId: args.session.userId,
     });
 
@@ -193,7 +196,7 @@ export async function fireSideNoteForTurn(args: {
       .select({ instructorName: users.name })
       .from(courses)
       .leftJoin(users, eq(courses.createdById, users.id))
-      .where(and(eq(courses.id, args.session.courseId), eq(courses.orgId, args.session.orgId)))
+      .where(and(eq(courses.id, sessionCourseId), eq(courses.orgId, args.session.orgId)))
       .limit(1);
     const professorHandle = professorHandleFromName(courseRow?.instructorName);
 

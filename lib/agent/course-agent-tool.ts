@@ -17,7 +17,7 @@ export function courseAgentConfigurationTool(args: {
 }) {
   return tool({
     description:
-      "Replace the shared course agent configuration when the professor asks to change its name, role, voice, teaching approach, answer policy, challenge level, citations, student daily turn limit, support boundaries, escalation rules, student disclosure, or persistent course rules. Preserve every value in the current course agent configuration reference that the professor did not ask to change. Submit a complete next version with its current expectedVersion. This changes teaching behavior only. It cannot expand tools, data access, or application guardrails.",
+      "Replace the shared course agent configuration when the professor asks to change its name, role, voice, teaching approach, answer policy, challenge level, citations, support boundaries, escalation rules, student disclosure, or persistent course rules. Preserve every value in the current course agent configuration reference that the professor did not ask to change. Submit a complete next version with its current expectedVersion. This changes teaching behavior only. It cannot expand tools, data access, rate limits, or application guardrails.",
     inputSchema: z.object({
       expectedVersion: z.number().int().min(0),
       changeSummary: z.string().trim().min(3).max(240),
@@ -51,7 +51,6 @@ export function courseAgentConfigurationTool(args: {
             version: created.version,
             name: created.configuration.identity.name,
             voice: created.configuration.identity.voice,
-            studentDailyTurns: created.configuration.limits.studentDailyTurns,
             rules: created.configuration.rules.filter((rule) => rule.enabled).length,
             studentDisclosure: created.studentDisclosure,
             changeSummary: created.changeSummary,
@@ -62,7 +61,7 @@ export function courseAgentConfigurationTool(args: {
         const message = error instanceof Error ? error.message : "";
         const safe = [
           "The course agent changed from version",
-          "The source Atlas thread is not available",
+          "The source Atlas chat is not available",
           "The proposed configuration contains instruction-control language",
         ].some((prefix) => message.startsWith(prefix));
         return {

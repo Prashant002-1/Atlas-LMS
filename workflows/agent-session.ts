@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { getWorkflowMetadata, getWritable, sleep } from "workflow";
 import { db } from "@/lib/db";
 import { agentSessions } from "@/lib/db/schema";
@@ -6,6 +6,9 @@ import { loadActiveCourseAgentConfig } from "@/lib/agent/course-agent-config";
 import { resolvePlatformModel } from "@/lib/ai/platform-model";
 import { runProfessorTurn } from "@/lib/agent/professor-runtime";
 import { runSessionTurn } from "@/lib/agent/session-runtime";
+import { runStudentAtlasTurn } from "@/lib/agent/student-atlas-runtime";
+import { studentDisplayName } from "@/lib/agent/session-store";
+import { loadInstitutionName } from "@/lib/workspace/institution";
 import { concludeExpiredSession } from "@/lib/agent/session-conclusion";
 import { loadSessionAssignmentBundle } from "@/lib/agent/session-store";
 import { activateAgentRun, activateDeadlineRun } from "@/lib/agent/run-claims";
@@ -29,6 +32,14 @@ type StudentTurnArgs = {
   runClaimId: string;
 };
 
+type StudentAtlasTurnArgs = {
+  orgId: string;
+  studentId: string;
+  sessionId: string;
+  userText: string;
+  runClaimId: string;
+};
+
 async function registerActiveRun(sessionId: string, claimId: string, runId: string) {
   "use step";
   if (!(await activateAgentRun(sessionId, claimId, runId))) {
@@ -48,10 +59,10 @@ async function streamProfessorTurnStep(args: ProfessorTurnArgs, runId: string) {
     const [session] = await db
       .select()
       .from(agentSessions)
-      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.orgId, args.orgId)))
+      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.orgId, args.orgId), isNull(agentSessions.archivedAt)))
       .limit(1);
     if (!session || session.userId !== args.instructorId || session.courseId !== args.courseId) {
-      throw new Error("Professor thread not found.");
+      throw new Error("Professor chat not found.");
     }
     const resolved = resolvePlatformModel();
     if (!resolved) throw new Error("Atlas's model runtime is not configured.");
@@ -78,7 +89,7 @@ async function streamStudentTurnStep(args: StudentTurnArgs, runId: string) {
     const [session] = await db
       .select()
       .from(agentSessions)
-      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.orgId, args.orgId)))
+      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.orgId, args.orgId), isNull(agentSessions.archivedAt)))
       .limit(1);
     if (!session || session.courseId !== args.courseId || session.anchorId !== args.assignmentId) {
       throw new Error("Student session not found.");
@@ -120,6 +131,49 @@ export async function studentTurnWorkflow(args: StudentTurnArgs) {
   const { workflowRunId } = getWorkflowMetadata();
   await registerActiveRun(args.sessionId, args.runClaimId, workflowRunId);
   await streamStudentTurnStep(args, workflowRunId);
+}
+
+async function streamStudentAtlasTurnStep(args: StudentAtlasTurnArgs, runId: string) {
+  "use step";
+  try {
+    const [session] = await db
+      .select()
+      .from(agentSessions)
+      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.orgId, args.orgId), isNull(agentSessions.archivedAt)))
+      .limit(1);
+    if (!session || session.userId !== args.studentId || session.surface !== "personal") {
+      throw new Error("Personal chat not found.");
+    }
+    const resolved = resolvePlatformModel();
+    if (!resolved) throw new Error("Atlas's model runtime is not configured.");
+    const [studentName, institutionName] = await Promise.all([
+      studentDisplayName(args.orgId, args.studentId),
+      loadInstitutionName(args.orgId),
+    ]);
+
+    await pipeResponseToWorkflow(await runStudentAtlasTurn({
+      session,
+      scope: { orgId: args.orgId, studentId: args.studentId },
+      studentName,
+      institutionName,
+      model: resolved.model,
+      userText: args.userText,
+      userTurnPersisted: true,
+    }));
+  } finally {
+    await db
+      .update(agentSessions)
+      .set({ activeRunId: null, activeRunStartedAt: null, updatedAt: new Date() })
+      .where(and(eq(agentSessions.id, args.sessionId), eq(agentSessions.activeRunId, runId)));
+  }
+}
+streamStudentAtlasTurnStep.maxRetries = 0;
+
+export async function studentAtlasTurnWorkflow(args: StudentAtlasTurnArgs) {
+  "use workflow";
+  const { workflowRunId } = getWorkflowMetadata();
+  await registerActiveRun(args.sessionId, args.runClaimId, workflowRunId);
+  await streamStudentAtlasTurnStep(args, workflowRunId);
 }
 
 async function registerDeadlineRun(sessionId: string, claimId: string, runId: string) {

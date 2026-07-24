@@ -1,17 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
 import { type UIMessage } from "ai";
 import { WorkflowChatTransport } from "@ai-sdk/workflow";
 import {
   CheckCircle2,
+  Archive,
   FileCheck2,
+  FileText,
   History,
   PanelRightClose,
   PanelRightOpen,
   Plus,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -19,7 +22,7 @@ import {
   ConversationContent,
   ConversationEmptyState,
 } from "@/components/ai-elements/conversation";
-import { Message, MessageContent } from "@/components/ai-elements/message";
+import { Message, MessageContent, MessageTimestamp } from "@/components/ai-elements/message";
 import { Response } from "@/components/ai-elements/response";
 import {
   messageHasVisibleOutput,
@@ -45,6 +48,12 @@ import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput, type ToolState } 
 import { AtlasMark, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { RubricCard } from "@/components/planning/rubric-card";
 import type { RubricCriterion } from "@/lib/agent/session-parts";
+import { archiveProfessorAtlasChat } from "@/lib/agent/chat-actions";
+import { atlasMessageMetadataNow, type AtlasMessageMetadata } from "@/lib/agent/ui-message";
+import type { ProfessorDocumentAttachment } from "@/lib/agent/professor-runtime";
+import { uploadProfessorChatDocument } from "@/lib/instructor/document-actions";
+
+type PlanningChatMessage = UIMessage<AtlasMessageMetadata>;
 
 export type PlanningThreadRef = {
   id: string;
@@ -72,12 +81,14 @@ export type PlanningRoomProps = {
   threadId: string;
   threadTitle: string;
   course: { id: string; code: string; name: string; term: string | null };
-  initialMessages: UIMessage[];
+  initialMessages: PlanningChatMessage[];
   activeRunId: string | null;
   threads: PlanningThreadRef[];
   drafts: PlanningDraftRef[];
   work: PlanningWorkRef[];
   pendingProposals: number;
+  /** Optional composer seed from a direct course workflow. Never auto-submitted. */
+  initialInput?: string;
 };
 
 const STATUS_TONE = { pending: "accent", approved: "good", rejected: "neutral", applied: "good" } as const;
@@ -119,7 +130,6 @@ type AiAssignmentDraftOutput = {
   assignmentName: string;
   instructions: string;
   durationMinutes: number;
-  transcriptPolicy: string;
   personalRecordSideNotes: boolean;
   criteria: RubricCriterion[];
   usedStandardFrame: boolean;
@@ -183,6 +193,7 @@ const TOOL_TITLES: Record<string, string> = {
   "tool-inspect_lms": "Checking the course",
   "tool-read_gradebook": "Checking the gradebook",
   "tool-search_course": "Searching the course",
+  "tool-search_web": "Searching the web",
   "tool-mutate_lms": "Updating the LMS",
   "tool-load_skill": "Loading",
   "tool-draft_ai_assignment": "Preparing the AI assignment",
@@ -200,6 +211,7 @@ function toolLabel(part: LoosePart): string {
     return "Checking the gradebook";
   }
   if (type === "tool-search_course" && typeof input.query === "string") return `Searching for “${input.query}”`;
+  if (type === "tool-search_web" && typeof input.query === "string") return `Searching the web for “${input.query}”`;
   if (type === "tool-mutate_lms" && typeof input.action === "string") return input.action.replaceAll("_", " ");
   return TOOL_TITLES[type] ?? type.replace(/^tool-/, "").replaceAll("_", " ");
 }
@@ -225,6 +237,10 @@ export function PlanningRoom(props: PlanningRoomProps) {
   const [railView, setRailView] = useState<"threads" | "drafts">("threads");
   const [voiceState, setVoiceState] = useState<VoiceTranscriptionState>("idle");
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [selectedDocuments, setSelectedDocuments] = useState<ProfessorDocumentAttachment[]>([]);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [uploadPending, startUploadTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -241,7 +257,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
   const runStorageKey = `atlas-active-run:planning:${props.threadId}`;
   const [steerQueue, setSteerQueue] = useState<string[]>([]);
   const steerQueueRef = useRef<string[]>([]);
-  const transport = useMemo(() => new WorkflowChatTransport<UIMessage>({
+  const transport = useMemo(() => new WorkflowChatTransport<PlanningChatMessage>({
     api: "/api/atlas/planning",
     prepareSendMessagesRequest: ({ messages: outgoing }) => ({
       body: {
@@ -269,7 +285,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
     else window.localStorage.removeItem(runStorageKey);
   }, [props.activeRunId, runStorageKey]);
 
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, status, error } = useChat<PlanningChatMessage>({
     id: `planning-${props.threadId}`,
     messages: props.initialMessages,
     resume: Boolean(props.activeRunId),
@@ -281,11 +297,44 @@ export function PlanningRoom(props: PlanningRoomProps) {
       if (!next) return;
       steerQueueRef.current = rest;
       setSteerQueue(rest);
-      window.setTimeout(() => sendMessage({ text: next }), 0);
+      window.setTimeout(() => sendMessage({ text: next, metadata: atlasMessageMetadataNow() }), 0);
     },
   });
 
-  const sendPlanningMessage = (text: string) => sendMessage({ text });
+  const sendPlanningMessage = (text: string) => {
+    const attachments = selectedDocuments;
+    const message = attachments.length > 0
+      ? {
+          metadata: atlasMessageMetadataNow(),
+          parts: [
+            { type: "text" as const, text },
+            { type: "data-document-attachments" as const, data: { attachments } },
+          ],
+        }
+      : { text, metadata: atlasMessageMetadataNow() };
+    void sendMessage(message as Parameters<typeof sendMessage>[0]);
+    setSelectedDocuments([]);
+    setAttachmentError(null);
+  };
+
+  function uploadDocument(file: File | undefined) {
+    if (!file || selectedDocuments.length >= 5) return;
+    setAttachmentError(null);
+    startUploadTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.set("file", file);
+        const uploaded = await uploadProfessorChatDocument(formData);
+        setSelectedDocuments((current) => current.some((item) => item.fileId === uploaded.fileId)
+          ? current
+          : [...current, uploaded]);
+      } catch (uploadError) {
+        setAttachmentError(uploadError instanceof Error ? uploadError.message : "Atlas could not upload that document.");
+      } finally {
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    });
+  }
 
   const promptCheckpoints = useMemo(
     () => messages
@@ -301,8 +350,8 @@ export function PlanningRoom(props: PlanningRoomProps) {
     const firstText = (firstUserMessage?.parts as LoosePart[] | undefined)?.find(
       (part) => part.type === "text" && typeof part.text === "string"
     )?.text;
-    const compact = typeof firstText === "string" ? firstText.replace(/\s+/g, " ").trim() : "New thread";
-    const title = compact.length > 64 ? `${compact.slice(0, 61)}...` : compact || "New thread";
+    const compact = typeof firstText === "string" ? firstText.replace(/\s+/g, " ").trim() : "New chat";
+    const title = compact.length > 64 ? `${compact.slice(0, 61)}...` : compact || "New chat";
     const contextPart = messages.flatMap((message) => message.parts as LoosePart[]).find((part) => part.type === "data-run-context");
     const context = contextPart?.data as RunContext | undefined;
     return [{ id: learnedThreadId, title, userTurnCount: 1, draftCount: 0, decidedCount: 0, updatedAt: context?.builtAt ?? new Date(0).toISOString() }, ...props.threads];
@@ -351,6 +400,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
   const storedDraftIds = new Set(props.drafts.map((draft) => draft.proposalId));
   const pendingReviewCount = props.pendingProposals + visibleDrafts.filter((draft) => draft.status === "pending" && !storedDraftIds.has(draft.proposalId)).length;
   const busy = status === "submitted" || status === "streaming";
+  const activeChatId = learnedThreadId ?? props.threadId;
   const lastMessage = messages[messages.length - 1];
   const awaitingReply = busy && !messageHasVisibleOutput(lastMessage);
   const firstWork = props.work[0] ?? null;
@@ -395,10 +445,18 @@ export function PlanningRoom(props: PlanningRoomProps) {
                 Review {pendingReviewCount}
               </Link>
             ) : null}
-            <Link href="/teach/atlas?thread=new" aria-label="New thread" title="New thread" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
+            {activeChatId !== "new" ? (
+              <form action={archiveProfessorAtlasChat}>
+                <input type="hidden" name="chatId" value={activeChatId} />
+                <button type="submit" disabled={busy} aria-label="Archive chat" title="Archive chat" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
+                  <Archive size={15} aria-hidden />
+                </button>
+              </form>
+            ) : null}
+            <Link href="/teach/atlas?thread=new" aria-label="New chat" title="New chat" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
               <Plus size={16} aria-hidden />
             </Link>
-            <button type="button" onClick={() => updateRail(!railOpen)} aria-label={railOpen ? "Close Atlas sidebar" : "Open Atlas sidebar"} aria-expanded={railOpen} title={railOpen ? "Close sidebar" : "Threads and drafts"} className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
+            <button type="button" onClick={() => updateRail(!railOpen)} aria-label={railOpen ? "Close Atlas sidebar" : "Open Atlas sidebar"} aria-expanded={railOpen} title={railOpen ? "Close sidebar" : "Chats and drafts"} className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
               {railOpen ? <PanelRightClose size={16} aria-hidden /> : <PanelRightOpen size={16} aria-hidden />}
             </button>
           </div>
@@ -418,9 +476,9 @@ export function PlanningRoom(props: PlanningRoomProps) {
                       </p>
                     </div>
                     <Suggestions className="justify-start">
-                      <Suggestion suggestion="What is the grade distribution for this class?" onClick={(text) => sendMessage({ text })} />
-                      <Suggestion suggestion="How is Maya Patel doing?" onClick={(text) => sendMessage({ text })} />
-                      {firstWork ? <Suggestion suggestion={`Revise the rubric for ${firstWork.name}.`} onClick={(text) => sendMessage({ text })} /> : null}
+                      <Suggestion suggestion="What is the grade distribution for this class?" onClick={sendPlanningMessage} />
+                      <Suggestion suggestion="How is Maya Patel doing?" onClick={sendPlanningMessage} />
+                      {firstWork ? <Suggestion suggestion={`Revise the rubric for ${firstWork.name}.`} onClick={sendPlanningMessage} /> : null}
                     </Suggestions>
                   </div>
                 </ConversationEmptyState>
@@ -435,6 +493,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
                     <MessageContent>
                       <PlanningMessageParts message={message} streaming={busy && index === messages.length - 1 && message.role === "assistant"} statusByProposal={statusByProposal} />
                     </MessageContent>
+                    <MessageTimestamp createdAt={message.metadata?.createdAt} />
                   </Message>
                 ))
               )}
@@ -448,7 +507,29 @@ export function PlanningRoom(props: PlanningRoomProps) {
           <div className="mx-auto w-full max-w-[50rem]">
             {error ? <p className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{error.message || "Atlas could not finish that turn. Your message is saved."}</p> : null}
             {voiceError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{voiceError}</p> : null}
+            {attachmentError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{attachmentError}</p> : null}
             {steerQueue.length > 0 ? <p className="mb-2 text-[0.71875rem] text-[var(--color-muted)]" role="status">Steer queued · {steerQueue[0]}</p> : null}
+            {selectedDocuments.length > 0 ? (
+              <ul className="mb-2 flex flex-wrap gap-1.5" aria-label="Documents for this message">
+                {selectedDocuments.map((document) => (
+                  <li key={document.fileId} className="inline-flex max-w-full items-center gap-1.5 rounded-control border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[0.71875rem] text-[var(--color-muted)]">
+                    <FileText size={12} aria-hidden className="shrink-0" />
+                    <span className="max-w-[16rem] truncate">{document.displayName}</span>
+                    <span className="text-[var(--color-faint)]">{statusLabelForDocument(document.processingStatus)}</span>
+                    <button type="button" onClick={() => setSelectedDocuments((current) => current.filter((item) => item.fileId !== document.fileId))} aria-label={`Remove ${document.displayName}`} className="inline-flex size-5 items-center justify-center rounded-full hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]">
+                      <X size={11} aria-hidden />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.rtf,.xml,.json,.jsonl,.yaml,.yml,.html,.css,.js,.jsx,.ts,.tsx,.mjs,.cjs,.py,.java,.c,.cc,.cpp,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.kts,.sql,.sh,.zsh,.bash"
+              className="sr-only"
+              onChange={(event) => uploadDocument(event.currentTarget.files?.[0])}
+            />
             <PromptInput className="min-h-[3.25rem] flex-row items-end overflow-hidden shadow-[var(--shadow-floating)]" onSubmit={(message, event) => {
               const text = message.text.trim();
               if (!text) return;
@@ -465,19 +546,21 @@ export function PlanningRoom(props: PlanningRoomProps) {
               if (field) field.style.height = "auto";
             }}>
               <PromptInputButton
-                disabled
-                aria-label="Attachments coming soon"
-                title="Attachments coming soon"
+                disabled={busy || uploadPending || selectedDocuments.length >= 5}
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Attach document"
+                aria-busy={uploadPending}
+                title={selectedDocuments.length >= 5 ? "Five documents maximum" : uploadPending ? "Uploading document" : "Attach document"}
                 className="mb-1.5 ml-1.5 size-9 shrink-0 justify-center rounded-full px-0 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Plus size={16} aria-hidden />
               </PromptInputButton>
-              <PromptInputTextarea className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-1.5 py-[0.8125rem]" placeholder={busy ? "Steer Atlas..." : "Ask Atlas..."} autoFocus />
+              <PromptInputTextarea defaultValue={props.initialInput} className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-1.5 py-[0.8125rem]" placeholder={busy ? "Steer Atlas..." : "Ask Atlas..."} autoFocus />
               <PromptInputToolbar className="shrink-0 justify-end gap-0.5 px-1.5 py-1.5">
                 <PromptInputTools>
                   <VoiceTranscriptionButton onError={setVoiceError} onStateChange={setVoiceState} />
                 </PromptInputTools>
-                <PromptInputSubmit disabled={voiceState !== "idle"} status={status} allowSubmitWhileBusy className="rounded-full" />
+                <PromptInputSubmit disabled={voiceState !== "idle" || uploadPending} status={status} allowSubmitWhileBusy className="rounded-full" />
               </PromptInputToolbar>
             </PromptInput>
           </div>
@@ -488,7 +571,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
       <aside aria-hidden={!railOpen} inert={!railOpen} className={cn("fixed inset-y-0 right-0 z-40 flex w-[min(22rem,92vw)] flex-col overflow-hidden border-l bg-[var(--color-surface)] shadow-[var(--shadow-floating)] transition-[transform,opacity,width,border-color] duration-[220ms] ease-out lg:static lg:z-auto lg:translate-x-0 lg:shadow-none", railOpen ? "translate-x-0 border-[var(--color-border)] opacity-100 lg:w-[21rem]" : "pointer-events-none translate-x-full border-transparent opacity-0 lg:w-0 lg:translate-x-0")}>
         <div className="flex h-14 w-[min(21rem,92vw)] shrink-0 items-center justify-between border-b border-[var(--color-border)] px-3">
           <div className="flex items-center gap-1">
-            <button type="button" onClick={() => setRailView("threads")} className={cn("rounded-control px-2.5 py-1.5 text-[0.75rem] font-medium transition", railView === "threads" ? "bg-[var(--color-surface-muted)] text-[var(--color-ink)]" : "text-[var(--color-muted)] hover:text-[var(--color-ink)]")}>Threads</button>
+            <button type="button" onClick={() => setRailView("threads")} className={cn("rounded-control px-2.5 py-1.5 text-[0.75rem] font-medium transition", railView === "threads" ? "bg-[var(--color-surface-muted)] text-[var(--color-ink)]" : "text-[var(--color-muted)] hover:text-[var(--color-ink)]")}>Chats</button>
             <button type="button" onClick={() => setRailView("drafts")} className={cn("rounded-control px-2.5 py-1.5 text-[0.75rem] font-medium transition", railView === "drafts" ? "bg-[var(--color-surface-muted)] text-[var(--color-ink)]" : "text-[var(--color-muted)] hover:text-[var(--color-ink)]")}>Drafts{visibleDrafts.length > 0 ? ` ${visibleDrafts.length}` : ""}</button>
           </div>
           <button type="button" onClick={() => updateRail(false)} aria-label="Close Atlas sidebar" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"><PanelRightClose size={15} aria-hidden /></button>
@@ -508,6 +591,12 @@ function PlanningMessageParts({ message, streaming, statusByProposal }: { messag
 
   parts.forEach((part, index) => {
     const type = String(part.type ?? "");
+    if (type === "data-document-attachments") {
+      const data = part.data as { attachments?: ProfessorDocumentAttachment[] } | undefined;
+      const attachments = Array.isArray(data?.attachments) ? data.attachments : [];
+      if (attachments.length > 0) rendered.push(<MessageDocumentAttachments key={`documents-${index}`} attachments={attachments} />);
+      return;
+    }
     if (type.startsWith("data-")) return;
 
     if (type === "text" && typeof part.text === "string") {
@@ -552,6 +641,26 @@ function PlanningMessageParts({ message, streaming, statusByProposal }: { messag
   }
 
   return <>{rendered}</>;
+}
+
+function MessageDocumentAttachments({ attachments }: { attachments: ProfessorDocumentAttachment[] }) {
+  return (
+    <ul className="flex max-w-[42rem] flex-wrap gap-1.5">
+      {attachments.map((document) => (
+        <li key={document.attachmentId}>
+          <Link href={`/teach/documents/${document.fileId}`} className="inline-flex max-w-[20rem] items-center gap-1.5 rounded-control border border-[var(--color-border)] px-2 py-1 text-[0.71875rem] text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]">
+            <FileText size={12} aria-hidden className="shrink-0" />
+            <span className="truncate">{document.displayName}</span>
+            <span className="text-[var(--color-faint)]">{statusLabelForDocument(document.processingStatus)}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function statusLabelForDocument(status: ProfessorDocumentAttachment["processingStatus"]) {
+  return { queued: "Queued", processing: "Processing", ready: "Ready", failed: "Failed" }[status];
 }
 
 function ActionReceipt({ summary }: { summary: string }) {
@@ -600,7 +709,7 @@ function AiAssignmentDraftCard({ draft, status }: { draft: AiAssignmentDraftOutp
       <div className="overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)]">
         <div className="bg-[var(--color-surface-muted)] px-3.5 py-2.5">
           <p className="text-[0.8125rem] leading-5 text-[var(--color-ink)]">{draft.instructions}</p>
-          <p className="atlas-mono mt-1.5 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">{draft.durationMinutes} min · transcript {draft.transcriptPolicy}</p>
+          <p className="atlas-mono mt-1.5 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">{draft.durationMinutes} min</p>
         </div>
         <RubricCard title={draft.usedStandardFrame ? "Rubric · standard frame" : "Rubric"} criteria={draft.criteria} className="rounded-none border-0" />
       </div>
@@ -623,10 +732,10 @@ function CourseDraftCard({ draft, status }: { draft: CourseDraftOutput; status: 
 }
 
 function ThreadDraftsPanel({ drafts, pendingProposals }: { drafts: PlanningDraftRef[]; pendingProposals: number }) {
-  if (drafts.length === 0) return <div className="px-2 py-8 text-center"><FileCheck2 size={18} className="mx-auto text-[var(--color-faint)]" aria-hidden /><p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">No drafts in this thread.</p></div>;
+  if (drafts.length === 0) return <div className="px-2 py-8 text-center"><FileCheck2 size={18} className="mx-auto text-[var(--color-faint)]" aria-hidden /><p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">No drafts in this chat.</p></div>;
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between px-2"><p className="text-[0.6875rem] text-[var(--color-faint)]">This thread</p>{pendingProposals > 0 ? <TextLink href="/teach/review" className="text-[0.6875rem]">Open Review</TextLink> : null}</div>
+      <div className="mb-2 flex items-center justify-between px-2"><p className="text-[0.6875rem] text-[var(--color-faint)]">This chat</p>{pendingProposals > 0 ? <TextLink href="/teach/review" className="text-[0.6875rem]">Open Review</TextLink> : null}</div>
       <ul className="space-y-1">
         {drafts.map((draft) => <li key={draft.proposalId} className="flex items-start justify-between gap-3 px-2 py-3"><div className="min-w-0"><p className="text-[0.78125rem] leading-5 text-[var(--color-ink)]">{draft.summary}</p><p className="mt-0.5 text-[0.65625rem] text-[var(--color-faint)]">{new Date(draft.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p></div><StatusBadge tone={STATUS_TONE[draft.status]}>{STATUS_LABEL[draft.status]}</StatusBadge></li>)}
       </ul>
@@ -635,12 +744,12 @@ function ThreadDraftsPanel({ drafts, pendingProposals }: { drafts: PlanningDraft
 }
 
 function ThreadsPanel({ threads, activeId }: { threads: PlanningThreadRef[]; activeId: string }) {
-  if (threads.length === 0) return <div className="px-2 py-8 text-center"><History size={18} className="mx-auto text-[var(--color-faint)]" aria-hidden /><p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">No threads.</p></div>;
+  if (threads.length === 0) return <div className="px-2 py-8 text-center"><History size={18} className="mx-auto text-[var(--color-faint)]" aria-hidden /><p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">No chats.</p></div>;
   return (
     <ul className="space-y-0.5">
       {threads.map((thread) => {
         const active = thread.id === activeId;
-        return <li key={thread.id}><Link href={`/teach/atlas?thread=${thread.id}`} aria-current={active ? "page" : undefined} className={cn("block rounded-row px-2.5 py-2.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]", active ? "bg-[var(--color-surface-muted)]" : "hover:bg-[var(--color-surface-muted)]")}><span className={cn("block truncate text-[0.78125rem]", active ? "font-medium text-[var(--color-ink)]" : "text-[var(--color-muted)]")}>{thread.title}</span><span className="mt-1 flex items-center gap-1.5 text-[0.65625rem] text-[var(--color-faint)]"><span>{new Date(thread.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>{thread.draftCount > 0 ? <span>· {thread.draftCount} draft{thread.draftCount === 1 ? "" : "s"}</span> : null}</span></Link></li>;
+        return <li key={thread.id}><Link href={`/teach/atlas?thread=${thread.id}`} aria-current={active ? "page" : undefined} className={cn("block rounded-row px-2.5 py-2.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]", active ? "bg-[var(--color-surface-muted)]" : "hover:bg-[var(--color-surface-muted)]")}><span className={cn("block truncate text-[0.78125rem]", active ? "font-medium text-[var(--color-ink)]" : "text-[var(--color-muted)]")}>{thread.title}</span>{thread.draftCount > 0 ? <span className="mt-1 block text-[0.65625rem] text-[var(--color-faint)]">{thread.draftCount} draft{thread.draftCount === 1 ? "" : "s"}</span> : null}</Link></li>;
       })}
     </ul>
   );

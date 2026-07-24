@@ -114,8 +114,8 @@ export const sessionRubricBlockSchema = z.object({
 
 /**
  * A whole AI assignment as a proposal payload: the contract (brief, duration,
- * transcript policy, side-notes toggle) and the rubric that grades it, both
- * targeting an existing assignment. Creation happens in conversation with
+ * side-notes toggle) and the rubric that grades it, both targeting an existing
+ * assignment. Creation happens in conversation with
  * Atlas and lands here; applying writes the next rubric version and the
  * session-assignment row in one transaction. The tab only sees and governs.
  */
@@ -125,7 +125,6 @@ export const aiAssignmentBlockSchema = z.object({
   title: z.string().min(3).max(200),
   instructions: z.string().min(10).max(2000),
   durationMinutes: z.number().int().min(5).max(240),
-  transcriptPolicy: z.string().min(3).max(200),
   personalRecordSideNotes: z.boolean(),
   criteria: rubricCriteriaSchema,
 });

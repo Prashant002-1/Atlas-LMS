@@ -209,7 +209,7 @@ Use a single `DEMO_DAY`. For the current script, `DEMO_DAY` is Week 7 Day 2.
 | Weeks 2-4 | Two or three conventional assignments are assigned, submitted, and graded. |
 | Week 5 | Exam 1 happens. Per-student topic scores exist. |
 | Week 6 Day 3 | Professor planning session happens. It flags `conceptWeak` and `conceptNext` for Exam 2 practice. |
-| Week 7 Day 1 | Session assignment is posted with rubric, grounding scope, transcript policy, and side notes on. |
+| Week 7 Day 1 | Session assignment is posted with rubric, grounding scope, and side notes on. |
 | Week 7 Day 2 | Session assignment is active: v0 payloads can include modeled sessions and journey reports for grading-pipeline development, while current-schema submissions preserve the active workload split. |
 
 No seeded event may complete after `DEMO_DAY` unless it is explicitly a proposal.
@@ -332,7 +332,7 @@ Required visible config:
 - Instructions adapted from `docs/demo/script.md`.
 - Duration about 30 minutes.
 - Grounding scope: syllabus, objectives, Week 4-6 materials, Exam 1 record, professor planning session.
-- Transcript policy: shared on request / for review.
+- The assessed transcript is stored with the submission and available to the instructor.
 - Personal-record side notes: on.
 - Rubric chip visible before work starts.
 - Submit button.

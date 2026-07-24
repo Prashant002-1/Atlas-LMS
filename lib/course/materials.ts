@@ -38,6 +38,42 @@ const allowedExtensions = new Set([
   "xml",
   "qti",
   "zip",
+  "json",
+  "jsonl",
+  "yaml",
+  "yml",
+  "html",
+  "css",
+  "js",
+  "jsx",
+  "ts",
+  "tsx",
+  "mjs",
+  "cjs",
+  "py",
+  "java",
+  "c",
+  "cc",
+  "cpp",
+  "h",
+  "hpp",
+  "go",
+  "rs",
+  "rb",
+  "php",
+  "swift",
+  "kt",
+  "kts",
+  "sql",
+  "sh",
+  "zsh",
+  "bash",
+]);
+
+const codeExtensions = new Set([
+  "json", "jsonl", "yaml", "yml", "html", "css", "js", "jsx", "ts", "tsx", "mjs", "cjs",
+  "py", "java", "c", "cc", "cpp", "h", "hpp", "go", "rs", "rb", "php", "swift", "kt", "kts",
+  "sql", "sh", "zsh", "bash",
 ]);
 
 const ingestionResultSchema = z.object({
@@ -73,7 +109,7 @@ export function classifyCourseMaterial(filename: string, contentType: string | n
   if (["mp3", "m4a", "wav", "mp4", "mov", "webm"].includes(extension) || contentType?.startsWith("audio/") || contentType?.startsWith("video/")) {
     return { kind: "media", source: "upload" };
   }
-  if (["pdf", "doc", "docx", "xls", "xlsx", "csv", "txt", "md", "rtf"].includes(extension)) {
+  if (["pdf", "doc", "docx", "xls", "xlsx", "csv", "txt", "md", "rtf"].includes(extension) || codeExtensions.has(extension)) {
     return { kind: "document", source: "upload" };
   }
   return { kind: "other", source: "upload" };
@@ -82,7 +118,7 @@ export function classifyCourseMaterial(filename: string, contentType: string | n
 export function assertSupportedCourseMaterial(file: File) {
   const extension = extensionOf(file.name);
   if (!allowedExtensions.has(extension)) {
-    throw new Error("Unsupported material type. Upload a document, PDF, slide deck, spreadsheet, media file, Common Cartridge, QTI package, XML file, or ZIP archive.");
+    throw new Error("Unsupported material type. Upload a document, PDF, slide deck, spreadsheet, code file, media file, Common Cartridge, QTI package, XML file, or ZIP archive.");
   }
   if (file.size <= 0) throw new Error("The uploaded material is empty.");
   if (file.size > MAX_COURSE_MATERIAL_BYTES) throw new Error("Course materials must be 25 MB or smaller.");
@@ -129,16 +165,21 @@ async function parseIngestionResponse(response: Response) {
 
 export async function ingestUploadedCourseMaterial(args: {
   orgId: string;
-  courseId: string;
+  courseId: string | null;
+  ownerUserId?: string | null;
   uploadedById: string;
   file: File;
 }): Promise<IngestedCourseMaterial> {
+  if (Number(Boolean(args.courseId)) + Number(Boolean(args.ownerUserId)) !== 1) {
+    throw new Error("An uploaded document must belong to one course or one person.");
+  }
   assertSupportedCourseMaterial(args.file);
   const arrayBuffer = await args.file.arrayBuffer();
   const checksumSha256 = createHash("sha256").update(Buffer.from(arrayBuffer)).digest("hex");
   const form = new FormData();
   form.set("orgId", args.orgId);
-  form.set("courseId", args.courseId);
+  if (args.courseId) form.set("courseId", args.courseId);
+  if (args.ownerUserId) form.set("ownerUserId", args.ownerUserId);
   form.set("uploadedById", args.uploadedById);
   form.set("checksumSha256", checksumSha256);
   const callbackUrl = ingestionCallbackUrl();

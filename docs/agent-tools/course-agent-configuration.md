@@ -12,7 +12,6 @@ Use this tool when the professor asks Atlas to change:
 - direct-answer policy;
 - challenge level;
 - citation behavior;
-- student turn limit per rolling 24 hours;
 - supported or avoided behavior;
 - escalation conditions;
 - a persistent study or AI-assignment rule;
@@ -43,9 +42,6 @@ Use this tool when the professor asks Atlas to change:
       avoids: string[]; // at most 12
       escalatesWhen: string[]; // at most 12
     };
-    limits: {
-      studentDailyTurns: number; // integer from 1 to 500
-    };
     rules: Array<{
       id: string; // stable kebab-case id
       title: string;
@@ -57,14 +53,14 @@ Use this tool when the professor asks Atlas to change:
 }
 ```
 
-The request is a complete replacement. The model must copy every current value the professor did not ask to change from the fresh `agent_configuration` section of the professor context pack.
+The request is a complete replacement. The model must copy every current value the professor did not ask to change from the fresh `agent_configuration` section of the professor context pack. Rate limits are server-owned and are not part of this tool or any course-actor surface.
 
 ## Execution
 
 1. The Zod schema validates the complete configuration.
 2. A lexical check rejects instruction-control language that tries to replace privileged prompts, disable authorization, or bypass guardrails.
 3. A transaction takes an advisory lock for the organization and course.
-4. The source Atlas thread is verified against organization, course, instructor, command surface, and course anchor.
+4. The source Atlas chat is verified against organization, course, instructor, command surface, and course anchor.
 5. The current highest version is compared with `expectedVersion`.
 6. A mismatch aborts the write and tells Atlas to read the current state.
 7. A successful write inserts one append-only `course_agent_configs` row at current version plus one.
@@ -87,7 +83,6 @@ Success:
     version: number;
     name: string;
     voice: string;
-    studentDailyTurns: number;
     rules: number;
     studentDisclosure: string;
     changeSummary: string;
@@ -108,7 +103,7 @@ Failure:
 
 The active row is the highest version for the course. Professor context includes it as lower-authority reference data. Student assessed sessions load it on every turn and compile it below fixed assessed-session rules and the assignment contract.
 
-The configuration may shape teaching behavior. It cannot add tools, widen organization or course scope, expose credentials, or weaken grading and transcript constraints.
+The configuration may shape teaching behavior. It cannot add tools, widen organization or course scope, expose credentials, or weaken grading and transcript constraints. External-source access is server-owned policy and is excluded from this model-visible complete-replacement contract, its reference block, and all course-actor settings.
 
 The student session page shows the configured name, version, and student disclosure. It does not show raw prompts or hidden reasoning.
 

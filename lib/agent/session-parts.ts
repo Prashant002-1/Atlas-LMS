@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { UIMessage } from "ai";
+import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
 
 /**
  * Session stream contract, the typed parts a live assignment session may carry.
@@ -230,7 +231,7 @@ export type SessionTools = {
   };
 };
 
-export type SessionUIMessage = UIMessage<never, SessionDataParts, SessionTools>;
+export type SessionUIMessage = UIMessage<AtlasMessageMetadata, SessionDataParts, SessionTools>;
 
 /* ── part readers (client + persistence share these) ───────── */
 

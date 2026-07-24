@@ -1,6 +1,6 @@
 # Database access matrix
 
-This is the table-oriented view of database access in the professor-agent request path and the Course Setup material path.
+This is the table-oriented view of database access in the professor-agent request path, teacher Materials, and personal student attachments.
 
 ## Scope predicates
 
@@ -8,8 +8,8 @@ This is the table-oriented view of database access in the professor-agent reques
 - Tool schemas do not accept organization or course identifiers.
 - LMS executors repeat organization and course predicates.
 - Student reads and grade writes additionally verify active course enrollment.
-- Professor thread reads require the current instructor, command surface, and course anchor.
-- Course agent configuration writes verify the source thread against the same organization, course, instructor, surface, and anchor.
+- Professor chat reads require the current instructor, command surface, and course anchor.
+- Course agent configuration writes verify the source chat against the same organization, course, instructor, surface, and anchor.
 
 Proof: [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts), [`lib/agent/course-agent-config.ts`](../../lib/agent/course-agent-config.ts), [`app/api/atlas/planning/route.ts`](../../app/api/atlas/planning/route.ts), and [`lib/workspace/scope.ts`](../../lib/workspace/scope.ts).
 
@@ -19,7 +19,7 @@ Proof: [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts), [`lib/age
 | --- | --- | --- |
 | authenticate and choose course | authentication state, `terms`, `courses`, `enrollments` | none |
 | model resolution | server environment configuration only | none |
-| create or load professor thread | `agent_sessions` | may insert `agent_sessions`; may update title |
+| create or load professor chat | `agent_sessions` | may insert `agent_sessions`; may update title |
 | persist turns | `agent_sessions` | inserts `agent_turns`; updates counters and timestamps |
 | build professor context | course academic tables, `files`, `course_material_records`, `course_agent_configs`, AI assignment contracts, rubrics, drafts | none |
 | compaction | active `agent_turns`, `agent_sessions` | updates session summary and cursor |
@@ -58,7 +58,7 @@ Proof: [`lib/agent/course-agent-tool.ts`](../../lib/agent/course-agent-tool.ts) 
 
 ## Course material intake outside the model
 
-Teacher Course Setup uses authenticated server actions, not model tools:
+Teacher Materials and personal student document intake use authenticated server actions, not model tools:
 
 | Action | External work | Database work |
 | --- | --- | --- |
@@ -66,7 +66,8 @@ Teacher Course Setup uses authenticated server actions, not model tools:
 | add linked material | asks the ingestion service to process one HTTPS URL | transaction inserts `files` plus `course_material_records` |
 | signed ingestion callback | worker sends HMAC-signed job status and extraction data | updates the scoped `files` and `course_material_records` rows for that job |
 | change material access | none | updates or creates one `course_material_records` extension row |
+| attach a personal student document | forwards a bounded file to the same ingestion service | inserts one student-owned `files` row, private processing record, and exact personal-session attachment with no course id |
 
-If initial ingestion fails, no database row is created. Asynchronous work is correlated by a stable unique job id. Existing `files` rows without an extension row resolve as ready, course-visible LMS material.
+If initial ingestion fails, no database row is created. Asynchronous work is correlated by a stable unique job id. Existing course `files` rows without an extension row resolve as ready, course-visible LMS material. Personal rows require a private processing record and exact student/session ownership.
 
 Proof: [`lib/instructor/course-material-actions.ts`](../../lib/instructor/course-material-actions.ts), [`lib/course/materials.ts`](../../lib/course/materials.ts), [`app/api/materials/ingestion/route.ts`](../../app/api/materials/ingestion/route.ts), and [`lib/db/course-agent-schema.ts`](../../lib/db/course-agent-schema.ts).

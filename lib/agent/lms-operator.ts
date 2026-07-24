@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
 import { tool, type LanguageModel } from "ai";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -26,6 +26,7 @@ import {
 } from "@/lib/db/schema";
 import { applyProposal, dismissProposal } from "@/lib/agent/apply";
 import { gradeLetterFor, runGradingForSubmission } from "@/lib/agent/grading";
+import { gradeBandsForCourse } from "@/lib/course/policies";
 import { loadAtlasSkill } from "@/lib/agent/atlas-harness";
 import { practiceQuestionSchema } from "@/lib/agent/blocks";
 import { recomputeClassRollup } from "@/lib/agent/rollup";
@@ -99,7 +100,7 @@ const inspectLmsSchema = z.object({
     "policies",
     "calendar",
     "drafts",
-    "threads",
+    "chats",
   ]),
   ids: z.array(z.string().uuid()).max(20).optional(),
   query: z.string().trim().min(1).max(160).optional(),
@@ -401,7 +402,6 @@ async function inspectLms(scope: ProfessorScope, input: InspectLmsInput): Promis
           instructions: sessionAssignments.instructions,
           durationMinutes: sessionAssignments.durationMinutes,
           groundingScope: sessionAssignments.groundingScope,
-          transcriptPolicy: sessionAssignments.transcriptPolicy,
           personalRecordSideNotes: sessionAssignments.personalRecordSideNotes,
           sideNoteTriggers: sessionAssignments.sideNoteTriggers,
           updatedAt: sessionAssignments.updatedAt,
@@ -433,8 +433,8 @@ async function inspectLms(scope: ProfessorScope, input: InspectLmsInput): Promis
     return { ok: true, resource: input.resource, asOf, count: records.length, records };
   }
 
-  if (input.resource === "threads") {
-    const conditions: SQL[] = [eq(agentSessions.orgId, scope.orgId), eq(agentSessions.courseId, scope.courseId), eq(agentSessions.userId, scope.instructorId), eq(agentSessions.surface, "command"), eq(agentSessions.anchorType, "course")];
+  if (input.resource === "chats") {
+    const conditions: SQL[] = [eq(agentSessions.orgId, scope.orgId), eq(agentSessions.courseId, scope.courseId), eq(agentSessions.userId, scope.instructorId), eq(agentSessions.surface, "command"), eq(agentSessions.anchorType, "course"), isNull(agentSessions.archivedAt)];
     if (input.ids?.length) conditions.push(inArray(agentSessions.id, input.ids));
     if (input.query) conditions.push(ilike(agentSessions.title, `%${input.query}%`));
     const rows = await db
@@ -716,7 +716,7 @@ const mutateLmsSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("update_course"), name: z.string().min(3).max(200).optional(), description: z.string().max(2000).nullable().optional(), syllabusMd: z.string().max(20_000).nullable().optional() }),
   z.object({ action: z.literal("set_grade"), assignmentId: z.string().uuid(), studentId: z.string().uuid(), score: z.number().min(0), grade: z.string().max(24).nullable().optional() }),
   z.object({ action: z.literal("mark_missing"), assignmentId: z.string().uuid(), studentId: z.string().uuid(), missing: z.boolean().default(true) }),
-  z.object({ action: z.literal("update_session_contract"), assignmentId: z.string().uuid(), instructions: z.string().min(10).max(2000).optional(), durationMinutes: z.number().int().min(5).max(240).optional(), groundingScope: z.array(z.string().min(1).max(200)).max(12).optional(), transcriptPolicy: z.string().min(3).max(200).optional(), personalRecordSideNotes: z.boolean().optional() }),
+  z.object({ action: z.literal("update_session_contract"), assignmentId: z.string().uuid(), instructions: z.string().min(10).max(2000).optional(), durationMinutes: z.number().int().min(5).max(240).optional(), groundingScope: z.array(z.string().min(1).max(200)).max(12).optional(), personalRecordSideNotes: z.boolean().optional() }),
   z.object({ action: z.literal("apply_draft"), proposalId: z.string().uuid() }),
   z.object({ action: z.literal("dismiss_draft"), proposalId: z.string().uuid() }),
   z.object({ action: z.literal("grade_session"), submissionId: z.string().uuid(), force: z.boolean().default(false) }),
@@ -800,7 +800,7 @@ async function uniquePageSlug(scope: ProfessorScope, title: string) {
   return slug;
 }
 
-async function mutateLms(scope: ProfessorScope, model: LanguageModel, input: MutateLmsInput): Promise<LmsActionOutput> {
+async function mutateLms(scope: ProfessorScope, sessionId: string, model: LanguageModel, input: MutateLmsInput): Promise<LmsActionOutput> {
   try {
     if (input.action === "create_assignment") {
       const [{ position }] = await db.select({ position: sql<number>`coalesce(max(${assignments.position}), 0)::int` }).from(assignments).where(and(eq(assignments.orgId, scope.orgId), eq(assignments.courseId, scope.courseId)));
@@ -926,11 +926,10 @@ async function mutateLms(scope: ProfessorScope, model: LanguageModel, input: Mut
         .where(and(eq(sessionAssignments.orgId, scope.orgId), eq(sessionAssignments.courseId, scope.courseId), eq(sessionAssignments.assignmentId, input.assignmentId), eq(assignments.orgId, scope.orgId), eq(assignments.courseId, scope.courseId)))
         .limit(1);
       if (!target) return { ok: false, error: "That assignment is not an AI assignment in this course." };
-      const set: Partial<typeof sessionAssignments.$inferInsert> = { updatedAt: new Date() };
+      const set: Partial<typeof sessionAssignments.$inferInsert> = { planningSessionId: sessionId, updatedAt: new Date() };
       if (input.instructions !== undefined) set.instructions = input.instructions;
       if (input.durationMinutes !== undefined) set.durationMinutes = input.durationMinutes;
       if (input.groundingScope !== undefined) set.groundingScope = input.groundingScope;
-      if (input.transcriptPolicy !== undefined) set.transcriptPolicy = input.transcriptPolicy;
       if (input.personalRecordSideNotes !== undefined) set.personalRecordSideNotes = input.personalRecordSideNotes;
       await db.update(sessionAssignments).set(set).where(and(eq(sessionAssignments.id, target.id), eq(sessionAssignments.orgId, scope.orgId), eq(sessionAssignments.courseId, scope.courseId)));
       return { ok: true, action: input.action, summary: `Updated the session contract for ${target.assignmentName}.` };
@@ -964,9 +963,14 @@ async function mutateLms(scope: ProfessorScope, model: LanguageModel, input: Mut
         .limit(1);
       if (!row) return { ok: false, error: "That draft session grade is not in this course." };
       if (row.report.status === "final") return { ok: false, error: "That session grade is already final." };
+      const [scaleRow] = await db
+        .select({ gradeScale: courses.gradeScale })
+        .from(courses)
+        .where(and(eq(courses.id, scope.courseId), eq(courses.orgId, scope.orgId)))
+        .limit(1);
       const now = new Date();
       const score = row.report.overallScore;
-      const grade = gradeLetterFor(score);
+      const grade = gradeLetterFor(score, gradeBandsForCourse(scaleRow?.gradeScale));
       const fallbackBody = renderFinalArtifactBody(row.submission.finalArtifact, row.studentName ?? "Student");
       await db.transaction(async (tx) => {
         await tx.update(journeyReports).set({ status: "final", finalizedAt: now, finalizedById: scope.instructorId, updatedAt: now }).where(and(eq(journeyReports.id, row.report.id), eq(journeyReports.orgId, scope.orgId), eq(journeyReports.courseId, scope.courseId)));
@@ -1029,7 +1033,7 @@ async function mutateLms(scope: ProfessorScope, model: LanguageModel, input: Mut
   }
 }
 
-function directActionTools(args: { scope: ProfessorScope; model: LanguageModel }) {
+function directActionTools(args: { scope: ProfessorScope; sessionId: string; model: LanguageModel }) {
   const entries = mutateLmsSchema.options.map((option) => {
     const action = option.shape.action.value as MutateLmsAction;
     const inputShape = { ...option.shape };
@@ -1044,7 +1048,7 @@ function directActionTools(args: { scope: ProfessorScope; model: LanguageModel }
         execute: async (input): Promise<LmsActionOutput> => {
           const parsed = mutateLmsSchema.safeParse({ action, ...(input as Record<string, unknown>) });
           if (!parsed.success) return { ok: false, error: "The LMS action input was invalid." };
-          return mutateLms(args.scope, args.model, parsed.data);
+          return mutateLms(args.scope, args.sessionId, args.model, parsed.data);
         },
       }),
     ] as const;
@@ -1084,7 +1088,7 @@ export function professorOperatorTools(args: { scope: ProfessorScope; sessionId:
     },
   });
 
-  const actions = directActionTools({ scope: args.scope, model: args.model });
+  const actions = directActionTools({ scope: args.scope, sessionId: args.sessionId, model: args.model });
 
   return {
     inspect_lms,

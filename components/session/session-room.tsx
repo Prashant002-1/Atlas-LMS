@@ -22,7 +22,7 @@ import {
   ConversationContent,
   ConversationEmptyState,
 } from "@/components/ai-elements/conversation";
-import { Message, MessageContent } from "@/components/ai-elements/message";
+import { Message, MessageContent, MessageTimestamp } from "@/components/ai-elements/message";
 import { Response } from "@/components/ai-elements/response";
 import {
   messageHasVisibleOutput,
@@ -51,6 +51,9 @@ import { ArtifactPanel, type ArtifactRevision } from "@/components/session/artif
 import { JourneyReportPanel } from "@/components/session/journey-report-panel";
 import { RubricPanel } from "@/components/session/rubric-panel";
 import { SideNoteCardView } from "@/components/session/side-note-card";
+import { atlasMessageMetadataNow, type AtlasMessageMetadata } from "@/lib/agent/ui-message";
+
+type AssignmentChatMessage = UIMessage<AtlasMessageMetadata>;
 
 export type SessionRoomProps = {
   assignmentId: string;
@@ -60,9 +63,8 @@ export type SessionRoomProps = {
   brief: string;
   durationMinutes: number;
   groundingScope: string[];
-  transcriptPolicy: string;
   criteria: RubricCriterion[];
-  initialMessages: UIMessage[];
+  initialMessages: AssignmentChatMessage[];
   initialArtifacts: Array<{ turnIndex: number; artifactType: string; state: unknown }>;
   initialSideNotes: SideNoteCard[];
   sessionStartedAt: string | null;
@@ -110,7 +112,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
   const [steerQueue, setSteerQueue] = useState<string[]>([]);
   const steerQueueRef = useRef<string[]>([]);
   const deadlineAt = localDeadlineAt ?? props.deadlineAt;
-  const transport = useMemo(() => new WorkflowChatTransport<UIMessage>({
+  const transport = useMemo(() => new WorkflowChatTransport<AssignmentChatMessage>({
     api: `/api/session/${props.assignmentId}`,
     prepareSendMessagesRequest: ({ messages: outgoing }) => ({
       body: { message: outgoing[outgoing.length - 1] },
@@ -138,7 +140,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
     else window.localStorage.removeItem(runStorageKey);
   }, [props.activeRunId, runStorageKey]);
 
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, status, error } = useChat<AssignmentChatMessage>({
     id: `session-${props.assignmentId}${props.chatIdSuffix ?? ""}`,
     messages: props.initialMessages,
     resume: Boolean(props.activeRunId),
@@ -155,7 +157,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
       if (!next) return;
       steerQueueRef.current = rest;
       setSteerQueue(rest);
-      window.setTimeout(() => sendMessage({ text: next }), 0);
+      window.setTimeout(() => sendMessage({ text: next, metadata: atlasMessageMetadataNow() }), 0);
     },
   });
   const [inspectorOpen, setInspectorOpen] = useState(false);
@@ -181,7 +183,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
 
   const sendSessionMessage = (text: string) => {
     beginIfNeeded();
-    sendMessage({ text });
+    sendMessage({ text, metadata: atlasMessageMetadataNow() });
   };
 
   useEffect(() => {
@@ -353,6 +355,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                         <MessageContent>
                           <MessageParts message={message} streaming={busy && index === messages.length - 1 && message.role === "assistant"} />
                         </MessageContent>
+                        <MessageTimestamp createdAt={message.metadata?.createdAt} />
                       </Message>
                       {(seededNotesByTurn.get(turnIndexOf(message.id)) ?? []).map((note) => <SideNoteCardView key={note.id} note={note} />)}
                     </div>
@@ -477,7 +480,7 @@ function AssignmentDetails(props: SessionRoomProps & { started: boolean }) {
       <p className="mt-2 text-[0.78125rem] leading-5 text-[var(--color-muted)]">{props.brief}</p>
       <dl className="mt-3 space-y-1 text-[0.71875rem] leading-5">
         {props.groundingScope.length > 0 ? <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2 py-2"><dt className="text-[var(--color-faint)]">Course material</dt><dd className="text-[var(--color-muted)]">{props.groundingScope.join(", ")}</dd></div> : null}
-        <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2 py-2"><dt className="text-[var(--color-faint)]">Transcript</dt><dd className="text-[var(--color-muted)]">{props.transcriptPolicy}</dd></div>
+        <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2 py-2"><dt className="text-[var(--color-faint)]">Transcript</dt><dd className="text-[var(--color-muted)]">Available to your instructor</dd></div>
       </dl>
     </section>
   );

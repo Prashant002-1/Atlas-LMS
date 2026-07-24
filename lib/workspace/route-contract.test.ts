@@ -28,6 +28,10 @@ const requiredRoutes = [
   "/student/assignments/[assignmentId]",
   "/student/work/[assignmentId]",
   "/student/session/[assignmentId]",
+  "/student/atlas",
+  "/student/atlas/profile",
+  "/student/atlas/policies",
+  "/api/atlas/student",
   "/api/session/[assignmentId]",
   "/teach",
   "/teach/account",
@@ -47,6 +51,7 @@ const requiredRoutes = [
   "/teach/gradebook",
   "/teach/students",
   "/teach/syllabus",
+  "/teach/materials",
   "/teach/settings",
   "/teach/student/[studentId]",
   "/teach/week/[moduleId]",
@@ -253,7 +258,8 @@ test("phase 4 closes the loop on the professor side", () => {
   assertServerAction("lib/instructor/session-actions.ts", "refreshClassRollup");
   assertServerAction("lib/instructor/session-actions.ts", "proposePracticeSet");
   assertSourceIncludes("lib/agent/practice-proposal.ts", "parseStoredBlock");
-  assertServerAction("lib/instructor/session-actions.ts", "updateSessionContract");
+  assertSourceExcludes("lib/instructor/session-actions.ts", "updateSessionContract");
+  assertSourceIncludes("lib/agent/lms-operator.ts", 'action: z.literal("update_session_contract")');
   assertServerAction("lib/instructor/session-actions.ts", "updateRubricWeights");
   assertSourceIncludes("lib/instructor/session-actions.ts", "rescaleCriterionToWeight");
 
@@ -272,7 +278,7 @@ test("issue 27: the professor plans with Atlas across the profile boundary", () 
   assertSourceIncludes("lib/agent/profiles.ts", "export const agentProfiles");
   assertSourceIncludes("lib/agent/profiles.ts", "professor:");
   assertSourceIncludes("lib/agent/profiles.ts", "session:");
-  assertSourceIncludes("lib/agent/profiles.ts", "study:");
+  assertSourceIncludes("lib/agent/profiles.ts", "student:");
   assertSourceIncludes("lib/agent/session-store.ts", "agentProfiles.session");
   assertSourceIncludes("lib/agent/session.ts", "agentProfiles.professor");
 
@@ -299,6 +305,8 @@ test("issue 27: the professor plans with Atlas across the profile boundary", () 
   assertSourceIncludes("lib/agent/rubric-proposal.ts", "parseStoredBlock");
   assertSourceIncludes("lib/agent/blocks.ts", "session_rubric");
   assertSourceIncludes("lib/agent/apply.ts", 'block.type === "session_rubric"');
+  assertSourceIncludes("lib/agent/apply.ts", "planningSessionId: proposal.sessionId");
+  assertSourceIncludes("lib/agent/lms-operator.ts", "planningSessionId: sessionId");
 
   // The agent IS the Atlas surface: opening /teach/atlas opens the
   // conversation, threads switch in place, and the shell never locks or
@@ -334,12 +342,14 @@ test("issue 27: the professor plans with Atlas across the profile boundary", () 
   assertSourceExcludes("components/planning/planning-room.tsx", "WorkSessionsPanel");
 });
 
-test("legacy blocks remain persisted but not rendered by the removed registry UI", () => {
+test("persisted proposal blocks render as full records without the removed registry UI", () => {
   assertSourceIncludes("lib/agent/blocks.ts", "discriminatedUnion");
   assertSourceIncludes("lib/agent/blocks.ts", "BLOCK_SCHEMA_VERSION");
   assertSourceIncludes("lib/agent/blocks.ts", "export function parseStoredBlock");
-  assertSourceIncludes("components/teach/proposals.tsx", ">Draft</span>");
-  assertSourceExcludes("components/teach/proposals.tsx", "legacy draft");
+  assertSourceIncludes("components/teach/proposals.tsx", "function ProposalBlockPreview");
+  for (const blockType of ["objective", "module", "assignment", "page", "announcement", "practice_set", "rubric"]) {
+    assertSourceIncludes("components/teach/proposals.tsx", `block.type === "${blockType}"`);
+  }
   assertSourceExcludes("components/teach/proposals.tsx", "BlockView");
 });
 
@@ -434,12 +444,22 @@ test("issue 26: workspaces present records and direct controls, not a task queue
     }
   }
 
-  // Announcements are one-way course posts with a direct creation form.
+  // Announcements publish directly, may be scheduled, and can start in a
+  // durable professor thread without inventing a submitted draft.
   assertServerAction("lib/instructor/actions.ts", "createAnnouncementRecord");
-  assertSourceIncludes("app/teach/announcements/page.tsx", "action={createAnnouncementRecord}");
+  assertServerAction("lib/instructor/actions.ts", "startAnnouncementDraftThread");
+  assertSourceIncludes("app/teach/announcements/page.tsx", "AnnouncementComposer");
+  assertSourceIncludes("components/teach/announcement-composer.tsx", "action={createAnnouncementRecord}");
+  assertSourceIncludes("components/teach/announcement-composer.tsx", "action={startAnnouncementDraftThread}");
+  assertSourceIncludes("lib/student/workspace.ts", "lte(announcements.postedAt, new Date())");
 
-  // Course setup is roster-facing and never touches Atlas policy or model configuration.
+  // Course setup is the course control center: identity, grade scale, class
+  // policies, and the course agent shown read-first. It never touches model
+  // configuration, and agent changes go through Atlas, not a form here.
   assertServerAction("lib/instructor/actions.ts", "updateCourseDetails");
+  assertServerAction("lib/instructor/actions.ts", "updateGradeScale");
+  assertServerAction("lib/instructor/actions.ts", "saveClassPolicy");
+  assertServerAction("lib/instructor/actions.ts", "removeClassPolicy");
   assertSourceIncludes("app/teach/course/page.tsx", "action={updateCourseDetails}");
   assertSourceExcludes("app/teach/course/page.tsx", "updateCourseAiPolicy");
 

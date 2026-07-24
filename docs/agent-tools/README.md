@@ -4,15 +4,17 @@ This directory is the source-backed reference for the live professor-agent surfa
 
 ## Current tool registry
 
-The runtime exposes exactly 28 tools. Twenty direct LMS writes are separate exact-schema tools so providers do not need to accept a top-level union schema. Shared teaching policy is written through the append-only `configure_agent` tool.
+The professor runtime exposes 29 base tools. Twenty direct LMS writes are separate exact-schema tools so providers do not need to accept a top-level union schema. Shared teaching policy is written through the append-only `configure_agent` tool, and the agent's own durable notes go through the budgeted `remember` tool. A conditional `search_web` read composes with that registry when fixed platform, university, and applicable course policy permit it and the server credential is present.
 
 | Tool | Kind | Purpose | Contract |
 | --- | --- | --- | --- |
 | `inspect_lms` | Read | Read scoped LMS data by resource | [Read tools](read-tools.md#inspect_lms) |
 | `read_gradebook` | Read and calculate | Read course, assignment, roster, or individual student grade data | [Read tools](read-tools.md#read_gradebook) |
 | `search_course` | Read | Case-insensitive text search across selected course data | [Read tools](read-tools.md#search_course) |
+| `search_web` | Conditional read | Search current public web sources and return bounded excerpts with citation URLs | [Runtime and scope](runtime-and-scope.md#conditional-public-web-search) |
 | `load_skill` | Filesystem read | Load one reviewed workflow from `.atlas/skills` | [Read tools](read-tools.md#load_skill) |
 | `configure_agent` | Versioned configuration write | Replace the shared course agent's typed teaching configuration | [Course agent configuration](course-agent-configuration.md) |
+| `remember` | Budgeted memory write | Add, replace, or remove one durable observation about the professor | [Personal memory](personal-memory.md) |
 | `create_assignment`, `update_assignment`, `publish_assignment` | Direct write | Create, edit, publish, or unpublish assignments | [Content actions](write-content-actions.md#assignment-actions) |
 | `create_module`, `update_module`, `publish_module` | Direct write | Create, edit, publish, or unpublish modules | [Content actions](write-content-actions.md#module-actions) |
 | `create_page`, `update_page`, `post_announcement`, `create_practice_set` | Direct write | Change ordinary course content immediately | [Content actions](write-content-actions.md) |
@@ -24,7 +26,7 @@ The runtime exposes exactly 28 tools. Twenty direct LMS writes are separate exac
 | `draft_rubric` | Draft write | Store a rubric revision proposal for Review | [Draft tools](draft-tools.md#draft_rubric) |
 | `draft_course` | Draft write | Store up to six course-object proposals for Review | [Draft tools](draft-tools.md#draft_course) |
 
-Proof: `professorOperatorTools` in [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts) returns the read, exact direct-action, and draft tools. `directActionTools` derives exact schemas from the internal mutation branches. `runProfessorTurn` adds `configure_agent` from [`lib/agent/course-agent-tool.ts`](../../lib/agent/course-agent-tool.ts) to the same closed registry.
+Proof: `professorOperatorTools` in [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts) returns the read, exact direct-action, and draft tools. `directActionTools` derives exact schemas from the internal mutation branches. `runProfessorTurn` adds `configure_agent` from [`lib/agent/course-agent-tool.ts`](../../lib/agent/course-agent-tool.ts), `remember` from [`lib/agent/memories.ts`](../../lib/agent/memories.ts), and the governed search tool from [`lib/agent/web-search.ts`](../../lib/agent/web-search.ts) without replacing any existing tool.
 
 `inspect_course` still exists inside `professorTools`, but the live runtime does not return it.
 
@@ -56,6 +58,7 @@ When a tool is added, removed, or changed:
 | --- | --- |
 | LMS tools and direct operations | [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts) |
 | Course agent configuration tool | [`lib/agent/course-agent-tool.ts`](../../lib/agent/course-agent-tool.ts) |
+| Conditional public web search | [`lib/agent/web-search.ts`](../../lib/agent/web-search.ts) |
 | Configuration schema, compiler, versioning, and provenance | [`lib/agent/course-agent-config.ts`](../../lib/agent/course-agent-config.ts) |
 | Draft tools | [`lib/agent/professor-tools.ts`](../../lib/agent/professor-tools.ts) |
 | Runtime assembly and step limit | [`lib/agent/professor-runtime.ts`](../../lib/agent/professor-runtime.ts) |

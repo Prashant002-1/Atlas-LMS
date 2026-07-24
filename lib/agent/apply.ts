@@ -90,7 +90,7 @@ async function weekToDate(tx: Tx, courseId: string, week: number | undefined): P
 
 async function applyBlock(
   tx: Tx,
-  args: { orgId: string; courseId: string; authorId: string },
+  args: { orgId: string; courseId: string; authorId: string; planningSessionId: string | null },
   block: Block
 ): Promise<{ itemType: "module" | "assignment" | "page" | "quiz"; itemId: string; title: string } | null> {
   const { orgId, courseId } = args;
@@ -257,8 +257,8 @@ async function applyBlock(
       rubricId: rubric.id,
       instructions: block.instructions,
       durationMinutes: block.durationMinutes,
-      transcriptPolicy: block.transcriptPolicy,
       personalRecordSideNotes: block.personalRecordSideNotes,
+      planningSessionId: args.planningSessionId,
     });
 
     return { itemType: "assignment", itemId: block.assignmentId, title: `${block.title} (${target.assignmentName})` };
@@ -296,7 +296,11 @@ async function applyBlock(
 
     await tx
       .update(sessionAssignments)
-      .set({ rubricId: created.id, updatedAt: new Date() })
+      .set({
+        rubricId: created.id,
+        ...(args.planningSessionId ? { planningSessionId: args.planningSessionId } : {}),
+        updatedAt: new Date(),
+      })
       .where(and(eq(sessionAssignments.orgId, orgId), eq(sessionAssignments.assignmentId, block.assignmentId)));
 
     return { itemType: "assignment", itemId: block.assignmentId, title: `${block.title} (${target.assignmentName})` };
@@ -346,6 +350,21 @@ export async function applyProposal(args: {
   const applied: AppliedRecord[] = [];
 
   await db.transaction(async (tx) => {
+    const [proposal] = await tx
+      .select({ sessionId: changeProposals.sessionId, status: changeProposals.status })
+      .from(changeProposals)
+      .where(
+        and(
+          eq(changeProposals.id, args.proposalId),
+          eq(changeProposals.orgId, args.orgId),
+          eq(changeProposals.courseId, args.courseId)
+        )
+      )
+      .limit(1);
+    if (!proposal || proposal.status !== "pending") {
+      throw new Error("Draft unavailable.");
+    }
+
     const blocks = await tx
       .select()
       .from(proposalBlocks)
@@ -368,7 +387,11 @@ export async function applyProposal(args: {
     ];
 
     for (const { row, block } of ordered) {
-      const created = await applyBlock(tx, { orgId: args.orgId, courseId: args.courseId, authorId: args.userId }, block);
+      const created = await applyBlock(
+        tx,
+        { orgId: args.orgId, courseId: args.courseId, authorId: args.userId, planningSessionId: proposal.sessionId },
+        block
+      );
       await tx
         .update(proposalBlocks)
         .set({

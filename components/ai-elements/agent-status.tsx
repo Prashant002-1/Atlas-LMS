@@ -19,11 +19,18 @@ export function messageHasVisibleOutput(message: UIMessage | undefined): boolean
 }
 
 export function ThinkingIndicator({ label }: { label: string }) {
+  const activity = sentenceCaseActivity(label);
   return (
     <div className="py-1" role="status" aria-live="polite">
-      <Shimmer as="span" duration={1.6} spread={1.5} className="text-[0.78125rem] font-medium">{label}</Shimmer>
+      <Shimmer as="span" duration={1.6} spread={1.5} className="text-[0.78125rem] font-medium">{activity}</Shimmer>
     </div>
   );
+}
+
+export function sentenceCaseActivity(label: string): string {
+  const activity = label.trim();
+  if (!activity) return "Working";
+  return activity.charAt(0).toLocaleUpperCase("en-US") + activity.slice(1);
 }
 
 export function promptAnchorId(messageId: string) {

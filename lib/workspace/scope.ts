@@ -143,4 +143,7 @@ export type WorkspaceCourse = {
   name: string;
   term: string;
   description?: string | null;
+  /** Term window, so a surface can say what week the course is in. */
+  startDate?: Date | null;
+  endDate?: Date | null;
 };

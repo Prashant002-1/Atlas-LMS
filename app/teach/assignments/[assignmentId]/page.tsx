@@ -3,6 +3,7 @@ import { ActionButton, BackLink, ButtonLink, TextLink } from "@/components/atlas
 import { PageHeader } from "@/components/teach/page-header";
 import { SubmissionReviewTable, type SubmissionReviewRow } from "@/components/teach/submission-review-table";
 import { RecordDialog } from "@/components/teach/record-dialog";
+import { RichTextEditor } from "@/components/teach/rich-text-editor";
 import { DocumentAttachmentSection } from "@/components/documents/document-attachments";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
@@ -58,6 +59,8 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
     score: submission.score ?? null,
     grade: submission.grade ?? null,
     body: submission.body ?? null,
+    submissionKind: submission.submissionKind,
+    hasFeedback: submission.hasFeedback,
     sessionSubmissionId: submission.sessionSubmissionId ?? null,
     draftScore: submission.draftScore ?? null,
     draftReportStatus: submission.draftReportStatus ?? null,
@@ -153,10 +156,14 @@ function AssignmentEditDialog({ assignment }: { assignment: InstructorAssignment
           Title
           <input name="title" type="text" defaultValue={assignment.title} required autoFocus maxLength={220} className={fieldClass} />
         </label>
-        <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
-          Description
-          <textarea name="description" rows={10} maxLength={1600} defaultValue={assignment.detail ?? ""} className={`${fieldClass} min-h-56 resize-y py-3 leading-6`} />
-        </label>
+        {/* An assignment description is prose students read, so it gets the formatted box. */}
+        <RichTextEditor
+          name="description"
+          label="Description"
+          defaultValue={assignment.detail ?? ""}
+          rows={10}
+          maxLength={1600}
+        />
         <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
           <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
             Due date

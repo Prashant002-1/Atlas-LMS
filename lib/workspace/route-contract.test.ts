@@ -59,6 +59,7 @@ const requiredRoutes = [
   "/teach/week/[moduleId]",
   "/teach/assignments/[assignmentId]",
   "/teach/work/[assignmentId]",
+  "/teach/assignments/[assignmentId]/submissions/[studentId]",
 ];
 
 test("required routes exist in the App Router tree", () => {

@@ -5,6 +5,8 @@ import { PageHeader } from "@/components/teach/page-header";
 import { CourseSwitch } from "@/components/teach/course-switch";
 import { ButtonLink, RecordRow, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { StaggerGrid, MotionItem } from "@/components/atlas/motion";
+import { courseProgress, stageLabel } from "@/lib/instructor/course-progress";
+import { CourseStageStrip } from "@/components/teach/course-stage-strip";
 
 function hasUpcomingDueDate(assignment: InstructorWorkspace["assignments"][number]) {
   return assignment.status === "approved" && assignment.dueAt && assignment.dueAt.getTime() >= Date.now();
@@ -30,6 +32,15 @@ export default async function TeachOverviewPage() {
     .sort((a, b) => (a.dueAt?.getTime() ?? 0) - (b.dueAt?.getTime() ?? 0))
     .slice(0, 4);
   const briefing = buildAtlasBriefing(workspace);
+  /*
+   * Where the course actually is. This is the first thing a professor wants on
+   * opening a course and the overview never said it, which is what made the page
+   * read as a second assignments list.
+   */
+  const progress = courseProgress({
+    startDate: workspace.course.startDate ?? null,
+    endDate: workspace.course.endDate ?? null,
+  });
 
   return (
     <>
@@ -67,6 +78,13 @@ export default async function TeachOverviewPage() {
           </ButtonLink>
         </div>
       </header>
+
+      <CourseStageStrip
+        label={progress.label}
+        stage={stageLabel(progress.stage)}
+        fraction={progress.fraction}
+        weeksRemaining={progress.weeksRemaining}
+      />
 
       <StaggerGrid className="grid gap-x-10 gap-y-9 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.38fr)]" stagger={0.05}>
         <MotionItem>

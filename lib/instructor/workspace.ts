@@ -21,6 +21,7 @@ import { resolveScope, type WorkspaceCourse, type WorkspaceScope } from "@/lib/w
 import { loadProposalBlocks } from "@/lib/agent/apply";
 import type { Block } from "@/lib/agent/blocks";
 import { recordDestination, recordKindOfBlock, reviewRecordLabel } from "@/lib/instructor/review-records";
+import { submissionKind } from "@/lib/instructor/submission-detail";
 import type { Objective, ModuleDraft } from "@/lib/workspace/records";
 import { courseAiPolicies, type CourseAiPolicy } from "@/lib/db/schema";
 
@@ -78,6 +79,10 @@ export type InstructorAssignmentSubmission = {
   score?: number | null;
   grade?: string | null;
   body?: string | null;
+  /** What was handed in: text, a file, a link, or an assessed session. */
+  submissionKind?: "text" | "file" | "link" | "session" | "none";
+  /** Whether the instructor has written a comment on this submission. */
+  hasFeedback?: boolean;
   /** Canonical AI-session drill-in reached from every assignment surface. */
   sessionSubmissionId?: string | null;
   draftScore?: number | null;
@@ -207,7 +212,15 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
   try {
     const course = scope.course
       ? await db
-          .select({ id: courses.id, code: courses.code, name: courses.name, term: courses.term, description: courses.description })
+          .select({
+            id: courses.id,
+            code: courses.code,
+            name: courses.name,
+            term: courses.term,
+            description: courses.description,
+            startDate: courses.startDate,
+            endDate: courses.endDate,
+          })
           .from(courses)
           .where(and(eq(courses.orgId, actor.orgId), eq(courses.id, scope.course.id)))
           .limit(1)
@@ -451,6 +464,8 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
         name: course.name,
         term: course.term ?? scope.term?.name ?? "",
         description: course.description,
+        startDate: course.startDate,
+        endDate: course.endDate,
       },
       scope,
       policy: policy ?? null,
@@ -855,6 +870,9 @@ export async function loadInstructorAssignmentWorkspace(
             grade: submissions.grade,
             missing: submissions.missing,
             body: submissions.body,
+            url: submissions.url,
+            submissionType: submissions.submissionType,
+            feedback: submissions.feedback,
           })
           .from(submissions)
           .where(
@@ -905,6 +923,13 @@ export async function loadInstructorAssignmentWorkspace(
       score: submission?.score,
       grade: submission?.grade,
       body: submission?.body,
+      submissionKind: submissionKind({
+        submissionType: submission?.submissionType ?? null,
+        body: submission?.body ?? null,
+        url: submission?.url ?? null,
+        session: Boolean(sessionSubmissionByUser.get(enrollment.userId)?.id),
+      }),
+      hasFeedback: Boolean(submission?.feedback?.trim()),
       sessionSubmissionId: sessionSubmissionByUser.get(enrollment.userId)?.id ?? null,
       draftScore: sessionSubmissionByUser.get(enrollment.userId)?.draftScore ?? null,
       draftReportStatus: sessionSubmissionByUser.get(enrollment.userId)?.reportStatus ?? null,

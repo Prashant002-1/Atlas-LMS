@@ -7,16 +7,14 @@ import { cn } from "@/lib/utils";
 import type { JourneyGridCounts, JourneyGridRow, JourneyState } from "@/lib/instructor/cockpit";
 
 const SESSION_STATE_LABEL: Record<JourneyState, string> = {
-  review_requested: "Review requested",
   draft: "Draft grade",
   pending_grading: "Submitted",
   in_session: "In progress",
   not_started: "Not started",
-  final: "Graded",
+  final: "Final grade",
 };
 
 const stateDot: Record<JourneyState, string> = {
-  review_requested: "bg-[var(--color-warn)]",
   draft: "bg-[var(--color-accent)]",
   pending_grading: "bg-[var(--color-muted)]",
   in_session: "bg-[var(--color-accent)]",
@@ -26,20 +24,18 @@ const stateDot: Record<JourneyState, string> = {
 
 const filters: Array<{ value: "all" | JourneyState; label: string }> = [
   { value: "all", label: "All students" },
-  { value: "review_requested", label: "Review requested" },
   { value: "draft", label: "Draft grades" },
   { value: "pending_grading", label: "Submitted" },
   { value: "in_session", label: "In progress" },
   { value: "not_started", label: "Not started" },
-  { value: "final", label: "Graded" },
+  { value: "final", label: "Final grades" },
 ];
 
 export function SessionSummary({ counts }: { counts: JourneyGridCounts }) {
-  const toReview = counts.draft + counts.reviewRequested;
   return (
     <p className="flex flex-wrap gap-x-4 gap-y-1 text-[0.78125rem] text-[var(--color-muted)]">
       <span><strong className="font-semibold tabular-nums text-[var(--color-ink)]">{counts.submitted}</strong> submitted</span>
-      <span><strong className="font-semibold tabular-nums text-[var(--color-ink)]">{toReview}</strong> draft grade{toReview === 1 ? "" : "s"}</span>
+      <span><strong className="font-semibold tabular-nums text-[var(--color-ink)]">{counts.draft}</strong> draft grade{counts.draft === 1 ? "" : "s"}</span>
       <span><strong className="font-semibold tabular-nums text-[var(--color-ink)]">{counts.final}</strong> graded</span>
     </p>
   );

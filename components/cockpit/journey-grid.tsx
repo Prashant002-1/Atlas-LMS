@@ -1,18 +1,16 @@
 import Link from "next/link";
-import { Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/atlas/primitives";
 import { JOURNEY_STATE_LABEL, type JourneyGridCounts, type JourneyGridRow } from "@/lib/instructor/cockpit";
 
 /**
  * Journey grid: one card per enrolled student, ordered by what needs the
- * professor first (review requests, then drafts, then the rest). A card with
+ * professor first (drafts, then the rest). A card with
  * a submission opens the drill-in; the levels strip makes the class scannable
  * without opening anything.
  */
 
 const stateTone = {
-  review_requested: "warn",
   draft: "accent",
   pending_grading: "neutral",
   in_session: "accent",
@@ -33,7 +31,6 @@ export function JourneyGridSummary({ counts }: { counts: JourneyGridCounts }) {
     { label: "submitted", value: counts.submitted },
     { label: "final", value: counts.final },
     { label: "draft grades", value: counts.draft },
-    { label: "review requests", value: counts.reviewRequested },
     { label: "in session", value: counts.inSession },
     { label: "not started", value: counts.notStarted },
   ];
@@ -90,7 +87,6 @@ export function JourneyGrid({ rows }: { rows: JourneyGridRow[] }) {
                 </span>
               )}
               <div className="flex items-center gap-1.5">
-                {row.reviewRequestedAt ? <Flag size={11} className="text-[var(--color-warn)]" aria-label="Review requested" /> : null}
                 {row.overallScore !== null ? (
                   <span className="text-[0.9375rem] font-semibold tabular-nums text-[var(--color-ink)]">
                     {Math.round(row.overallScore)}

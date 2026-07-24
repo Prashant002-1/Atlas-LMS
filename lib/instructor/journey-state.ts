@@ -9,36 +9,33 @@
  * "in session"), and grading state outranks submission state.
  */
 
-export type JourneyState = "not_started" | "in_session" | "pending_grading" | "draft" | "review_requested" | "final";
+export type JourneyState = "not_started" | "in_session" | "pending_grading" | "draft" | "final";
 
 /** Working-queue order: what needs the professor first. */
 export const JOURNEY_STATE_ORDER: Record<JourneyState, number> = {
-  review_requested: 0,
-  draft: 1,
-  pending_grading: 2,
-  in_session: 3,
-  not_started: 4,
-  final: 5,
+  draft: 0,
+  pending_grading: 1,
+  in_session: 2,
+  not_started: 3,
+  final: 4,
 };
 
 export const JOURNEY_STATE_LABEL: Record<JourneyState, string> = {
-  review_requested: "Review requested",
   draft: "Draft grade",
   pending_grading: "Awaiting grading",
   in_session: "In session",
   not_started: "Not started",
-  final: "Final",
+  final: "Final grade",
 };
 
 export function deriveJourneyState(input: {
   hasSubmission: boolean;
   reportStatus: "draft" | "final" | null;
-  reviewRequested: boolean;
   hasOpenSession: boolean;
 }): JourneyState {
   if (input.hasSubmission) {
     if (input.reportStatus === "final") return "final";
-    if (input.reportStatus === "draft") return input.reviewRequested ? "review_requested" : "draft";
+    if (input.reportStatus === "draft") return "draft";
     return "pending_grading";
   }
   return input.hasOpenSession ? "in_session" : "not_started";

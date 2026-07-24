@@ -15,8 +15,8 @@ import { agentMemories, courses, enrollments, type AgentMemory } from "@/lib/db/
  */
 
 export const MEMORY_ENTRY_MAX_CHARS = 240;
-export const MEMORY_ACTIVE_BUDGET_CHARS = 2200;
-export const MEMORY_ACTIVE_MAX_ENTRIES = 40;
+export const MEMORY_ACTIVE_BUDGET_CHARS = 4400;
+export const MEMORY_ACTIVE_MAX_ENTRIES = 80;
 
 export const memoryKinds = ["strength", "gap", "preference", "goal", "context"] as const;
 export type MemoryKind = (typeof memoryKinds)[number];
@@ -82,7 +82,10 @@ export function renderMemoriesForReference(memories: AgentMemory[]): string {
   }
   return [
     header,
-    ...memories.map((memory) => `[m:${memoryHandle(memory)}] (${memory.kind}) ${memory.content}`),
+    ...memories.map(
+      (memory) =>
+        `[m:${memoryHandle(memory)}]${memory.courseId ? ` [course:${memory.courseId}]` : ""} (${memory.kind}) ${memory.content}`
+    ),
   ].join("\n");
 }
 

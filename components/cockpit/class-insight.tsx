@@ -56,9 +56,6 @@ export function ClassInsight({
             <ResultFact label="Graded sessions" value={`${insight.stats.gradedSessions} / ${insight.stats.submittedSessions}`} />
             <ResultFact label="Average" value={String(insight.stats.overallAverage)} />
             <ResultFact label="Median" value={String(insight.stats.overallMedian)} />
-            {insight.stats.reviewRequestedCount > 0 ? (
-              <ResultFact label="Review requests" value={String(insight.stats.reviewRequestedCount)} attention />
-            ) : null}
           </dl>
 
           {insight.narrative ? <p className="mt-5 max-w-4xl text-[0.84375rem] leading-6 text-[var(--color-ink)]">{insight.narrative}</p> : null}
@@ -112,11 +109,11 @@ export function ClassInsight({
   );
 }
 
-function ResultFact({ label, value, attention = false }: { label: string; value: string; attention?: boolean }) {
+function ResultFact({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-[0.75rem] text-[var(--color-muted)]">{label}</dt>
-      <dd className={cn("mt-0.5 text-[1.125rem] font-semibold tabular-nums text-[var(--color-ink)]", attention && "text-[var(--color-warn)]")}>{value}</dd>
+      <dd className="mt-0.5 text-[1.125rem] font-semibold tabular-nums text-[var(--color-ink)]">{value}</dd>
     </div>
   );
 }

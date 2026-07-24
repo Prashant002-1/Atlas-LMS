@@ -10,13 +10,15 @@ import { WorkflowChatTransport } from "@ai-sdk/workflow";
 import {
   ArrowLeft,
   CheckCircle2,
+  CircleAlert,
   Clock3,
+  LoaderCircle,
   PanelRightClose,
   PanelRightOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { submitSession } from "@/lib/student/actions";
-import type { StudentJourneyReportView } from "@/lib/student/session-view";
+import type { StudentGradingProgress, StudentJourneyReportView } from "@/lib/student/session-view";
 import {
   Conversation,
   ConversationContent,
@@ -73,7 +75,7 @@ export type SessionRoomProps = {
   submitted: boolean;
   submittedAt: string | null;
   report: StudentJourneyReportView | null;
-  gradingPending: boolean;
+  grading: StudentGradingProgress | null;
 };
 
 const TURN_ID_PATTERN = /^turn-(\d+)$/;
@@ -99,7 +101,7 @@ export function SessionRoom(props: SessionRoomProps) {
       submitted={false}
       submittedAt={null}
       report={null}
-      gradingPending={false}
+      grading={null}
     />
   );
 }
@@ -109,6 +111,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
   const runStorageKey = `atlas-active-run:session:${props.assignmentId}${props.chatIdSuffix ?? ""}`;
   const [localDeadlineAt, setLocalDeadlineAt] = useState<string | null>(props.deadlineAt);
   const [closing, setClosing] = useState(false);
+  const [grading, setGrading] = useState<StudentGradingProgress | null>(props.grading);
   const [steerQueue, setSteerQueue] = useState<string[]>([]);
   const steerQueueRef = useRef<string[]>([]);
   const deadlineAt = localDeadlineAt ?? props.deadlineAt;
@@ -194,14 +197,21 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
   }, [deadlineAt, props.submitted]);
 
   useEffect(() => {
-    if (!closing && !props.gradingPending) return;
+    const gradingActive = props.submitted && !props.report && grading?.status !== "failed";
+    if (!closing && !gradingActive) return;
     let cancelled = false;
     const poll = async () => {
       try {
         const response = await fetch(`/api/session/${props.assignmentId}/state`, { cache: "no-store" });
         if (!response.ok || cancelled) return;
-        const state = await response.json() as { submitted: boolean; reportReady: boolean; deadlineAt: string | null };
+        const state = await response.json() as {
+          submitted: boolean;
+          reportReady: boolean;
+          grading: StudentGradingProgress | null;
+          deadlineAt: string | null;
+        };
         if (state.deadlineAt) setLocalDeadlineAt(state.deadlineAt);
+        if (state.grading) setGrading(state.grading);
         if ((state.submitted && !props.submitted) || (state.reportReady && !props.report)) router.refresh();
       } catch {
         // The durable workflow owns completion; a transient poll failure is harmless.
@@ -213,7 +223,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [closing, props.assignmentId, props.gradingPending, props.report, props.submitted, router]);
+  }, [closing, grading?.status, props.assignmentId, props.report, props.submitted, router]);
 
   const liveRevisions = useMemo(() => {
     const out: ArtifactRevision[] = [];
@@ -370,7 +380,11 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
             <div className="shrink-0 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)] to-transparent px-3 pb-3 pt-2 md:px-6 md:pb-5">
               <div className="mx-auto w-full max-w-[48rem]">
                 {props.submitted ? (
-                  <SubmittedControl submittedAt={props.submittedAt} onStartFresh={props.onStartFresh} />
+                  <SubmittedControl
+                    submittedAt={props.submittedAt}
+                    grading={props.report ? null : grading}
+                    onStartFresh={props.onStartFresh}
+                  />
                 ) : closing ? (
                   <ClosingControl agentName={props.agentName} />
                 ) : (
@@ -427,13 +441,57 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
               <AssignmentDetails {...props} deadlineAt={deadlineAt} started={started} />
               <div className="px-4 py-4"><ArtifactPanel revisions={revisions} plain /></div>
               <div className="px-4 py-4"><RubricPanel criteria={props.criteria} plain /></div>
-              {props.report ? <div className="px-4 py-4"><JourneyReportPanel report={props.report} assignmentId={props.assignmentId} compact /></div> : null}
-              {props.gradingPending ? <div className="px-4 py-4"><h2 className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Grade pending</h2><p className="mt-1 text-[0.75rem] leading-5 text-[var(--color-muted)]">Your submission is saved and waiting for grading.</p></div> : null}
+              {props.report ? <div className="px-4 py-4"><JourneyReportPanel report={props.report} compact /></div> : null}
             </div>
             {!props.submitted && started ? <div className="shrink-0 border-t border-[var(--color-border)] p-4"><SubmitSessionControl assignmentId={props.assignmentId} /></div> : null}
           </aside>
         </div>
       </section>
+    </div>
+  );
+}
+
+function gradingProgressPresentation(grading: StudentGradingProgress) {
+  const retrying = grading.status === "retrying" || (grading.status === "running" && grading.attempt > 1);
+  const failed = grading.status === "failed";
+  const completed = grading.status === "completed";
+  const title = failed
+    ? "Grading failed"
+    : completed
+      ? "Grade ready"
+      : retrying
+        ? "Retrying grading"
+        : grading.status === "running"
+          ? "Grading"
+          : "Grading queued";
+  const detail = failed
+    ? "Your submission is saved. Grading can be retried."
+    : completed
+      ? "Opening your draft grade."
+      : retrying
+        ? "Your submission is saved while Atlas tries again."
+        : grading.status === "running"
+          ? "Reading your session against the rubric."
+          : "Your submission is saved and waiting to be graded.";
+
+  return { completed, detail, failed, title };
+}
+
+function GradingStatusLine({ grading }: { grading: StudentGradingProgress }) {
+  const { completed, detail, failed, title } = gradingProgressPresentation(grading);
+
+  return (
+    <div className="mt-1 flex min-w-0 items-start gap-1.5" role="status" aria-live="polite" data-grading-status={grading.status}>
+      {failed ? (
+        <CircleAlert size={12} className="mt-0.5 shrink-0 text-[var(--color-danger)]" aria-hidden />
+      ) : completed ? (
+        <CheckCircle2 size={12} className="mt-0.5 shrink-0 text-[var(--color-good)]" aria-hidden />
+      ) : (
+        <LoaderCircle size={12} className="mt-0.5 shrink-0 animate-spin text-[var(--color-accent-strong)] motion-reduce:animate-none" aria-hidden />
+      )}
+      <p className="text-[0.71875rem] leading-5 text-[var(--color-muted)]">
+        <span className={cn("font-medium", failed ? "text-[var(--color-danger)]" : "text-[var(--color-ink)]")}>{title}.</span>{" "}{detail}
+      </p>
     </div>
   );
 }
@@ -548,12 +606,24 @@ function ClosingControl({ agentName }: { agentName: string }) {
   );
 }
 
-function SubmittedControl({ submittedAt, onStartFresh }: { submittedAt: string | null; onStartFresh?: () => void }) {
+function SubmittedControl({
+  submittedAt,
+  grading,
+  onStartFresh,
+}: {
+  submittedAt: string | null;
+  grading: StudentGradingProgress | null;
+  onStartFresh?: () => void;
+}) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-3 shadow-[var(--shadow-panel)]">
       <div className="min-w-0">
         <p className="text-[0.8125rem] font-medium text-[var(--color-ink)]">Session submitted</p>
-        <p className="mt-0.5 truncate text-[0.71875rem] text-[var(--color-muted)]">{submittedAt ? `Submitted ${formatStamp(submittedAt)}` : "Transcript and submission draft saved"}</p>
+        {grading ? (
+          <GradingStatusLine grading={grading} />
+        ) : (
+          <p className="mt-0.5 truncate text-[0.71875rem] text-[var(--color-muted)]">{submittedAt ? `Submitted ${formatStamp(submittedAt)}` : "Transcript and submission draft saved"}</p>
+        )}
       </div>
       {onStartFresh ? <button type="button" onClick={onStartFresh} className="shrink-0 rounded-control border border-[var(--color-border-strong)] px-2.5 py-1.5 text-[0.75rem] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-ink)]">New attempt</button> : null}
     </div>

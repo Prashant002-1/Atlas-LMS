@@ -31,9 +31,6 @@ const sampleConfiguration = courseAgentConfigurationSchema.parse({
     avoids: ["Complete graded work"],
     escalatesWhen: ["The request requires a professor decision"],
   },
-  limits: {
-    studentDailyTurns: 40,
-  },
   rules: [
     {
       id: "compare-before-concluding",
@@ -56,7 +53,7 @@ test("course agent configuration is typed and surface scoped", () => {
   const assignment = compileCourseAgentConfiguration(sampleConfiguration, "assignment");
   assert.match(assignment, /Identity: Mira/);
   assert.match(assignment, /Compare before concluding/);
-  assert.doesNotMatch(assignment, /turns per day/);
+  assert.doesNotMatch(assignment, /turn limit|turns per day/i);
   assert.doesNotMatch(assignment, /Recall first/);
   assert.match(assignment, /cannot expand tools, data access/);
 
@@ -128,7 +125,7 @@ test("Atlas owns append-only course agent configuration", () => {
   assert.match(config, /expectedVersion/);
   assert.match(config, /sourceSessionId/);
   assert.match(config, /externalSearch: currentConfiguration\.externalSearch/);
-  assert.match(config, /limits: currentConfiguration\.limits/);
+  assert.doesNotMatch(config, /currentConfiguration\.limits/);
   assert.doesNotMatch(config, /courseAiPolicies/);
   assert.match(tool, /configure_agent/);
   assert.match(tool, /complete next version/);
@@ -136,13 +133,12 @@ test("Atlas owns append-only course agent configuration", () => {
 });
 
 test("student sessions compile shared state below fixed rules", () => {
-  const route = read("app/api/session/[assignmentId]/route.ts");
+  const workflow = read("workflows/agent-session.ts");
   const runtime = read("lib/agent/session-runtime.ts");
   const context = read("lib/agent/session-context.ts");
 
-  assert.match(route, /loadActiveCourseAgentConfig/);
-  assert.match(route, /withinStudentDailyTurnLimit/);
-  assert.match(route, /courseAgent\.configuration\.limits\.studentDailyTurns/);
+  assert.match(workflow, /loadActiveCourseAgentConfig/);
+  assert.doesNotMatch(workflow, /DailyTurnLimit|studentDailyTurns/);
   assert.match(runtime, /courseAgent: ResolvedCourseAgentConfig/);
   assert.match(context, /FIXED ASSESSED-SESSION RULES/);
   assert.match(context, /compileCourseAgentConfiguration/);

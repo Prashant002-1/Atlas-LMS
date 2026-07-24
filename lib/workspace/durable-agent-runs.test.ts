@@ -41,12 +41,37 @@ test("assessed-session expiry concludes, submits, and drafts a grade", () => {
   assert.match(workflow, /await sleep\(new Date\(args\.deadlineAt\)\)/);
   assert.match(workflow, /concludeExpiredSession/);
   assert.match(conclusion, /submitSessionRecord/);
-  assert.match(conclusion, /runGradingForSubmission/);
+  assert.doesNotMatch(conclusion, /runGradingForSubmission/);
+  assert.match(workflow, /gradeSessionSubmissionStep\(gradingArgs\)/);
   assert.match(conclusion, /data-session-end/);
   assert.match(route, /claimDeadlineRun/);
   assert.match(route, /Time is up\. Atlas is closing and submitting this session\./);
   assert.match(room, /ClosingControl/);
   assert.match(room, /\/state/);
+});
+
+test("manual session submit schedules grading without holding the form request open", () => {
+  const schema = read("lib/db/schema.ts");
+  const workflow = read("workflows/agent-session.ts");
+  const actions = read("lib/student/actions.ts");
+  const state = read("app/api/session/[assignmentId]/state/route.ts");
+  const room = read("components/session/session-room.tsx");
+
+  assert.match(actions, /await start\(sessionGradingWorkflow/);
+  assert.doesNotMatch(actions, /await runGradingForSubmission/);
+  assert.match(workflow, /export async function sessionGradingWorkflow/);
+  assert.match(workflow, /gradeSessionSubmissionStep\.maxRetries = 2/);
+  assert.match(workflow, /getStepMetadata/);
+  assert.match(workflow, /runGradingForSubmission/);
+  for (const field of ["gradingStatus", "gradingWorkflowRunId", "gradingAttempt"]) {
+    assert.match(schema, new RegExp(field));
+  }
+  assert.equal(existsSync(path.join(root, "drizzle/0012_session_grading_lifecycle.sql")), true);
+  assert.match(state, /grading: view\.grading/);
+  for (const status of ["Grading queued", "Grading", "Retrying grading", "Grading failed", "Grade ready"]) {
+    assert.match(room, new RegExp(status));
+  }
+  assert.match(room, /data-grading-status/);
 });
 
 test("student and instructor agent surfaces share quiet progress and steering", () => {

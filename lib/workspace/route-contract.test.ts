@@ -152,6 +152,9 @@ test("session, proposal, policy, and platform model substrate remain for v0 adap
   assertSourceIncludes("lib/agent/context.ts", "export async function buildContextPack");
   assertSourceIncludes("lib/agent/session.ts", "export async function resumeOrCreateSession");
   assertSourceIncludes("lib/agent/session.ts", "export async function compactIfNeeded");
+  assertSourceIncludes("lib/agent/session.ts", "maxOutputTokens: summaryBudget.maxTokens");
+  assertSourceExcludes("lib/agent/session.ts", "Under 300 words");
+  assertSourceExcludes("lib/agent/session.ts", "slice(0, 2000)");
   assertSourceIncludes("lib/agent/apply.ts", "export async function applyProposal");
   assertSourceIncludes("lib/agent/apply.ts", "export async function dismissProposal");
 
@@ -175,8 +178,9 @@ test("phase 2 mounts the session engine on the kept substrate", () => {
   assertSourceIncludes("lib/db/schema.ts", "export const sessionArtifactStates");
   assertSourceIncludes("lib/db/schema.ts", "export const sessionSideNotes");
   assertSourceIncludes("lib/db/schema.ts", "export const sessionSubmissions");
-  assertSourceIncludes("lib/db/schema.ts", "personalRecordSideNotes");
+  assertSourceExcludes("lib/db/schema.ts", "personalRecordSideNotes");
   assertSourceIncludes("lib/db/schema.ts", "topicScores");
+  assert.equal(existsSync(path.join(root, "drizzle/0011_remove_obsolete_agent_settings.sql")), true);
 
   // The runtime seam: turn-persisted streams on plain AI SDK 7 (ADR-0010).
   assertSourceIncludes("lib/agent/session-runtime.ts", "export async function runSessionTurn");
@@ -185,9 +189,9 @@ test("phase 2 mounts the session engine on the kept substrate", () => {
   assertSourceIncludes("app/api/session/[assignmentId]/route.ts", "resolvePlatformModel");
   assertSourceIncludes("app/api/session/[assignmentId]/route.ts", 'user.role !== "student"');
 
-  // Side notes are server-triggered, policy-gated, and record-composed.
+  // Side notes are server-triggered, always active, and record-composed.
   assertSourceIncludes("lib/agent/side-notes.ts", "export function evaluateSideNote");
-  assertSourceIncludes("lib/agent/side-notes.ts", "personalRecordSideNotes");
+  assertSourceExcludes("lib/agent/side-notes.ts", "personalRecordSideNotes");
   assertSourceExcludes("lib/agent/side-notes.ts", "generateText");
 
   // Submit freezes a normalized transcript for the grading pipeline.
@@ -223,13 +227,21 @@ test("phase 3 makes the rubric read the transcript", () => {
   assertSourceIncludes("lib/agent/rollup.ts", "export function computeClassRollupStats");
   assertSourceIncludes("lib/agent/rollup.ts", "export function buildRollupNarrative");
 
-  // Submit grades immediately; a grading failure never undoes the submission.
-  assertSourceIncludes("lib/student/actions.ts", "runGradingForSubmission");
-  assertServerAction("lib/student/actions.ts", "requestJourneyReview");
+  // Submit returns after scheduling durable grading; a grading failure never
+  // undoes the submission or strands the browser's Server Action request.
+  assertSourceIncludes("lib/student/actions.ts", "sessionGradingWorkflow");
+  assertSourceIncludes("lib/student/actions.ts", "await start(");
+  assertSourceIncludes("workflows/agent-session.ts", "runGradingForSubmission");
+  assertSourceIncludes("workflows/agent-session.ts", "gradeSessionSubmissionStep.maxRetries = 2");
+  assertSourceIncludes("lib/db/schema.ts", "sessionGradingStatusEnum");
+  assertSourceIncludes("components/session/session-room.tsx", "data-grading-status");
+  assertSourceIncludes("lib/agent/grading.ts", 'status: "draft"');
+  assertSourceExcludes("lib/student/actions.ts", "requestJourneyReview");
+  assertSourceExcludes("lib/db/schema.ts", "reviewRequestedAt");
 
   // The student sees the evidence-backed report; the seed lands graded worlds.
   assertSourceIncludes("components/session/session-room.tsx", "JourneyReportPanel");
-  assertSourceIncludes("components/session/journey-report-panel.tsx", "requestJourneyReview");
+  assertSourceExcludes("components/session/journey-report-panel.tsx", "Request professor review");
   assertSourceIncludes("lib/db/seed.ts", "journeyReports");
   assertSourceIncludes("lib/db/seed.ts", "computeClassRollupStats");
   assert.equal(existsSync(path.join(root, "scripts/regrade.ts")), true, "scripts/regrade.ts should exist.");
@@ -245,6 +257,7 @@ test("phase 4 closes the loop on the professor side", () => {
 
   // Finalize is the only session-grade gradebook writer, stamped who/when.
   assertServerAction("lib/instructor/session-actions.ts", "finalizeJourneyReport");
+  assertSourceIncludes("lib/instructor/session-actions.ts", 'status: "final"');
   assertSourceIncludes("lib/instructor/session-actions.ts", "finalizedById");
   assertSourceIncludes("lib/instructor/session-actions.ts", "workflowState");
   assertSourceIncludes("lib/db/schema.ts", "finalizedById");

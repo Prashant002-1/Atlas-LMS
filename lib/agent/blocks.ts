@@ -113,9 +113,10 @@ export const sessionRubricBlockSchema = z.object({
 });
 
 /**
- * A whole AI assignment as a proposal payload: the contract (brief, duration,
- * side-notes toggle) and the rubric that grades it, both targeting an existing
- * assignment. Creation happens in conversation with
+ * A whole AI assignment as a proposal payload: the brief, duration, and rubric
+ * that grades it, all targeting an existing assignment. Transcripts are always
+ * available to the instructor and personal-record side notes are always active,
+ * so neither is a configurable setting. Creation happens in conversation with
  * Atlas and lands here; applying writes the next rubric version and the
  * session-assignment row in one transaction. The tab only sees and governs.
  */
@@ -125,7 +126,6 @@ export const aiAssignmentBlockSchema = z.object({
   title: z.string().min(3).max(200),
   instructions: z.string().min(10).max(2000),
   durationMinutes: z.number().int().min(5).max(240),
-  personalRecordSideNotes: z.boolean(),
   criteria: rubricCriteriaSchema,
 });
 

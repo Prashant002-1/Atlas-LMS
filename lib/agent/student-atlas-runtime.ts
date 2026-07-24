@@ -118,6 +118,7 @@ export async function runStudentAtlasTurn(args: {
     ...studentAtlasTools({ scope, sessionId: session.id }),
     ...webSearch.tools,
   };
+  let peakInputTokens: number | undefined;
 
   const stream = createUIMessageStream<StudentAtlasUIMessage>({
     execute: ({ writer }) => {
@@ -139,6 +140,11 @@ export async function runStudentAtlasTurn(args: {
         messages: modelMessages,
         tools,
         stopWhen: isStepCount(10),
+        onStepEnd: ({ usage }) => {
+          if (usage.inputTokens !== undefined) {
+            peakInputTokens = Math.max(peakInputTokens ?? 0, usage.inputTokens);
+          }
+        },
       });
       const createdAt = new Date().toISOString();
       writer.merge(toUIMessageStream({
@@ -154,7 +160,7 @@ export async function runStudentAtlasTurn(args: {
       const parts = responseMessage?.parts ?? [];
       if (parts.length === 0) return;
       await persistSessionTurn(session, "assistant", parts);
-      await compactIfNeeded(session);
+      await compactIfNeeded(session, { model: args.model, inputTokens: peakInputTokens });
     },
   });
 

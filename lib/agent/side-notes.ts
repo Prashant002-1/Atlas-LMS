@@ -14,8 +14,8 @@ import { parseSideNoteTriggers, type SideNoteCard, type SideNoteTrigger } from "
 
 /**
  * Side notes surface facts from the student's own past course results. A card fires only
- * when the professor enables it, a sanctioned keyword lands in the student's
- * turn, the student's stored score is weak on that topic, and the topic has not
+ * when a sanctioned keyword lands in the student's turn, the student's stored
+ * score is weak on that topic, and the topic has not
  * already fired in this session. The model never composes these facts.
  */
 
@@ -36,7 +36,6 @@ export type SideNoteComposition = {
 };
 
 export type SideNoteEvaluationInput = {
-  personalRecordSideNotes: boolean;
   triggers: SideNoteTrigger[];
   firedTopics: string[];
   turnText: string;
@@ -76,7 +75,6 @@ export function composeSideNoteText(args: {
 }
 
 export function evaluateSideNote(input: SideNoteEvaluationInput): SideNoteComposition | null {
-  if (!input.personalRecordSideNotes) return null;
   if (!input.turnText.trim()) return null;
 
   for (const trigger of input.triggers) {
@@ -172,7 +170,6 @@ export async function fireSideNoteForTurn(args: {
   turnIndex: number;
 }): Promise<SideNoteCard | null> {
   try {
-    if (!args.config.personalRecordSideNotes) return null;
     const triggers = parseSideNoteTriggers(args.config.sideNoteTriggers);
     if (triggers.length === 0) return null;
 
@@ -215,7 +212,6 @@ export async function fireSideNoteForTurn(args: {
     }
 
     const composed = evaluateSideNote({
-      personalRecordSideNotes: args.config.personalRecordSideNotes,
       triggers,
       firedTopics,
       turnText: args.turnText,

@@ -17,7 +17,6 @@ const mayaElasticity: StudentTopicRecord = {
 
 function baseInput(overrides: Partial<SideNoteEvaluationInput> = {}): SideNoteEvaluationInput {
   return {
-    personalRecordSideNotes: true,
     triggers: [
       { topic: "elasticity", keywords: ["elasticity", "elastic", "slope", "price sensitivity"], sourcePageSlug: "elasticity-revenue-relation" },
     ],
@@ -50,10 +49,6 @@ test("reproduces the canonical demo card from course facts", () => {
   assert.ok(note.text.includes("Prof. Osei's Exam 2 Practice Set Planning"), note.text);
   assert.ok(note.text.startsWith("From your course:"), note.text);
   assert.ok(note.text.includes("Worth slowing down here."), note.text);
-});
-
-test("professor toggle off means no card", () => {
-  assert.equal(evaluateSideNote(baseInput({ personalRecordSideNotes: false })), null);
 });
 
 test("a strong student never sees the card", () => {

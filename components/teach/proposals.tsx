@@ -35,7 +35,7 @@ export function ProposalQueue({
               >
                 <span className="block text-[0.8125rem] font-medium leading-5 text-[var(--color-ink)]">{proposal.title}</span>
                 <span className="mt-1 flex items-center justify-between gap-3 text-[0.6875rem] text-[var(--color-faint)]">
-                  <span>{proposalType(proposal)}</span>
+                  <span>{proposal.recordLabel}</span>
                   <time dateTime={proposal.createdAt?.toISOString()}>{shortStamp(proposal.createdAt)}</time>
                 </span>
               </Link>
@@ -58,7 +58,15 @@ export function ProposalPreview({ proposal }: { proposal: InstructorProposal }) 
       <header className="border-b border-[var(--color-border)] pb-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[0.6875rem] font-medium text-[var(--color-faint)]">{open ? "Open draft" : decisionLabel(proposal.status)}</p>
+            {/*
+              The record type leads, because it is what you need before
+              deciding: the title says which rubric, this says that it is a
+              rubric at all. The decision, when there is one, sits beside it.
+            */}
+            <p className="text-[0.6875rem] font-medium text-[var(--color-faint)]">
+              {proposal.recordLabel}
+              {open ? null : <span className="text-[var(--color-muted)]"> / {decisionLabel(proposal.status)}</span>}
+            </p>
             <h2 id="proposal-preview-heading" className="atlas-serif mt-1.5 text-[1.375rem] font-semibold leading-7 text-[var(--color-ink)]">{proposal.title}</h2>
           </div>
           <time dateTime={proposal.createdAt?.toISOString()} className="text-[0.71875rem] tabular-nums text-[var(--color-faint)]">
@@ -68,11 +76,21 @@ export function ProposalPreview({ proposal }: { proposal: InstructorProposal }) 
         {proposal.summary && proposal.summary !== proposal.title ? (
           <p className="mt-3 max-w-3xl text-[0.8125rem] leading-6 text-[var(--color-muted)]">{proposal.summary}</p>
         ) : null}
-        {proposal.thread ? (
-          <p className="mt-3 text-[0.75rem] text-[var(--color-muted)]">
-            From <TextLink href={`/teach/atlas?thread=${proposal.thread.id}`} className="text-[0.75rem]">{proposal.thread.title ?? "Atlas thread"}</TextLink>
-          </p>
-        ) : null}
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[0.75rem] text-[var(--color-muted)]">
+          {proposal.thread ? (
+            <span>
+              From <TextLink href={`/teach/atlas?thread=${proposal.thread.id}`} className="text-[0.75rem]">{proposal.thread.title ?? "Atlas chat"}</TextLink>
+            </span>
+          ) : null}
+          {/*
+            The subject is reachable whatever the decision was. A dismissed
+            rubric revision still opens the rubric it would have replaced,
+            which is how you decide whether to ask for it differently.
+          */}
+          {proposal.destination ? (
+            <TextLink href={proposal.destination.href} className="text-[0.75rem]">Open {proposal.destination.label.toLowerCase()}</TextLink>
+          ) : null}
+        </div>
       </header>
 
       <div className="divide-y divide-[var(--color-border)]">
@@ -124,15 +142,15 @@ export function ProposalHistory({
   if (proposals.length === 0) return null;
 
   return (
-    <section aria-labelledby="decision-history-heading" className="mt-10">
-      <h2 id="decision-history-heading" className="text-[0.875rem] font-semibold text-[var(--color-ink)]">Decision history</h2>
+    <section aria-labelledby="recent-reviews-heading" className="mt-10">
+      <h2 id="recent-reviews-heading" className="text-[0.875rem] font-semibold text-[var(--color-ink)]">Recent reviews</h2>
       <div className="mt-3 overflow-x-auto border-b border-[var(--color-border)]">
-        <table className="w-full min-w-[38rem] border-collapse text-left">
+        <table className="w-full min-w-[40rem] border-collapse text-left">
           <thead>
             <tr className="border-b border-[var(--color-border)] text-[0.6875rem] text-[var(--color-faint)]">
               <th scope="col" className="px-3 py-2.5 font-medium">Draft</th>
+              <th scope="col" className="px-3 py-2.5 font-medium">Record</th>
               <th scope="col" className="px-3 py-2.5 font-medium">Decision</th>
-              <th scope="col" className="px-3 py-2.5 font-medium">Created</th>
               <th scope="col" className="px-3 py-2.5 text-right font-medium">Decided</th>
             </tr>
           </thead>
@@ -144,8 +162,8 @@ export function ProposalHistory({
                     {proposal.title}
                   </Link>
                 </th>
+                <td className="px-3 py-3.5 text-[var(--color-muted)]">{proposal.recordLabel}</td>
                 <td className="px-3 py-3.5 text-[var(--color-muted)]">{decisionLabel(proposal.status)}</td>
-                <td className="px-3 py-3.5 tabular-nums text-[var(--color-muted)]">{shortStamp(proposal.createdAt)}</td>
                 <td className="px-3 py-3.5 text-right tabular-nums text-[var(--color-muted)]">{shortStamp(proposal.decidedAt)}</td>
               </tr>
             ))}
@@ -208,7 +226,6 @@ function ProposalBlockPreview({ block }: { block: Block }) {
         </dl>
         <p className="mt-5 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{block.instructions}</p>
         <RubricCard title="Rubric" criteria={block.criteria} className="mt-5" />
-        <p className="mt-3 text-right"><TextLink href={`/teach/assignments/${block.assignmentId}`} className="text-[0.75rem]">Open assignment</TextLink></p>
       </RecordSection>
     );
   }
@@ -216,10 +233,7 @@ function ProposalBlockPreview({ block }: { block: Block }) {
     return (
       <RecordSection label="Rubric revision" title={block.title}>
         <RubricCard criteria={block.criteria} className="mt-5" />
-        <p className="mt-3 flex flex-wrap items-baseline justify-between gap-3 text-[0.75rem] text-[var(--color-muted)]">
-          <span>Existing grades remain on their original rubric version.</span>
-          <TextLink href={`/teach/ai-assignments/${block.assignmentId}`} className="text-[0.75rem]">Open AI assignment</TextLink>
-        </p>
+        <p className="mt-3 text-[0.75rem] text-[var(--color-muted)]">Existing grades remain on their original rubric version.</p>
       </RecordSection>
     );
   }
@@ -268,12 +282,6 @@ function Fact({ label, value, row = false }: { label: string; value: string; row
     return <div className="grid gap-1 py-1 text-[0.75rem] sm:grid-cols-[8rem_minmax(0,1fr)]"><dt className="text-[var(--color-faint)]">{label}</dt><dd className="leading-5 text-[var(--color-muted)]">{value}</dd></div>;
   }
   return <div><dt className="text-[0.6875rem] text-[var(--color-faint)]">{label}</dt><dd className="mt-1 text-[0.78125rem] font-medium leading-5 text-[var(--color-ink)]">{value}</dd></div>;
-}
-
-function proposalType(proposal: InstructorProposal): string {
-  if (proposal.blocks.length === 0) return titleCase(proposal.kind.replaceAll("_", " "));
-  const types = [...new Set(proposal.blocks.map((block) => titleCase(block.type.replaceAll("_", " "))))];
-  return types.join(" / ");
 }
 
 function decisionLabel(status: InstructorProposal["status"]): string {

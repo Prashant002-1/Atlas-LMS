@@ -79,6 +79,11 @@ async function streamProfessorTurnStep(args: ProfessorTurnArgs, runId: string) {
       model: resolved.model,
       userText: args.userText,
       userTurnPersisted: true,
+      /*
+       * Steering notes are addressed to this run id, so a redirection can only
+       * reach the response it was typed against, never a later one.
+       */
+      runId,
     }));
   } finally {
     await db

@@ -44,6 +44,8 @@ import {
   type VoiceTranscriptionState,
 } from "@/components/ai-elements/voice-transcription-button";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
+import { SteeringMark, SteeringPending } from "@/components/ai-elements/steering";
+import { useSteering } from "@/components/ai-elements/use-steering";
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput, type ToolState } from "@/components/ai-elements/tool";
 import { AtlasMark, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { RubricCard } from "@/components/planning/rubric-card";
@@ -95,6 +97,7 @@ const STATUS_TONE = { pending: "accent", approved: "good", rejected: "neutral", 
 const STATUS_LABEL = { pending: "Ready", approved: "Approved", rejected: "Dismissed", applied: "Applied" } as const;
 
 type LoosePart = { type?: unknown; state?: unknown; input?: unknown; output?: unknown; data?: unknown; text?: unknown } & Record<string, unknown>;
+
 
 type RunContext = {
   sessionId: string;
@@ -254,8 +257,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
   }
 
   const runStorageKey = `atlas-active-run:planning:${props.threadId}`;
-  const [steerQueue, setSteerQueue] = useState<string[]>([]);
-  const steerQueueRef = useRef<string[]>([]);
+  const settleSteeringRef = useRef<() => void>(() => {});
   const transport = useMemo(() => new WorkflowChatTransport<PlanningChatMessage>({
     api: "/api/atlas/planning",
     prepareSendMessagesRequest: ({ messages: outgoing }) => ({
@@ -292,11 +294,8 @@ export function PlanningRoom(props: PlanningRoomProps) {
     onError: (chatError) => console.error("Atlas planning stream failed", chatError),
     onFinish: ({ isAbort, isDisconnect }) => {
       if (isAbort || isDisconnect) return;
-      const [next, ...rest] = steerQueueRef.current;
-      if (!next) return;
-      steerQueueRef.current = rest;
-      setSteerQueue(rest);
-      window.setTimeout(() => sendMessage({ text: next, metadata: atlasMessageMetadataNow() }), 0);
+      /* Anything the run never reached is sent as the next turn instead. */
+      settleSteeringRef.current();
     },
   });
 
@@ -388,6 +387,18 @@ export function PlanningRoom(props: PlanningRoomProps) {
     if (!learnedThreadId || props.threadId !== "new") return;
     window.history.replaceState(null, "", `/teach/atlas?thread=${learnedThreadId}`);
   }, [learnedThreadId, props.threadId]);
+
+  /*
+   * Steering redirects the response in flight instead of queueing behind it.
+   * A fresh chat learns its id mid-stream, so the note is aimed at whichever
+   * id the thread has by the time it is typed.
+   */
+  const steering = useSteering({
+    threadId: learnedThreadId ?? (props.threadId === "new" ? null : props.threadId),
+    messages,
+    sendAsTurn: sendPlanningMessage,
+  });
+  settleSteeringRef.current = steering.settleAfterRun;
 
   const statusByProposal = useMemo(() => {
     const map = new Map<string, PlanningDraftRef["status"]>();
@@ -492,7 +503,11 @@ export function PlanningRoom(props: PlanningRoomProps) {
                     <MessageContent>
                       <PlanningMessageParts message={message} streaming={busy && index === messages.length - 1 && message.role === "assistant"} statusByProposal={statusByProposal} />
                     </MessageContent>
-                    <MessageTimestamp createdAt={message.metadata?.createdAt} />
+                    {/* No clock on an answer still being written. */}
+                    <MessageTimestamp
+                      createdAt={message.metadata?.createdAt}
+                      pending={busy && index === messages.length - 1 && message.role === "assistant"}
+                    />
                   </Message>
                 ))
               )}
@@ -507,7 +522,8 @@ export function PlanningRoom(props: PlanningRoomProps) {
             {error ? <p className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{error.message || "Atlas could not finish that turn. Your message is saved."}</p> : null}
             {voiceError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{voiceError}</p> : null}
             {attachmentError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{attachmentError}</p> : null}
-            {steerQueue.length > 0 ? <p className="mb-2 text-[0.71875rem] text-[var(--color-muted)]" role="status">Steer queued · {steerQueue[0]}</p> : null}
+            {steering.error ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{steering.error}</p> : null}
+            <SteeringPending notes={steering.notes} />
             {selectedDocuments.length > 0 ? (
               <ul className="mb-2 flex flex-wrap gap-1.5" aria-label="Documents for this message">
                 {selectedDocuments.map((document) => (
@@ -533,9 +549,8 @@ export function PlanningRoom(props: PlanningRoomProps) {
               const text = message.text.trim();
               if (!text) return;
               if (busy) {
-                const nextQueue = [...steerQueueRef.current, text];
-                steerQueueRef.current = nextQueue;
-                setSteerQueue(nextQueue);
+                /* Redirect the response in flight rather than lining up behind it. */
+                void steering.steer(text);
               } else {
                 sendPlanningMessage(text);
               }
@@ -554,7 +569,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
               >
                 <Plus size={16} aria-hidden />
               </PromptInputButton>
-              <PromptInputTextarea defaultValue={props.initialInput} className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-1.5 py-[0.8125rem]" placeholder={busy ? "Steer Atlas..." : "Ask Atlas..."} autoFocus />
+              <PromptInputTextarea defaultValue={props.initialInput} className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-1.5 py-[0.8125rem]" placeholder={busy ? "Redirect Atlas..." : "Ask Atlas..."} autoFocus />
               <PromptInputToolbar className="shrink-0 justify-end gap-0.5 px-1.5 py-1.5">
                 <PromptInputTools>
                   <VoiceTranscriptionButton onError={setVoiceError} onStateChange={setVoiceState} />
@@ -594,6 +609,13 @@ function PlanningMessageParts({ message, streaming, statusByProposal }: { messag
       const data = part.data as { attachments?: ProfessorDocumentAttachment[] } | undefined;
       const attachments = Array.isArray(data?.attachments) ? data.attachments : [];
       if (attachments.length > 0) rendered.push(<MessageDocumentAttachments key={`documents-${index}`} attachments={attachments} />);
+      return;
+    }
+    /* Show the redirection where it landed, so the change of course is legible. */
+    if (type === "data-steering-applied") {
+      const data = part.data as { notes?: unknown } | undefined;
+      const notes = Array.isArray(data?.notes) ? data.notes.filter((note): note is string => typeof note === "string") : [];
+      if (notes.length > 0) rendered.push(<SteeringMark key={`steering-${index}`} notes={notes} />);
       return;
     }
     if (type.startsWith("data-")) return;

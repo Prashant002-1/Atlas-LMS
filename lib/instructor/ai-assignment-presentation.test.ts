@@ -78,11 +78,30 @@ test("student session detail uses direct record language and restrained hierarch
   const grade = read("components/cockpit/report-panel.tsx");
   const transcript = read("components/cockpit/transcript-view.tsx");
 
-  for (const expected of ["Grade", "Submission draft", "Transcript"]) assert.ok(page.includes(expected));
+  /*
+   * The three readings of one session are tabs, so only the selected one is on
+   * screen and switching does not mean scrolling past the other two.
+   */
+  assert.ok(page.includes("SectionTabs"));
+  for (const expected of ["Grade", "Final work", "Transcript"]) assert.ok(page.includes(expected));
+  /* The assignment is already in the back link; the eyebrow must not repeat it. */
+  assert.equal(page.includes("view.assignment.name}`}"), false);
+  assert.ok(page.includes("course={view.course.code}"));
+
+  /* One criterion at a time: the rubric is scannable and depth is on request. */
+  assert.ok(grade.includes("<details"));
   assert.ok(grade.includes("Post final grade"));
-  assert.ok(transcript.includes("Session transcript"));
   assert.equal(grade.includes("StatusBadge"), false);
   assert.equal(grade.includes("Journey report"), false);
+
+  /*
+   * The highlight says "this counted" and nothing more. Criterion keys as
+   * superscripts put internal names in the student's own sentence and repeated
+   * the quote list that the grade already carries.
+   */
+  assert.equal(transcript.includes("<sup"), false);
+  assert.equal(transcript.includes("shortTag"), false);
+  assert.ok(transcript.includes("Highlighted text was used in the grade."));
   assert.equal(transcript.includes("rounded-panel border"), false);
 });
 

@@ -35,8 +35,18 @@ export default async function TeachOverviewPage() {
     <>
       <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
         <h1 className="sr-only">{workspace.course.name}</h1>
+        {/*
+          Every course the professor can open, each carrying its own term, so
+          the switcher groups by term. Selecting a course carries its term with
+          it, which is why there is nothing else to pick.
+        */}
         <CourseSwitch
-          courses={workspace.scope.courses.map((course) => ({ id: course.id, code: course.code, name: course.name }))}
+          courses={workspace.scope.allCourses.map((course) => ({
+            id: course.id,
+            code: course.code,
+            name: course.name,
+            termName: course.term,
+          }))}
           activeCourseId={workspace.scope.course?.id ?? ""}
           terms={workspace.scope.terms.map((term) => ({ slug: term.slug, name: term.name }))}
           activeTermSlug={workspace.scope.term?.slug ?? ""}

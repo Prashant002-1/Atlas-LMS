@@ -1114,6 +1114,42 @@ export const orgAgentPolicies = pgTable(
   (t) => [uniqueIndex("org_agent_policies_org_version_idx").on(t.orgId, t.version)]
 );
 
+/**
+ * Steering notes, real mid-run redirection rather than a queued next turn.
+ * A note typed while a run is streaming lands here, and the run's own
+ * prepareStep boundary drains it into the model's context before the next
+ * step, so the running response changes course instead of a second turn
+ * starting after it. Rows survive the browser because the durable run, not
+ * the tab, owns the turn: a refresh mid-run loses nothing.
+ *
+ * `consumedAtStep` records the step boundary that picked the note up, which
+ * is what lets the transcript show where a redirection actually landed.
+ * A note the run never reaches stays unconsumed and the client sends it as
+ * the next ordinary turn.
+ */
+export const agentSteeringNotes = pgTable(
+  "agent_steering_notes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => agentSessions.id, { onDelete: "cascade" }),
+    /** The run this note was aimed at. A note never leaks into a later run. */
+    runId: text("run_id").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    text: text("text").notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    consumedAtStep: integer("consumed_at_step"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("agent_steering_notes_run_idx").on(t.sessionId, t.runId, t.consumedAt)]
+);
+
 /* ─────────────────────── inferred types ────────────────────── */
 
 export type Organization = typeof organizations.$inferSelect;
@@ -1143,3 +1179,4 @@ export type JourneyReport = typeof journeyReports.$inferSelect;
 export type ClassRollup = typeof classRollups.$inferSelect;
 export type AgentMemory = typeof agentMemories.$inferSelect;
 export type OrgAgentPolicyRow = typeof orgAgentPolicies.$inferSelect;
+export type AgentSteeringNote = typeof agentSteeringNotes.$inferSelect;

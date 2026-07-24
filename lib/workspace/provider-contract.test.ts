@@ -1,6 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createChatModel } from "@/lib/ai/provider";
+import {
+  compactionInputThresholdTokens,
+  createChatModel,
+  modelContextWindowTokens,
+} from "@/lib/ai/provider";
 import { resolvePlatformModel } from "@/lib/ai/platform-model";
 
 const platformModelEnv = [
@@ -46,6 +50,25 @@ test("unknown compatible endpoints retain the conservative capability default", 
   });
 
   assert.equal(structuredOutputCapability(custom), false);
+});
+
+test("compaction uses half a known context window and a 160k unknown-model fallback", () => {
+  const fable = createChatModel({
+    provider: "anthropic",
+    modelId: "claude-fable-5",
+    apiKey: "test-key",
+  });
+  const unknown = createChatModel({
+    provider: "openai_compatible",
+    modelId: "custom-model",
+    apiKey: "test-key",
+    baseURL: "https://models.example.com/v1",
+  });
+
+  assert.equal(modelContextWindowTokens(fable), 1_000_000);
+  assert.equal(compactionInputThresholdTokens(fable), 500_000);
+  assert.equal(modelContextWindowTokens(unknown), undefined);
+  assert.equal(compactionInputThresholdTokens(unknown), 160_000);
 });
 
 test("platform model resolution is environment-only and accepts no actor scope", () => {

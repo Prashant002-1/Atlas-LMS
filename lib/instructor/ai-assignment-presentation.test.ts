@@ -26,7 +26,7 @@ test("AI assignment students render as a searchable filterable table", () => {
   assert.equal(table.includes("StatusBadge"), false);
 });
 
-test("assignment contract and rubric are read first and changed in their Atlas thread", () => {
+test("assignment settings and rubric stay collapsed and change through their Atlas thread", () => {
   const page = read("app/teach/ai-assignments/[assignmentId]/page.tsx");
   const setup = read("components/cockpit/contract-rubric.tsx");
   const operator = read("lib/agent/lms-operator.ts");
@@ -34,7 +34,12 @@ test("assignment contract and rubric are read first and changed in their Atlas t
   assert.ok(page.includes("AssignmentSettings"));
   assert.ok(page.includes("RubricSummary"));
   assert.ok(page.indexOf('aria-label="Assignment setup"') < page.indexOf("<SummaryFact"));
-  assert.ok(setup.includes("Session contract"));
+  assert.ok(page.includes('divide-y divide-[var(--color-border)] border-y'));
+  assert.equal(page.includes('aria-label="Assignment setup" className="mt-7 grid'), false);
+  assert.ok(setup.includes("Session settings"));
+  assert.ok(setup.includes('details className="group/session-settings"'));
+  assert.ok(setup.includes('details className="group/rubric"'));
+  assert.equal(setup.includes("<details open"), false);
   assert.ok(setup.includes("View level descriptions"));
   assert.ok(setup.includes("Change with Atlas"));
   assert.ok(page.includes("view.contract.planningSessionId"));
@@ -44,6 +49,7 @@ test("assignment contract and rubric are read first and changed in their Atlas t
   assert.equal(setup.includes("<textarea"), false);
   assert.equal(setup.includes("updateSessionContract"), false);
   assert.equal(setup.includes("Edit settings"), false);
+  assert.equal(setup.includes('className="flex justify-end"'), false);
   assert.equal(page.includes("RubricEditor"), false);
   assert.equal(setup.includes("updateRubricWeights"), false);
   assert.equal(setup.includes("Weights must sum"), false);
@@ -73,7 +79,7 @@ test("student session detail uses direct record language and restrained hierarch
   const transcript = read("components/cockpit/transcript-view.tsx");
 
   for (const expected of ["Grade", "Submission draft", "Transcript"]) assert.ok(page.includes(expected));
-  assert.ok(grade.includes("Post grade"));
+  assert.ok(grade.includes("Post final grade"));
   assert.ok(transcript.includes("Session transcript"));
   assert.equal(grade.includes("StatusBadge"), false);
   assert.equal(grade.includes("Journey report"), false);

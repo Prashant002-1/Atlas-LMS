@@ -339,7 +339,6 @@ async function inspectLms(scope: ProfessorScope, input: InspectLmsInput): Promis
         reportStatus: journeyReports.status,
         overallScore: journeyReports.overallScore,
         scores: journeyReports.scores,
-        reviewRequestedAt: journeyReports.reviewRequestedAt,
       })
       .from(sessionSubmissions)
       .innerJoin(assignments, eq(assignments.id, sessionSubmissions.assignmentId))
@@ -356,7 +355,6 @@ async function inspectLms(scope: ProfessorScope, input: InspectLmsInput): Promis
       records: rows.map((row) => ({
         ...row,
         submittedAt: iso(row.submittedAt),
-        reviewRequestedAt: iso(row.reviewRequestedAt),
         transcript: includeDetails && Array.isArray(row.transcript) ? row.transcript.slice(0, 120) : includeDetails ? row.transcript : undefined,
         finalArtifact: includeDetails ? row.finalArtifact : row.finalArtifact ? "available" : null,
         scores: parseJourneyScores(row.scores) ?? row.scores,

@@ -16,12 +16,12 @@ const grade = (level: "Exceeds" | "Meets" | "Developing" | "Missing", score: num
   evidenceSpans: [],
 });
 
-test("stats aggregate counts, average, median, topics, and review requests", () => {
+test("stats aggregate counts, average, median, and topics", () => {
   const stats = computeClassRollupStats({
     reports: [
-      { scores: { framing: grade("Exceeds", 20), grounding: grade("Meets", 20) }, overallScore: 90, reviewRequestedAt: null },
-      { scores: { framing: grade("Developing", 10), grounding: grade("Missing", 0) }, overallScore: 40, reviewRequestedAt: new Date() },
-      { scores: { framing: grade("Meets", 16), grounding: grade("Developing", 12) }, overallScore: 62, reviewRequestedAt: null },
+      { scores: { framing: grade("Exceeds", 20), grounding: grade("Meets", 20) }, overallScore: 90 },
+      { scores: { framing: grade("Developing", 10), grounding: grade("Missing", 0) }, overallScore: 40 },
+      { scores: { framing: grade("Meets", 16), grounding: grade("Developing", 12) }, overallScore: 62 },
     ],
     submittedSessions: 5,
     sideNotes: [
@@ -42,7 +42,6 @@ test("stats aggregate counts, average, median, topics, and review requests", () 
   assert.equal(stats.overallMedian, 62);
   assert.equal(stats.sideNoteTopicCounts.elasticity, 2);
   assert.equal(stats.sideNoteTopicCounts.market_power, 1);
-  assert.equal(stats.reviewRequestedCount, 1);
 });
 
 test("empty input produces zeroed stats, not NaN", () => {
@@ -56,8 +55,8 @@ test("empty input produces zeroed stats, not NaN", () => {
 test("the narrative only repeats computed numbers", () => {
   const stats = computeClassRollupStats({
     reports: [
-      { scores: { grounding: grade("Developing", 12) }, overallScore: 49, reviewRequestedAt: null },
-      { scores: { grounding: grade("Meets", 20) }, overallScore: 80, reviewRequestedAt: null },
+      { scores: { grounding: grade("Developing", 12) }, overallScore: 49 },
+      { scores: { grounding: grade("Meets", 20) }, overallScore: 80 },
     ],
     submittedSessions: 3,
     sideNotes: [{ sessionId: "s1", topic: "elasticity" }],
@@ -87,7 +86,7 @@ test("the seeded demo world aggregates deterministically through the same code",
   assert.equal(seededReports.length, 28);
 
   const stats = computeClassRollupStats({
-    reports: seededReports.map((r) => ({ scores: r.scores, overallScore: r.overallScore, reviewRequestedAt: null })),
+    reports: seededReports.map((r) => ({ scores: r.scores, overallScore: r.overallScore })),
     submittedSessions: 28,
     sideNotes: v0DemoWorld.v0.sideNoteCards.map((card) => ({ sessionId: card.sessionId, topic: card.topic })),
   });
@@ -100,7 +99,7 @@ test("the seeded demo world aggregates deterministically through the same code",
 
   // Determinism: same rows in, same stats out.
   const again = computeClassRollupStats({
-    reports: seededReports.map((r) => ({ scores: r.scores, overallScore: r.overallScore, reviewRequestedAt: null })),
+    reports: seededReports.map((r) => ({ scores: r.scores, overallScore: r.overallScore })),
     submittedSessions: 28,
     sideNotes: v0DemoWorld.v0.sideNoteCards.map((card) => ({ sessionId: card.sessionId, topic: card.topic })),
   });

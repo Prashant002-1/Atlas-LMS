@@ -227,13 +227,21 @@ test("phase 3 makes the rubric read the transcript", () => {
   assertSourceIncludes("lib/agent/rollup.ts", "export function computeClassRollupStats");
   assertSourceIncludes("lib/agent/rollup.ts", "export function buildRollupNarrative");
 
-  // Submit grades immediately; a grading failure never undoes the submission.
-  assertSourceIncludes("lib/student/actions.ts", "runGradingForSubmission");
-  assertServerAction("lib/student/actions.ts", "requestJourneyReview");
+  // Submit returns after scheduling durable grading; a grading failure never
+  // undoes the submission or strands the browser's Server Action request.
+  assertSourceIncludes("lib/student/actions.ts", "sessionGradingWorkflow");
+  assertSourceIncludes("lib/student/actions.ts", "await start(");
+  assertSourceIncludes("workflows/agent-session.ts", "runGradingForSubmission");
+  assertSourceIncludes("workflows/agent-session.ts", "gradeSessionSubmissionStep.maxRetries = 2");
+  assertSourceIncludes("lib/db/schema.ts", "sessionGradingStatusEnum");
+  assertSourceIncludes("components/session/session-room.tsx", "data-grading-status");
+  assertSourceIncludes("lib/agent/grading.ts", 'status: "draft"');
+  assertSourceExcludes("lib/student/actions.ts", "requestJourneyReview");
+  assertSourceExcludes("lib/db/schema.ts", "reviewRequestedAt");
 
   // The student sees the evidence-backed report; the seed lands graded worlds.
   assertSourceIncludes("components/session/session-room.tsx", "JourneyReportPanel");
-  assertSourceIncludes("components/session/journey-report-panel.tsx", "requestJourneyReview");
+  assertSourceExcludes("components/session/journey-report-panel.tsx", "Request professor review");
   assertSourceIncludes("lib/db/seed.ts", "journeyReports");
   assertSourceIncludes("lib/db/seed.ts", "computeClassRollupStats");
   assert.equal(existsSync(path.join(root, "scripts/regrade.ts")), true, "scripts/regrade.ts should exist.");
@@ -249,6 +257,7 @@ test("phase 4 closes the loop on the professor side", () => {
 
   // Finalize is the only session-grade gradebook writer, stamped who/when.
   assertServerAction("lib/instructor/session-actions.ts", "finalizeJourneyReport");
+  assertSourceIncludes("lib/instructor/session-actions.ts", 'status: "final"');
   assertSourceIncludes("lib/instructor/session-actions.ts", "finalizedById");
   assertSourceIncludes("lib/instructor/session-actions.ts", "workflowState");
   assertSourceIncludes("lib/db/schema.ts", "finalizedById");

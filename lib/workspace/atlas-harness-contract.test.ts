@@ -13,10 +13,11 @@ test("the Atlas page is a full viewport operator with quiet streaming feedback",
   assert.match(entry, /atlas-room/);
   assert.match(room, /atlas-harness-root/);
   assert.match(room, /html:has\(\.atlas-harness-root\)/);
-  assert.match(room, /Threads/);
+  assert.match(room, />Chats</);
   assert.match(room, /Drafts/);
   assert.match(room, /PanelRightOpen/);
-  assert.match(room, /Attachments coming soon/);
+  assert.match(room, /aria-label="Attach document"/);
+  assert.match(room, /data-document-attachments/);
   assert.match(room, /VoiceTranscriptionButton/);
   assert.match(room, /min-h-\[3\.25rem\] flex-row items-end/);
   assert.match(room, /ThinkingIndicator/);
@@ -83,7 +84,7 @@ test("the operator instructions require a real read before an unavailable claim"
 
 test("the live endpoint fails closed and limits public traffic", () => {
   const route = read("app/api/atlas/planning/route.ts");
-  for (const guard of ["isInstructorLike", "guardProfessorInput", "withinTurnBudget", "MAX_REQUEST_BYTES", "MAX_THREAD_TURNS", "loadCommandSession"]) {
+  for (const guard of ["isInstructorLike", "guardProfessorInput", "withinTurnBudget", "MAX_REQUEST_BYTES", "MAX_CHAT_TURNS", "loadCommandSession"]) {
     assert.match(route, new RegExp(guard));
   }
   assert.match(route, /Retry-After/);

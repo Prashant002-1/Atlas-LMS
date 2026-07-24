@@ -34,7 +34,6 @@ export default async function StudentSessionPage({ params }: { params: Promise<{
       brief={view.contract.instructions}
       durationMinutes={view.contract.durationMinutes}
       groundingScope={view.contract.groundingScope}
-      transcriptPolicy={view.contract.transcriptPolicy}
       criteria={view.criteria}
       initialMessages={view.messages}
       initialArtifacts={view.artifacts}

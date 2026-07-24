@@ -7,7 +7,8 @@ import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { files } from "@/lib/db/schema";
-import { courseMaterialRecords } from "@/lib/db/course-agent-schema";
+import { courseMaterialRecords, documentAttachments } from "@/lib/db/course-agent-schema";
+import { createUploadedDocument, isDocumentFilename } from "@/lib/course/documents";
 import { findEditableCourse } from "@/lib/instructor/workspace";
 import {
   classifyCourseMaterial,
@@ -28,6 +29,20 @@ export async function uploadCourseMaterial(formData: FormData) {
   const visibility = visibilityField(formData.get("visibility"));
   const classification = classifyCourseMaterial(value.name, value.type || null);
   const requestedKind = materialKindField(formData.get("materialKind"));
+
+  if (isDocumentFilename(value.name)) {
+    await createUploadedDocument({
+      actor,
+      courseId: course.id,
+      file: value,
+      displayName,
+      visibility,
+      materialKind: requestedKind ?? classification.kind,
+    });
+    refreshCourseMaterials(course.id);
+    redirect("/teach/course#materials");
+  }
+
   const ingested = await ingestUploadedCourseMaterial({
     orgId: actor.orgId,
     courseId: course.id,
@@ -152,27 +167,49 @@ export async function setCourseMaterialVisibility(formData: FormData) {
   if (!material) throw new Error("That course material is unavailable.");
 
   if (material.recordId) {
-    await db
-      .update(courseMaterialRecords)
-      .set({ visibility, updatedById: actor.id, updatedAt: new Date() })
-      .where(
-        and(
-          eq(courseMaterialRecords.id, material.recordId),
-          eq(courseMaterialRecords.orgId, actor.orgId),
-          eq(courseMaterialRecords.courseId, course.id)
-        )
-      );
+    await db.transaction(async (tx) => {
+      await tx
+        .update(courseMaterialRecords)
+        .set({ visibility, updatedById: actor.id, updatedAt: new Date() })
+        .where(
+          and(
+            eq(courseMaterialRecords.id, material.recordId!),
+            eq(courseMaterialRecords.orgId, actor.orgId),
+            eq(courseMaterialRecords.courseId, course.id)
+          )
+        );
+      if (isDocumentFilename(material.filename ?? material.displayName)) {
+        await tx.insert(documentAttachments).values({
+          orgId: actor.orgId,
+          courseId: course.id,
+          fileId: material.fileId,
+          courseMaterialId: material.recordId,
+          createdById: actor.id,
+        }).onConflictDoNothing();
+      }
+    });
   } else {
-    await db.insert(courseMaterialRecords).values({
-      orgId: actor.orgId,
-      courseId: course.id,
-      fileId: material.fileId,
-      materialKind: classifyCourseMaterial(material.filename ?? material.displayName, material.contentType).kind,
-      ingestionSource: "lms_import",
-      processingStatus: "ready",
-      visibility,
-      metadata: {},
-      updatedById: actor.id,
+    await db.transaction(async (tx) => {
+      const [created] = await tx.insert(courseMaterialRecords).values({
+        orgId: actor.orgId,
+        courseId: course.id,
+        fileId: material.fileId,
+        materialKind: classifyCourseMaterial(material.filename ?? material.displayName, material.contentType).kind,
+        ingestionSource: "lms_import",
+        processingStatus: "ready",
+        visibility,
+        metadata: {},
+        updatedById: actor.id,
+      }).returning({ id: courseMaterialRecords.id });
+      if (isDocumentFilename(material.filename ?? material.displayName)) {
+        await tx.insert(documentAttachments).values({
+          orgId: actor.orgId,
+          courseId: course.id,
+          fileId: material.fileId,
+          courseMaterialId: created.id,
+          createdById: actor.id,
+        });
+      }
     });
   }
 

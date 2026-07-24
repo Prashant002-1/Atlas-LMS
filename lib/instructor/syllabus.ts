@@ -5,6 +5,13 @@ import {
   loadActiveCourseAgentConfig,
   type ResolvedCourseAgentConfig,
 } from "@/lib/agent/course-agent-config";
+import {
+  DEFAULT_GRADE_BANDS,
+  gradeBandsForCourse,
+  parseClassPolicies,
+  type ClassPolicy,
+  type GradeBand,
+} from "@/lib/course/policies";
 
 /**
  * The syllabus is a composed view of the course record. Every section below
@@ -57,22 +64,19 @@ export type CourseSyllabus = {
   weeks: SyllabusWeek[];
   work: SyllabusAssignment[];
   publishedPoints: number;
+  gradeBands: GradeBand[];
+  classPolicies: ClassPolicy[];
   agent: ResolvedCourseAgentConfig;
 };
 
-export type GradeBand = { letter: string; min: number };
+export type { GradeBand } from "@/lib/course/policies";
 
 /**
- * The letter bands the gradebook writes with (lib/agent/grading.ts,
- * gradeLetterFor). A unit test holds the two in agreement.
+ * The default letter bands the gradebook writes with (lib/agent/grading.ts,
+ * gradeLetterFor). A unit test holds the two in agreement. A course may carry
+ * its own validated scale; loadCourseSyllabus resolves it per course.
  */
-export const GRADE_BANDS: GradeBand[] = [
-  { letter: "A", min: 90 },
-  { letter: "B", min: 80 },
-  { letter: "C", min: 70 },
-  { letter: "D", min: 60 },
-  { letter: "F", min: 0 },
-];
+export const GRADE_BANDS: GradeBand[] = DEFAULT_GRADE_BANDS;
 
 /**
  * Place each dated assignment in the module week whose open window contains
@@ -122,6 +126,8 @@ export async function loadCourseSyllabus(orgId: string, courseId: string): Promi
       endDate: courses.endDate,
       timeZone: courses.timeZone,
       updatedAt: courses.updatedAt,
+      gradeScale: courses.gradeScale,
+      classPolicies: courses.classPolicies,
     })
     .from(courses)
     .where(and(eq(courses.orgId, orgId), eq(courses.id, courseId)))
@@ -208,8 +214,12 @@ export async function loadCourseSyllabus(orgId: string, courseId: string): Promi
     0
   );
 
+  const { gradeScale, classPolicies: storedPolicies, ...courseFacts } = course;
+
   return {
-    course,
+    course: courseFacts,
+    gradeBands: gradeBandsForCourse(gradeScale),
+    classPolicies: parseClassPolicies(storedPolicies),
     instructors: instructorRows.map((row) => ({
       id: row.id,
       name: row.name?.trim() || row.email,

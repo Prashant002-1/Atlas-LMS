@@ -14,6 +14,7 @@ import {
   Megaphone,
   MessagesSquare,
   Files,
+  Landmark,
   Library,
   Plug,
   PanelLeftClose,
@@ -57,6 +58,8 @@ const ICONS = {
   resources: Library,
   books: Files,
   integrations: Plug,
+  profile: UserRound,
+  policies: Landmark,
 } satisfies Record<string, NavIconComponent>;
 
 export type ShellNavChild = {

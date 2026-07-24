@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   announcements,
@@ -162,7 +162,15 @@ export async function buildContextPack(scope: PackScope): Promise<ContextPack> {
   const announcementRows = await db
     .select({ id: announcements.id, title: announcements.title, messageMd: announcements.messageMd, postedAt: announcements.postedAt })
     .from(announcements)
-    .where(and(eq(announcements.courseId, course.id), eq(announcements.orgId, scope.orgId)))
+    .where(
+      and(
+        eq(announcements.courseId, course.id),
+        eq(announcements.orgId, scope.orgId),
+        ...(scope.audience === "student"
+          ? [eq(announcements.published, true), lte(announcements.postedAt, new Date())]
+          : [])
+      )
+    )
     .orderBy(desc(announcements.postedAt))
     .limit(5);
 

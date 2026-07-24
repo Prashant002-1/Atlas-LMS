@@ -284,6 +284,8 @@ export function ActionButton({
   className = "",
   ariaLabel,
   title,
+  disabled = false,
+  onClick,
 }: {
   children: ReactNode;
   variant?: "primary" | "secondary" | "quiet" | "danger";
@@ -292,6 +294,8 @@ export function ActionButton({
   className?: string;
   ariaLabel?: string;
   title?: string;
+  disabled?: boolean;
+  onClick?: () => void;
 }) {
   const styles = {
     primary:
@@ -313,7 +317,9 @@ export function ActionButton({
       type={type}
       aria-label={ariaLabel}
       title={title}
-      className={`atlas-card-hover inline-flex items-center justify-center rounded-control border font-medium active:translate-y-px ${sizes[size]} ${focusStyle} ${styles[variant]} ${className}`}
+      disabled={disabled}
+      onClick={onClick}
+      className={`atlas-card-hover inline-flex items-center justify-center rounded-control border font-medium active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 disabled:active:translate-y-0 ${sizes[size]} ${focusStyle} ${styles[variant]} ${className}`}
     >
       {children}
     </button>

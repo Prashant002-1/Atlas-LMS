@@ -34,6 +34,10 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
     0
   );
   const draftGrades = view.counts.draft + view.counts.reviewRequested;
+  const changeWithAtlasHref = atlasChangeHref(
+    view.contract.planningSessionId,
+    `Review the session contract and rubric for ${view.assignment.name} with me. Wait for my specific changes before updating the assignment.`
+  );
 
   return (
     <>
@@ -55,10 +59,10 @@ export default async function AssignmentCockpitPage({ params }: { params: Promis
 
       <section aria-label="Assignment setup" className="mt-8 grid gap-7 py-6 lg:grid-cols-2 lg:gap-0">
         <div className="lg:pr-8">
-          <AssignmentSettings assignmentId={view.assignment.id} contract={view.contract} />
+          <AssignmentSettings contract={view.contract} changeHref={changeWithAtlasHref} />
         </div>
         <div className="border-t border-[var(--color-border)] pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
-          <RubricSummary criteria={view.rubric.criteria} version={view.rubric.version} />
+          <RubricSummary criteria={view.rubric.criteria} version={view.rubric.version} changeHref={changeWithAtlasHref} />
         </div>
       </section>
 
@@ -96,4 +100,9 @@ function SummaryFact({ label, value }: { label: string; value: string }) {
 
 function shortDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function atlasChangeHref(planningSessionId: string | null, prompt: string): string {
+  const query = new URLSearchParams({ thread: planningSessionId ?? "new", prompt });
+  return `/teach/atlas?${query.toString()}`;
 }

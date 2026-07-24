@@ -1,13 +1,14 @@
 # Capability index
 
-This index answers "can Atlas do X?" for the live professor agent.
+This index answers "can Atlas do X?" for the live professor and personal student agents.
 
 ## Supported now
 
 | Job | Supported? | How |
 | --- | --- | --- |
-| Read course, roster, content, files, submissions, sessions, rubrics, policies, calendar facts, drafts, and threads | Yes | the matching `inspect_lms` resource |
+| Read course, roster, content, files, submissions, sessions, rubrics, policies, calendar facts, drafts, and chats | Yes | the matching `inspect_lms` resource |
 | Search assignments, modules, pages, files, announcements, and students | Yes | `search_course` |
+| Search current public web sources | When server policy permits it | `search_web` returns bounded excerpts and citation URLs |
 | Read course, assignment, roster, or individual-student grade data | Yes | `read_gradebook` |
 | Compute course or assignment grade distributions | Yes | `read_gradebook { view: "distribution" }` |
 | Create, edit, publish, or unpublish an assignment | Yes | `create_assignment`, `update_assignment`, `publish_assignment` |
@@ -24,13 +25,15 @@ This index answers "can Atlas do X?" for the live professor agent.
 | Recompute stored class results | Yes | `refresh_class_results` |
 | Apply or dismiss a pending draft | Yes | `apply_draft`, `dismiss_draft` |
 | Delete a supported course record | Yes | `delete_record` with exact current title confirmation |
-| Configure the shared course agent's name, voice, teaching behavior, turn limit, boundaries, disclosure, and rules | Yes | `configure_agent`; append-only versioned write |
+| Configure the shared course agent's name, voice, teaching behavior, boundaries, disclosure, and rules | Yes | `configure_agent`; append-only versioned write |
 | Draft a new AI assignment | Yes, through Review | `draft_ai_assignment`, then `apply_draft` |
 | Draft a rubric revision | Yes, through Review | `draft_rubric`, then `apply_draft` |
 | Draft coordinated course records | Yes, through Review | `draft_course`, then `apply_draft` |
 | Load a reviewed workflow | Yes | `load_skill` for one of six allowlisted skill ids |
+| Attach documents to a professor conversation | Yes | authenticated UI intake reuses Materials storage; the user turn persists scoped attachment ids and only ready readable content reaches model context |
+| Attach private documents to a student's personal Atlas | Yes | the file and processing record belong to the student with no course id; exact organization, student, and personal-session checks protect viewing and context |
 
-Teacher Course Setup can also upload or link course material through its separate scoped server actions. That intake is not a model-visible tool.
+Teacher Materials can also upload or link course material through its separate scoped server actions. That intake is not a model-visible tool.
 
 ## Not exposed by the current tool contracts
 
@@ -39,13 +42,13 @@ Teacher Course Setup can also upload or link course material through its separat
 | Choose another organization or course inside a tool call | No | scope is closed over from the authenticated route |
 | Read another organization or unselected course | No | executors repeat organization and current-course predicates |
 | Use arbitrary SQL | No | no SQL-string input or SQL execution tool exists |
-| Use shell, filesystem mutation, browser, web search, HTTP, email, or general code execution | No | no such tool is in the returned registry |
+| Use shell, filesystem mutation, browser control, arbitrary HTTP, email, or general code execution | No | `search_web` accepts only a query and calls one fixed server-owned search endpoint |
 | Expose platform credentials, model settings, or endpoints | No | model resolution happens before tools and platform details are absent from course-actor settings |
 | Expand authority through course agent configuration | No | configuration changes teaching behavior only; fixed tools and scopes remain authoritative |
 | Replace fixed assignment or grading rules through course configuration | No | assessed-session rules and assignment contracts compile before course configuration |
 | Create or edit a quiz row | No | quizzes are read-only in `inspect_lms`; no quiz mutation action exists |
 | Create or edit a module item | No | module items are read-only in `inspect_lms` |
-| Upload a file through the professor conversation | No | material intake is a separate Course Setup action and no attachment tool is exposed to the model |
+| Ask the model to fetch or parse an arbitrary file itself | No | document intake is an authenticated application action; the model receives only ready, access-checked readable artifacts |
 | Add, remove, or edit a student enrollment | No | no enrollment mutation action exists |
 | Directly edit rubric criteria | No | rubric changes use `draft_rubric` plus apply |
 | Calculate weighted assignment-group course grades | No | grade distributions use stored course standing or raw assignment points |

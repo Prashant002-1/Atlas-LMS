@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   agentSessions,
@@ -148,7 +148,7 @@ export type InstructorProposal = {
   blocks: Block[];
   /** After apply: links to the records the blocks created. */
   appliedRecords: InstructorProposalAppliedRecord[];
-  /** The Atlas thread this draft was made in, for reopening the conversation. */
+  /** The Atlas chat this draft was made in, for reopening the conversation. */
   thread: { id: string; title: string | null } | null;
 };
 
@@ -365,9 +365,9 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
       .from(changeProposals)
       .where(and(eq(changeProposals.orgId, actor.orgId), eq(changeProposals.courseId, course.id)))
       .orderBy(desc(changeProposals.createdAt))
-      .limit(10);
+      .limit(50);
 
-    /* The Atlas threads the drafts came from, course-scoped, titles only. */
+    /* The Atlas chats the drafts came from, course-scoped, titles only. */
     const proposalSessionIds = [
       ...new Set(proposalRows.map((row) => row.sessionId).filter((value): value is string => value !== null)),
     ];
@@ -393,7 +393,7 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
         postedAt: announcements.postedAt,
       })
       .from(announcements)
-      .where(and(eq(announcements.orgId, actor.orgId), eq(announcements.courseId, course.id), eq(announcements.published, true)))
+      .where(and(eq(announcements.orgId, actor.orgId), eq(announcements.courseId, course.id), eq(announcements.published, true), lte(announcements.postedAt, new Date())))
       .orderBy(desc(announcements.postedAt))
       .limit(5);
 

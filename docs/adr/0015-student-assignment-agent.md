@@ -23,6 +23,8 @@ Every accepted student turn continues to resolve the active version of `course_a
 
 `compileCourseAgentConfiguration` supplies the professor-defined identity, voice, teaching approach, answer policy, challenge level, citations, boundaries, limits, and enabled rules. Fixed assessed-session rules and the assignment contract remain higher authority. Configuration cannot add tools, widen scope, reveal other students, or weaken the rule that the student produces the submission.
 
+The runtime may compose the server-owned `search_web` read alongside the exact artifact tools. Platform, university, and course external-source policy are intersected before tool assembly. The assessed-session contract still wins, and an external source can never complete the student's work.
+
 ### 2. Artifact state becomes assignment-general through one registry seam
 
 `lib/agent/session-parts.ts` remains the single schema seam for tool input, stream parsing, persistence, and rendering.

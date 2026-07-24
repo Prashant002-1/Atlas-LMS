@@ -5,7 +5,7 @@
  * routes, stores, schemas, and tool executors enforce it.
  */
 
-export type AgentProfileId = "professor" | "session" | "study";
+export type AgentProfileId = "professor" | "session" | "student";
 export type AgentPrincipal = "instructor" | "student";
 
 export type AgentProfile = {
@@ -13,8 +13,8 @@ export type AgentProfile = {
   label: string;
   status: "live" | "planned";
   principal: AgentPrincipal;
-  surface: "command" | "cue";
-  anchorType: "course" | "assignment";
+  surface: "command" | "cue" | "personal";
+  anchorType: "course" | "assignment" | "org";
   description: string;
   boundaries: {
     reads: string[];
@@ -37,7 +37,7 @@ export const agentProfiles: Record<AgentProfileId, AgentProfile> = {
       reads: [
         "all LMS records in the current course, including unpublished content",
         "the current roster and each enrolled student's grades, submissions, sessions, and academic standing",
-        "the active course agent configuration, version history, AI assignment contracts, rubrics, professor threads, and drafts",
+        "the active course agent configuration, version history, AI assignment contracts, rubrics, professor chats, and drafts",
         "reviewed Atlas skill instructions loaded on demand",
       ],
       writes: [
@@ -45,10 +45,11 @@ export const agentProfiles: Record<AgentProfileId, AgentProfile> = {
         "append-only course agent configuration through configure_agent",
         "changeProposals and proposalBlocks through reviewable draft tools",
         "grades, missing states, session grading, draft decisions, and publishing through explicit typed actions",
+        "its own durable notes about the professor through the remember tool",
       ],
       never: [
         "read or write outside the signed-in organization and current course",
-        "read another instructor's private professor threads",
+        "read another instructor's private professor chats",
         "let course configuration expand tools, data access, or application authority",
         "expose secrets or provider credentials",
         "run arbitrary SQL, shell commands, network requests, or general code",
@@ -74,40 +75,45 @@ export const agentProfiles: Record<AgentProfileId, AgentProfile> = {
       writes: ["its own session turns and artifact snapshots through exact typed artifact tools"],
       never: [
         "see another student's grades, transcript, submission, or personal notes",
-        "see unpublished or instructor-only material or the professor's private threads",
+        "see unpublished or instructor-only material or the professor's private chats",
         "let course configuration weaken the assignment contract or rubric",
         "invent a personal note or change a grade",
       ],
     },
   },
-  study: {
-    id: "study",
-    label: "Atlas (study)",
-    status: "planned",
+  student: {
+    id: "student",
+    label: "Atlas (student)",
+    status: "live",
     principal: "student",
-    surface: "cue",
-    anchorType: "course",
+    surface: "personal",
+    anchorType: "org",
     description:
-      "Reserved course-wide study helper governed by the same active course agent configuration and ready course material.",
+      "The student's own Atlas across their enrolled courses: tracks their record, tutors within each course's rules, plans study, and keeps a small durable profile of how they learn.",
     boundaries: {
       reads: [
-        "the published course and ready course-visible materials",
-        "the active course agent identity, teaching behavior, and study-scoped rules",
-        "this student's own study threads",
+        "this student's own enrollments, standing, due work, grades, and submitted sessions",
+        "published pages and ready course-visible materials of enrolled courses",
+        "the active university policy and each enrolled course's study-scoped rules",
+        "its own durable observations about this student",
       ],
-      writes: ["its own study-session turns"],
+      writes: [
+        "its own personal-chat turns",
+        "durable observations about this student through the remember tool, within hard budgets",
+      ],
       never: [
-        "answer beyond the active course configuration",
-        "see another student's data or an assessed-session transcript",
-        "prepare or apply course changes",
+        "produce work for submission or help evade a course rule or the university policy",
+        "see another student's data, unpublished or instructor-only material, or a professor's chats",
+        "change a grade, a record, or any course content",
+        "stand in for an advisor, counselor, or medical professional",
       ],
     },
   },
 };
 
 export function profileForSession(session: {
-  surface: "command" | "cue";
-  anchorType: "assignment" | "module" | "page" | "course";
+  surface: "command" | "cue" | "personal";
+  anchorType: "assignment" | "module" | "page" | "course" | "org";
 }): AgentProfile | null {
   for (const profile of Object.values(agentProfiles)) {
     if (profile.surface === session.surface && profile.anchorType === session.anchorType) return profile;

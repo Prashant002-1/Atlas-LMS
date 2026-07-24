@@ -972,7 +972,7 @@ export const econCourse: FixtureCourse = {
   code: courseCode,
   name: "Intermediate Microeconomics",
   termSlug,
-  description: "Study of consumer choices, cost structures, monopoly power, and pricing strategies with interactive platforms.",
+  description: "Intermediate Microeconomics examines how consumers and firms make choices under scarcity, how prices and market power shape those choices, and how policy affects welfare. Students use models of demand, production, cost, elasticity, and monopoly to analyze decisions made by digital platforms. The course emphasizes moving from assumptions and evidence to an economic recommendation that can be defended in writing, graphs, and quantitative work.",
   syllabusMd: `# Syllabus: ECON-241 Intermediate Microeconomics
 
 Intermediate Microeconomics studies how consumers and firms make choices when resources, information, and alternatives are limited. In this section we move from competitive markets to firms with pricing power, then use the same tools to examine a live platform problem. The aim is not to memorize a graph in isolation. It is to explain what changed, whose decision changed, and how the result affects quantity, surplus, revenue, and welfare.
@@ -1001,6 +1001,20 @@ Grades reward a visible chain from assumption to model to decision. A correct nu
 The course agent is available for explanations, practice, and questions, but it should not replace the student's reasoning. Ask it to check a setup, challenge an assumption, or point to a relevant course page. Do not submit a polished answer you cannot defend in your own words. The Pricing Strategy Session records the reasoning and revision process because the final table alone cannot show whether the model was understood.
 
 Late work is accepted for up to one week with a note about the revision. Office hours are a good place to bring a graph that feels mechanically correct but economically strange. We will keep returning to the same habit: identify the decision, identify the constraint, and then choose the model that actually speaks to it.`,
+  classPolicies: [
+    {
+      title: "Attendance",
+      body: "Students may miss no more than two class meetings without an approved accommodation. Contact Dr. Osei as soon as possible when illness, caregiving, or an emergency affects attendance.",
+    },
+    {
+      title: "Late work",
+      body: "Problem sets may be submitted up to seven calendar days after the deadline. A late submission must include a short note describing what was revised. Work submitted later requires prior approval.",
+    },
+    {
+      title: "Academic integrity",
+      body: "Submitted work must represent the student's own reasoning and writing. Atlas may explain course material, ask questions, and critique an attempt within the assignment rules, but students must not submit generated work they cannot explain or use Atlas to bypass an assessment condition.",
+    },
+  ],
   status: "published",
   instructorKey: "amara",
   objectives: [
@@ -1130,7 +1144,6 @@ Your working record should include:
 The agent may ask questions, point you to course pages, and challenge the design. It should not choose the prices for you. Submit the final table with the reasoning that led to it, including any uncertainty that remains.`,
   durationMinutes: 30,
   groundingScope: ["Syllabus", "Weeks 4-6", "Exam 1"],
-  transcriptPolicy: "shared on request / for review",
   personalRecordSideNotes: true,
   // Professor-sanctioned triggers, flagged during the Exam 2 planning session:
   // the weak concept (and the term it gets confused with) arms the side note.

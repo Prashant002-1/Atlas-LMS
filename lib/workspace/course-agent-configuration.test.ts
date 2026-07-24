@@ -2,8 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { z } from "zod";
 import {
   compileCourseAgentConfiguration,
+  courseAgentConfigurationInputSchema,
   courseAgentConfigurationSchema,
 } from "@/lib/agent/course-agent-config";
 
@@ -54,7 +56,7 @@ test("course agent configuration is typed and surface scoped", () => {
   const assignment = compileCourseAgentConfiguration(sampleConfiguration, "assignment");
   assert.match(assignment, /Identity: Mira/);
   assert.match(assignment, /Compare before concluding/);
-  assert.match(assignment, /40 turns per day/);
+  assert.doesNotMatch(assignment, /turns per day/);
   assert.doesNotMatch(assignment, /Recall first/);
   assert.match(assignment, /cannot expand tools, data access/);
 
@@ -64,6 +66,54 @@ test("course agent configuration is typed and surface scoped", () => {
       rules: [sampleConfiguration.rules[0], sampleConfiguration.rules[0]],
     })
   );
+});
+
+test("stored configurations gain a default server policy that professor replacements cannot edit", () => {
+  const legacyConfiguration = Object.fromEntries(
+    Object.entries(sampleConfiguration).filter(([key]) => key !== "externalSearch")
+  );
+  const stored = courseAgentConfigurationSchema.parse(legacyConfiguration);
+  assert.equal(stored.externalSearch.enabled, true);
+  assert.equal(stored.externalSearch.maxResults, 5);
+
+  const replacement = Object.fromEntries(
+    Object.entries(sampleConfiguration).filter(([key]) => key !== "schemaVersion" && key !== "externalSearch" && key !== "limits")
+  );
+  assert.equal(courseAgentConfigurationInputSchema.safeParse(replacement).success, true);
+  assert.equal(courseAgentConfigurationInputSchema.safeParse({
+    ...replacement,
+    externalSearch: { enabled: false, maxResults: 1, allowedDomains: [], blockedDomains: [] },
+  }).success, false);
+  assert.equal(courseAgentConfigurationInputSchema.safeParse({
+    ...replacement,
+    limits: { studentDailyTurns: 1 },
+  }).success, false);
+
+  for (const forbidden of ["webSearch", "endpoint", "apiKey", "scopes", "browser"]) {
+    assert.equal(
+      courseAgentConfigurationInputSchema.safeParse({
+        ...replacement,
+        [forbidden]: "not-course-policy",
+      }).success,
+      false,
+      `configuration.${forbidden} must not be configurable`
+    );
+  }
+});
+
+test("complete-replacement configuration stays exact for Kimi-compatible tool schemas", () => {
+  const schema = z.toJSONSchema(courseAgentConfigurationInputSchema) as {
+    required?: string[];
+    properties?: Record<string, unknown>;
+  };
+  assert.equal(schema.required?.includes("externalSearch"), false);
+  assert.equal(Object.hasOwn(schema.properties ?? {}, "externalSearch"), false);
+  assert.equal(Object.hasOwn(schema.properties ?? {}, "limits"), false);
+
+  const serialized = JSON.stringify(schema);
+  for (const keyword of ["anyOf", "oneOf", "allOf"]) {
+    assert.equal(serialized.includes(`"${keyword}"`), false, `configuration must not serialize ${keyword}`);
+  }
 });
 
 test("Atlas owns append-only course agent configuration", () => {
@@ -77,6 +127,8 @@ test("Atlas owns append-only course agent configuration", () => {
   assert.match(config, /pg_advisory_xact_lock/);
   assert.match(config, /expectedVersion/);
   assert.match(config, /sourceSessionId/);
+  assert.match(config, /externalSearch: currentConfiguration\.externalSearch/);
+  assert.match(config, /limits: currentConfiguration\.limits/);
   assert.doesNotMatch(config, /courseAiPolicies/);
   assert.match(tool, /configure_agent/);
   assert.match(tool, /complete next version/);
@@ -99,35 +151,52 @@ test("student sessions compile shared state below fixed rules", () => {
   assert.doesNotMatch(context, /Professor's standing instructions/);
 });
 
-test("teacher configuration is transparent and conversation edited", () => {
-  const page = read("app/teach/settings/page.tsx");
-  assert.match(page, /Agent configuration/);
+test("the course agent is transparent in Course setup and conversation edited", () => {
+  const page = read("app/teach/course/page.tsx");
+  assert.match(page, /Course agent/);
   assert.match(page, /Change with Atlas/);
   assert.match(page, /Course rules/);
-  assert.match(page, /System boundaries/);
   assert.match(page, /Version history/);
-  assert.doesNotMatch(page, /studentDisclosure/);
-  assert.doesNotMatch(page, /configuration\.identity\.role/);
-  assert.doesNotMatch(page, /configuration\.teaching\.approach/);
-  assert.doesNotMatch(page, /<form/);
+  assert.match(page, /loadActiveCourseAgentConfig/);
+  assert.match(page, /listCourseAgentConfigHistory/);
+  assert.doesNotMatch(page, /configure_agent/);
+  assert.doesNotMatch(page, /writeCourseAgentConfig/);
   assert.doesNotMatch(page, /Model access/);
-  assert.doesNotMatch(page, /Provider/);
   assert.doesNotMatch(page, /API key/);
   assert.doesNotMatch(page, /resolvePlatformModel/);
+  assert.doesNotMatch(page, /Web search|webSearch|EXA_API_KEY/);
+
+  // Settings describes the professor's own Atlas and carries no course agent editor.
+  const settings = read("app/teach/settings/page.tsx");
+  assert.doesNotMatch(settings, /configure_agent/);
+  assert.doesNotMatch(settings, /listCourseAgentConfigHistory/);
+  assert.match(settings, /restoreProfessorAtlasChat/);
+  assert.doesNotMatch(settings, /Model access/);
+  assert.doesNotMatch(settings, /API key/);
+  assert.doesNotMatch(settings, /resolvePlatformModel/);
+  assert.doesNotMatch(settings, /Web search|webSearch|EXA_API_KEY/);
+
+  const syllabus = read("app/teach/syllabus/page.tsx");
+  const studentPolicies = read("app/student/atlas/policies/page.tsx");
+  assert.doesNotMatch(syllabus, /Web search|webSearch|EXA_API_KEY/);
+  assert.doesNotMatch(studentPolicies, /Web search|webSearch|EXA_API_KEY/);
 });
 
-test("course setup is read first and supports real material intake", () => {
-  const page = read("app/teach/course/page.tsx");
+test("materials have their own page and course setup stays a control center", () => {
+  const materialsPage = read("app/teach/materials/page.tsx");
+  const coursePage = read("app/teach/course/page.tsx");
   const actions = read("lib/instructor/course-material-actions.ts");
   const materials = read("lib/course/materials.ts");
   const context = read("lib/agent/context.ts");
 
-  assert.match(page, /Edit course/);
-  assert.match(page, /Add material/);
-  assert.match(page, /CourseMaterialTable/);
-  assert.match(page, /\.imscc/);
-  assert.match(page, /QTI\/XML/);
-  assert.doesNotMatch(page, /<Panel/);
+  assert.match(materialsPage, /Add material/);
+  assert.match(materialsPage, /CourseMaterialTable/);
+  assert.match(materialsPage, /\.imscc/);
+  assert.match(materialsPage, /QTI\/XML/);
+  assert.match(coursePage, /Edit course/);
+  assert.doesNotMatch(coursePage, /CourseMaterialTable/);
+  assert.doesNotMatch(coursePage, /uploadCourseMaterial/);
+  assert.doesNotMatch(coursePage, /<Panel/);
   assert.match(actions, /ingestUploadedCourseMaterial/);
   assert.match(actions, /courseMaterialRecords/);
   assert.match(materials, /MAX_COURSE_MATERIAL_BYTES/);

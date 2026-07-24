@@ -17,6 +17,7 @@ const docs = [
   "write-review-delete-actions.md",
   "draft-tools.md",
   "course-agent-configuration.md",
+  "personal-memory.md",
   "database-access.md",
   "shared-schemas.md",
   "capability-index.md",
@@ -41,7 +42,7 @@ const resources = [
   "policies",
   "calendar",
   "drafts",
-  "threads",
+  "chats",
 ];
 
 const actions = [
@@ -74,6 +75,7 @@ const tools = [
   "load_skill",
   ...actions,
   "configure_agent",
+  "remember",
   "draft_ai_assignment",
   "draft_rubric",
   "draft_course",
@@ -114,6 +116,10 @@ test("documented live tool registry matches the professor runtime", () => {
   assert.match(operator, /const actions = directActionTools/);
   assert.match(operator, /\.\.\.actions/);
   assert.match(runtime, /configure_agent: courseAgentConfigurationTool/);
+  assert.match(runtime, /remember: personalMemoryTool/);
+  assert.match(runtime, /governedWebSearchTools/);
+  assert.match(runtime, /\.\.\.webSearch\.tools/);
+  assert.equal(readme.includes("`search_web`"), true);
   for (const draft of ["draft_ai_assignment", "draft_rubric", "draft_course"]) {
     assert.match(operator, new RegExp(`${draft}: legacy\\.${draft}`));
   }
@@ -147,9 +153,11 @@ test("documented configuration tool matches its schema and append-only write", (
   assert.match(tool, /courseAgentConfigurationInputSchema/);
   assert.match(config, /insert\(courseAgentConfigs\)/);
   assert.doesNotMatch(config, /update\(courseAgentConfigs\)/);
-  for (const field of ["expectedVersion", "studentDisclosure", "changeSummary", "directAnswers", "challengeLevel", "citationMode", "studentDailyTurns", "appliesTo"]) {
+  for (const field of ["expectedVersion", "studentDisclosure", "changeSummary", "directAnswers", "challengeLevel", "citationMode", "appliesTo"]) {
     assert.equal(docsText.includes(field), true);
   }
+  assert.equal(docsText.includes("studentDailyTurns"), false);
+  assert.doesNotMatch(tool, /webSearch|web-search policy/);
 });
 
 test("documented skill allowlist matches the Atlas manifest", () => {

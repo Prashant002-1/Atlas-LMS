@@ -34,11 +34,11 @@ Creation starts from a visible page-header action. The form opens in a focused d
 
 Announcements read like a professional message archive: searchable rows, author, subject, message preview, exact timestamp, and a clickable full-message view. Module detail may use a compact previous/current/next switcher whose current-week control opens a complete clickable week menu on hover or click.
 
-Course Setup is an operational course workspace, not a metadata form. Show course identity, offering facts, structure counts, a rendered syllabus, and a searchable material library. Material intake supports documents, PDFs, slide decks, assessments, media, links, Common Cartridge, and QTI packages through a focused action. Display processing state, source, access, size or pages, and update time as record facts.
+Course Setup is the course control center, not a metadata form. Show course identity, offering facts, the grade scale, class policies, the syllabus pointer, and the course agent. Materials owns the searchable library and focused intake for documents, PDFs, slide decks, assessments, media, links, Common Cartridge, and QTI packages. Display processing state, source, access, size or pages, and update time as record facts.
 
 Configuration is read-first. Rubrics are viewed as rubrics and changed through Atlas and Review; grading pages do not ask professors to rebalance point arithmetic inline.
 
-Teacher Settings is the transparent course agent configuration. Show identity, teaching behavior, student disclosure, course rules, knowledge readiness, assignment contracts, fixed system boundaries, and version provenance. Atlas is the editor. Provider, model, endpoint, and credential configuration is Atlas-owned server infrastructure and is never rendered as a course-actor control.
+Teacher Settings describes the professor's own Atlas: who it works for, what it can do, what it remembers, and its fixed boundaries. Course agent configuration stays in Course Setup and changes through Atlas. Provider, model, endpoint, and credential configuration is Atlas-owned server infrastructure and is never rendered as a course-actor control.
 
 A student AI assignment is an assignment workspace, not a generic chat page. It uses the same AI Elements conversation substrate as the professor agent, while the header and utility rail keep the assignment, submission draft, rubric, grade, timer, and submit action distinct. The agent initiates pedagogical moves naturally from the professor configuration and assignment contract; the client does not fake stage changes or inject hardcoded domain prompts.
 

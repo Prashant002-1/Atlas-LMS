@@ -20,6 +20,10 @@ import {
 } from "@/lib/agent/professor-context";
 import { professorOperatorTools } from "@/lib/agent/lms-operator";
 import { courseAgentConfigurationTool } from "@/lib/agent/course-agent-tool";
+import { personalMemoryTool } from "@/lib/agent/memories";
+import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
+import { loadReadyThreadDocumentContext } from "@/lib/course/documents";
+import { governedWebSearchTools } from "@/lib/agent/web-search";
 
 /**
  * One professor turn on the durable AI SDK seam. The professor's input is a row
@@ -28,8 +32,17 @@ import { courseAgentConfigurationTool } from "@/lib/agent/course-agent-tool";
  * only after a complete response.
  */
 
+export type ProfessorDocumentAttachment = {
+  attachmentId: string;
+  fileId: string;
+  displayName: string;
+  filename: string | null;
+  processingStatus: "queued" | "processing" | "ready" | "failed";
+};
+
 export type ProfessorDataParts = {
   "planning-ref": { sessionId: string };
+  "document-attachments": { attachments: ProfessorDocumentAttachment[] };
   "run-context": {
     sessionId: string;
     builtAt: string;
@@ -39,7 +52,7 @@ export type ProfessorDataParts = {
   };
 };
 
-export type ProfessorUIMessage = UIMessage<never, ProfessorDataParts>;
+export type ProfessorUIMessage = UIMessage<AtlasMessageMetadata, ProfessorDataParts>;
 
 function stripDataParts(messages: UIMessage[]): UIMessage[] {
   return messages.map((message) => ({
@@ -63,7 +76,19 @@ export async function runProfessorTurn(args: {
     await persistSessionTurn(session, "user", [{ type: "text" as const, text: args.userText }]);
   }
 
-  const [professorPack, harness] = await Promise.all([buildProfessorPack(scope), loadAtlasHarness()]);
+  const [professorPack, harness, attachedDocuments] = await Promise.all([
+    buildProfessorPack(scope),
+    loadAtlasHarness(),
+    loadReadyThreadDocumentContext({
+      orgId: scope.orgId,
+      courseId: scope.courseId,
+      sessionId: session.id,
+      userId: scope.instructorId,
+    }),
+  ]);
+  const webSearch = governedWebSearchTools({
+    policies: [professorPack.courseAgentConfig.configuration.externalSearch],
+  });
   const instructions = buildProfessorInstructions({ harness });
 
   const storedTurns = await loadActiveTurns(session);
@@ -73,7 +98,7 @@ export async function runProfessorTurn(args: {
   const priorMessages = conversationMessages.slice(0, -1);
   const referenceMessage = {
     role: "user" as const,
-    content: buildProfessorReference({ professorPack, threadSummary: session.summary }),
+    content: buildProfessorReference({ professorPack, threadSummary: session.summary, attachedDocuments }),
   };
   const modelMessages = currentMessage
     ? [...priorMessages, referenceMessage, currentMessage]
@@ -81,6 +106,11 @@ export async function runProfessorTurn(args: {
   const tools = {
     ...professorOperatorTools({ scope, sessionId: session.id, model: args.model }),
     configure_agent: courseAgentConfigurationTool({ scope, sessionId: session.id }),
+    remember: personalMemoryTool({
+      scope: { orgId: scope.orgId, userId: scope.instructorId, profile: "professor" },
+      sessionId: session.id,
+    }),
+    ...webSearch.tools,
   };
 
   const stream = createUIMessageStream<ProfessorUIMessage>({
@@ -105,7 +135,11 @@ export async function runProfessorTurn(args: {
         tools,
         stopWhen: isStepCount(16),
       });
-      writer.merge(toUIMessageStream({ stream: result.stream }));
+      const createdAt = new Date().toISOString();
+      writer.merge(toUIMessageStream({
+        stream: result.stream,
+        messageMetadata: () => ({ createdAt }),
+      }));
     },
     onError: (error) => {
       console.error("professor harness turn failed", error);

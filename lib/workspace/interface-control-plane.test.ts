@@ -125,21 +125,29 @@ test("creation and edits open as deliberate dialogs", () => {
 test("settings describes the personal Atlas while Course setup owns the course", () => {
   const settings = source("app/teach/settings/page.tsx");
   for (const expected of [
-    "Works for you",
-    "What Atlas can do",
-    "What Atlas remembers",
+    "Courses",
     "System boundaries",
-    "listActiveMemories",
     "agentProfiles",
   ]) {
     assert.equal(settings.includes(expected), true, `settings should include ${expected}`);
   }
+  /*
+   * Settings carries facts only. A capability list is marketing inside the
+   * product; a memory list asks the professor to audit notes Atlas curates for
+   * itself; an explanation under a clear heading is reassurance copy. All three
+   * are asked of Atlas in a chat instead.
+   */
   for (const excluded of [
     "resolvePlatformModel",
     "CHAT_PROVIDERS",
     "openai_compatible",
     "API key",
     "loadActiveCourseAgentConfig",
+    "What Atlas can do",
+    "What Atlas remembers",
+    "listActiveMemories",
+    "works for",
+    "No configuration loosens them",
   ]) {
     assert.equal(settings.includes(excluded), false, `settings should not include ${excluded}`);
   }

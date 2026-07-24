@@ -195,7 +195,7 @@ test("the student sidebar gains the Atlas group and the surfaces exist", () => {
   assert.match(room, /\/api\/atlas\/student/);
   assert.match(room, /resume: Boolean\(props\.activeRunId\)/);
   assert.match(room, /ThinkingIndicator/);
-  assert.match(room, /Steer queued/);
+  assert.match(room, /SteeringPending/);
   assert.match(room, /allowSubmitWhileBusy/);
   assert.match(room, /VoiceTranscriptionButton/);
   assert.doesNotMatch(room, /Run trace/);
@@ -224,9 +224,10 @@ test("the profile composes from the record before observations", () => {
 
 test("the instructor split holds: Settings is Atlas, Course setup is the course", () => {
   const settings = read("app/teach/settings/page.tsx");
-  assert.match(settings, /Works for you/);
-  assert.match(settings, /What Atlas remembers/);
+  assert.match(settings, /System boundaries/);
   assert.match(settings, /Open Course setup/);
+  /* Memory is Atlas's own housekeeping, not a table for the professor to read. */
+  assert.doesNotMatch(settings, /What Atlas remembers|listActiveMemories/);
 
   const courseSetup = read("app/teach/course/page.tsx");
   assert.match(courseSetup, /Grade scale/);

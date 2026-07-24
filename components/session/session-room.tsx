@@ -112,6 +112,13 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
   const [localDeadlineAt, setLocalDeadlineAt] = useState<string | null>(props.deadlineAt);
   const [closing, setClosing] = useState(false);
   const [grading, setGrading] = useState<StudentGradingProgress | null>(props.grading);
+  /*
+   * An assessed session queues rather than steers, on purpose. Every turn here
+   * is part of the graded record and counts against the professor's turn
+   * limit, so injecting text into a response already in flight would let a
+   * student add reasoning without spending a turn. The next message waits and
+   * is sent as its own turn when the current response lands.
+   */
   const [steerQueue, setSteerQueue] = useState<string[]>([]);
   const steerQueueRef = useRef<string[]>([]);
   const deadlineAt = localDeadlineAt ?? props.deadlineAt;
@@ -365,7 +372,11 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                         <MessageContent>
                           <MessageParts message={message} streaming={busy && index === messages.length - 1 && message.role === "assistant"} />
                         </MessageContent>
-                        <MessageTimestamp createdAt={message.metadata?.createdAt} />
+                        {/* No clock on an answer still being written. */}
+                        <MessageTimestamp
+                          createdAt={message.metadata?.createdAt}
+                          pending={busy && index === messages.length - 1 && message.role === "assistant"}
+                        />
                       </Message>
                       {(seededNotesByTurn.get(turnIndexOf(message.id)) ?? []).map((note) => <SideNoteCardView key={note.id} note={note} />)}
                     </div>
@@ -390,7 +401,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                 ) : (
                   <>
                     {error ? <p className="mb-2 text-[0.78125rem] text-[var(--color-danger)]">{error.message || "The session could not finish that turn. Your message is saved."}</p> : null}
-                    {steerQueue.length > 0 ? <p className="mb-2 text-[0.71875rem] text-[var(--color-muted)]" role="status">Steer queued · {steerQueue[0]}</p> : null}
+                    {steerQueue.length > 0 ? <p className="mb-2 text-[0.71875rem] text-[var(--color-muted)]" role="status">Next turn ready &middot; {steerQueue[0]}</p> : null}
                     <PromptInput
                       className="min-h-[3.25rem] flex-row items-end overflow-hidden shadow-[var(--shadow-floating)]"
                       onSubmit={(message, event) => {
@@ -409,7 +420,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                         if (field) field.style.height = "auto";
                       }}
                     >
-                      <PromptInputTextarea aria-label="Assignment response" className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-3 py-[0.8125rem]" placeholder={busy ? `Steer ${props.agentName}...` : started ? "Continue your reasoning..." : "Begin the assignment..."} autoFocus />
+                      <PromptInputTextarea aria-label="Assignment response" className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-3 py-[0.8125rem]" placeholder={busy ? `Wait for ${props.agentName}...` : started ? "Continue your reasoning..." : "Begin the assignment..."} autoFocus />
                       <PromptInputToolbar className="shrink-0 justify-end gap-0.5 px-1.5 py-1.5">
                         <PromptInputTools><span className="px-1.5 text-[0.6875rem] text-[var(--color-faint)]">Assignment session</span></PromptInputTools>
                         <PromptInputSubmit status={status} allowSubmitWhileBusy className="rounded-full" />

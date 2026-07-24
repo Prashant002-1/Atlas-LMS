@@ -93,6 +93,13 @@ export type WorkspaceScope = {
   terms: TermOption[];
   course: CourseOption | null;
   courses: CourseOption[];
+  /**
+   * Every course the user can open, across all terms, each carrying its own
+   * term name. The switcher needs this because a term is a category there
+   * rather than a second choice: you pick a course and its term follows.
+   * `courses` stays scoped to the term in view, which is what page reads want.
+   */
+  allCourses: CourseOption[];
 };
 
 /**
@@ -107,18 +114,24 @@ export async function resolveScope(args: {
   teachingOnly?: boolean;
 }): Promise<WorkspaceScope> {
   const [termList, term] = await Promise.all([listTerms(args.orgId), activeTerm(args.orgId)]);
-  let courseList = await listCourses({ orgId: args.orgId, userId: args.userId, role: args.role, termId: term?.id ?? null });
-  if (args.teachingOnly) {
-    courseList = courseList.filter((c) => c.role === "instructor" || c.role === "ta");
-  } else if (args.teachingOnly === false) {
-    courseList = courseList.filter((c) => c.role === "student");
-  }
+  const [scopedList, everyCourse] = await Promise.all([
+    listCourses({ orgId: args.orgId, userId: args.userId, role: args.role, termId: term?.id ?? null }),
+    listCourses({ orgId: args.orgId, userId: args.userId, role: args.role, termId: null }),
+  ]);
+
+  const byRole = (list: CourseOption[]) => {
+    if (args.teachingOnly) return list.filter((c) => c.role === "instructor" || c.role === "ta");
+    if (args.teachingOnly === false) return list.filter((c) => c.role === "student");
+    return list;
+  };
+  const courseList = byRole(scopedList);
+  const allCourses = byRole(everyCourse);
 
   const store = await cookies();
   const pinned = args.courseId ?? store.get(COURSE_COOKIE)?.value;
   const course = courseList.find((c) => c.id === pinned) ?? courseList[0] ?? null;
 
-  return { term, terms: termList, course, courses: courseList };
+  return { term, terms: termList, course, courses: courseList, allCourses };
 }
 
 export const SCOPE_COOKIES = { term: TERM_COOKIE, course: COURSE_COOKIE } as const;

@@ -164,7 +164,15 @@ export async function POST(request: Request) {
   }
   const runClaimId = await claimActiveAgentRun(thread.id);
   if (!runClaimId) {
-    return NextResponse.json({ error: "Atlas is still working in this chat. Your next message can steer it when this response lands." }, { status: 409 });
+    /*
+     * A run already owns this chat, so a second turn is the wrong shape: the
+     * composer redirects the response in flight through /api/atlas/steer
+     * instead of lining a message up behind it.
+     */
+    return NextResponse.json(
+      { error: "Atlas is already working in this chat. Your message redirects the response in flight." },
+      { status: 409 }
+    );
   }
 
   let run: Awaited<ReturnType<typeof start>> | null = null;

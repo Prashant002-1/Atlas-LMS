@@ -66,7 +66,7 @@ test("manual session submit schedules grading without holding the form request o
   for (const field of ["gradingStatus", "gradingWorkflowRunId", "gradingAttempt"]) {
     assert.match(schema, new RegExp(field));
   }
-  assert.equal(existsSync(path.join(root, "drizzle/0010_session_grading_lifecycle.sql")), true);
+  assert.equal(existsSync(path.join(root, "drizzle/0012_session_grading_lifecycle.sql")), true);
   assert.match(state, /grading: view\.grading/);
   for (const status of ["Grading queued", "Grading", "Retrying grading", "Grading failed", "Grade ready"]) {
     assert.match(room, new RegExp(status));

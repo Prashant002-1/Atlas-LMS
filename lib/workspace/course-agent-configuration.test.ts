@@ -125,7 +125,7 @@ test("Atlas owns append-only course agent configuration", () => {
   assert.match(config, /expectedVersion/);
   assert.match(config, /sourceSessionId/);
   assert.match(config, /externalSearch: currentConfiguration\.externalSearch/);
-  assert.match(config, /limits: currentConfiguration\.limits/);
+  assert.doesNotMatch(config, /currentConfiguration\.limits/);
   assert.doesNotMatch(config, /courseAiPolicies/);
   assert.match(tool, /configure_agent/);
   assert.match(tool, /complete next version/);

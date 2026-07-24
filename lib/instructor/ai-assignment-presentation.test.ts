@@ -68,7 +68,7 @@ test("assessed transcript access is an invariant, not an assignment setting", ()
   assert.match(migration, /DROP COLUMN IF EXISTS "transcript_policy"/);
   assert.equal(setup.includes('label="Transcript"'), false);
   assert.equal(operator.includes("transcriptPolicy"), false);
-  assert.match(sessionContext, /full assessed-session transcript is part of the instructor-visible course record/);
+  assert.match(sessionContext, /instructor can review the complete session transcript/);
   assert.match(sessionRoom, /Available to your instructor/);
   assert.match(cockpit, /turnsFromSubmissionTranscript\(submission\.transcript\)/);
 });

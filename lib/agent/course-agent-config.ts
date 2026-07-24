@@ -295,7 +295,6 @@ export async function writeCourseAgentConfig(args: {
       schemaVersion: 1,
       ...configurationInput,
       externalSearch: currentConfiguration.externalSearch,
-      limits: currentConfiguration.limits,
     });
     assertConfigurationTextIsSafe(configuration);
 

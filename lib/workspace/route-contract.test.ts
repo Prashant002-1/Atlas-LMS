@@ -180,7 +180,7 @@ test("phase 2 mounts the session engine on the kept substrate", () => {
   assertSourceIncludes("lib/db/schema.ts", "export const sessionSubmissions");
   assertSourceExcludes("lib/db/schema.ts", "personalRecordSideNotes");
   assertSourceIncludes("lib/db/schema.ts", "topicScores");
-  assert.equal(existsSync(path.join(root, "drizzle/0009_remove_obsolete_agent_settings.sql")), true);
+  assert.equal(existsSync(path.join(root, "drizzle/0011_remove_obsolete_agent_settings.sql")), true);
 
   // The runtime seam: turn-persisted streams on plain AI SDK 7 (ADR-0010).
   assertSourceIncludes("lib/agent/session-runtime.ts", "export async function runSessionTurn");

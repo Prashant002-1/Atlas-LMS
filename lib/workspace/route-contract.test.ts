@@ -152,6 +152,9 @@ test("session, proposal, policy, and platform model substrate remain for v0 adap
   assertSourceIncludes("lib/agent/context.ts", "export async function buildContextPack");
   assertSourceIncludes("lib/agent/session.ts", "export async function resumeOrCreateSession");
   assertSourceIncludes("lib/agent/session.ts", "export async function compactIfNeeded");
+  assertSourceIncludes("lib/agent/session.ts", "maxOutputTokens: summaryBudget.maxTokens");
+  assertSourceExcludes("lib/agent/session.ts", "Under 300 words");
+  assertSourceExcludes("lib/agent/session.ts", "slice(0, 2000)");
   assertSourceIncludes("lib/agent/apply.ts", "export async function applyProposal");
   assertSourceIncludes("lib/agent/apply.ts", "export async function dismissProposal");
 

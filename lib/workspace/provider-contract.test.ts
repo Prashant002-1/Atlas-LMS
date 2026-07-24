@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   compactionInputThresholdTokens,
+  compactionSummaryTokenBudget,
   createChatModel,
   modelContextWindowTokens,
 } from "@/lib/ai/provider";
@@ -69,6 +70,21 @@ test("compaction uses half a known context window and a 160k unknown-model fallb
   assert.equal(compactionInputThresholdTokens(fable), 500_000);
   assert.equal(modelContextWindowTokens(unknown), undefined);
   assert.equal(compactionInputThresholdTokens(unknown), 160_000);
+});
+
+test("compaction summaries receive 10 to 15 percent of provider input", () => {
+  assert.deepEqual(compactionSummaryTokenBudget(500_000), {
+    sourceTokens: 500_000,
+    minTokens: 50_000,
+    targetTokens: 62_500,
+    maxTokens: 75_000,
+  });
+  assert.deepEqual(compactionSummaryTokenBudget(), {
+    sourceTokens: 160_000,
+    minTokens: 16_000,
+    targetTokens: 20_000,
+    maxTokens: 24_000,
+  });
 });
 
 test("platform model resolution is environment-only and accepts no actor scope", () => {

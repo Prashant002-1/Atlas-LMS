@@ -11,19 +11,17 @@ import { deriveJourneyState, JOURNEY_STATE_LABEL, JOURNEY_STATE_ORDER, type Jour
 test("every submission/report/session combination maps to exactly the intended state", () => {
   const cases: Array<[Parameters<typeof deriveJourneyState>[0], JourneyState]> = [
     // No submission: the open-session flag decides.
-    [{ hasSubmission: false, reportStatus: null, reviewRequested: false, hasOpenSession: false }, "not_started"],
-    [{ hasSubmission: false, reportStatus: null, reviewRequested: false, hasOpenSession: true }, "in_session"],
+    [{ hasSubmission: false, reportStatus: null, hasOpenSession: false }, "not_started"],
+    [{ hasSubmission: false, reportStatus: null, hasOpenSession: true }, "in_session"],
     // Submitted, ungraded.
-    [{ hasSubmission: true, reportStatus: null, reviewRequested: false, hasOpenSession: false }, "pending_grading"],
-    // Draft reports, with and without a student review request.
-    [{ hasSubmission: true, reportStatus: "draft", reviewRequested: false, hasOpenSession: false }, "draft"],
-    [{ hasSubmission: true, reportStatus: "draft", reviewRequested: true, hasOpenSession: false }, "review_requested"],
-    // Final outranks everything, including a stale review-request stamp.
-    [{ hasSubmission: true, reportStatus: "final", reviewRequested: true, hasOpenSession: false }, "final"],
+    [{ hasSubmission: true, reportStatus: null, hasOpenSession: false }, "pending_grading"],
+    [{ hasSubmission: true, reportStatus: "draft", hasOpenSession: false }, "draft"],
+    // Final outranks everything.
+    [{ hasSubmission: true, reportStatus: "final", hasOpenSession: false }, "final"],
     // A frozen record outranks a fresh open session.
-    [{ hasSubmission: true, reportStatus: "final", reviewRequested: false, hasOpenSession: true }, "final"],
-    [{ hasSubmission: true, reportStatus: "draft", reviewRequested: false, hasOpenSession: true }, "draft"],
-    [{ hasSubmission: true, reportStatus: null, reviewRequested: false, hasOpenSession: true }, "pending_grading"],
+    [{ hasSubmission: true, reportStatus: "final", hasOpenSession: true }, "final"],
+    [{ hasSubmission: true, reportStatus: "draft", hasOpenSession: true }, "draft"],
+    [{ hasSubmission: true, reportStatus: null, hasOpenSession: true }, "pending_grading"],
   ];
 
   for (const [input, expected] of cases) {
@@ -35,11 +33,11 @@ test("the working-queue order puts what needs the professor first", () => {
   const ordered = (Object.keys(JOURNEY_STATE_ORDER) as JourneyState[]).sort(
     (a, b) => JOURNEY_STATE_ORDER[a] - JOURNEY_STATE_ORDER[b]
   );
-  assert.deepEqual(ordered, ["review_requested", "draft", "pending_grading", "in_session", "not_started", "final"]);
+  assert.deepEqual(ordered, ["draft", "pending_grading", "in_session", "not_started", "final"]);
 });
 
 test("every state has a label and an order", () => {
-  const states: JourneyState[] = ["not_started", "in_session", "pending_grading", "draft", "review_requested", "final"];
+  const states: JourneyState[] = ["not_started", "in_session", "pending_grading", "draft", "final"];
   for (const state of states) {
     assert.ok(JOURNEY_STATE_LABEL[state].length > 0);
     assert.ok(Number.isInteger(JOURNEY_STATE_ORDER[state]));

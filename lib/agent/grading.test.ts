@@ -235,6 +235,29 @@ test("no verifiable evidence grades Missing without ever calling the judge", asy
   assert.ok(graded.results[0].rationale.includes("No verifiable evidence"));
 });
 
+test("the model's rationale is preserved without an arbitrary length limit", async () => {
+  const criteria = parseRubricCriteria(v0DemoWorld.v0.rubric.criteria);
+  assert.ok(criteria);
+  const framing = criteria.find((c) => c.key === "framing");
+  assert.ok(framing);
+
+  const rationale = "Evidence connects the student's claim to the rubric descriptor. ".repeat(40).trim();
+  assert.ok(rationale.length > 1200);
+  let call = 0;
+  const model = new MockLanguageModelV4({
+    doGenerate: async () => {
+      call += 1;
+      return call === 1
+        ? jsonResult({ candidates: [{ turnId: "t1", quote: "demand is elastic here" }] })
+        : jsonResult({ level: "Meets", rationale });
+    },
+  });
+
+  const graded = await gradeNormalizedTranscript({ model, criteria: [framing], turns, finalArtifact: null });
+  assert.equal(graded.results[0].level, "Meets");
+  assert.equal(graded.results[0].rationale, rationale);
+});
+
 test("a transcript with no student turns refuses to grade", async () => {
   const criteria = parseRubricCriteria(v0DemoWorld.v0.rubric.criteria);
   assert.ok(criteria);

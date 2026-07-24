@@ -44,7 +44,7 @@ export default async function StudentSessionPage({ params }: { params: Promise<{
       submitted={view.submitted}
       submittedAt={view.submittedAt}
       report={view.report}
-      gradingPending={view.gradingPending}
+      grading={view.grading}
     />
   );
 }

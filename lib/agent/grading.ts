@@ -57,7 +57,7 @@ const extractionOutputSchema = z.object({
 
 const judgeOutputSchema = z.object({
   level: rubricLevelNameSchema,
-  rationale: z.string().min(1).max(600),
+  rationale: z.string(),
 });
 
 /* ── pure verification ──────────────────────────────────────── */
@@ -239,7 +239,7 @@ function judgePrompt(args: {
     "Rules:",
     "- Grade the STUDENT's moves only. Tutor scaffolding earns the student nothing; a heavily guided student is not an Exceeds.",
     "- Level descriptors describe qualities of thinking, not required conversation shapes; legitimate sessions vary widely.",
-    "- Choose exactly one level from the descriptors above and justify it briefly from the evidence shown.",
+    "- Choose exactly one level from the descriptors above and provide a brief rationale from the evidence shown.",
     "Return JSON only.",
   ].join("\n");
 }

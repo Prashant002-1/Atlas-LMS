@@ -1,6 +1,11 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { evidenceSpans, journeyReports, type SessionSubmission } from "@/lib/db/schema";
+import {
+  evidenceSpans,
+  journeyReports,
+  type SessionGradingStatus,
+  type SessionSubmission,
+} from "@/lib/db/schema";
 import { turnsToUIMessages } from "@/lib/agent/session";
 import {
   activeStudentEnrollment,
@@ -57,9 +62,13 @@ export type StudentJourneyReportView = {
   overallScore: number;
   maxScore: number;
   graderLabel: string | null;
-  reviewRequestedAt: string | null;
   createdAt: string;
   criteria: StudentCriterionView[];
+};
+
+export type StudentGradingProgress = {
+  status: SessionGradingStatus;
+  attempt: number;
 };
 
 export type StudentSessionView =
@@ -85,8 +94,8 @@ export type StudentSessionView =
       studentName: string;
       /** The grade report for the submitted session, when grading has run. */
       report: StudentJourneyReportView | null;
-      /** Submitted but not yet graded (no model configured, or grading failed). */
-      gradingPending: boolean;
+      /** Persisted lifecycle of the durable grading run. */
+      grading: StudentGradingProgress | null;
     };
 
 type Actor = { id: string; orgId: string | null; role: string };
@@ -167,7 +176,12 @@ export async function loadStudentSessionView(user: Actor, assignmentId: string):
     submittedAt: submission ? submission.submittedAt.toISOString() : null,
     studentName,
     report,
-    gradingPending: Boolean(submission) && !report,
+    grading: submission
+      ? {
+          status: report ? "completed" : submission.gradingStatus,
+          attempt: submission.gradingAttempt,
+        }
+      : null,
   };
 }
 
@@ -238,7 +252,6 @@ async function loadStudentJourneyReport(
     overallScore: report.overallScore,
     maxScore: criteriaViews.reduce((sum, c) => sum + c.maxScore, 0),
     graderLabel: report.graderLabel,
-    reviewRequestedAt: report.reviewRequestedAt ? report.reviewRequestedAt.toISOString() : null,
     createdAt: report.createdAt.toISOString(),
     criteria: criteriaViews,
   };

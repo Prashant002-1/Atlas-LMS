@@ -1,10 +1,11 @@
 import { and, eq, isNull } from "drizzle-orm";
-import { getWorkflowMetadata, getWritable, sleep } from "workflow";
+import { getStepMetadata, getWorkflowMetadata, getWritable, sleep } from "workflow";
 import { db } from "@/lib/db";
-import { agentSessions } from "@/lib/db/schema";
+import { agentSessions, sessionSubmissions } from "@/lib/db/schema";
 import { loadActiveCourseAgentConfig } from "@/lib/agent/course-agent-config";
 import { resolvePlatformModel } from "@/lib/ai/platform-model";
 import { runProfessorTurn } from "@/lib/agent/professor-runtime";
+import { runGradingForSubmission } from "@/lib/agent/grading";
 import { runSessionTurn } from "@/lib/agent/session-runtime";
 import { runStudentAtlasTurn } from "@/lib/agent/student-atlas-runtime";
 import { studentDisplayName } from "@/lib/agent/session-store";
@@ -38,6 +39,11 @@ type StudentAtlasTurnArgs = {
   sessionId: string;
   userText: string;
   runClaimId: string;
+};
+
+type SessionGradingArgs = {
+  orgId: string;
+  submissionId: string;
 };
 
 async function registerActiveRun(sessionId: string, claimId: string, runId: string) {
@@ -133,6 +139,78 @@ export async function studentTurnWorkflow(args: StudentTurnArgs) {
   await streamStudentTurnStep(args, workflowRunId);
 }
 
+async function gradeSessionSubmissionStep(args: SessionGradingArgs) {
+  "use step";
+  const { attempt } = getStepMetadata();
+  await db
+    .update(sessionSubmissions)
+    .set({
+      gradingStatus: attempt > 1 ? "retrying" : "running",
+      gradingAttempt: attempt,
+    })
+    .where(and(eq(sessionSubmissions.id, args.submissionId), eq(sessionSubmissions.orgId, args.orgId)));
+
+  console.log(`[session-grading] START submission=${args.submissionId} attempt=${attempt}`);
+
+  try {
+    const resolved = resolvePlatformModel();
+    if (!resolved) throw new Error("Atlas's model runtime is not configured.");
+
+    await runGradingForSubmission({
+      orgId: args.orgId,
+      submissionId: args.submissionId,
+      model: resolved.model,
+      graderLabel: `${resolved.provider}:${resolved.modelId}`,
+    });
+
+    await db
+      .update(sessionSubmissions)
+      .set({ gradingStatus: "completed", gradingAttempt: attempt })
+      .where(and(eq(sessionSubmissions.id, args.submissionId), eq(sessionSubmissions.orgId, args.orgId)));
+    console.log(`[session-grading] DONE submission=${args.submissionId} attempt=${attempt}`);
+  } catch (error) {
+    await db
+      .update(sessionSubmissions)
+      .set({ gradingStatus: "retrying", gradingAttempt: attempt })
+      .where(and(eq(sessionSubmissions.id, args.submissionId), eq(sessionSubmissions.orgId, args.orgId)));
+    console.error(
+      `[session-grading] RETRY submission=${args.submissionId} attempt=${attempt}`,
+      error instanceof Error ? error.message : String(error)
+    );
+    throw new Error(`Session grading failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+gradeSessionSubmissionStep.maxRetries = 2;
+
+async function registerSessionGradingRunStep(args: SessionGradingArgs, runId: string) {
+  "use step";
+  await db
+    .update(sessionSubmissions)
+    .set({ gradingStatus: "queued", gradingWorkflowRunId: runId, gradingAttempt: 0 })
+    .where(and(eq(sessionSubmissions.id, args.submissionId), eq(sessionSubmissions.orgId, args.orgId)));
+}
+
+async function markSessionGradingFailedStep(args: SessionGradingArgs) {
+  "use step";
+  await db
+    .update(sessionSubmissions)
+    .set({ gradingStatus: "failed" })
+    .where(and(eq(sessionSubmissions.id, args.submissionId), eq(sessionSubmissions.orgId, args.orgId)));
+}
+
+/** Manual submit returns immediately; this durable run owns draft grading. */
+export async function sessionGradingWorkflow(args: SessionGradingArgs) {
+  "use workflow";
+  const { workflowRunId } = getWorkflowMetadata();
+  try {
+    await registerSessionGradingRunStep(args, workflowRunId);
+    await gradeSessionSubmissionStep(args);
+  } catch (error) {
+    await markSessionGradingFailedStep(args);
+    throw error;
+  }
+}
+
 async function streamStudentAtlasTurnStep(args: StudentAtlasTurnArgs, runId: string) {
   "use step";
   try {
@@ -211,5 +289,13 @@ export async function sessionDeadlineWorkflow(args: { orgId: string; sessionId: 
     await sleep("2s");
   }
 
-  await concludeExpiredSessionStep(args.orgId, args.sessionId);
+  const { submissionId } = await concludeExpiredSessionStep(args.orgId, args.sessionId);
+  const gradingArgs = { orgId: args.orgId, submissionId };
+  try {
+    await registerSessionGradingRunStep(gradingArgs, workflowRunId);
+    await gradeSessionSubmissionStep(gradingArgs);
+  } catch (error) {
+    await markSessionGradingFailedStep(gradingArgs);
+    throw error;
+  }
 }

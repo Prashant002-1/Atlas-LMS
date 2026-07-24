@@ -325,6 +325,8 @@ async function main() {
       turnCount: transcript.turnCount,
       rubricId: v0Rubric.id,
       rubricVersion: v0Rubric.version,
+      gradingStatus: "completed" as const,
+      gradingAttempt: 1,
       submittedAt: new Date(studentSession.updatedAt),
     });
   }
@@ -385,7 +387,7 @@ async function main() {
   }
 
   const rollupStats = computeClassRollupStats({
-    reports: reportRows.map((row) => ({ scores: row.scores, overallScore: row.overallScore, reviewRequestedAt: null })),
+    reports: reportRows.map((row) => ({ scores: row.scores, overallScore: row.overallScore })),
     submittedSessions: submissionRows.length,
     sideNotes: v0SideNoteCards
       .filter((card) => submissionIdBySession.has(card.sessionId))

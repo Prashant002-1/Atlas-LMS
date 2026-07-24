@@ -48,7 +48,7 @@ export default async function TeachAiAssignmentsPage() {
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">
                 {view.rows.map((row) => {
-                  const draftGrades = row.counts ? row.counts.draft + row.counts.reviewRequested : null;
+                  const draftGrades = row.counts?.draft ?? null;
                   const href = `/teach/ai-assignments/${row.assignmentId}`;
                   return (
                     <tr key={row.assignmentId} className="text-[0.8125rem] transition hover:bg-[var(--color-surface-muted)]">

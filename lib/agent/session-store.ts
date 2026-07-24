@@ -293,6 +293,7 @@ export async function submitSessionRecord(args: {
         turnCount: transcript.turnCount,
         rubricId: args.bundle.rubric.id,
         rubricVersion: args.bundle.rubric.version,
+        gradingStatus: "queued",
       })
       .returning();
 

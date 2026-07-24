@@ -23,8 +23,7 @@ export function ProfessorReportPanel({ report, submissionId }: { report: DrillIn
           </p>
         </div>
         <div className="text-right text-[0.75rem] leading-5 text-[var(--color-muted)]">
-          <p>{report.status === "final" ? "Posted to the gradebook" : "Draft grade"}</p>
-          {report.reviewRequestedAt && report.status === "draft" ? <p className="text-[var(--color-warn)]">Student requested review</p> : null}
+          <p>{report.status === "final" ? "Final grade" : "Draft grade"}</p>
         </div>
       </div>
 
@@ -89,7 +88,7 @@ export function ProfessorReportPanel({ report, submissionId }: { report: DrillIn
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-[var(--color-ink)] bg-[var(--color-ink)] px-3 text-[0.78125rem] font-medium text-[var(--color-bg)] transition hover:border-[var(--color-accent-strong)] hover:bg-[var(--color-accent-strong)]"
               >
                 <BadgeCheck size={13} aria-hidden />
-                Post grade
+                Post final grade
               </PendingActionButton>
             </form>
           </div>

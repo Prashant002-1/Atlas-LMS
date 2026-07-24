@@ -82,7 +82,17 @@ export const agentTurnRoleEnum = pgEnum("agent_turn_role", ["user", "assistant",
 export const cueTargetEnum = pgEnum("cue_target", ["assignment", "module", "page", "course", "org"]);
 export const explanationDepthEnum = pgEnum("explanation_depth", ["hint", "guided", "full"]);
 export const sessionSubmissionStatusEnum = pgEnum("session_submission_status", ["submitted", "graded"]);
+export const sessionGradingStatusEnum = pgEnum("session_grading_status", [
+  "pending",
+  "queued",
+  "running",
+  "retrying",
+  "completed",
+  "failed",
+]);
 export const journeyReportStatusEnum = pgEnum("journey_report_status", ["draft", "final"]);
+
+export type SessionGradingStatus = (typeof sessionGradingStatusEnum.enumValues)[number];
 
 /* ──────────────────── 1. tenancy & auth ─────────────────── */
 
@@ -913,6 +923,9 @@ export const sessionSubmissions = pgTable(
     turnCount: integer("turn_count").notNull().default(0),
     rubricId: uuid("rubric_id").references(() => rubrics.id, { onDelete: "set null" }),
     rubricVersion: integer("rubric_version").notNull().default(1),
+    gradingStatus: sessionGradingStatusEnum("grading_status").notNull().default("pending"),
+    gradingWorkflowRunId: text("grading_workflow_run_id"),
+    gradingAttempt: integer("grading_attempt").notNull().default(0),
     submittedAt: timestamp("submitted_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
@@ -968,7 +981,7 @@ export const evidenceSpans = pgTable(
  * per-criterion {level, score, rationale, evidenceSpans[]} where score comes
  * from the rubric's own level descriptors, never from the model choosing a
  * number. Reports are DRAFTS until the professor finalizes them (AI drafts,
- * educator publishes); the student may request review on a draft.
+ * educator publishes).
  */
 export const journeyReports = pgTable(
   "journey_reports",
@@ -1002,7 +1015,6 @@ export const journeyReports = pgTable(
     status: journeyReportStatusEnum("status").notNull().default("draft"),
     // Provenance: which model graded this draft ("openai:gpt-4.1"), or "seed".
     graderLabel: text("grader_label"),
-    reviewRequestedAt: timestamp("review_requested_at", { withTimezone: true }),
     // The publish audit: AI drafts, the educator publishes. Who confirmed the
     // grade and when; null while the report is a draft.
     finalizedAt: timestamp("finalized_at", { withTimezone: true }),

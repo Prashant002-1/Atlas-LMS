@@ -65,7 +65,7 @@ Use these in the written application; the demo shows, it does not cite.
 | No refusal/blocking beat | In a fully-AI-enabled session there is nothing to refuse; a blocked student reads as friction. Governance appears as *shaping*: grounded answers, questions asked back, rubric-aware guidance. (In an AI-banned assignment, governance looks different - but that is not this video.) |
 | Creation shown as instrument authorship, not content generation | "AI creates course content" is the single most commoditized image in edtech. What we show being created is an *assessment instrument* (rubric + session config), drafted by the agent from syllabus + outcomes, **edited and approved by a human on camera**. The 10-second weight edit is the difference between "AI generated a rubric" and "the professor's rubric, drafted by her agent." |
 | Side note as margin annotation card, not chat bubble | Structured context injection must look structurally different from model chatter. The visual difference IS the product claim. See Section 6. |
-| Appeal as chip, not scene | "Request professor review - full transcript attached" communicates that the human is the court of appeal without staging a dispute (negative energy, 20 wasted seconds). |
+| Draft before final | The generated grade is visibly a draft. The professor reviews the evidence and posts it from the instructor view, which is the only moment it becomes final. |
 | Feedback flash must quote the student's journey | "AI writes feedback" alone is IgniteAI territory. The differentiator: professor's rough dictation becomes a note in her register that cites the student's actual session. First cut if the video runs over. |
 | Standard LMS workflows = 5-second montage | Completeness proof only ("the agent runs the boring parts too"). Never linger in the commoditized zone. |
 | Instructions text on screen carries the soft lines | "The transcript is shared with me if I need it, but I'm not reading everything - feel comfortable thinking out loud" stays visible but un-narrated. Partners who pause get rewarded; the voiceover stays tight. |
@@ -206,8 +206,8 @@ STUDENT: "...make Basic annoying enough - ads, one screen - so it only attracts 
 SCREEN: Artifact diff highlights the revision. Student clicks **Submit**.
 
 **[1:35-1:50 - The journey report]**
-SCREEN: Student's report: four criteria with level chips and one quoted evidence line each - Framing: Meets. Grounding: Meets ("correctly linked churn asymmetry to elasticity after review"). Iteration: **Exceeds** ("redesigned Basic as a churn fence when cannibalization was raised"). Design: Meets. Chip: "Request professor review - full transcript attached."
-NARRATOR: "The submission is the journey. Scored against her rubric, every score with a receipt - and the professor is the court of appeal."
+SCREEN: Student's report: four criteria with level chips and one quoted evidence line each - Framing: Meets. Grounding: Meets ("correctly linked churn asymmetry to elasticity after review"). Iteration: **Exceeds** ("redesigned Basic as a churn fence when cannibalization was raised"). Design: Meets. Status: "Draft grade."
+NARRATOR: "The submission is the journey. Scored against her rubric, every score with a receipt. It stays a draft until the professor posts it."
 
 **[1:50-2:20 - Where it all came from]**
 SCREEN: Professor's side. Session history shows a prior conversation: "Exam 2 practice set planning - Tue." Then the assignment setup: rubric card drafted from syllabus + outcomes; she edits Iteration 25 -> 30, Framing 25 -> 20; **Approve**. Config: Grounding: course materials - Duration ~30m - Personal-record side notes: **ON**.

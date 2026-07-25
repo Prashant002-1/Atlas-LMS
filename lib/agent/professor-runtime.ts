@@ -24,6 +24,7 @@ import { personalMemoryTool } from "@/lib/agent/memories";
 import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
 import { loadReadyThreadDocumentContext } from "@/lib/course/documents";
 import { governedWebSearchTools } from "@/lib/agent/web-search";
+import { foldConsumedSteeringIntoTurn, steeringPrepareStep } from "@/lib/agent/steering";
 
 /**
  * One professor turn on the durable AI SDK seam. The professor's input is a row
@@ -43,6 +44,8 @@ export type ProfessorDocumentAttachment = {
 export type ProfessorDataParts = {
   "planning-ref": { sessionId: string };
   "document-attachments": { attachments: ProfessorDocumentAttachment[] };
+  /** Where a mid-run redirection actually reached the model. */
+  "steering-applied": { notes: string[]; stepNumber: number };
   "run-context": {
     sessionId: string;
     builtAt: string;
@@ -68,6 +71,12 @@ export async function runProfessorTurn(args: {
   userText: string;
   /** The route persists input before it starts a durable workflow run. */
   userTurnPersisted?: boolean;
+  /**
+   * The durable run this turn belongs to. Steering notes are recorded against
+   * it, so the redirection reaches this response and cannot leak into a later
+   * one.
+   */
+  runId?: string;
 }): Promise<Response> {
   const { session, scope } = args;
 
@@ -75,6 +84,12 @@ export async function runProfessorTurn(args: {
     await titleCommandSessionFromIntent(session, args.userText);
     await persistSessionTurn(session, "user", [{ type: "text" as const, text: args.userText }]);
   }
+  /*
+   * The user turn that opened this run. Persisting mutates session.totalTurns
+   * in place, and the route persists before starting the workflow, so this is
+   * that turn's index on both paths. Steering notes fold back onto it.
+   */
+  const userTurnIndex = session.totalTurns;
 
   const [professorPack, harness, attachedDocuments] = await Promise.all([
     buildProfessorPack(scope),
@@ -129,12 +144,33 @@ export async function runProfessorTurn(args: {
         },
       });
 
+      /*
+       * Real steering, not a queued follow-up. A note typed while this
+       * response streams is drained at the next step boundary and appended to
+       * the messages the model is about to see, so the run in flight changes
+       * course. Without a run id there is nothing to aim a note at, so the
+       * hook is omitted entirely rather than left querying for nothing.
+       */
+      const steering = args.runId
+        ? steeringPrepareStep({
+            scope: { sessionId: session.id, runId: args.runId },
+            onInjected: ({ notes, stepNumber }) => {
+              writer.write({
+                type: "data-steering-applied",
+                id: `${session.id}:${args.runId}:${stepNumber}`,
+                data: { notes: notes.map((note) => note.text), stepNumber },
+              });
+            },
+          })
+        : undefined;
+
       const result = streamText({
         model: args.model,
         instructions,
         messages: modelMessages,
         tools,
         stopWhen: isStepCount(16),
+        ...(steering ? { prepareStep: steering } : {}),
         onStepEnd: ({ usage }) => {
           if (usage.inputTokens !== undefined) {
             peakInputTokens = Math.max(peakInputTokens ?? 0, usage.inputTokens);
@@ -154,6 +190,20 @@ export async function runProfessorTurn(args: {
     onEnd: async ({ responseMessage }) => {
       const parts = responseMessage?.parts ?? [];
       if (parts.length === 0) return;
+      /*
+       * Fold before persisting the response, so the user turn already carries
+       * every redirection by the time the next turn reads history back. Fold
+       * before compaction too: a summary that omitted the redirection would
+       * describe a request the professor had already changed.
+       */
+      if (args.runId) {
+        await foldConsumedSteeringIntoTurn({
+          orgId: scope.orgId,
+          sessionId: session.id,
+          runId: args.runId,
+          userTurnIndex,
+        });
+      }
       await persistSessionTurn(session, "assistant", parts);
       await compactIfNeeded(session, { model: args.model, inputTokens: peakInputTokens });
     },

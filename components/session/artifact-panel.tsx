@@ -50,11 +50,18 @@ export function ArtifactPanel({
   className,
   title = "Submission draft",
   plain = false,
+  headingHidden = false,
 }: {
   revisions: ArtifactRevision[];
   className?: string;
   title?: string;
   plain?: boolean;
+  /**
+   * Keep the heading for assistive technology but drop it visually. Used when
+   * the panel sits under a tab that already carries the same word: showing it
+   * twice in the same corner is the redundancy this UI keeps removing.
+   */
+  headingHidden?: boolean;
 }) {
   const [pinned, setPinned] = useState<number | null>(null);
   const latest = revisions.length - 1;
@@ -70,8 +77,8 @@ export function ArtifactPanel({
         className
       )}
     >
-      <div className="flex items-center justify-between gap-3">
-        <h2 className={cn("font-semibold text-[var(--color-ink)]", plain ? "text-[1rem]" : "text-[0.8125rem]")}>{title}</h2>
+      <div className={cn("flex items-center gap-3", headingHidden ? "justify-end" : "justify-between")}>
+        <h2 className={cn(headingHidden ? "sr-only" : "font-semibold text-[var(--color-ink)]", !headingHidden && (plain ? "text-[1rem]" : "text-[0.8125rem]"))}>{title}</h2>
         {revisions.length > 1 ? (
           <div className="flex items-center gap-1" role="tablist" aria-label="Submission revisions">
             {revisions.map((_, revisionIndex) => (

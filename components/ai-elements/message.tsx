@@ -1,4 +1,6 @@
-import type { HTMLAttributes } from "react";
+"use client";
+
+import { useEffect, useState, type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -40,21 +42,91 @@ export function MessageContent({ className, children, ...props }: HTMLAttributes
   );
 }
 
-export function MessageTimestamp({ createdAt }: { createdAt?: string }) {
-  if (!createdAt) return null;
-  const date = new Date(createdAt);
-  if (Number.isNaN(date.getTime())) return null;
-  const label = date.toLocaleString("en-US", {
+const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
+/** Past this, a time of day stops locating a message and the date does. */
+const RELATIVE_WINDOW_MS = 6 * HOUR_MS;
+
+/**
+ * How long ago, at the precision that is actually useful. Inside six hours the
+ * distance is what the reader wants; past that the distance stops meaning
+ * anything and the wall clock takes over, dropping the date while the message
+ * is still from today.
+ */
+export function messageTimestampLabel(date: Date, now: Date = new Date()): string {
+  const elapsed = now.getTime() - date.getTime();
+
+  if (elapsed >= 0 && elapsed < MINUTE_MS) return "Just now";
+  if (elapsed >= 0 && elapsed < HOUR_MS) {
+    const minutes = Math.floor(elapsed / MINUTE_MS);
+    return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
+  }
+  if (elapsed >= 0 && elapsed < RELATIVE_WINDOW_MS) {
+    const hours = Math.floor(elapsed / HOUR_MS);
+    return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  }
+
+  const sameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  if (sameDay) return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+  return date.toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
   });
+}
 
+/**
+ * The hover timestamp, held back until the message is finished.
+ *
+ * A clock beside half a written sentence reads as a completed thing and makes
+ * the reader check whether the answer is done, so `pending` withholds the
+ * stamp entirely while a response streams and reveals it when the response
+ * lands. The reserved height keeps the reveal from shifting the thread.
+ *
+ * The label also refreshes on a slow interval while it is still relative,
+ * because a "3 minutes ago" that never becomes "4 minutes ago" is worse than
+ * no label. Once the message is past that window its text is fixed and the
+ * interval is not started.
+ */
+export function MessageTimestamp({ createdAt, pending = false }: { createdAt?: string; pending?: boolean }) {
+  const time = createdAt ? new Date(createdAt).getTime() : Number.NaN;
+  const valid = Number.isFinite(time);
+  const [label, setLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!valid || pending) {
+      setLabel(null);
+      return;
+    }
+    const render = () => setLabel(messageTimestampLabel(new Date(time)));
+    render();
+    /* Relative labels need refreshing; absolute ones never change. */
+    if (Date.now() - time >= RELATIVE_WINDOW_MS) return;
+    const timer = window.setInterval(render, 30_000);
+    return () => window.clearInterval(timer);
+  }, [pending, time, valid]);
+
+  /* Hold the row height so revealing the stamp never nudges the thread. */
+  if (!valid || pending || !label) return <span className="block min-h-4" aria-hidden />;
+
+  const date = new Date(time);
   return (
     <time
       dateTime={date.toISOString()}
+      title={date.toLocaleString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })}
       className={cn(
         "min-h-4 text-[0.625rem] leading-4 text-[var(--color-faint)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
         "group-[.is-user]:text-right group-[.is-assistant]:text-left"

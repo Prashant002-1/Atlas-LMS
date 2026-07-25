@@ -21,6 +21,7 @@ import type {
 import { cs152Course } from "./courses/cs152";
 import { stat201Course } from "./courses/stat201";
 import { hist310Course } from "./courses/hist310";
+import { shapedSubmission } from "./submission-shapes";
 
 // Deterministic UUID from a stable key (sha256 -> UUID v4 shape)
 function idFor(key: string): string {
@@ -44,7 +45,7 @@ function firstTextPart(parts: unknown): string | null {
 
 const scenarioKey = "econ-streaming-pricing";
 const courseCode = "ECON-241";
-const termSlug = "summer-2026";
+const termSlug = "fall-2026";
 const courseKey = `${courseCode}:${termSlug}`;
 
 const orgId = idFor("org:demo-u");
@@ -648,7 +649,38 @@ const modulesList = [
   { key: "week-5", name: "Market power and pricing mistakes", summaryMd: "Study what a firm with market power gives up when it chases a higher price without modeling churn. Compare markup, marginal revenue, marginal cost, and retention outcomes in the monopoly case before deciding whether the high-price option actually improves the firm's position.", objectiveCodes: ["LO5"], week: 5, published: true },
   { key: "week-6", name: "Price discrimination and tier design", summaryMd: "Turn willingness to pay into a menu rather than a single price. Segment by observable use cases, choose features that act as real fences, and test whether a customer can keep the same value by moving down. The interactive case uses cannibalization as its stress test.", objectiveCodes: ["LO6"], week: 6, published: true },
   { key: "week-7", name: "Interactive Pricing Session", summaryMd: "Apply Weeks 4 through 6 to VidStack's 18% subscriber loss. The session records the student's framing, concept check, revision under challenge, and final tier table, so the instructor can respond to the reasoning rather than only the final prices.", objectiveCodes: ["LO6"], week: 7, published: true },
-  { key: "week-8", name: "Oligopoly and Game Theory", summaryMd: "The unpublished next module extends the pricing conversation to competitors. We will study strategic interaction, Nash equilibrium, and the ways a rival's response can change a firm's best price. It remains hidden while the class completes the current case.", objectiveCodes: ["LO5"], week: 8, published: false },
+  { key: "week-8", name: "Oligopoly and strategic pricing", summaryMd: "Extend the pricing conversation to competitors. Strategic interaction, best responses, and Nash equilibrium explain why a rival's likely reaction belongs in the pricing decision rather than after it. We return to VidStack with a competitor in the market.", objectiveCodes: ["LO5"], week: 8, published: true },
+  { key: "week-9", name: "Bundling and two-sided platforms", summaryMd: "Why a bundle can beat the sum of its parts, and what changes when the platform has two customer groups that each care about the size of the other. Advertising-supported tiers are the working example, since the advertiser and the viewer are priced against each other.", objectiveCodes: ["LO6"], week: 9, published: true },
+  { key: "week-10", name: "Information, signaling, and quality", summaryMd: "What happens to a market when buyers cannot see quality before paying. Adverse selection, signaling, and the role of a free trial as a costly signal. The reading connects this to why streaming platforms publish viewership numbers selectively.", objectiveCodes: ["LO4"], week: 10, published: true },
+  { key: "week-11", name: "Welfare, surplus, and policy", summaryMd: "Total surplus, deadweight loss, and what a regulator is actually measuring when it reviews a merger or a price practice. We use the same VidStack numbers to compute consumer and producer surplus under two pricing regimes.", objectiveCodes: ["LO2", "LO5"], week: 11, published: true },
+  { key: "week-12", name: "Behavioral pricing and fairness", summaryMd: "Anchoring, reference prices, and the reaction to a price increase that a purely rational model does not predict. The question for the final project is which of these effects you are willing to rely on and which you would be uncomfortable defending.", objectiveCodes: ["LO6"], week: 12, published: false },
+  { key: "week-13", name: "Final project workshop", summaryMd: "Bring a draft pricing recommendation and defend the demand story behind it. Peer review focuses on one question: does the mechanism explain the prices, or do the prices arrive without a mechanism.", objectiveCodes: ["LO6"], week: 13, published: false },
+  { key: "week-14", name: "Review and synthesis", summaryMd: "The whole term in one argument: a decision, a constraint, a model that speaks to it, and an honest statement of what the model leaves out. Exam 2 covers Weeks 6 through 12 with the same emphasis on interpretation over calculation.", objectiveCodes: ["LO1", "LO4", "LO5", "LO6"], week: 14, published: false },
+];
+
+/*
+ * Course documents, placed by week. A real week is a reading plus a handout plus
+ * a deck, and the module page reads these from the file rows the same way the
+ * materials library does. Extracted text stands in for the ingestion pipeline so
+ * a seeded PDF is groundable without a live extraction.
+ */
+const materialsList = [
+  { key: "syllabus-pdf", displayName: "ECON-241 Syllabus", filename: "econ241-syllabus-fall2026.pdf", contentType: "application/pdf", sizeBytes: 184_320, kind: "syllabus" as const, week: 1, pageCount: 4, extractedText: "ECON-241 Intermediate Microeconomics, Fall 2026. Dr. Amara Osei. Grading: four problem sets, one interactive pricing session, two exams, and a final pricing project. Late work is accepted for seven days with a revision note." },
+  { key: "w1-slides", displayName: "Week 1 slides: Markets and equilibrium", filename: "w01-markets-equilibrium.pdf", contentType: "application/pdf", sizeBytes: 1_204_224, kind: "slides" as const, week: 1, pageCount: 22, extractedText: "Demand schedules, supply schedules, equilibrium price and quantity. Movement along a curve versus a shift of the curve. Shortage and surplus at non-clearing prices." },
+  { key: "w1-handout", displayName: "VidStack demand schedule (worksheet)", filename: "w01-vidstack-schedule.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", sizeBytes: 27_648, kind: "dataset" as const, week: 1, extractedText: "Price, quantity demanded, quantity supplied at prices from 5 to 25 dollars for the VidStack subscription market." },
+  { key: "w2-slides", displayName: "Week 2 slides: Willingness to pay", filename: "w02-willingness-to-pay.pdf", contentType: "application/pdf", sizeBytes: 986_112, kind: "slides" as const, week: 2, pageCount: 18, extractedText: "Reservation values, marginal benefit, diminishing marginal benefit, consumer surplus as the area under demand above price." },
+  { key: "w2-reading", displayName: "Consumer surplus worked examples", filename: "w02-surplus-examples.pdf", contentType: "application/pdf", sizeBytes: 421_888, kind: "reading" as const, week: 2, pageCount: 6, extractedText: "Six-customer streaming schedule. Computing total consumer surplus at a flat price, then recomputing after a three dollar increase and identifying who leaves the market." },
+  { key: "w3-slides", displayName: "Week 3 slides: Cost and profit", filename: "w03-cost-revenue-profit.pdf", contentType: "application/pdf", sizeBytes: 1_105_920, kind: "slides" as const, week: 3, pageCount: 24, extractedText: "Fixed cost, variable cost, average total cost, marginal cost. Total revenue and profit at different subscriber counts. Why near-zero marginal cost does not remove the fixed-cost constraint." },
+  { key: "w4-slides", displayName: "Week 4 slides: Elasticity", filename: "w04-elasticity.pdf", contentType: "application/pdf", sizeBytes: 1_048_576, kind: "slides" as const, week: 4, pageCount: 20, extractedText: "Price elasticity of demand as percentage change in quantity over percentage change in price. Elastic and inelastic ranges on a single linear demand curve. Why slope is not elasticity." },
+  { key: "w4-practice", displayName: "Elasticity practice problems with solutions", filename: "w04-elasticity-practice.pdf", contentType: "application/pdf", sizeBytes: 318_464, kind: "assessment" as const, week: 4, pageCount: 8, extractedText: "Twelve elasticity calculations with full solutions. Each asks for the percentage change, the elasticity value, and the direction total revenue moves." },
+  { key: "w5-slides", displayName: "Week 5 slides: Market power", filename: "w05-market-power.pdf", contentType: "application/pdf", sizeBytes: 1_150_976, kind: "slides" as const, week: 5, pageCount: 21, extractedText: "Monopoly pricing, markup over marginal cost, marginal revenue, and the churn a price increase causes when retention is modeled." },
+  { key: "w5-case", displayName: "VidStack case brief: the 15 dollar decision", filename: "w05-vidstack-case.pdf", contentType: "application/pdf", sizeBytes: 512_000, kind: "reading" as const, week: 5, pageCount: 9, extractedText: "VidStack raised its single price to 15 dollars and lost 18 percent of subscribers. Revenue, churn by segment, and the internal argument for and against the increase." },
+  { key: "w6-slides", displayName: "Week 6 slides: Price discrimination", filename: "w06-price-discrimination.pdf", contentType: "application/pdf", sizeBytes: 1_232_896, kind: "slides" as const, week: 6, pageCount: 26, extractedText: "First, second, and third degree price discrimination. Fences as the mechanism that separates tiers. Cannibalization as the failure mode of a weak fence." },
+  { key: "w6-dataset", displayName: "Segment willingness-to-pay data", filename: "w06-segment-wtp.csv", contentType: "text/csv", sizeBytes: 14_336, kind: "dataset" as const, week: 6, extractedText: "Survey willingness to pay by segment: students, single households, families, and heavy viewers, with screen count and offline viewing preferences." },
+  { key: "w7-guide", displayName: "Pricing session: what full marks looks like", filename: "w07-session-guide.pdf", contentType: "application/pdf", sizeBytes: 268_288, kind: "reading" as const, week: 7, pageCount: 5, extractedText: "The rubric in plain language. Problem framing, course-concept grounding, iteration under challenge, and a final design you can defend. Delegated answers earn nothing." },
+  { key: "w8-slides", displayName: "Week 8 slides: Oligopoly", filename: "w08-oligopoly.pdf", contentType: "application/pdf", sizeBytes: 1_073_152, kind: "slides" as const, week: 8, pageCount: 19, extractedText: "Best response functions, Nash equilibrium in prices, and why a competitor's likely reaction belongs inside the pricing decision." },
+  { key: "w9-reading", displayName: "Bundling and two-sided markets", filename: "w09-bundling-platforms.pdf", contentType: "application/pdf", sizeBytes: 466_944, kind: "reading" as const, week: 9, pageCount: 11, extractedText: "Why a bundle can capture more surplus than separate prices. Two-sided platform pricing where advertisers and viewers are priced against each other." },
+  { key: "exam2-outline", displayName: "Exam 2 topic outline (draft)", filename: "exam2-outline-draft.pdf", contentType: "application/pdf", sizeBytes: 156_672, kind: "assessment" as const, week: 10, pageCount: 3, visibility: "instructors" as const, extractedText: "Exam 2 draft coverage: elasticity, price discrimination, oligopoly best responses, bundling, welfare. Elasticity is weighted up after the Exam 1 results." },
 ];
 
 // Pages with 300-800 words of real text containing tagged concept keywords
@@ -854,43 +886,107 @@ function economicsSessionBody(studentKey: string, final: boolean): string {
 
 // Graded submissions for 31 students
 const submissionsList: FixtureCourse["submissions"] = [];
-// Graded assignments: ps1 (due week 2), ps2 (due week 3), ps3 (due week 4), exam-1 (due week 5), session-assignment (due week 7)
-// Setup submissions for ps1, ps2, ps3, and exam-1 for all 31 students.
+
+/*
+ * The course is in week two, so the record has a shape: weeks one and two are
+ * done, week two's problem set is being graded right now, and everything from
+ * week three on has not happened yet. The old seed graded every assignment in
+ * the term, which is why the product looked like an archive rather than a class
+ * in progress.
+ *
+ * Submissions also vary in shape and voice (see submission-shapes.ts). A class
+ * where all thirty students write the same tidy paragraph made the grading
+ * tables impossible to judge and hid the fact that a submission is often a file.
+ */
+const gradedAssignments = ["ps1", "reading-check-1"] as const;
+const beingGradedAssignment = "ps2";
+
 for (const stud of studentDefs) {
-  // PS1
-  submissionsList.push({
-    assignmentKey: "ps1",
-    studentKey: stud.key,
-    state: "graded",
-    dayOffsetFromDue: -1,
-    score: stud.archetype === "Strong" ? 95 : stud.archetype === "Steady" ? 82 : stud.archetype === "Recoverer" ? 78 : stud.archetype === "Delegator" ? 72 : 64,
-    grade: stud.archetype === "Strong" ? "A" : stud.archetype === "Steady" ? "B" : stud.archetype === "Recoverer" ? "C" : stud.archetype === "Delegator" ? "C" : "D",
-    body: economicsSubmissionBody(stud.key, "ps1"),
-  });
+  /* Week 1 work: graded and returned, with feedback already written. */
+  for (const assignmentKey of gradedAssignments) {
+    const isCheck = assignmentKey === "reading-check-1";
+    const possible = isCheck ? 20 : 100;
+    const base = stud.archetype === "Strong" ? 0.95
+      : stud.archetype === "Steady" ? 0.84
+      : stud.archetype === "Recoverer" ? 0.77
+      : stud.archetype === "Delegator" ? 0.72
+      : 0.63;
+    const score = Math.round(base * possible);
+    const shaped = shapedSubmission({
+      studentKey: stud.key,
+      studentName: stud.name,
+      assignmentKey,
+      archetype: stud.archetype,
+      longBody: economicsSubmissionBody(stud.key, isCheck ? "ps2" : "ps1"),
+    });
+    submissionsList.push({
+      assignmentKey,
+      studentKey: stud.key,
+      state: "graded",
+      dayOffsetFromDue: -1 - (stud.key.charCodeAt(0) % 3),
+      score,
+      grade: letterFor(score / possible),
+      body: shaped.body ?? undefined,
+      url: shaped.url ?? undefined,
+      submissionType: shaped.submissionType ?? undefined,
+      feedback: feedbackFor(stud.archetype, isCheck),
+    });
+  }
 
-  // PS2
-  submissionsList.push({
-    assignmentKey: "ps2",
+  /*
+   * Week 2's problem set: submitted, mostly ungraded. This is the pile a
+   * professor opens the app to work through, so the demo has one.
+   */
+  const ps2Shaped = shapedSubmission({
     studentKey: stud.key,
-    state: "graded",
-    dayOffsetFromDue: 0,
-    score: stud.archetype === "Strong" ? 98 : stud.archetype === "Steady" ? 85 : stud.archetype === "Recoverer" ? 80 : stud.archetype === "Delegator" ? 74 : 60,
-    grade: stud.archetype === "Strong" ? "A" : stud.archetype === "Steady" ? "B" : stud.archetype === "Recoverer" ? "B" : stud.archetype === "Delegator" ? "C" : "D",
-    body: economicsSubmissionBody(stud.key, "ps2"),
+    studentName: stud.name,
+    assignmentKey: beingGradedAssignment,
+    archetype: stud.archetype,
+    longBody: economicsSubmissionBody(stud.key, "ps2"),
   });
+  const ps2Late = stud.archetype === "Struggling" || stud.archetype === "Delegator";
+  /* A few are already graded, so the surfaces show a partly-worked queue. */
+  const ps2Graded = ["maya", "liam", "sofia", "amina", "zara", "clara"].includes(stud.key);
+  const ps2Missing = ["oscar", "nina"].includes(stud.key);
 
-  // PS3
-  submissionsList.push({
-    assignmentKey: "ps3",
-    studentKey: stud.key,
-    state: "graded",
-    dayOffsetFromDue: -2,
-    score: stud.archetype === "Strong" ? 94 : stud.archetype === "Steady" ? 80 : stud.archetype === "Recoverer" ? 75 : stud.archetype === "Delegator" ? 70 : 58,
-    grade: stud.archetype === "Strong" ? "A" : stud.archetype === "Steady" ? "B" : stud.archetype === "Recoverer" ? "C" : stud.archetype === "Delegator" ? "C" : "F",
-    body: economicsSubmissionBody(stud.key, "ps3"),
-  });
+  if (ps2Missing) {
+    submissionsList.push({ assignmentKey: beingGradedAssignment, studentKey: stud.key, state: "missing" });
+  } else if (ps2Graded) {
+    const score = stud.archetype === "Strong" ? 96 : stud.archetype === "Steady" ? 85 : stud.archetype === "Recoverer" ? 79 : 68;
+    submissionsList.push({
+      assignmentKey: beingGradedAssignment,
+      studentKey: stud.key,
+      state: "graded",
+      dayOffsetFromDue: ps2Late ? 1 : 0,
+      score,
+      grade: letterFor(score / 100),
+      body: ps2Shaped.body ?? undefined,
+      url: ps2Shaped.url ?? undefined,
+      submissionType: ps2Shaped.submissionType ?? undefined,
+      feedback: feedbackFor(stud.archetype, false),
+    });
+  } else {
+    submissionsList.push({
+      assignmentKey: beingGradedAssignment,
+      studentKey: stud.key,
+      state: "submitted",
+      dayOffsetFromDue: ps2Late ? 1 : 0,
+      body: ps2Shaped.body ?? undefined,
+      url: ps2Shaped.url ?? undefined,
+      submissionType: ps2Shaped.submissionType ?? undefined,
+    });
+  }
+}
 
-  // Exam 1
+/*
+ * The assessed pricing session and Exam 1 keep their designed past, because the
+ * whole demo thread depends on them: the Exam 1 topic scores are what the
+ * session's side note reads, and the session grades are what the professor
+ * surfaces show. They sit in the future of the new timeline as published work,
+ * so the session rows below are the completed-in-advance record the grading
+ * pipeline and the class rollup already validate against.
+ */
+for (const stud of studentDefs) {
   const examScoreObj = examRecord.studentScores.find((es) => es.studentKey === stud.key)!;
   submissionsList.push({
     assignmentKey: "exam-1",
@@ -900,6 +996,8 @@ for (const stud of studentDefs) {
     score: examScoreObj.totalScore,
     grade: examScoreObj.grade,
     body: economicsSubmissionBody(stud.key, "exam-1"),
+    submissionType: "text",
+    feedback: examFeedbackFor(examScoreObj.topicScores.elasticity ?? 0),
     topicScores: Object.fromEntries(
       Object.entries(examScoreObj.topicScores).map(([topic, score]) => [
         topic,
@@ -908,7 +1006,6 @@ for (const stud of studentDefs) {
     ),
   });
 
-  // Session Assignment submission (graded, submitted, or missing).
   // A finalized gradebook score IS the journey report's overall score (the
   // sum of the archetype's rubric level points, see the journey generator
   // below): Strong E/E/E/E = 100, Steady M/M/M/M = 80, Recoverer
@@ -921,12 +1018,7 @@ for (const stud of studentDefs) {
   else if (stud.archetype === "Struggling") finalScore = 49;
   else if (stud.archetype === "Delegator") finalScore = 34;
 
-  let finalGrade = "B";
-  if (finalScore >= 90) finalGrade = "A";
-  else if (finalScore >= 80) finalGrade = "B";
-  else if (finalScore >= 70) finalGrade = "C";
-  else if (finalScore >= 60) finalGrade = "D";
-  else finalGrade = "F";
+  const finalGrade = letterFor(finalScore / 100);
 
   const gradedKeys = [
     "maya", "liam", "sofia", "amina", "zara",
@@ -947,6 +1039,7 @@ for (const stud of studentDefs) {
       score: finalScore,
       grade: finalGrade,
       body: economicsSessionBody(stud.key, true),
+      submissionType: "session",
     });
   } else if (submittedKeys.includes(stud.key)) {
     submissionsList.push({
@@ -955,6 +1048,7 @@ for (const stud of studentDefs) {
       state: "submitted",
       dayOffsetFromDue: 0,
       body: economicsSessionBody(stud.key, false),
+      submissionType: "session",
     });
   } else {
     // missing
@@ -965,6 +1059,45 @@ for (const stud of studentDefs) {
     });
   }
 }
+
+function letterFor(fraction: number): string {
+  if (fraction >= 0.9) return "A";
+  if (fraction >= 0.8) return "B";
+  if (fraction >= 0.7) return "C";
+  if (fraction >= 0.6) return "D";
+  return "F";
+}
+
+/** Real comments, in the register a professor actually writes them. */
+function feedbackFor(archetype: string, short: boolean): string {
+  if (short) {
+    return archetype === "Strong"
+      ? "All six correct. Your surplus answer was the clearest in the class."
+      : archetype === "Struggling"
+        ? "Questions 3 and 5 mixed up a shift with a movement along the curve. Come to office hours and we will redraw them together."
+        : "Solid. Watch the wording on question 4: the curve shifts, the point does not move along it.";
+  }
+  if (archetype === "Strong") {
+    return "Clean work. The graph and the sentence agree, which is the whole point of this set. Next time push one step further and say what evidence would change your answer.";
+  }
+  if (archetype === "Steady") {
+    return "Good structure and the calculation is right. Be explicit about which assumption changed before you describe the new equilibrium.";
+  }
+  if (archetype === "Recoverer") {
+    return "This is a real improvement over your first attempt. The correction on marginal versus average cost is exactly right. Keep writing the formula before you look at the graph.";
+  }
+  if (archetype === "Delegator") {
+    return "The answer arrives without the reasoning that produces it. Show the intermediate step: I need to see the schedule before the conclusion.";
+  }
+  return "The setup is there but the interpretation stops early. State what happens to price, to quantity, and then to revenue, in that order.";
+}
+
+function examFeedbackFor(elasticityScore: number): string {
+  return elasticityScore < 6
+    ? "Elasticity cost you the most points here. You used the slope of the curve as if it were percentage responsiveness. Write the percentage-change formula first, then read the graph. This will be weighted up on Exam 2."
+    : "Strong across the sections. Your elasticity work was correct, including the revenue direction, which most of the class missed.";
+}
+
 
 // Build the Fixture Course
 export const econCourse: FixtureCourse = {
@@ -1026,15 +1159,34 @@ Late work is accepted for up to one week with a note about the revision. Office 
   ],
   modules: modulesList,
   assignments: [
-    { key: "ps1", name: "Problem Set 1: Equilibrium and Market Shifts", descriptionMd: "Use a streaming-market schedule to solve for equilibrium, then analyze a change in consumer preference and a change in server cost. Draw the original and new graphs, identify whether each change shifts a curve or moves along it, and explain what happens to price, quantity, and the likely shortage or surplus. Include one sentence about an assumption the model makes.", objectiveCodes: ["LO1"], pointsPossible: 100, dueWeek: 2, published: true },
-    { key: "ps2", name: "Problem Set 2: Willingness to Pay and Surplus", descriptionMd: "Work from a willingness-to-pay schedule for six streaming customers. Calculate marginal benefit, consumer surplus at a flat price, and the change in surplus after a price increase. Use a graph or table to show which customers leave. End by explaining why a firm's revenue goal and a consumer's value are related but not identical.", objectiveCodes: ["LO2"], pointsPossible: 100, dueWeek: 3, published: true },
-    { key: "ps3", name: "Problem Set 3: Costs, Revenue, and the Firm's Decision", descriptionMd: "Separate fixed cost, variable cost, average cost, and marginal cost for a digital platform. Calculate total revenue and profit at several output levels, then identify the quantity where marginal revenue and marginal cost meet. Explain why a near-zero marginal serving cost does not mean the firm has no fixed-cost constraint.", objectiveCodes: ["LO3"], pointsPossible: 100, dueWeek: 4, published: true },
-    { key: "exam-1", name: "Midterm Exam 1: Markets, Firms, and Elasticity", descriptionMd: "The midterm covers equilibrium, consumer surplus, cost and revenue, monopoly choices, and price elasticity. Show the model before calculating. One section asks you to distinguish elasticity from slope and explain what a price increase does to revenue in elastic and inelastic regions. Interpret every result in the market story.", objectiveCodes: ["LO1", "LO2", "LO3", "LO4", "LO5"], pointsPossible: 100, dueWeek: 5, published: true },
-    { key: "session-assignment", name: "Pricing Strategy Session", descriptionMd: "VidStack lost 18 percent of subscribers after a flat 15 dollar price hike. Work through the case with the course agent, ask questions before choosing a solution, and propose a tiered pricing table with prices, target segments, and concrete fences. Defend the design with elasticity and willingness to pay, then revise it when the agent tests cannibalization. Submit the final proposal and be ready to explain what evidence would change your recommendation.", objectiveCodes: ["LO4", "LO5", "LO6"], pointsPossible: 100, dueWeek: 7, published: true },
-    { key: "ps4", name: "Problem Set 4: Monopoly Markups and Churn", descriptionMd: "Analyze a platform with market power that is choosing between a high price with churn and a lower price with more subscribers. Use marginal revenue, marginal cost, elasticity, and a short customer-retention table to explain the decision. Identify one pricing mistake that a single graph would hide.", objectiveCodes: ["LO5"], pointsPossible: 100, dueWeek: 9, published: true },
-    { key: "final-project", name: "Final Pricing Project: A Defensible Market Design", descriptionMd: "Draft a pricing recommendation for a product you can describe with a demand story. The proposal should define customer segments, willingness-to-pay evidence, costs, prices, fences, competitor risks, and one fairness or access concern. The draft is unpublished while the class decides how to compare recommendations.", objectiveCodes: ["LO6"], pointsPossible: 100, dueWeek: 12, published: false },
+    /*
+     * Spread across the fourteen weeks so the course reads as in progress: work
+     * behind today, work due this week, and most of the term still ahead. Due
+     * weeks are relative to the term start, so moving the term moves every date.
+     *
+     * Exam 1 and the Pricing Strategy Session sit in weeks 1 and 2 on purpose.
+     * They carry the designed graded past the whole demo thread depends on (the
+     * Exam 1 topic scores are what the session's side note reads, and the
+     * session grades are what the professor surfaces show), so they have to be
+     * behind today or the record would show work graded before it was due.
+     */
+    { key: "ps1", name: "Problem Set 1: Equilibrium and Market Shifts", descriptionMd: "Use a streaming-market schedule to solve for equilibrium, then analyze a change in consumer preference and a change in server cost. Draw the original and new graphs, identify whether each change shifts a curve or moves along it, and explain what happens to price, quantity, and the likely shortage or surplus. Include one sentence about an assumption the model makes.", objectiveCodes: ["LO1"], pointsPossible: 100, dueWeek: 1, published: true },
+    { key: "ps2", name: "Problem Set 2: Willingness to Pay and Surplus", descriptionMd: "Work from a willingness-to-pay schedule for six streaming customers. Calculate marginal benefit, consumer surplus at a flat price, and the change in surplus after a price increase. Use a graph or table to show which customers leave. End by explaining why a firm's revenue goal and a consumer's value are related but not identical.", objectiveCodes: ["LO2"], pointsPossible: 100, dueWeek: 2, published: true },
+    { key: "reading-check-1", name: "Reading Check: Equilibrium and Surplus", descriptionMd: "Six short questions on the Week 1 readings. One paragraph each, no graphs required. This is a check that the vocabulary is in place before the cost material begins.", objectiveCodes: ["LO1", "LO2"], pointsPossible: 20, dueWeek: 1, published: true },
+    { key: "ps3", name: "Problem Set 3: Costs, Revenue, and the Firm's Decision", descriptionMd: "Separate fixed cost, variable cost, average cost, and marginal cost for a digital platform. Calculate total revenue and profit at several output levels, then identify the quantity where marginal revenue and marginal cost meet. Explain why a near-zero marginal serving cost does not mean the firm has no fixed-cost constraint.", objectiveCodes: ["LO3"], pointsPossible: 100, dueWeek: 3, published: true },
+    { key: "ps4-elasticity", name: "Problem Set 4: Elasticity and Total Revenue", descriptionMd: "Calculate price elasticity of demand at three points on one linear demand curve and explain why the value changes while the slope does not. For each point, state what a five percent price increase does to total revenue and why.", objectiveCodes: ["LO4"], pointsPossible: 100, dueWeek: 4, published: true },
+    { key: "exam-1", name: "Midterm Exam 1: Markets, Firms, and Elasticity", descriptionMd: "The midterm covers equilibrium, consumer surplus, cost and revenue, monopoly choices, and price elasticity. Show the model before calculating. One section asks you to distinguish elasticity from slope and explain what a price increase does to revenue in elastic and inelastic regions. Interpret every result in the market story.", objectiveCodes: ["LO1", "LO2", "LO3", "LO4", "LO5"], pointsPossible: 100, dueWeek: 1, published: true },
+    { key: "ps5-monopoly", name: "Problem Set 5: Monopoly Markups and Churn", descriptionMd: "Analyze a platform with market power that is choosing between a high price with churn and a lower price with more subscribers. Use marginal revenue, marginal cost, elasticity, and a short customer-retention table to explain the decision. Identify one pricing mistake that a single graph would hide.", objectiveCodes: ["LO5"], pointsPossible: 100, dueWeek: 6, published: true },
+    { key: "session-assignment", name: "Pricing Strategy Session", descriptionMd: "VidStack lost 18 percent of subscribers after a flat 15 dollar price hike. Work through the case with the course agent, ask questions before choosing a solution, and propose a tiered pricing table with prices, target segments, and concrete fences. Defend the design with elasticity and willingness to pay, then revise it when the agent tests cannibalization. Submit the final proposal and be ready to explain what evidence would change your recommendation.", objectiveCodes: ["LO4", "LO5", "LO6"], pointsPossible: 100, dueWeek: 1, published: true },
+    { key: "ps6-tiers", name: "Problem Set 6: Designing Fences", descriptionMd: "Take the segment willingness-to-pay data and design a three-tier menu. For each tier, name the segment, the price, and the fence that keeps a higher-value customer from moving down. Then argue against your own design: which fence would you expect to fail first?", objectiveCodes: ["LO6"], pointsPossible: 100, dueWeek: 8, published: true },
+    { key: "case-oligopoly", name: "Case Analysis: A Competitor Enters", descriptionMd: "VidStack now faces a rival at a lower price point. Write a two-page analysis of the best response, using a payoff table and one paragraph on what the model assumes about how quickly the rival reacts.", objectiveCodes: ["LO5"], pointsPossible: 75, dueWeek: 9, published: true },
+    { key: "ps7-bundling", name: "Problem Set 7: Bundles and Two Sides", descriptionMd: "Compare separate pricing to a bundle for two goods with different demand across the same customers. Then extend to the advertising-supported tier and explain how the advertiser side changes the viewer price.", objectiveCodes: ["LO6"], pointsPossible: 100, dueWeek: 10, published: true },
+    { key: "welfare-memo", name: "Policy Memo: Surplus and a Merger Review", descriptionMd: "One page to a regulator. Compute consumer and producer surplus under the two pricing regimes in the case, then state what you would need to know before recommending approval.", objectiveCodes: ["LO2", "LO5"], pointsPossible: 50, dueWeek: 11, published: true },
+    { key: "exam-2", name: "Midterm Exam 2: Power, Discrimination, and Welfare", descriptionMd: "Covers Weeks 6 through 12. Elasticity returns in the applied sections, weighted up after the Exam 1 results. Every calculation needs an interpretation in the market story.", objectiveCodes: ["LO4", "LO5", "LO6"], pointsPossible: 100, dueWeek: 12, published: false },
+    { key: "final-project", name: "Final Pricing Project: A Defensible Market Design", descriptionMd: "Draft a pricing recommendation for a product you can describe with a demand story. The proposal should define customer segments, willingness-to-pay evidence, costs, prices, fences, competitor risks, and one fairness or access concern. The draft is unpublished while the class decides how to compare recommendations.", objectiveCodes: ["LO6"], pointsPossible: 150, dueWeek: 14, published: false },
   ],
   pages: pagesList,
+  materials: materialsList,
   announcements: [
     { title: "Exam 1 Grades Released", messageMd: "Exam 1 grades are posted. When you read the feedback, do not skip the short note under the elasticity question. A number of otherwise solid solutions used the slope of the demand curve as if it were percentage responsiveness. Bring the graph and the calculation to office hours if those two ideas still feel interchangeable.", dayOffset: 30 },
     { title: "Active Pricing Session Reminders", messageMd: "If you are working on the VidStack session, start with the 18% subscriber loss and explain who you think left. Then give each tier a job, a price, and a fence that a real customer would value. Before submitting, ask the agent to test whether a Standard customer could keep the same value by downgrading. The final table is only half of the assignment. I want to see the revision and the evidence you would collect next.", dayOffset: 43 },
@@ -1052,7 +1204,13 @@ export const packageData: FixturePackage = {
   org: { name: "Demo University", slug: "demo-u" },
   password: "atlas1234",
   terms: [
-    { slug: termSlug, name: "Summer 2026", startsAt: "2026-04-27", endsAt: "2026-07-31", current: true },
+    /*
+     * The demo clock starts two weeks before today and runs fourteen weeks, so
+     * the course opens in week two: some work is graded, some is due this week,
+     * and most of the term is still ahead. The old window put every assignment
+     * in the past, which made a live product look like an archive.
+     */
+    { slug: termSlug, name: "Fall 2026", startsAt: "2026-07-13", endsAt: "2026-10-18", current: true },
   ],
   users: [
     { key: "admin", name: "Dr. Elena Vance", email: "admin@demo.edu", role: "admin" },

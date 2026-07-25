@@ -28,6 +28,7 @@ import {
   terms,
   users,
   submissions,
+  files,
   agentSessions,
   agentTurns,
   changeProposals,
@@ -42,6 +43,7 @@ import {
   classRollups,
   orgAgentPolicies,
 } from "./schema";
+import { courseMaterialRecords, documentAttachments } from "./course-agent-schema";
 import { demoPackage } from "./fixtures/package";
 import {
   agentSessions as v0AgentSessions,
@@ -532,6 +534,59 @@ async function seedCourse(db: Db, orgId: string, c: FixtureCourse) {
     );
   }
 
+  /*
+   * Course documents. Each becomes a file row, a course-material record so the
+   * library and the agent see the same processing state, and a library
+   * attachment so it is reachable from the module page for its week. The file's
+   * created_at is set inside the module's week, which is how the module page
+   * places it.
+   */
+  if (c.materials?.length) {
+    for (const material of c.materials) {
+      const fileId = idFor(`file:${ck}:${material.key}`);
+      const weekStart = new Date(termStart.getTime() + (material.week - 1) * 7 * DAY);
+      await db.insert(files).values({
+        id: fileId,
+        orgId,
+        courseId,
+        displayName: material.displayName,
+        filename: material.filename,
+        contentType: material.contentType,
+        sizeBytes: material.sizeBytes,
+        url: `https://files.demo.edu/${c.code.toLowerCase()}/${material.filename}`,
+        extractedText: material.extractedText ?? null,
+        createdAt: weekStart,
+      });
+
+      const materialRecordId = idFor(`material:${ck}:${material.key}`);
+      await db.insert(courseMaterialRecords).values({
+        id: materialRecordId,
+        orgId,
+        courseId,
+        fileId,
+        ingestionJobId: `seed:${ck}:${material.key}`,
+        materialKind: materialKindFor(material.kind),
+        ingestionSource: "seed",
+        processingStatus: "ready",
+        visibility: material.visibility ?? "course",
+        pageCount: material.pageCount ?? null,
+        updatedById: idFor(`user:${c.instructorKey}`),
+        createdAt: weekStart,
+        updatedAt: weekStart,
+      });
+
+      await db.insert(documentAttachments).values({
+        id: idFor(`attachment:${ck}:${material.key}`),
+        orgId,
+        courseId,
+        fileId,
+        courseMaterialId: materialRecordId,
+        createdById: idFor(`user:${c.instructorKey}`),
+        createdAt: weekStart,
+      });
+    }
+  }
+
   /* announcements */
   if (c.announcements.length) {
     await db.insert(announcements).values(
@@ -591,8 +646,17 @@ async function seedCourse(db: Db, orgId: string, c: FixtureCourse) {
           late: Boolean(submittedAt && submittedAt.getTime() > assignment.dueAt.getTime()),
           missing: s.state === "missing",
           workflowState: s.state === "graded" ? "graded" : s.state === "missing" ? "unsubmitted" : "submitted",
-          submissionType: s.body ? "text" : null,
+          /*
+           * A submission is not always prose. The fixture says which shape it
+           * is, so the surfaces can render a file or a link instead of assuming
+           * a paragraph. The legacy fallback keeps older fixtures working.
+           */
+          submissionType: s.submissionType ?? (s.body ? "text" : null),
           body: s.body ?? null,
+          url: s.url ?? null,
+          feedback: s.feedback ?? null,
+          feedbackAt: s.feedback ? gradedAt : null,
+          feedbackById: s.feedback ? idFor(`user:${c.instructorKey}`) : null,
           topicScores: s.topicScores ?? null,
         };
       })
@@ -614,6 +678,18 @@ async function seedCourse(db: Db, orgId: string, c: FixtureCourse) {
     customInstructions: c.policy.customInstructions ?? null,
     shareStruggleSignal: c.policy.shareStruggleSignal,
   });
+}
+
+/**
+ * Fixture material kinds are written in the professor's vocabulary; the schema
+ * enum is narrower. Reading and dataset both store as documents, which is what
+ * they are to the processing pipeline.
+ */
+function materialKindFor(kind: string): "document" | "slides" | "assessment" | "media" | "link" | "package" | "other" {
+  if (kind === "slides") return "slides";
+  if (kind === "assessment") return "assessment";
+  if (kind === "reading" || kind === "dataset" || kind === "syllabus") return "document";
+  return "other";
 }
 
 function loadLocalEnv() {

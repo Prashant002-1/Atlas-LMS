@@ -20,6 +20,8 @@ import { isInstructorLike, type Role } from "@/lib/auth/session";
 import { resolveScope, type WorkspaceCourse, type WorkspaceScope } from "@/lib/workspace/scope";
 import { loadProposalBlocks } from "@/lib/agent/apply";
 import type { Block } from "@/lib/agent/blocks";
+import { recordDestination, recordKindOfBlock, reviewRecordLabel } from "@/lib/instructor/review-records";
+import { submissionKind } from "@/lib/instructor/submission-detail";
 import type { Objective, ModuleDraft } from "@/lib/workspace/records";
 import { courseAiPolicies, type CourseAiPolicy } from "@/lib/db/schema";
 
@@ -77,6 +79,10 @@ export type InstructorAssignmentSubmission = {
   score?: number | null;
   grade?: string | null;
   body?: string | null;
+  /** What was handed in: text, a file, a link, or an assessed session. */
+  submissionKind?: "text" | "file" | "link" | "session" | "none";
+  /** Whether the instructor has written a comment on this submission. */
+  hasFeedback?: boolean;
   /** Canonical AI-session drill-in reached from every assignment surface. */
   sessionSubmissionId?: string | null;
   draftScore?: number | null;
@@ -146,8 +152,21 @@ export type InstructorProposal = {
   decidedAt?: Date | null;
   /** Typed blocks the agent drafted onto this proposal, in order. */
   blocks: Block[];
+  /**
+   * What kind of record this draft is, in the noun a professor uses. Read
+   * before deciding: a title alone does not say whether approving publishes an
+   * announcement or rewrites a rubric.
+   */
+  recordLabel: string;
   /** After apply: links to the records the blocks created. */
   appliedRecords: InstructorProposalAppliedRecord[];
+  /**
+   * Where this draft's subject lives, whatever the decision was. An applied
+   * draft points at the record it made; a session-shaped draft points at the
+   * assignment it targets, which exists whether or not the draft was taken.
+   * Null only when nothing is addressable yet.
+   */
+  destination: InstructorProposalAppliedRecord | null;
   /** The Atlas chat this draft was made in, for reopening the conversation. */
   thread: { id: string; title: string | null } | null;
 };
@@ -193,7 +212,15 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
   try {
     const course = scope.course
       ? await db
-          .select({ id: courses.id, code: courses.code, name: courses.name, term: courses.term, description: courses.description })
+          .select({
+            id: courses.id,
+            code: courses.code,
+            name: courses.name,
+            term: courses.term,
+            description: courses.description,
+            startDate: courses.startDate,
+            endDate: courses.endDate,
+          })
           .from(courses)
           .where(and(eq(courses.orgId, actor.orgId), eq(courses.id, scope.course.id)))
           .limit(1)
@@ -406,19 +433,22 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
     const proposals: InstructorProposal[] = [];
     for (const row of proposalRows) {
       const blockEntries = await loadProposalBlocks(actor.orgId, row.id);
+      const blocks = blockEntries.map((e) => e.block).filter((b): b is Block => b !== null);
       proposals.push({
         id: row.id,
-        title: proposalTitle(blockEntries.map((e) => e.block).filter((b): b is Block => b !== null), row.summary),
+        title: proposalTitle(blocks, row.summary),
         kind: row.kind,
         summary: row.summary,
         status: row.status,
         createdAt: row.createdAt,
         decidedAt: row.decidedAt,
-        blocks: blockEntries.map((e) => e.block).filter((b): b is Block => b !== null),
+        blocks,
+        recordLabel: reviewRecordLabel({ blocks, kind: row.kind }),
         appliedRecords: blockEntries
           .filter((e) => e.row.status === "applied" && e.row.appliedItemId)
           .map((e) => appliedRecordLink(e.row.appliedItemType, e.row.appliedItemId!))
           .filter((r): r is InstructorProposalAppliedRecord => r !== null),
+        destination: proposalDestination(blocks, blockEntries),
         thread:
           row.sessionId && proposalThreadById.has(row.sessionId)
             ? { id: row.sessionId, title: proposalThreadById.get(row.sessionId) ?? null }
@@ -434,6 +464,8 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
         name: course.name,
         term: course.term ?? scope.term?.name ?? "",
         description: course.description,
+        startDate: course.startDate,
+        endDate: course.endDate,
       },
       scope,
       policy: policy ?? null,
@@ -462,10 +494,38 @@ function proposalTitle(blocks: Block[], summary: string): string {
 }
 
 function appliedRecordLink(itemType: string | null, itemId: string): InstructorProposalAppliedRecord | null {
-  if (itemType === "module") return { label: "Material", href: `/teach/week/${itemId}` };
+  if (itemType === "module") return { label: "Module", href: `/teach/week/${itemId}` };
   if (itemType === "assignment") return { label: "Assignment", href: `/teach/assignments/${itemId}` };
-  if (itemType === "page" || itemType === "quiz") return { label: "Record", href: "/teach#map" };
+  /* Pages and practice sets have their own record page now. */
+  if (itemType === "page" || itemType === "quiz") return { label: "Record", href: `/teach/records/${itemId}` };
   return null;
+}
+
+/**
+ * The one place a Review card sends you when clicked.
+ *
+ * An applied draft points at the record it created. A session-shaped draft
+ * (rubric revision, AI assignment) points at the assignment it targets, which
+ * exists in the course whether or not the draft was taken, so a dismissed
+ * rubric revision is still openable next to the rubric it would have replaced.
+ * Anything with no addressable subject yet returns null and the card stays
+ * unlinked rather than pointing somewhere useless.
+ */
+function proposalDestination(
+  blocks: Block[],
+  entries: Awaited<ReturnType<typeof loadProposalBlocks>>
+): InstructorProposalAppliedRecord | null {
+  const appliedEntry = entries.find((entry) => entry.row.status === "applied" && entry.row.appliedItemId);
+  if (appliedEntry?.row.appliedItemId) {
+    const link = appliedRecordLink(appliedEntry.row.appliedItemType, appliedEntry.row.appliedItemId);
+    if (link) return link;
+  }
+
+  const first = blocks[0];
+  if (!first) return null;
+  const assignmentId =
+    "assignmentId" in first && typeof first.assignmentId === "string" ? first.assignmentId : null;
+  return recordDestination({ kind: recordKindOfBlock(first), recordId: null, assignmentId });
 }
 
 /**
@@ -810,6 +870,9 @@ export async function loadInstructorAssignmentWorkspace(
             grade: submissions.grade,
             missing: submissions.missing,
             body: submissions.body,
+            url: submissions.url,
+            submissionType: submissions.submissionType,
+            feedback: submissions.feedback,
           })
           .from(submissions)
           .where(
@@ -860,6 +923,13 @@ export async function loadInstructorAssignmentWorkspace(
       score: submission?.score,
       grade: submission?.grade,
       body: submission?.body,
+      submissionKind: submissionKind({
+        submissionType: submission?.submissionType ?? null,
+        body: submission?.body ?? null,
+        url: submission?.url ?? null,
+        session: Boolean(sessionSubmissionByUser.get(enrollment.userId)?.id),
+      }),
+      hasFeedback: Boolean(submission?.feedback?.trim()),
       sessionSubmissionId: sessionSubmissionByUser.get(enrollment.userId)?.id ?? null,
       draftScore: sessionSubmissionByUser.get(enrollment.userId)?.draftScore ?? null,
       draftReportStatus: sessionSubmissionByUser.get(enrollment.userId)?.reportStatus ?? null,

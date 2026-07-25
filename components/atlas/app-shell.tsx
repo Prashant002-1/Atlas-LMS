@@ -174,7 +174,7 @@ export function AppShell({
             </div>
           )}
 
-          <nav className="flex-1 overflow-y-auto px-3 py-3" aria-label="Main">
+          <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-2" aria-label="Main">
             {sections.map((section, index) => (
               <div key={section.label ?? `section-${index}`} className={index > 0 ? "mt-5" : undefined}>
                 {index > 0 && shellCollapsed ? <div className="mx-1 mb-4 h-px bg-[var(--color-border)]" aria-hidden /> : null}

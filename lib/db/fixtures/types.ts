@@ -99,6 +99,15 @@ export type FixtureSubmission = {
   /** The student's actual written response (realistic, course-specific). */
   body?: string;
   /**
+   * Where the work lives when it is not prose. A file or link submission sets
+   * this plus `submissionType`, so the surfaces render an artifact rather than
+   * assuming every submission is a paragraph.
+   */
+  url?: string;
+  submissionType?: string;
+  /** Instructor comment already on the record, for the graded past. */
+  feedback?: string;
+  /**
    * Per-topic breakdown for work graded by topic (exams). Self-describing
    * (score + possible points per topic); the live side-note trigger reads
    * this shape from submissions.topic_scores.
@@ -121,6 +130,31 @@ export type FixtureCoursePolicy = {
   shareStruggleSignal: boolean;
 };
 
+/**
+ * A course document: the handouts, slide decks, and datasets a real week
+ * contains. Seeded as a file row plus a course-material record so the materials
+ * library, the module page, and the agent's grounding all see the same object.
+ *
+ * `extractedText` stands in for the ingestion pipeline's output, so a seeded PDF
+ * is readable by the agent without running a live extraction.
+ */
+export type FixtureMaterial = {
+  /** Stable key unique within the course. */
+  key: string;
+  displayName: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  kind: "reading" | "slides" | "dataset" | "assessment" | "syllabus" | "other";
+  /** 1-based week this material belongs to, which places it on the module page. */
+  week: number;
+  pageCount?: number;
+  /** Visible to students, or instructor-only while it is being prepared. */
+  visibility?: "course" | "instructors";
+  /** Readable content for grounding, as the ingestion service would return it. */
+  extractedText?: string;
+};
+
 export type FixtureCourse = {
   code: string;
   name: string;
@@ -134,6 +168,8 @@ export type FixtureCourse = {
   modules: FixtureModule[];
   assignments: FixtureAssignment[];
   pages: FixturePage[];
+  /** Handouts, decks, and datasets, placed by week. */
+  materials?: FixtureMaterial[];
   announcements: FixtureAnnouncement[];
   enrollments: FixtureEnrollment[];
   submissions: FixtureSubmission[];

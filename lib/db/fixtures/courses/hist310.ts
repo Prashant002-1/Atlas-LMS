@@ -1,7 +1,7 @@
 import type { FixtureCourse, FixtureModule, FixtureSubmission } from "../types";
 
 const courseCode = "HIST-310";
-const termSlug = "summer-2026";
+const termSlug = "fall-2026";
 
 const studentKeys = [
   "maya", "amina", "zara",

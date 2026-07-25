@@ -3,12 +3,19 @@ import { and, eq, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { announcements, users } from "@/lib/db/schema";
+import { announcements, enrollments, users } from "@/lib/db/schema";
 import { findEditableCourse } from "@/lib/instructor/workspace";
 import { BackLink } from "@/components/atlas/primitives";
 import { PageHeader } from "@/components/teach/page-header";
-import { Markdown } from "@/components/agent/markdown";
+import { AnnouncementMessage } from "@/components/teach/announcement-message";
 
+/**
+ * One announcement, read the way mail is read.
+ *
+ * The subject is no longer the page title. It belongs inside the message, under
+ * the sender, because that is where a reader looks for it and because the page
+ * header was repeating it as a title while the body carried no sender at all.
+ */
 export default async function TeachAnnouncementPage({ params }: { params: Promise<{ announcementId: string }> }) {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
@@ -53,25 +60,38 @@ export default async function TeachAnnouncementPage({ params }: { params: Promis
     );
   }
 
-  const author = record.authorName ?? record.authorEmail ?? "Course staff";
+  /* Who it actually reached, counted rather than asserted. */
+  const [recipients] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(enrollments)
+    .where(
+      and(
+        eq(enrollments.orgId, session.user.orgId),
+        eq(enrollments.courseId, course.id),
+        eq(enrollments.role, "student"),
+        eq(enrollments.state, "active")
+      )
+    );
+  const studentCount = Number(recipients?.count ?? 0);
+
+  const posted = Boolean(record.published && record.postedAt);
   return (
     <>
       <BackLink href="/teach/announcements">Announcements</BackLink>
-      <div className="mt-3">
-        <PageHeader title={record.title} course={`${course.code} / Announcement`} />
-      </div>
 
-      <article className="max-w-4xl">
-        <header className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1 pb-4">
-          <p className="text-[0.8125rem] font-medium text-[var(--color-ink)]">{author}</p>
-          <time dateTime={record.postedAt?.toISOString()} className="text-[0.75rem] tabular-nums text-[var(--color-muted)]">
-            {record.published && record.postedAt ? `${record.scheduled ? "Scheduled for " : ""}${fullTimestamp(record.postedAt)}` : "Draft"}
-          </time>
-        </header>
-        <div className="py-6">
-          {record.messageMd ? <Markdown className="text-[0.90625rem] leading-7">{record.messageMd}</Markdown> : <p className="text-[0.8125rem] text-[var(--color-muted)]">No message.</p>}
-        </div>
-      </article>
+      <div className="mt-6">
+        <AnnouncementMessage
+          subject={record.title}
+          authorName={record.authorName ?? record.authorEmail ?? "Course staff"}
+          authorEmail={record.authorEmail}
+          courseCode={course.code}
+          audience={studentCount > 0 ? `${studentCount} students in ${course.code}` : `Everyone in ${course.code}`}
+          messageMd={record.messageMd ?? ""}
+          stampLabel={posted && record.postedAt ? fullTimestamp(record.postedAt) : "Not sent"}
+          scheduled={Boolean(posted && record.scheduled)}
+          draft={!record.published}
+        />
+      </div>
     </>
   );
 }

@@ -1,17 +1,27 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, FileText, FileType2, Link2, ListChecks, Presentation } from "lucide-react";
 import { redirect } from "next/navigation";
-import { ActionButton, BackLink } from "@/components/atlas/primitives";
+import { ActionButton, BackLink, StatusBadge } from "@/components/atlas/primitives";
 import { EmptyRecord } from "@/components/atlas/record";
 import { PageHeader } from "@/components/teach/page-header";
 import { ModuleSwitcher } from "@/components/teach/module-switcher";
 import { RecordDialog } from "@/components/teach/record-dialog";
+import { RichTextEditor } from "@/components/teach/rich-text-editor";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { publishModule, updateModuleRecord } from "@/lib/instructor/actions";
 import { loadModuleNavigation } from "@/lib/instructor/module-navigation";
+import { loadModuleContents, type ModuleContentItem } from "@/lib/instructor/module-contents";
 import { loadInstructorModuleWorkspace, type InstructorAssignment, type InstructorModuleWorkspace } from "@/lib/instructor/workspace";
 
+/**
+ * One module, which is one week of the course.
+ *
+ * A week is not a title and a paragraph. It is the readings, the handouts, the
+ * slides, and the work due, and a professor opening week three expects to find
+ * all of it here. The page previously listed only assignments, so everything
+ * else a week contains had to be hunted for in the materials library.
+ */
 export default async function InstructorWeekPage({ params }: { params: Promise<{ moduleId: string }> }) {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
@@ -22,6 +32,15 @@ export default async function InstructorWeekPage({ params }: { params: Promise<{
     loadInstructorModuleWorkspace(session.user, moduleId),
     loadModuleNavigation(session.user),
   ]);
+
+  const contents =
+    session.user.orgId && workspace.course.id && workspace.module
+      ? await loadModuleContents({
+          orgId: session.user.orgId,
+          courseId: workspace.course.id,
+          moduleId,
+        })
+      : { items: [], documents: [], pages: [] };
 
   return (
     <>
@@ -36,22 +55,29 @@ export default async function InstructorWeekPage({ params }: { params: Promise<{
           <p className="mt-1 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{workspace.problem?.detail ?? "This module is not in a course you teach."}</p>
         </div>
       ) : (
-        <ModuleRecord workspace={workspace} />
+        <ModuleRecord workspace={workspace} contents={contents} />
       )}
     </>
   );
 }
 
-function ModuleRecord({ workspace }: { workspace: InstructorModuleWorkspace }) {
+function ModuleRecord({
+  workspace,
+  contents,
+}: {
+  workspace: InstructorModuleWorkspace;
+  contents: Awaited<ReturnType<typeof loadModuleContents>>;
+}) {
   const courseModule = workspace.module;
   if (!courseModule || !courseModule.id) return null;
   const published = courseModule.status === "approved";
+  const materials = [...contents.items.filter((item) => item.kind !== "assignment"), ...contents.pages, ...contents.documents];
 
   return (
     <>
       <PageHeader
         title={courseModule.title}
-        course={`${workspace.course.code} / Module ${courseModule.week}`}
+        course={`${workspace.course.code} / Week ${courseModule.week}`}
         action={
           <div className="flex items-center gap-2">
             {!published ? (
@@ -74,21 +100,82 @@ function ModuleRecord({ workspace }: { workspace: InstructorModuleWorkspace }) {
           <p className="text-[0.8125rem] text-[var(--color-muted)]">No summary.</p>
         )}
         <dl className="mt-5 flex flex-wrap gap-x-6 gap-y-2 py-3 text-[0.75rem] text-[var(--color-muted)]">
-          <div className="flex gap-1.5"><dt>Module</dt><dd className="font-medium text-[var(--color-ink)]">{courseModule.week}</dd></div>
-          <div className="flex gap-1.5"><dt>Assignments</dt><dd className="font-medium text-[var(--color-ink)]">{workspace.assignments.length}</dd></div>
+          <div className="flex gap-1.5"><dt>Week</dt><dd className="font-medium text-[var(--color-ink)]">{courseModule.week}</dd></div>
+          <div className="flex gap-1.5"><dt>Materials</dt><dd className="font-medium tabular-nums text-[var(--color-ink)]">{materials.length}</dd></div>
+          <div className="flex gap-1.5"><dt>Assignments</dt><dd className="font-medium tabular-nums text-[var(--color-ink)]">{workspace.assignments.length}</dd></div>
           {!published ? <div className="flex gap-1.5"><dt>Status</dt><dd className="font-medium text-[var(--color-ink)]">Draft</dd></div> : null}
         </dl>
       </section>
 
+      <ModuleMaterials items={materials} />
       <RelatedAssignments assignments={workspace.assignments} />
     </>
+  );
+}
+
+/** The readings, handouts, and slides for this week, each openable. */
+function ModuleMaterials({ items }: { items: ModuleContentItem[] }) {
+  return (
+    <section aria-labelledby="module-materials-heading" className="mt-8">
+      <div className="mb-3 flex items-baseline justify-between gap-4">
+        <h2 id="module-materials-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Materials</h2>
+        <p className="text-[0.75rem] text-[var(--color-muted)]">{items.length} {items.length === 1 ? "item" : "items"}</p>
+      </div>
+      {items.length > 0 ? (
+        <div className="divide-y divide-[var(--color-border)]">
+          {items.map((item) => <MaterialRow key={`${item.kind}-${item.id}`} item={item} />)}
+        </div>
+      ) : (
+        <p className="py-4 text-[0.8125rem] text-[var(--color-muted)]">
+          No readings, documents, or slides are attached to this week yet.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function MaterialRow({ item }: { item: ModuleContentItem }) {
+  const Icon = kindIcon(item.kind);
+  return (
+    <div className="group/material grid gap-2 px-3 py-3.5 transition hover:bg-[var(--color-surface-muted)] sm:grid-cols-[minmax(0,1fr)_7rem_1rem] sm:items-center">
+      <div className="flex min-w-0 items-start gap-2.5">
+        <Icon size={15} strokeWidth={1.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--color-muted)]" />
+        <div className="min-w-0">
+          {item.href ? (
+            <Link
+              href={item.href}
+              className="rounded-row text-[0.8125rem] font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] transition hover:text-[var(--color-accent-strong)]"
+            >
+              {item.title}
+            </Link>
+          ) : (
+            <span className="text-[0.8125rem] font-medium text-[var(--color-ink)]">{item.title}</span>
+          )}
+          <p className="mt-0.5 text-[0.71875rem] text-[var(--color-muted)]">
+            {[kindLabel(item.kind), item.detail].filter(Boolean).join(" / ")}
+          </p>
+        </div>
+      </div>
+      <span className="text-[0.71875rem] text-[var(--color-muted)]">
+        {item.published ? null : <StatusBadge tone="neutral">Not visible</StatusBadge>}
+      </span>
+      {item.href ? (
+        <Link
+          href={item.href}
+          aria-label={`Open ${item.title}`}
+          className="hidden text-[var(--color-faint)] transition group-hover/material:translate-x-0.5 group-hover/material:text-[var(--color-ink)] sm:block"
+        >
+          <ChevronRight size={15} aria-hidden />
+        </Link>
+      ) : null}
+    </div>
   );
 }
 
 function EditModuleDialog({ module }: { module: NonNullable<InstructorModuleWorkspace["module"]> }) {
   if (!module.id) return null;
   return (
-    <RecordDialog mode="edit" triggerLabel="Edit module" title="Edit module" triggerVariant="secondary">
+    <RecordDialog mode="edit" triggerLabel="Edit module" title="Edit module" triggerVariant="secondary" wide>
       <form action={updateModuleRecord} className="grid gap-4">
         <input type="hidden" name="moduleId" value={module.id} />
         <input type="hidden" name="returnTo" value={`/teach/week/${module.id}`} />
@@ -97,10 +184,8 @@ function EditModuleDialog({ module }: { module: NonNullable<InstructorModuleWork
           Title
           <input name="title" type="text" defaultValue={module.title} required autoFocus className={fieldClass} />
         </label>
-        <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
-          Summary
-          <textarea name="summary" rows={10} defaultValue={module.summary ?? ""} className={`${fieldClass} min-h-56 resize-y py-3 leading-6`} />
-        </label>
+        {/* The week's brief is prose students read, so it gets the formatted box. */}
+        <RichTextEditor name="summary" label="Summary" defaultValue={module.summary ?? ""} rows={10} maxLength={2400} />
         <div className="flex justify-end pt-4"><ActionButton>Save module</ActionButton></div>
       </form>
     </RecordDialog>
@@ -137,6 +222,18 @@ function AssignmentRow({ assignment }: { assignment: InstructorAssignment }) {
       {assignment.id ? <Link href={`/teach/assignments/${assignment.id}`} aria-label={`Open ${assignment.title}`} className="hidden text-[var(--color-faint)] transition group-hover/assignment:translate-x-0.5 group-hover/assignment:text-[var(--color-ink)] sm:block"><ChevronRight size={15} aria-hidden /></Link> : null}
     </div>
   );
+}
+
+function kindIcon(kind: ModuleContentItem["kind"]) {
+  if (kind === "page") return FileType2;
+  if (kind === "slides") return Presentation;
+  if (kind === "quiz") return ListChecks;
+  if (kind === "link") return Link2;
+  return FileText;
+}
+
+function kindLabel(kind: ModuleContentItem["kind"]) {
+  return { page: "Reading", document: "Document", slides: "Slides", assignment: "Assignment", quiz: "Practice", link: "Link" }[kind];
 }
 
 const fieldClass = "min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.8125rem] text-[var(--color-ink)] outline-none transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]";

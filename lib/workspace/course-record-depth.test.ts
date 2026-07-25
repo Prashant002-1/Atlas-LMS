@@ -2,50 +2,21 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { courseProgress, stageLabel } from "@/lib/instructor/course-progress";
 import { submissionKind } from "@/lib/instructor/submission-detail";
 import { shapeFor } from "@/lib/db/fixtures/submission-shapes";
 
 /**
  * Static and pure checks for the depth work: submissions as real objects, weeks
- * that contain a week, announcements that read like mail, and an overview that
- * says where the course is.
+ * that contain a week, and announcements that read like mail.
  */
 
 const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), "utf8");
 
-test("the overview says what week the course is in", () => {
+test("the overview stays focused on course records", () => {
   const page = read("app/teach/page.tsx");
-  assert.ok(page.includes("CourseStageStrip"));
-  assert.ok(page.includes("courseProgress"));
-
-  const start = new Date("2026-07-13T00:00:00Z");
-  const end = new Date("2026-10-18T00:00:00Z");
-
-  const week2 = courseProgress({ startDate: start, endDate: end, now: new Date("2026-07-24T12:00:00Z") });
-  assert.equal(week2.week, 2);
-  assert.equal(week2.totalWeeks, 14);
-  assert.equal(week2.label, "Week 2 of 14");
-  assert.equal(week2.stage, "opening");
-  assert.equal(week2.weeksRemaining, 12);
-
-  const middle = courseProgress({ startDate: start, endDate: end, now: new Date("2026-08-25T12:00:00Z") });
-  assert.equal(middle.stage, "midterm");
-
-  const late = courseProgress({ startDate: start, endDate: end, now: new Date("2026-10-12T12:00:00Z") });
-  assert.equal(late.stage, "closing");
-
-  /* Before and after the term are stated plainly, not as week zero. */
-  assert.equal(courseProgress({ startDate: start, endDate: end, now: new Date("2026-07-01T12:00:00Z") }).stage, "before");
-  assert.equal(courseProgress({ startDate: start, endDate: end, now: new Date("2026-11-01T12:00:00Z") }).stage, "after");
-
-  /* No dates is a stated fact rather than a fabricated week. */
-  const undated = courseProgress({ startDate: null, endDate: null });
-  assert.equal(undated.week, null);
-  assert.equal(undated.label, "Term dates not set");
-
-  assert.equal(stageLabel("opening"), "Opening weeks");
+  assert.equal(page.includes("CourseStageStrip"), false);
+  assert.equal(page.includes("courseProgress"), false);
 });
 
 test("a submission is whatever shape it actually is", () => {

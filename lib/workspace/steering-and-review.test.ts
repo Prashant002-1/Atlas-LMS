@@ -194,14 +194,10 @@ test("settings carries facts, not a pitch or a memory audit", () => {
   }
 });
 
-test("the sidebar holds the course's destinations without a scrollbar", () => {
+test("the sidebar keeps its original scale with only the top inset trimmed", () => {
   const shell = read("components/atlas/app-shell.tsx");
-  /*
-   * A scrollbar in a fifteen-item sidebar was a spacing problem, not a capacity
-   * one. Rows and group gaps are tightened so the current set fits; the
-   * overflow rule stays as the honest fallback for a very short window.
-   */
-  assert.match(shell, /min-h-8/);
-  assert.equal(shell.includes("min-h-9 items-center gap-2.5 rounded-row px-2.5 text-[0.84375rem]"), false);
-  assert.match(shell, /min-h-0 flex-1 overflow-y-auto/);
+  assert.match(shell, /min-h-9 items-center gap-2\.5 rounded-row/);
+  assert.match(shell, /className=\{index > 0 \? "mt-5"/);
+  assert.match(shell, /min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-2/);
+  assert.equal(shell.includes("relative flex min-h-8 items-center"), false);
 });

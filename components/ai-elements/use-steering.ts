@@ -36,8 +36,10 @@ export function useSteering(args: {
   const threadIdRef = useRef<string | null>(args.threadId);
   const sendAsTurnRef = useRef(args.sendAsTurn);
 
-  threadIdRef.current = args.threadId;
-  sendAsTurnRef.current = args.sendAsTurn;
+  useEffect(() => {
+    threadIdRef.current = args.threadId;
+    sendAsTurnRef.current = args.sendAsTurn;
+  }, [args.sendAsTurn, args.threadId]);
 
   const track = useCallback((next: SteeringNote[]) => {
     notesRef.current = next;

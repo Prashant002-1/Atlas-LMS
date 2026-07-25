@@ -553,7 +553,7 @@ async function seedCourse(db: Db, orgId: string, c: FixtureCourse) {
         filename: material.filename,
         contentType: material.contentType,
         sizeBytes: material.sizeBytes,
-        url: `https://files.demo.edu/${c.code.toLowerCase()}/${material.filename}`,
+        url: material.assetPath ?? `https://files.demo.edu/${c.code.toLowerCase()}/${material.filename}`,
         extractedText: material.extractedText ?? null,
         createdAt: weekStart,
       });

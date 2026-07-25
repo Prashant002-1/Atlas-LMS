@@ -1,6 +1,6 @@
 # Demo World Data Blueprint
 
-**Status:** active regeneration contract for the seeded v0 demo world. **Scenario:** ECON-241 / VidStack is the current working scenario unless explicitly changed.
+**Status:** superseded for the active ECON-241 fixture by [`econ241-seed-contract.md`](econ241-seed-contract.md). This document remains as the original v0 design brief. **Scenario:** ECON-241 / VidStack is the current working scenario unless explicitly changed.
 
 This document is the contract for regenerating the v0 demo data. The agent should inspect the current repo, update fixture files, add validation, and leave the dataset in a shape the app can seed and the Phase 2 runtime can build against.
 

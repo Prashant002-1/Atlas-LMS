@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "courseCode": "ECON-241",
+  "termSlug": "fall-2026",
+  "importRoot": "/seed-assets/econ-241/fall-2026",
+  "assets": [
+    {
+      "id": "econ241-fall2026-syllabus",
+      "path": "/seed-assets/econ-241/fall-2026/econ241-syllabus-fall2026.pdf",
+      "contentType": "application/pdf",
+      "purpose": "course syllabus"
+    },
+    {
+      "id": "econ241-fall2026-lecture-deck",
+      "path": "/seed-assets/econ-241/fall-2026/econ241-lecture-slides-weeks-1-14.pptx",
+      "contentType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "purpose": "weekly lecture materials for Weeks 1 through 14"
+    },
+    {
+      "id": "econ241-fall2026-course-reader",
+      "path": "/seed-assets/econ-241/fall-2026/econ241-course-reader-weeks-1-14.pdf",
+      "contentType": "application/pdf",
+      "purpose": "weekly reader materials for Weeks 1 through 14"
+    },
+    {
+      "id": "econ241-fall2026-data-workbook",
+      "path": "/seed-assets/econ-241/fall-2026/econ241-data-workbook.xlsx",
+      "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "purpose": "weekly evidence workbooks"
+    },
+    {
+      "id": "econ241-fall2026-pricing-case-pack",
+      "path": "/seed-assets/econ-241/fall-2026/econ241-pricing-strategy-session-case-pack.docx",
+      "contentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "purpose": "Week 7 Pricing Strategy Session case pack"
+    },
+    {
+      "id": "econ241-fall2026-exam2-outline",
+      "path": "/seed-assets/econ-241/fall-2026/econ241-exam2-drafting-outline.docx",
+      "contentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "purpose": "instructor-only Week 10 Exam 2 drafting outline"
+    }
+  ]
+}

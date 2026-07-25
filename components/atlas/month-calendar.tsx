@@ -20,13 +20,6 @@ export type MonthEntry = {
   fact: string;
 };
 
-const DOT_TONE: Record<MonthEntry["tone"], string> = {
-  accent: "bg-[var(--color-accent)]",
-  outline: "border border-[var(--color-faint)] bg-transparent",
-  danger: "bg-[var(--color-danger)]",
-  faint: "bg-[var(--color-faint)]",
-};
-
 /** Previous / today / next month controls. Pages pass their own base path. */
 export function MonthNav({
   basePath,
@@ -58,122 +51,6 @@ export function MonthNav({
       <Link href={`${basePath}?m=${monthKey(year, month + 1)}`} aria-label="Next month" className={navLink}>
         <ChevronRight size={15} strokeWidth={2} aria-hidden />
       </Link>
-    </div>
-  );
-}
-
-/** The month grid: weekday header, one cell per day, entries as linked chips. */
-export function MonthGrid({
-  year,
-  month,
-  today,
-  entries,
-}: {
-  year: number;
-  month: number;
-  today: Date;
-  entries: MonthEntry[];
-}) {
-  const monthStart = new Date(year, month, 1);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const weeks = Math.ceil((monthStart.getDay() + daysInMonth) / 7);
-  const gridStart = addDays(monthStart, -monthStart.getDay());
-  const days = Array.from({ length: weeks * 7 }, (_, index) => addDays(gridStart, index));
-
-  const byDay = new Map<string, MonthEntry[]>();
-  for (const entry of entries) {
-    const key = dayKey(entry.date);
-    const bucket = byDay.get(key);
-    if (bucket) bucket.push(entry);
-    else byDay.set(key, [entry]);
-  }
-
-  return (
-    <div className="overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-border)] shadow-[var(--shadow-panel)]">
-      <div className="grid grid-cols-7 gap-px">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((weekday) => (
-          <div key={weekday} className="bg-[var(--color-surface)] px-2 py-1.5">
-            <span className="atlas-mono text-[0.65625rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">{weekday}</span>
-          </div>
-        ))}
-        {days.map((day) => {
-          const inMonth = day.getMonth() === month;
-          const isToday = sameDay(day, today);
-          const dayEntries = byDay.get(dayKey(day)) ?? [];
-          return (
-            <div
-              key={dayKey(day)}
-              className={`min-h-[5.75rem] px-1.5 py-1.5 ${inMonth ? "bg-[var(--color-surface)]" : "bg-[var(--color-bg)]"}`}
-            >
-              <span
-                className={`atlas-mono inline-flex size-5 items-center justify-center rounded-row text-[0.6875rem] tabular-nums ${
-                  isToday
-                    ? "bg-[var(--color-accent)] font-semibold text-[var(--color-bg)]"
-                    : inMonth
-                      ? "text-[var(--color-muted)]"
-                      : "text-[var(--color-faint)]"
-                }`}
-              >
-                {day.getDate()}
-              </span>
-              {dayEntries.length > 0 ? (
-                <div className="mt-1 space-y-0.5">
-                  {dayEntries.slice(0, 3).map((entry) => (
-                    <Link
-                      key={entry.id}
-                      href={entry.href}
-                      title={`${entry.code ? `${entry.code} ` : ""}${entry.title}`}
-                      className="group/chip flex items-center gap-1.5 rounded-row px-1 py-0.5 transition hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
-                    >
-                      <span aria-hidden className={`size-1.5 shrink-0 rounded-full ${DOT_TONE[entry.tone]}`} />
-                      <span className="truncate text-[0.6875rem] font-medium text-[var(--color-muted)] transition group-hover/chip:text-[var(--color-ink)]">
-                        {entry.title}
-                      </span>
-                    </Link>
-                  ))}
-                  {dayEntries.length > 3 ? (
-                    <p className="px-1 text-[0.65625rem] text-[var(--color-faint)]">+{dayEntries.length - 3} more</p>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/** The month as rows: date, entry, fact. */
-export function MonthEntryList({ entries }: { entries: MonthEntry[] }) {
-  return (
-    <div className="divide-y divide-[var(--color-border)] rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-      {entries.map((entry) => (
-        <Link
-          key={`${entry.id}-list`}
-          href={entry.href}
-          className="group/row flex items-center gap-4 px-4 py-2.5 transition hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]"
-        >
-          <span className="atlas-mono w-14 shrink-0 text-[0.71875rem] uppercase tracking-[0.04em] text-[var(--color-faint)]">
-            {entry.date.toLocaleDateString("en-US", { weekday: "short", day: "numeric" })}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[0.84375rem] font-medium">{entry.title}</span>
-            {entry.code ? (
-              <span className="atlas-mono mt-0.5 block text-[0.65625rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">
-                {entry.code}
-              </span>
-            ) : null}
-          </span>
-          <span
-            className={`shrink-0 text-[0.75rem] ${
-              entry.tone === "danger" ? "font-medium text-[var(--color-danger)]" : "text-[var(--color-muted)]"
-            }`}
-          >
-            {entry.fact}
-          </span>
-        </Link>
-      ))}
     </div>
   );
 }

@@ -120,20 +120,35 @@ test("the active seed is the multi-course v0 world", () => {
 
 test("the demo window and ECON course match the pricing-session story", () => {
   const current = demoPackage.terms.find((t) => t.current)!;
-  const demoDay = "2026-06-09";
-  assert.ok(current.startsAt <= demoDay && demoDay <= current.endsAt, "June 9 2026 must fall inside the current term");
+  const demoDay = "2026-07-24";
+  assert.ok(current.startsAt <= demoDay && demoDay <= current.endsAt, "July 24 2026 must fall inside the current term");
 
   const course = demoPackage.courses[0];
   assert.equal(course.termSlug, current.slug);
   assert.equal(course.code, "ECON-241");
   assert.equal(course.name, "Intermediate Microeconomics");
   assert.equal(course.instructorKey, "amara");
-  assert.equal(course.modules.length, 8);
+  assert.equal(course.modules.length, 14);
   assert.equal(course.pages.length, 12);
-  assert.equal(course.assignments.length, 7);
+  assert.equal(course.assignments.length, 14);
 
   const assignmentKeys = course.assignments.map((a) => a.key);
-  assert.deepEqual(assignmentKeys, ["ps1", "ps2", "ps3", "exam-1", "session-assignment", "ps4", "final-project"]);
+  assert.deepEqual(assignmentKeys, [
+    "ps1",
+    "ps2",
+    "reading-check-1",
+    "ps3",
+    "ps4-elasticity",
+    "exam-1",
+    "ps5-monopoly",
+    "session-assignment",
+    "ps6-tiers",
+    "case-oligopoly",
+    "ps7-bundling",
+    "welfare-memo",
+    "exam-2",
+    "final-project",
+  ]);
   const sessionAssignment = course.assignments.find((a) => a.key === "session-assignment");
   assert.ok(sessionAssignment, "pricing session assignment must exist");
   assert.equal(sessionAssignment!.name, "Pricing Strategy Session");
@@ -144,9 +159,9 @@ test("the demo window and ECON course match the pricing-session story", () => {
   assert.equal(enrollmentCounts.student, 31);
   assert.equal(course.enrollments.some((e) => e.userKey === "maya" && e.role === "student"), true);
 
-  assert.equal(course.submissions.length, 155, "31 students should each have submissions for ps1, ps2, ps3, exam-1, and the session assignment");
+  assert.equal(course.submissions.length, 155, "31 students should each have five seeded submission records");
   const submissionsByAssignment = countBy(course.submissions, (s) => s.assignmentKey);
-  const activeAssignmentKeys = ["ps1", "ps2", "ps3", "exam-1", "session-assignment"];
+  const activeAssignmentKeys = ["ps1", "reading-check-1", "ps2", "exam-1", "session-assignment"];
   for (const key of activeAssignmentKeys) {
     assert.equal(submissionsByAssignment[key], 31, `${key} should have one submission per student`);
   }

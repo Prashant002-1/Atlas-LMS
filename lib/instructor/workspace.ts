@@ -1112,7 +1112,7 @@ function unavailableWorkspace(title: string, detail: string, scope?: WorkspaceSc
   return {
     source: "unavailable",
     course: { code: "Course", name: title, term: scope?.term?.name ?? "", description: detail },
-    scope: scope ?? { term: null, terms: [], course: null, courses: [] },
+    scope: scope ?? { term: null, terms: [], course: null, courses: [], allCourses: [] },
     policy: null,
     objectives: [],
     modules: [],

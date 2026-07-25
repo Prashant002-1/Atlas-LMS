@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, FileText, FileType2, Link2, ListChecks, Presentation } from "lucide-react";
+import { ChevronRight, FileQuestion, FileText, FileType2, Link2, Presentation } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ActionButton, BackLink, StatusBadge } from "@/components/atlas/primitives";
 import { EmptyRecord } from "@/components/atlas/record";
@@ -135,11 +135,10 @@ function ModuleMaterials({ items }: { items: ModuleContentItem[] }) {
 }
 
 function MaterialRow({ item }: { item: ModuleContentItem }) {
-  const Icon = kindIcon(item.kind);
   return (
     <div className="group/material grid gap-2 px-3 py-3.5 transition hover:bg-[var(--color-surface-muted)] sm:grid-cols-[minmax(0,1fr)_7rem_1rem] sm:items-center">
       <div className="flex min-w-0 items-start gap-2.5">
-        <Icon size={15} strokeWidth={1.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--color-muted)]" />
+        <MaterialIcon kind={item.kind} />
         <div className="min-w-0">
           {item.href ? (
             <Link
@@ -224,12 +223,13 @@ function AssignmentRow({ assignment }: { assignment: InstructorAssignment }) {
   );
 }
 
-function kindIcon(kind: ModuleContentItem["kind"]) {
-  if (kind === "page") return FileType2;
-  if (kind === "slides") return Presentation;
-  if (kind === "quiz") return ListChecks;
-  if (kind === "link") return Link2;
-  return FileText;
+function MaterialIcon({ kind }: { kind: ModuleContentItem["kind"] }) {
+  const props = { size: 15, strokeWidth: 1.8, "aria-hidden": true, className: "mt-0.5 shrink-0 text-[var(--color-muted)]" } as const;
+  if (kind === "page") return <FileType2 {...props} />;
+  if (kind === "slides") return <Presentation {...props} />;
+  if (kind === "quiz") return <FileQuestion {...props} />;
+  if (kind === "link") return <Link2 {...props} />;
+  return <FileText {...props} />;
 }
 
 function kindLabel(kind: ModuleContentItem["kind"]) {

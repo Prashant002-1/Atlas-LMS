@@ -34,7 +34,7 @@ test("material knowledge lives on Materials, and settings tracks no objectives",
   assert.equal(settings.toLowerCase().includes("objectives"), false);
   const materials = read("app/teach/materials/page.tsx");
   assert.ok(materials.includes("Add material"));
-  assert.ok(materials.includes("available to students"));
+  assert.ok(materials.includes("Visible to students"));
 });
 
 test("objective relationships may persist silently through ordinary edits", () => {

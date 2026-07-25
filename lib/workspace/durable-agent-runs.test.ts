@@ -76,7 +76,8 @@ test("manual session submit schedules grading without holding the form request o
 
 test("student and instructor agent surfaces share quiet progress and steering", () => {
   const planning = read("components/planning/atlas-room.tsx");
-  const student = read("components/session/session-room.tsx");
+  const student = read("components/student/atlas-room.tsx");
+  const assessedSession = read("components/session/session-room.tsx");
   const status = read("components/ai-elements/agent-status.tsx");
 
   assert.match(status, /<Shimmer/);
@@ -84,10 +85,13 @@ test("student and instructor agent surfaces share quiet progress and steering", 
   assert.equal(planning.match(/label="Thinking"/g)?.length, 1);
   for (const room of [planning, student]) {
     assert.match(room, /ThinkingIndicator/);
-    assert.match(room, /Steer queued/);
+    assert.match(room, /useSteering/);
+    assert.match(room, /SteeringPending/);
     assert.match(room, /allowSubmitWhileBusy/);
     assert.doesNotMatch(room, /ConversationScrollButton/);
   }
+  assert.match(assessedSession, /Next turn ready/);
+  assert.match(assessedSession, /allowSubmitWhileBusy/);
 });
 
 test("integrations stay instructor-owned and enter student work contextually", () => {

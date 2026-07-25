@@ -97,25 +97,25 @@ export function messageTimestampLabel(date: Date, now: Date = new Date()): strin
 export function MessageTimestamp({ createdAt, pending = false }: { createdAt?: string; pending?: boolean }) {
   const time = createdAt ? new Date(createdAt).getTime() : Number.NaN;
   const valid = Number.isFinite(time);
-  const [label, setLabel] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!valid || pending) {
-      setLabel(null);
-      return;
-    }
-    const render = () => setLabel(messageTimestampLabel(new Date(time)));
-    render();
-    /* Relative labels need refreshing; absolute ones never change. */
-    if (Date.now() - time >= RELATIVE_WINDOW_MS) return;
-    const timer = window.setInterval(render, 30_000);
-    return () => window.clearInterval(timer);
-  }, [pending, time, valid]);
 
   /* Hold the row height so revealing the stamp never nudges the thread. */
-  if (!valid || pending || !label) return <span className="block min-h-4" aria-hidden />;
+  if (!valid || pending) return <span className="block min-h-4" aria-hidden />;
+
+  return <LiveMessageTimestamp key={time} time={time} />;
+}
+
+function LiveMessageTimestamp({ time }: { time: number }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    /* Relative labels need refreshing; absolute ones never change. */
+    if (Date.now() - time >= RELATIVE_WINDOW_MS) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, [time]);
 
   const date = new Date(time);
+  const label = messageTimestampLabel(date, new Date(now));
   return (
     <time
       dateTime={date.toISOString()}

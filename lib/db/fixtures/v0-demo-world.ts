@@ -19,6 +19,14 @@ import type {
   V0ValidationCheck
 } from "./types";
 import { cs152Course } from "./courses/cs152";
+import {
+  econ241AssignmentDescriptions,
+  econ241CourseDescription,
+  econ241Materials,
+  econ241Modules,
+  econ241Pages,
+  econ241Syllabus,
+} from "./courses/econ241-course-corpus";
 import { stat201Course } from "./courses/stat201";
 import { hist310Course } from "./courses/hist310";
 import { shapedSubmission } from "./submission-shapes";
@@ -641,22 +649,7 @@ const policy = {
 };
 
 // Modules
-const modulesList = [
-  { key: "week-1", name: "Markets, demand, and supply", summaryMd: "Begin with equilibrium as a story about two decisions meeting. Work through a VidStack demand schedule, draw the original market, then separate a movement along demand from a shift caused by preferences or server costs. Problem Set 1 checks whether the graph can support the written explanation.", objectiveCodes: ["LO1"], week: 1, published: true },
-  { key: "week-2", name: "Consumer choice and willingness to pay", summaryMd: "Move from a market curve to individual reservation values. Use a six-customer streaming schedule to calculate marginal benefit and consumer surplus, then ask who is priced out after a rate change. Problem Set 2 asks for both the calculation and the distributional interpretation.", objectiveCodes: ["LO2"], week: 2, published: true },
-  { key: "week-3", name: "Costs, revenue, and profit", summaryMd: "Build the firm's side of the model: fixed content costs, near-zero marginal serving costs, revenue, and profit at different subscriber counts. The worked examples distinguish average cost from the cost of one more user before Problem Set 3 asks for the firm's output decision.", objectiveCodes: ["LO3"], week: 3, published: true },
-  { key: "week-4", name: "Elasticity and incidence", summaryMd: "Use percentage changes to explain why a price hike can raise the amount paid by each remaining subscriber while reducing total revenue. The central warning is that a linear curve can have constant slope and changing elasticity. Exam 1 returns to this distinction explicitly.", objectiveCodes: ["LO4"], week: 4, published: true },
-  { key: "week-5", name: "Market power and pricing mistakes", summaryMd: "Study what a firm with market power gives up when it chases a higher price without modeling churn. Compare markup, marginal revenue, marginal cost, and retention outcomes in the monopoly case before deciding whether the high-price option actually improves the firm's position.", objectiveCodes: ["LO5"], week: 5, published: true },
-  { key: "week-6", name: "Price discrimination and tier design", summaryMd: "Turn willingness to pay into a menu rather than a single price. Segment by observable use cases, choose features that act as real fences, and test whether a customer can keep the same value by moving down. The interactive case uses cannibalization as its stress test.", objectiveCodes: ["LO6"], week: 6, published: true },
-  { key: "week-7", name: "Interactive Pricing Session", summaryMd: "Apply Weeks 4 through 6 to VidStack's 18% subscriber loss. The session records the student's framing, concept check, revision under challenge, and final tier table, so the instructor can respond to the reasoning rather than only the final prices.", objectiveCodes: ["LO6"], week: 7, published: true },
-  { key: "week-8", name: "Oligopoly and strategic pricing", summaryMd: "Extend the pricing conversation to competitors. Strategic interaction, best responses, and Nash equilibrium explain why a rival's likely reaction belongs in the pricing decision rather than after it. We return to VidStack with a competitor in the market.", objectiveCodes: ["LO5"], week: 8, published: true },
-  { key: "week-9", name: "Bundling and two-sided platforms", summaryMd: "Why a bundle can beat the sum of its parts, and what changes when the platform has two customer groups that each care about the size of the other. Advertising-supported tiers are the working example, since the advertiser and the viewer are priced against each other.", objectiveCodes: ["LO6"], week: 9, published: true },
-  { key: "week-10", name: "Information, signaling, and quality", summaryMd: "What happens to a market when buyers cannot see quality before paying. Adverse selection, signaling, and the role of a free trial as a costly signal. The reading connects this to why streaming platforms publish viewership numbers selectively.", objectiveCodes: ["LO4"], week: 10, published: true },
-  { key: "week-11", name: "Welfare, surplus, and policy", summaryMd: "Total surplus, deadweight loss, and what a regulator is actually measuring when it reviews a merger or a price practice. We use the same VidStack numbers to compute consumer and producer surplus under two pricing regimes.", objectiveCodes: ["LO2", "LO5"], week: 11, published: true },
-  { key: "week-12", name: "Behavioral pricing and fairness", summaryMd: "Anchoring, reference prices, and the reaction to a price increase that a purely rational model does not predict. The question for the final project is which of these effects you are willing to rely on and which you would be uncomfortable defending.", objectiveCodes: ["LO6"], week: 12, published: false },
-  { key: "week-13", name: "Final project workshop", summaryMd: "Bring a draft pricing recommendation and defend the demand story behind it. Peer review focuses on one question: does the mechanism explain the prices, or do the prices arrive without a mechanism.", objectiveCodes: ["LO6"], week: 13, published: false },
-  { key: "week-14", name: "Review and synthesis", summaryMd: "The whole term in one argument: a decision, a constraint, a model that speaks to it, and an honest statement of what the model leaves out. Exam 2 covers Weeks 6 through 12 with the same emphasis on interpretation over calculation.", objectiveCodes: ["LO1", "LO4", "LO5", "LO6"], week: 14, published: false },
-];
+const modulesList = econ241Modules;
 
 /*
  * Course documents, placed by week. A real week is a reading plus a handout plus
@@ -664,178 +657,10 @@ const modulesList = [
  * materials library does. Extracted text stands in for the ingestion pipeline so
  * a seeded PDF is groundable without a live extraction.
  */
-const materialsList = [
-  { key: "syllabus-pdf", displayName: "ECON-241 Syllabus", filename: "econ241-syllabus-fall2026.pdf", contentType: "application/pdf", sizeBytes: 184_320, kind: "syllabus" as const, week: 1, pageCount: 4, extractedText: "ECON-241 Intermediate Microeconomics, Fall 2026. Dr. Amara Osei. Grading: four problem sets, one interactive pricing session, two exams, and a final pricing project. Late work is accepted for seven days with a revision note." },
-  { key: "w1-slides", displayName: "Week 1 slides: Markets and equilibrium", filename: "w01-markets-equilibrium.pdf", contentType: "application/pdf", sizeBytes: 1_204_224, kind: "slides" as const, week: 1, pageCount: 22, extractedText: "Demand schedules, supply schedules, equilibrium price and quantity. Movement along a curve versus a shift of the curve. Shortage and surplus at non-clearing prices." },
-  { key: "w1-handout", displayName: "VidStack demand schedule (worksheet)", filename: "w01-vidstack-schedule.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", sizeBytes: 27_648, kind: "dataset" as const, week: 1, extractedText: "Price, quantity demanded, quantity supplied at prices from 5 to 25 dollars for the VidStack subscription market." },
-  { key: "w2-slides", displayName: "Week 2 slides: Willingness to pay", filename: "w02-willingness-to-pay.pdf", contentType: "application/pdf", sizeBytes: 986_112, kind: "slides" as const, week: 2, pageCount: 18, extractedText: "Reservation values, marginal benefit, diminishing marginal benefit, consumer surplus as the area under demand above price." },
-  { key: "w2-reading", displayName: "Consumer surplus worked examples", filename: "w02-surplus-examples.pdf", contentType: "application/pdf", sizeBytes: 421_888, kind: "reading" as const, week: 2, pageCount: 6, extractedText: "Six-customer streaming schedule. Computing total consumer surplus at a flat price, then recomputing after a three dollar increase and identifying who leaves the market." },
-  { key: "w3-slides", displayName: "Week 3 slides: Cost and profit", filename: "w03-cost-revenue-profit.pdf", contentType: "application/pdf", sizeBytes: 1_105_920, kind: "slides" as const, week: 3, pageCount: 24, extractedText: "Fixed cost, variable cost, average total cost, marginal cost. Total revenue and profit at different subscriber counts. Why near-zero marginal cost does not remove the fixed-cost constraint." },
-  { key: "w4-slides", displayName: "Week 4 slides: Elasticity", filename: "w04-elasticity.pdf", contentType: "application/pdf", sizeBytes: 1_048_576, kind: "slides" as const, week: 4, pageCount: 20, extractedText: "Price elasticity of demand as percentage change in quantity over percentage change in price. Elastic and inelastic ranges on a single linear demand curve. Why slope is not elasticity." },
-  { key: "w4-practice", displayName: "Elasticity practice problems with solutions", filename: "w04-elasticity-practice.pdf", contentType: "application/pdf", sizeBytes: 318_464, kind: "assessment" as const, week: 4, pageCount: 8, extractedText: "Twelve elasticity calculations with full solutions. Each asks for the percentage change, the elasticity value, and the direction total revenue moves." },
-  { key: "w5-slides", displayName: "Week 5 slides: Market power", filename: "w05-market-power.pdf", contentType: "application/pdf", sizeBytes: 1_150_976, kind: "slides" as const, week: 5, pageCount: 21, extractedText: "Monopoly pricing, markup over marginal cost, marginal revenue, and the churn a price increase causes when retention is modeled." },
-  { key: "w5-case", displayName: "VidStack case brief: the 15 dollar decision", filename: "w05-vidstack-case.pdf", contentType: "application/pdf", sizeBytes: 512_000, kind: "reading" as const, week: 5, pageCount: 9, extractedText: "VidStack raised its single price to 15 dollars and lost 18 percent of subscribers. Revenue, churn by segment, and the internal argument for and against the increase." },
-  { key: "w6-slides", displayName: "Week 6 slides: Price discrimination", filename: "w06-price-discrimination.pdf", contentType: "application/pdf", sizeBytes: 1_232_896, kind: "slides" as const, week: 6, pageCount: 26, extractedText: "First, second, and third degree price discrimination. Fences as the mechanism that separates tiers. Cannibalization as the failure mode of a weak fence." },
-  { key: "w6-dataset", displayName: "Segment willingness-to-pay data", filename: "w06-segment-wtp.csv", contentType: "text/csv", sizeBytes: 14_336, kind: "dataset" as const, week: 6, extractedText: "Survey willingness to pay by segment: students, single households, families, and heavy viewers, with screen count and offline viewing preferences." },
-  { key: "w7-guide", displayName: "Pricing session: what full marks looks like", filename: "w07-session-guide.pdf", contentType: "application/pdf", sizeBytes: 268_288, kind: "reading" as const, week: 7, pageCount: 5, extractedText: "The rubric in plain language. Problem framing, course-concept grounding, iteration under challenge, and a final design you can defend. Delegated answers earn nothing." },
-  { key: "w8-slides", displayName: "Week 8 slides: Oligopoly", filename: "w08-oligopoly.pdf", contentType: "application/pdf", sizeBytes: 1_073_152, kind: "slides" as const, week: 8, pageCount: 19, extractedText: "Best response functions, Nash equilibrium in prices, and why a competitor's likely reaction belongs inside the pricing decision." },
-  { key: "w9-reading", displayName: "Bundling and two-sided markets", filename: "w09-bundling-platforms.pdf", contentType: "application/pdf", sizeBytes: 466_944, kind: "reading" as const, week: 9, pageCount: 11, extractedText: "Why a bundle can capture more surplus than separate prices. Two-sided platform pricing where advertisers and viewers are priced against each other." },
-  { key: "exam2-outline", displayName: "Exam 2 topic outline (draft)", filename: "exam2-outline-draft.pdf", contentType: "application/pdf", sizeBytes: 156_672, kind: "assessment" as const, week: 10, pageCount: 3, visibility: "instructors" as const, extractedText: "Exam 2 draft coverage: elasticity, price discrimination, oligopoly best responses, bundling, welfare. Elasticity is weighted up after the Exam 1 results." },
-];
+const materialsList = econ241Materials;
 
 // Pages with 300-800 words of real text containing tagged concept keywords
-const pagesList = [
-  {
-    slug: "demand-supply-basics",
-    title: "Basic Market Mechanisms: Demand, Supply, and Market Equilibrium",
-    objectiveCodes: ["LO1"],
-    bodyMd: `In microeconomic theory, the market economy is driven by the interaction of demand and supply. The demand curve shows the quantity of a good that consumers are willing and able to purchase at various price points. Crucially, the law of demand dictates that as the price of a good increases, the quantity demanded decreases. This inverse relationship creates a downward-sloping demand curve. Conversely, the supply curve represents the quantity that sellers are willing and able to offer for sale. As price rises, quantity supplied increases, which typically creates an upward-sloping supply curve. 
-    
-    Market equilibrium is reached at the price where the quantity demanded equals the quantity supplied. At this point, the market clears, meaning there are no shortages and no surpluses. The equilibrium price and equilibrium quantity are determined by the intersection of these two curves. Shifts in these curves occur due to external factors (such as consumer income, preferences, or input costs), changing the equilibrium state. Understanding these basic mechanisms is vital for analyzing firms' behavior in competitive environments.
-    
-    In competitive markets, the price mechanism coordinates the actions of buyers and sellers. When market price is above the equilibrium level, a surplus occurs because the quantity supplied exceeds the quantity demanded. This downward pressure on price encourages producers to reduce output and consumers to increase consumption until the equilibrium is restored. Conversely, if price is below equilibrium, a shortage exists. This upward pressure on price drives the market back to equilibrium. Elasticity determines how rapidly markets adjust to these shifts.
-    
-    To fully appreciate this interaction, economists study market interventions like price ceilings or floors. A price ceiling, which is a government-imposed maximum price, can lead to chronic shortages if set below the equilibrium price. Sellers cannot charge the market-clearing rate, and buyers face queues and black markets. Conversely, a price floor, such as the minimum wage, establishes a minimum price. If set above equilibrium, it generates a persistent surplus or excess supply. These microeconomic principles govern pricing behavior globally, and firms must constantly adapt to these shifting constraints to remain viable in the long term.`
-  },
-  {
-    slug: "equilibrium-shifts",
-    title: "Shedding Light on Equilibrium: Shifts in Supply and Demand Curves",
-    objectiveCodes: ["LO1"],
-    bodyMd: `To master market dynamics, economists analyze shifts in supply and demand curves. A change in price moves us along the curve (quantity change), but a change in non-price factors shifts the entire curve. For example, if a study reveals streaming services improve mental health, consumer preferences shift demand to the right. This shifts the equilibrium, raising both the equilibrium price and quantity. 
-    
-    On the other hand, if a supply factor shifts (such as a decrease in input costs), the supply curve moves to the right. This results in a lower equilibrium price and a higher equilibrium quantity. If both shift simultaneously, the net effect depends on the relative magnitudes of the shifts. Analyzing equilibrium shifts allows firm leaders to predict how market shocks impact revenue, sales volume, and customer retention. These calculations are critical for avoiding pricing mistakes and managing resource allocations.
-    
-    Furthermore, shifts can be driven by input price changes, technology advancements, or governmental policy interventions. For instance, when a government imposes a sales tax on a commodity, it effectively shifts the supply curve upwards by the amount of the tax. The new equilibrium results in a higher price for consumers and a lower net price for sellers. This shift introduces economic inefficiencies and deadweight loss. Economists utilize supply and demand shifts to evaluate policy effects on consumer welfare and firm profits.
-    
-    Understanding shifts also involves exploring the concept of market expectations. If consumers expect the price of streaming services to rise significantly next month, they may increase their current demand, shifting the curve to the right today. Similarly, if producers anticipate resource shortages, they might hold back supply, shifting the supply curve to the left. These forward-looking behaviors complicate equilibrium forecasts but represent the real-world situations pricing managers must navigate daily. Mastering these shifts is essential for strategic planning in volatile industries, where supply chains and consumer trends evolve rapidly.`
-  },
-  {
-    slug: "wtp-marginal-benefit",
-    title: "Deciphering Willingness to Pay and Marginal Benefit",
-    objectiveCodes: ["LO2"],
-    bodyMd: `A consumer's decision to buy is governed by their willingness to pay (WTP). Willingness to pay represents the maximum monetary value a customer puts on a unit of a good. This is a reflection of their individual preferences and financial budget constraints. Marginal benefit is the additional utility or satisfaction gained from consuming one more unit of a good. According to the law of diminishing marginal benefit, the benefit of consuming additional units declines as total consumption increases.
-    
-    For a streaming customer, the first subscription has a very high willingness to pay. A second subscription for a guest room has a much lower marginal benefit. Sellers attempt to estimate willingness to pay to maximize their pricing power. Since direct measurement of individual WTP is difficult, firms rely on consumer segmentation, observing historical purchase behavior, and estimating demographic profiles. Understanding how marginal benefit changes helps firms design pricing tiers that capture maximum consumer surplus.
-    
-    Understanding willingness to pay also helps in assessing consumer equity and access to basic goods. Under perfect market conditions, consumers whose marginal benefit exceeds the market price will purchase the good. Those whose WTP is lower are excluded, showing the rationing function of prices. In modern digital platforms, estimating willingness to pay involves machine learning algorithms that analyze real-time search queries and browsing history, raising privacy concerns while simultaneously allowing firms to customize prices to extreme precision.
-    
-    Moreover, consumer psychology plays a significant role in perception of marginal benefit. Pricing managers use anchoring effects, where showing a higher original price makes the current tier seem like a discount, artificially boosting willingness to pay. Additionally, network externalities can increase a user's marginal benefit as more of their peers join the platform. In these ways, firms do not merely accept willingness to pay as a fixed constant; they actively try to shape it through marketing, platform design, and user experience. By manipulating the perceived benefit, firms can expand their market reach significantly.`
-  },
-  {
-    slug: "consumer-surplus-derivation",
-    title: "Measuring Value: Consumer Surplus in Microeconomics",
-    objectiveCodes: ["LO2"],
-    bodyMd: `Consumer surplus is the difference between what a consumer is willing to pay and the price they actually pay. Visually, on a supply and demand graph, consumer surplus is the area below the demand curve and above the market price. It represents the net economic benefit or value that consumers capture from trading in the market. If a student is willing to pay $25 for a textbook but buys it for $15, they enjoy a consumer surplus of $10.
-    
-    Firms use various pricing strategies to capture this consumer surplus. If a firm charges a single flat price, it leaves significant consumer surplus in the hands of high-value consumers, while failing to attract low-value consumers. By introducing price discrimination, firms can convert consumer surplus into firm revenue. Designing effective tiers involves striking a delicate balance: leaving enough consumer surplus to keep customers happy and reduce churn, while capturing enough to cover costs and yield sustainable profits.
-    
-    The concept of consumer surplus is widely used in welfare economics to evaluate the social desirability of public projects and regulatory changes. For example, if a merger between two major streaming platforms reduces competition and increases prices, consumer surplus falls, leading to a welfare loss. Regulators assess these changes by measuring the reduction in consumer surplus and comparing it to any cost savings or efficiency gains the merger might produce for the firms.
-    
-    Ultimately, consumer surplus serves as the foundation of user loyalty. If a streaming service provides a massive catalog of films and original shows for a low monthly fee, users capture a huge surplus. This surplus makes them highly loyal and resistant to competitor promotions. However, if the firm aggressively raises rates to capture more surplus for itself, the perceived value drops, and consumers will look for alternatives, illustrating the limits of extraction. A healthy market requires balancing the firm's need for profit with the consumer's need for value.`
-  },
-  {
-    slug: "cost-structures",
-    title: "Unpacking Cost Structures: Fixed Cost and Marginal Cost",
-    objectiveCodes: ["LO3"],
-    bodyMd: `A firm's profit maximization is constrained by its cost structures. Total cost is composed of fixed cost and variable cost. Fixed cost is the expenditure that does not change with the level of production, such as rent, salaries, or physical servers. Variable cost fluctuates directly with production, such as raw materials or transaction fees. In streaming industries, fixed cost is exceptionally high due to content acquisition and software development, while marginal cost (the cost of serving one additional user) is near zero.
-    
-    Marginal cost is defined as the change in total cost resulting from producing one additional unit. Mathematically, it is the derivative of the total cost function. Profit-maximizing firms expand output until marginal cost equals marginal revenue. Understanding the relationship between high fixed cost and negligible marginal cost is crucial for digital platforms. It allows platforms to offer cheap tiers (since serving additional users costs little) as long as they can recover their massive fixed cost through aggregate subscriber volume.
-    
-    In the long run, cost structures change as all inputs become variable, enabling firms to choose the optimal scale of production. Firms can experience economies of scale, where long-run average cost decreases as output increases, or diseconomies of scale if administrative complexities raise average costs. For tech companies, initial investment in database management and algorithm design represents a massive fixed cost, but the marginal cost of scaling services to millions of global users remains minor, creating substantial returns to scale.
-    
-    Additionally, the distinction between short-run cost and long-run cost guides structural investments. In the short run, at least one input is fixed (such as physical office space). In the long run, a company can adjust all inputs, choosing to transition to fully cloud-based architectures to minimize fixed infrastructure costs. By understanding these long-term cost curves, managers can optimize pricing models that sustain operations over multiple years, offsetting initial high investments and ensuring the company stays ahead of its competition.`
-  },
-  {
-    slug: "revenue-profit-maximization",
-    title: "Revenue, Cost, and Profit Maximization",
-    objectiveCodes: ["LO3"],
-    bodyMd: `A firm's primary objective is profit maximization. Profit is defined as total revenue minus total cost. Total revenue is calculated as the price multiplied by the quantity sold. To maximize profit, a firm must find the optimal balance between price and quantity. If a firm raises prices, the quantity sold decreases due to the downward-sloping demand curve. Thus, a firm must understand how price changes impact quantity to determine if total revenue will increase or decrease.
-    
-    Profit maximization occurs at the quantity where marginal revenue equals marginal cost. Marginal revenue is the additional revenue gained from selling one more unit. For a competitive firm, price equals marginal revenue. However, for a monopoly with pricing power, marginal revenue is less than price because it must lower prices for all units to sell more. Firms must calculate cost functions and forecast demand curves to set optimal prices, avoiding pricing mistakes that lead to losses or customer churn.
-    
-    It is critical to distinguish between accounting profit and economic profit. Accounting profit considers only explicit monetary costs, whereas economic profit subtracts both explicit and implicit opportunity costs, such as the value of the owner's time or capital invested elsewhere. A firm might show a positive accounting profit but a negative economic profit if the capital could be used more lucratively elsewhere. Profit maximization ensures that resources are allocated to their highest-valued uses across the economy.
-    
-    Moreover, the search for optimal pricing requires continuous analysis of market elasticity. If marginal revenue falls below marginal cost, the firm is producing too much and should cut back output. Conversely, if marginal revenue is higher than marginal cost, output should be expanded to capture additional profit. Balancing these marginal values is the key to running a successful enterprise in both physical and digital markets. Firms that ignore these economic calculations quickly find themselves losing market share or failing to meet their financial goals.`
-  },
-  {
-    slug: "price-elasticity-concept",
-    title: "Defining Price Elasticity of Demand vs Curve Slope",
-    objectiveCodes: ["LO4"],
-    bodyMd: `Price elasticity of demand measures consumer sensitivity to price changes. It is calculated as the percentage change in quantity demanded divided by the percentage change in price. If elasticity is greater than one, demand is elastic, meaning consumers are highly sensitive, and a price hike will cause a disproportionate drop in quantity, decreasing revenue. If elasticity is less than one, demand is inelastic, meaning consumers are insensitive, and a price hike will increase revenue despite a small drop in quantity.
-    
-    A common student pricing mistake is confusing elasticity with the slope of the demand curve. The slope of a linear demand curve is constant throughout (change in price over change in quantity). However, elasticity changes at every point along a linear demand curve. Elasticity is high at high prices (elastic region) and low at low prices (inelastic region). Slope measures absolute changes, whereas elasticity measures percentage changes. Confusing these two terms can lead to catastrophic pricing mistakes.
-    
-    Elasticity calculations depend on the availability of substitutes, the share of income spent on the good, and the time horizon. If a good has many close substitutes, demand is highly elastic because consumers can easily switch if prices rise. Over time, demand becomes more elastic as consumers find alternatives. Slope does not capture these behavioral shifts. While slope uses units of measurement (e.g., dollars per subscriber), elasticity is unitless, allowing economists to compare consumer sensitivity across entirely different goods.
-    
-    To illustrate this difference, imagine a straight demand line starting from a price of $100 down to $0. The slope is the same at the $90 level as it is at the $10 level. However, at $90, a $5 price drop represents a tiny percentage price change, but triggers a massive percentage change in sales volume, indicating high elasticity. At $10, a $5 drop is a huge percentage price change but yields minimal percentage change in sales, showing inelastic demand. Slope tells us the path; elasticity tells us the behavior. Managers must master this distinction to accurately predict consumer response.`
-  },
-  {
-    slug: "elasticity-revenue-relation",
-    title: "The Critical Link: Elasticity and Total Revenue",
-    objectiveCodes: ["LO4"],
-    bodyMd: `The relationship between price elasticity of demand and total revenue is a cornerstone of economic strategy. When demand is elastic, the percentage change in quantity demanded is larger than the percentage change in price. Therefore, raising the price causes quantity to drop so much that total revenue falls. Conversely, lowering prices in the elastic region increases total revenue because the increase in sales volume offsets the lower price per unit.
-    
-    When demand is inelastic, the percentage change in quantity is smaller than the percentage change in price. Here, raising the price increases total revenue because the price increase offsets the minor decrease in sales. When elasticity equals exactly one (unit elastic), total revenue is maximized. Firms must calculate the price elasticity of their customer segments. If a company raises prices without knowing its elasticity, it risks losing subscribers and revenue, as seen in many streaming services.
-    
-    This relationship dictates pricing behavior in both private markets and public finance. For example, when a state government designs excise taxes to raise revenue, it targets goods with highly inelastic demand, such as gasoline or cigarettes. Because demand is inelastic, the quantity demanded drops very little, and the tax generates substantial revenue without causing significant market distortion. Conversely, taxing highly elastic luxury goods often fails to raise revenue because consumers substitute away from them.
-    
-    Managers must also remember that elasticity is not static. A sudden change in competitor services or external economic conditions can shift elasticity curves. For instance, if a competitor slashes prices, your own service's demand becomes more elastic as consumers find an easy substitute. Firms must dynamically monitor consumer churn and purchasing behavior to update their pricing strategy and maintain maximum revenue efficiency. Constant vigilance is the price of maintaining market dominance in today's fast-paced digital economy.
-    
-    Furthermore, price elasticity plays a key role in advertising strategies. When firms successfully build strong brand image and high customer loyalty, they make their products' demand more inelastic. This allows them to raise prices without facing a major drop in quantity demanded, directly increasing their total revenue. Therefore, corporate marketing is often designed to reduce price elasticity, transforming highly competitive commodities into differentiated, premium services with high pricing power.`
-  },
-  {
-    slug: "monopoly-power",
-    title: "Monopoly Power, Markup Pricing, and Market Inefficiencies",
-    objectiveCodes: ["LO5"],
-    bodyMd: `Monopoly power occurs when a single firm dominates the market, allowing it to set prices rather than accept market prices. A monopoly maximizes profit by setting marginal revenue equal to marginal cost. Since the monopoly faces a downward-sloping demand curve, it sets a price higher than marginal cost. The extent of this markup is determined by the price elasticity of demand: the less elastic demand is, the higher the markup a firm can charge.
-    
-    However, monopoly pricing creates market inefficiencies. Because the price is set above marginal cost, some consumers who value the good above its marginal cost are excluded from purchasing it. This results in deadweight loss, which represents the lost economic value that would have been captured in a competitive market. To minimize these inefficiencies and increase revenue, monopolies often utilize price discrimination to capture consumer surplus from different segments without excluding low-value buyers.
-    
-    Monopoly power is often sustained by barriers to entry, such as patents, government licenses, or control over a critical resource. Without these barriers, high profits would attract competitors, shifting supply and driving prices down to marginal cost. In digital markets, network effects serve as a powerful barrier, where a platform becomes more valuable as more people use it. This dynamic can lead to natural monopolies, where a single firm can serve the entire market at a lower cost than multiple competing firms.
-    
-    Furthermore, antitrust regulators monitor monopolies to prevent abuses of pricing power. If a platform engages in predatory pricing (pricing below marginal cost to drive out competitors) or ties products together to restrict choice, it faces legal investigations. Monopolistic firms must justify their pricing structures using efficiency arguments, making economic modeling a key component of corporate compliance and corporate legal defense. Understanding these regulatory boundaries is just as important as understanding the math behind price setting.`
-  },
-  {
-    slug: "churn-and-mistakes",
-    title: "Pricing Mistakes: Churn, Overpricing, and Customer Retention",
-    objectiveCodes: ["LO5"],
-    bodyMd: `Firms with pricing power frequently make pricing mistakes by failing to account for customer churn. Churn is the percentage of subscribers who cancel their subscription over a given period. Overpricing a service without providing clear incremental value drives up churn rates, especially among price-sensitive customer segments. When VidStack raised its price from $12.99 to $15.99, it suffered a high churn rate, losing 18% of its subscribers.
-    
-    This pricing mistake occurs because managers focus on the higher revenue per remaining subscriber, while ignoring the lost customer lifetime value of those who churned. Customer retention is often cheaper than customer acquisition. To avoid these pricing mistakes, firms must track customer usage data, calculate segment elasticity, and design pricing fences that allow price-sensitive customers to downgrade to cheaper tiers rather than churning entirely.
-    
-    To mitigate churn, firms implement retention programs, such as loyalty discounts, annual contract commitments, or personalized content recommendations. In subscription-based business models, the churn rate is a key determinant of the customer lifetime value (LTV). If the cost of acquiring a new customer exceeds the LTV, the firm will eventually lose money. Pricing mistakes that increase churn directly destroy LTV, making pricing optimization a critical strategic priority for modern digital platforms.
-    
-    Ultimately, managing churn is about understanding consumer options. If a customer has dozens of alternative platforms, your price hikes will trigger high churn. If your platform has exclusive content that cannot be replicated, churn will be low even with price increases. Pricing strategies must always evaluate these competitive contexts to avoid overestimating customer loyalty and making costly mistakes. Successful managers recognize that customer trust is an asset that must be protected, not just extracted for short-term gain.
-    
-    Furthermore, firms must recognize that churn is often a leading indicator of declining product quality or customer dissatisfaction. When customers experience bugs, slow support response times, or a lack of new content, their willingness to pay drops, making them highly sensitive to even minor price changes. Therefore, reducing churn requires a cross-functional effort that combines pricing optimization with continuous improvements in product value, user experience, and customer success, ensuring that subscribers receive enough ongoing benefit to justify their monthly expenditures.`
-  },
-  {
-    slug: "price-discrimination-theory",
-    title: "The Mechanics of Price Discrimination",
-    objectiveCodes: ["LO6"],
-    bodyMd: `Price discrimination occurs when a firm charges different prices to different consumers for the same good, based on their willingness to pay. To practice price discrimination successfully, a firm must have pricing power, be able to identify consumer segments with different price elasticities of demand, and prevent resale (arbitrage). In digital streaming, arbitrage is naturally prevented by personal accounts, making it a perfect environment for price discrimination.
-    
-    There are three degrees of price discrimination. First-degree (perfect) involves charging each consumer their exact willingness to pay. Second-degree involves volume discounts or pricing tiers. Third-degree involves charging different prices to different demographic groups (e.g., student discounts). By charging higher prices to inelastic segments (heavy users) and lower prices to elastic segments (casual users), a firm can increase total revenue and capture consumer surplus.
-    
-    While price discrimination increases firm profits, its effect on consumer welfare is mixed. First-degree price discrimination eliminates all consumer surplus, transferring it to the firm, but it maximizes economic efficiency by eliminating deadweight loss. Third-degree price discrimination can increase total output, making goods available to lower-income segments who would otherwise be priced out. Therefore, regulators analyze price discrimination schemes carefully to balance efficiency gains against distribution equity concerns.
-    
-    In modern digital ecosystems, third-degree price discrimination is highly prevalent in the form of student and senior discounts, geographic pricing, and occupation-based promotions. These segmentations are easily verified using digital credentials, allowing firms to lower entry barriers for lower-income groups without cannibalizing revenue from corporate or high-income accounts, creating a win-win scenario for both the firm and society. As businesses scale globally, the art of segment-based pricing becomes the primary driver of international growth and profitability.
-    
-    Additionally, modern businesses utilize dynamic pricing algorithms to execute price discrimination in real time. For example, airlines and ride-sharing apps adjust rates based on current demand, local weather conditions, and even the user's remaining battery percentage. This dynamic form of pricing allows firms to capture maximum willingness to pay on a minute-by-minute basis. However, firms must be careful: if consumers perceive dynamic pricing as unfair or manipulative, they may react with anger, resulting in long-term brand damage and customer churn.`
-  },
-  {
-    slug: "tier-design-fences",
-    title: "Designing Tiers: Multi-pricing and Cannibalization Fences",
-    objectiveCodes: ["LO6"],
-    bodyMd: `Designing multiple pricing tiers is a common form of second-degree price discrimination. A typical streaming service offers a Basic (ad-supported) tier, a Standard tier, and a Premium tier. The goal is to capture high willingness to pay from heavy users while offering a cheap option for casual users. However, a major risk in tier design is cannibalization, which occurs when high-value users downgrade to a cheaper tier, reducing total revenue.
-    
-    To prevent cannibalization, firms must construct effective pricing fences. Pricing fences are features or limitations that separate the tiers and prevent high-value users from choosing the cheaper option. Fences can be quality-based (4K resolution vs 1080p, offline downloads vs streaming only) or behavior-based (ads vs ad-free, number of screens). If fences are too weak, cannibalization occurs, causing revenue to shrink. If fences are too restrictive, consumers may churn entirely. Balancing these trade-offs is a critical pricing skill.
-    
-    Firms must continuously monitor tier performance and adjust fences as consumer preferences and competitor offerings evolve. If a competitor offers a high-quality service at a lower price, a firm may be forced to lower its fences or adjust pricing to prevent customer churn. Successful tier design requires pricing managers to conduct consumer surveys, perform conjoint analysis, and run controlled A/B pricing tests. These methods help firms capture willingness to pay while minimizing the threat of cannibalization.
-    
-    Furthermore, pricing fences must feel fair and logical to consumers. If a fence feels arbitrary or unnecessarily punitive, it can damage brand reputation and increase churn rates. Effective fences, such as charging extra for high-definition streaming or multi-screen support, align with consumers' natural perceptions of product quality and utility, making them willing to pay the premium rate without feeling exploited. Mastering the balance between profitability and consumer experience is what separates industry leaders from those who struggle to maintain a consistent customer base.`
-  }
-];
+const pagesList = econ241Pages;
 
 const mayaEconomicsResponses: Record<string, string> = {
   ps1: `I used a two-market example to show what happens when a streaming service gets a sudden increase in content costs. In the first version I moved along the demand curve when I meant to shift it, so I redrew the graph and explained the difference in words. My equilibrium calculation is fine now, but I still need to be more careful about saying which assumption changed before I describe the new price and quantity.`,
@@ -853,35 +678,39 @@ I revised the fences after thinking through cannibalization: Standard keeps the 
 };
 
 function economicsSubmissionBody(studentKey: string, assignmentKey: string): string {
-  if (studentKey === "maya" && mayaEconomicsResponses[assignmentKey]) {
-    return mayaEconomicsResponses[assignmentKey];
-  }
-
   const note = economicsWritingFor(studentKey);
   const name = economicsStudentName(studentKey);
+  const mayaDraft = studentKey === "maya" ? mayaEconomicsResponses[assignmentKey] : null;
+  let draft = mayaDraft ?? "";
   if (assignmentKey === "ps1") {
-    return `${name}: ${note.opening}\n\n${note.concept}`;
+    draft ||= `${name}: ${note.opening}\n\n${note.concept}`;
+  } else if (assignmentKey === "ps2") {
+    draft ||= `${name}: I used willingness to pay and consumer surplus to work through the case. ${note.concept}\n\n${note.caveat}`;
+  } else if (assignmentKey === "ps3") {
+    draft ||= `${name}: I compared total revenue, total cost, and the marginal decision before choosing a price. ${note.opening}\n\n${note.caveat}`;
+  } else if (assignmentKey === "exam-1") {
+    draft ||= `${name}: The elasticity question is the part I had to slow down on. ${note.concept}\n\n${note.caveat}`;
+  } else {
+    draft ||= `${name}: ${note.opening}\n\n${note.revision}\n\n${note.caveat}`;
   }
-  if (assignmentKey === "ps2") {
-    return `${name}: I used willingness to pay and consumer surplus to work through the case. ${note.concept}\n\n${note.caveat}`;
-  }
-  if (assignmentKey === "ps3") {
-    return `${name}: I compared total revenue, total cost, and the marginal decision before choosing a price. ${note.opening}\n\n${note.caveat}`;
-  }
-  if (assignmentKey === "exam-1") {
-    return `${name}: The elasticity question is the part I had to slow down on. ${note.concept}\n\n${note.caveat}`;
-  }
-  return `${name}: ${note.opening}\n\n${note.revision}\n\n${note.caveat}`;
+  const assignmentFocus = {
+    ps1: "I began with a baseline equilibrium instead of starting from the new price. The consumer-preference change belongs on demand, while the delivery-cost change belongs on supply. That distinction changes whether the graph explains an outcome or merely redraws it.",
+    ps2: "The schedule made it clear that a flat price creates different consumer-surplus outcomes for different viewers. I calculated who stays, who leaves, and why a revenue statement cannot stand in for an access or welfare statement.",
+    ps3: "I kept fixed cost separate from the marginal serving decision. The platform's content budget matters for whether the business can exist over time, but the next subscriber question needs the change in revenue compared with the change in cost.",
+    "exam-1": "I wrote the percentage-change formula before reading the graph. The line's slope is an absolute relationship; elasticity asks how responsive quantity is relative to the scale of the price and quantity at that point.",
+  }[assignmentKey] ?? "I used the course record as evidence, but I am treating the result as a conditional recommendation rather than a claim that the small dataset proves a single correct price.";
+
+  return `${draft}\n\n## Working record\n\n${assignmentFocus}\n\nI checked the course reader before finalizing the calculation and used the workbook labels rather than relying on a visual impression. My conclusion depends on the assumptions in the prompt: the customer groups are stable enough to compare, the reported churn is not entirely caused by an outside event, and the available schedule is an informative proxy rather than a census of every subscriber. If those assumptions change, the recommendation should change with them.\n\n## Limitation\n\n${note.caveat} The next useful evidence would be a segment-level retention pattern, a clearer measure of competitor switching, and a small experiment that changes one feature or price at a time. That would let me distinguish a model-based explanation from a convenient story about the observed result.`;
 }
 
 function economicsSessionBody(studentKey: string, final: boolean): string {
   if (studentKey === "maya") {
-    return mayaEconomicsResponses.session;
+    return `${mayaEconomicsResponses.session}\n\n## Evidence and limitation\n\nThe 18 percent loss is consistent with an elastic response in the observed price range, but it is not a complete demand estimate. I would compare churn by usage, outside options, and advertising tolerance before treating the prices as a forecast. The revision is not simply a new list of prices: it gives Standard a family-use job and keeps Premium features tied to viewers who actually value multiple screens and offline access.`;
   }
   const note = economicsWritingFor(studentKey);
   const name = economicsStudentName(studentKey);
   const statusNote = final ? "I revised the table after considering cannibalization." : "I am still deciding whether the middle tier has a clear reason to exist.";
-  return `${name}\n\nPricing Strategy Session\n\nRecommended Pricing Tiers\n- Basic: $7.99 with ads for casual viewers\n- Standard: $12.99 with two screens\n- Premium: $19.99 with 4K and offline downloads\n\n${note.revision} ${statusNote} ${note.caveat}`;
+  return `${name}\n\nPricing Strategy Session\n\n## Initial problem frame\n\n${note.opening} I treated the 18 percent subscriber loss as a signal that one posted price may be compressing customers with different willingness to pay into the same choice. Before choosing tiers, I separated casual viewers, regular households, and heavy viewers by the features that change how they use the service.\n\n## Recommended Pricing Tiers\n- Basic: $7.99 with ads and one screen for casual viewers who primarily need low monthly cost.\n- Standard: $12.99 ad-free with two screens for regular households that value shared viewing but do not need premium quality.\n- Premium: $19.99 with 4K, four screens, and offline downloads for heavy viewers who value simultaneous use and travel access.\n\n## Why the fences matter\n\n${note.revision} ${statusNote} The entry tier is cheaper because ads and one-screen use create a real difference in value. Standard protects the ordinary household use case, while Premium is not just a higher number: it carries features that a high-value household would lose by downgrading. I used the elasticity distinction from the course reader rather than the visual steepness of a curve, because a linear demand curve can have a constant slope while percentage responsiveness changes.\n\n## Evidence I would collect next\n\n${note.caveat} I would compare churn and downgrade behavior by usage pattern, test one fence at a time, and watch whether advertising load changes the value of the entry tier. Those observations would tell me whether the menu is separating customers or simply moving the same customers into a cheaper plan.`;
 }
 
 // Graded submissions for 31 students
@@ -1104,35 +933,8 @@ export const econCourse: FixtureCourse = {
   code: courseCode,
   name: "Intermediate Microeconomics",
   termSlug,
-  description: "Intermediate Microeconomics examines how consumers and firms make choices under scarcity, how prices and market power shape those choices, and how policy affects welfare. Students use models of demand, production, cost, elasticity, and monopoly to analyze decisions made by digital platforms. The course emphasizes moving from assumptions and evidence to an economic recommendation that can be defended in writing, graphs, and quantitative work.",
-  syllabusMd: `# Syllabus: ECON-241 Intermediate Microeconomics
-
-Intermediate Microeconomics studies how consumers and firms make choices when resources, information, and alternatives are limited. In this section we move from competitive markets to firms with pricing power, then use the same tools to examine a live platform problem. The aim is not to memorize a graph in isolation. It is to explain what changed, whose decision changed, and how the result affects quantity, surplus, revenue, and welfare.
-
-## Instructor and course rhythm
-
-Dr. Amara Osei (instructor@demo.edu) teaches ECON-241. A normal week includes a course page, a worked example, a short problem set or discussion, and a class conversation about what the model leaves out. Bring a calculation and an interpretation to office hours. If the graph and the story disagree, that disagreement is the question to investigate.
-
-## Learning objectives
-
-- LO1: Define equilibrium and predict how a change in demand, supply, or a market intervention affects price and quantity.
-- LO2: Explain willingness to pay, marginal benefit, and consumer surplus using schedules, graphs, and ordinary examples.
-- LO3: Calculate fixed cost, variable cost, marginal cost, revenue, and profit, then use them to locate a firm's decision.
-- LO4: Analyze price elasticity of demand and distinguish percentage responsiveness from the slope of a curve.
-- LO5: Evaluate monopoly pricing, markup choices, churn, and the cost of setting a price above what customers will accept.
-- LO6: Design a price-discrimination or tiered-pricing scheme with defensible segments and fences.
-
-## Assessment
-
-Problem Set 1 works through equilibrium and shifts in the streaming market. Problem Set 2 uses willingness-to-pay schedules and consumer-surplus areas. Problem Set 3 separates fixed, variable, average, and marginal cost before comparing total revenue and profit. Exam 1 covers the first five weeks and includes a focused elasticity question. The Pricing Strategy Session is the current assessment: use the VidStack case to propose tiers, explain the segment logic, and revise the design after a cannibalization challenge. Problem Set 4 will extend the monopoly and markup work. The final project is a pricing recommendation supported by a demand story, not a list of prices without a mechanism.
-
-Grades reward a visible chain from assumption to model to decision. A correct number with the wrong economic interpretation is not complete. State whether a change moves along a curve or shifts it, whether a cost is marginal or average, and whether a price change is likely to raise or lower total revenue. When you use a course page, cite it by title. When the model is silent about fairness, access, or competitor response, name that limitation instead of quietly assuming it away.
-
-## Working agreements
-
-The course agent is available for explanations, practice, and questions, but it should not replace the student's reasoning. Ask it to check a setup, challenge an assumption, or point to a relevant course page. Do not submit a polished answer you cannot defend in your own words. The Pricing Strategy Session records the reasoning and revision process because the final table alone cannot show whether the model was understood.
-
-Late work is accepted for up to one week with a note about the revision. Office hours are a good place to bring a graph that feels mechanically correct but economically strange. We will keep returning to the same habit: identify the decision, identify the constraint, and then choose the model that actually speaks to it.`,
+  description: econ241CourseDescription,
+  syllabusMd: econ241Syllabus,
   classPolicies: [
     {
       title: "Attendance",
@@ -1170,20 +972,20 @@ Late work is accepted for up to one week with a note about the revision. Office 
      * session grades are what the professor surfaces show), so they have to be
      * behind today or the record would show work graded before it was due.
      */
-    { key: "ps1", name: "Problem Set 1: Equilibrium and Market Shifts", descriptionMd: "Use a streaming-market schedule to solve for equilibrium, then analyze a change in consumer preference and a change in server cost. Draw the original and new graphs, identify whether each change shifts a curve or moves along it, and explain what happens to price, quantity, and the likely shortage or surplus. Include one sentence about an assumption the model makes.", objectiveCodes: ["LO1"], pointsPossible: 100, dueWeek: 1, published: true },
-    { key: "ps2", name: "Problem Set 2: Willingness to Pay and Surplus", descriptionMd: "Work from a willingness-to-pay schedule for six streaming customers. Calculate marginal benefit, consumer surplus at a flat price, and the change in surplus after a price increase. Use a graph or table to show which customers leave. End by explaining why a firm's revenue goal and a consumer's value are related but not identical.", objectiveCodes: ["LO2"], pointsPossible: 100, dueWeek: 2, published: true },
-    { key: "reading-check-1", name: "Reading Check: Equilibrium and Surplus", descriptionMd: "Six short questions on the Week 1 readings. One paragraph each, no graphs required. This is a check that the vocabulary is in place before the cost material begins.", objectiveCodes: ["LO1", "LO2"], pointsPossible: 20, dueWeek: 1, published: true },
-    { key: "ps3", name: "Problem Set 3: Costs, Revenue, and the Firm's Decision", descriptionMd: "Separate fixed cost, variable cost, average cost, and marginal cost for a digital platform. Calculate total revenue and profit at several output levels, then identify the quantity where marginal revenue and marginal cost meet. Explain why a near-zero marginal serving cost does not mean the firm has no fixed-cost constraint.", objectiveCodes: ["LO3"], pointsPossible: 100, dueWeek: 3, published: true },
-    { key: "ps4-elasticity", name: "Problem Set 4: Elasticity and Total Revenue", descriptionMd: "Calculate price elasticity of demand at three points on one linear demand curve and explain why the value changes while the slope does not. For each point, state what a five percent price increase does to total revenue and why.", objectiveCodes: ["LO4"], pointsPossible: 100, dueWeek: 4, published: true },
-    { key: "exam-1", name: "Midterm Exam 1: Markets, Firms, and Elasticity", descriptionMd: "The midterm covers equilibrium, consumer surplus, cost and revenue, monopoly choices, and price elasticity. Show the model before calculating. One section asks you to distinguish elasticity from slope and explain what a price increase does to revenue in elastic and inelastic regions. Interpret every result in the market story.", objectiveCodes: ["LO1", "LO2", "LO3", "LO4", "LO5"], pointsPossible: 100, dueWeek: 1, published: true },
-    { key: "ps5-monopoly", name: "Problem Set 5: Monopoly Markups and Churn", descriptionMd: "Analyze a platform with market power that is choosing between a high price with churn and a lower price with more subscribers. Use marginal revenue, marginal cost, elasticity, and a short customer-retention table to explain the decision. Identify one pricing mistake that a single graph would hide.", objectiveCodes: ["LO5"], pointsPossible: 100, dueWeek: 6, published: true },
-    { key: "session-assignment", name: "Pricing Strategy Session", descriptionMd: "VidStack lost 18 percent of subscribers after a flat 15 dollar price hike. Work through the case with the course agent, ask questions before choosing a solution, and propose a tiered pricing table with prices, target segments, and concrete fences. Defend the design with elasticity and willingness to pay, then revise it when the agent tests cannibalization. Submit the final proposal and be ready to explain what evidence would change your recommendation.", objectiveCodes: ["LO4", "LO5", "LO6"], pointsPossible: 100, dueWeek: 1, published: true },
-    { key: "ps6-tiers", name: "Problem Set 6: Designing Fences", descriptionMd: "Take the segment willingness-to-pay data and design a three-tier menu. For each tier, name the segment, the price, and the fence that keeps a higher-value customer from moving down. Then argue against your own design: which fence would you expect to fail first?", objectiveCodes: ["LO6"], pointsPossible: 100, dueWeek: 8, published: true },
-    { key: "case-oligopoly", name: "Case Analysis: A Competitor Enters", descriptionMd: "VidStack now faces a rival at a lower price point. Write a two-page analysis of the best response, using a payoff table and one paragraph on what the model assumes about how quickly the rival reacts.", objectiveCodes: ["LO5"], pointsPossible: 75, dueWeek: 9, published: true },
-    { key: "ps7-bundling", name: "Problem Set 7: Bundles and Two Sides", descriptionMd: "Compare separate pricing to a bundle for two goods with different demand across the same customers. Then extend to the advertising-supported tier and explain how the advertiser side changes the viewer price.", objectiveCodes: ["LO6"], pointsPossible: 100, dueWeek: 10, published: true },
-    { key: "welfare-memo", name: "Policy Memo: Surplus and a Merger Review", descriptionMd: "One page to a regulator. Compute consumer and producer surplus under the two pricing regimes in the case, then state what you would need to know before recommending approval.", objectiveCodes: ["LO2", "LO5"], pointsPossible: 50, dueWeek: 11, published: true },
-    { key: "exam-2", name: "Midterm Exam 2: Power, Discrimination, and Welfare", descriptionMd: "Covers Weeks 6 through 12. Elasticity returns in the applied sections, weighted up after the Exam 1 results. Every calculation needs an interpretation in the market story.", objectiveCodes: ["LO4", "LO5", "LO6"], pointsPossible: 100, dueWeek: 12, published: false },
-    { key: "final-project", name: "Final Pricing Project: A Defensible Market Design", descriptionMd: "Draft a pricing recommendation for a product you can describe with a demand story. The proposal should define customer segments, willingness-to-pay evidence, costs, prices, fences, competitor risks, and one fairness or access concern. The draft is unpublished while the class decides how to compare recommendations.", objectiveCodes: ["LO6"], pointsPossible: 150, dueWeek: 14, published: false },
+    { key: "ps1", name: "Problem Set 1: Equilibrium and Market Shifts", descriptionMd: econ241AssignmentDescriptions.ps1, objectiveCodes: ["LO1"], pointsPossible: 100, dueWeek: 1, published: true },
+    { key: "ps2", name: "Problem Set 2: Willingness to Pay and Surplus", descriptionMd: econ241AssignmentDescriptions.ps2, objectiveCodes: ["LO2"], pointsPossible: 100, dueWeek: 2, published: true },
+    { key: "reading-check-1", name: "Reading Check: Equilibrium and Surplus", descriptionMd: econ241AssignmentDescriptions["reading-check-1"], objectiveCodes: ["LO1", "LO2"], pointsPossible: 20, dueWeek: 1, published: true },
+    { key: "ps3", name: "Problem Set 3: Costs, Revenue, and the Firm's Decision", descriptionMd: econ241AssignmentDescriptions.ps3, objectiveCodes: ["LO3"], pointsPossible: 100, dueWeek: 3, published: true },
+    { key: "ps4-elasticity", name: "Problem Set 4: Elasticity and Total Revenue", descriptionMd: econ241AssignmentDescriptions["ps4-elasticity"], objectiveCodes: ["LO4"], pointsPossible: 100, dueWeek: 4, published: true },
+    { key: "exam-1", name: "Midterm Exam 1: Markets, Firms, and Elasticity", descriptionMd: econ241AssignmentDescriptions["exam-1"], objectiveCodes: ["LO1", "LO2", "LO3", "LO4", "LO5"], pointsPossible: 100, dueWeek: 1, published: true },
+    { key: "ps5-monopoly", name: "Problem Set 5: Monopoly Markups and Churn", descriptionMd: econ241AssignmentDescriptions["ps5-monopoly"], objectiveCodes: ["LO5"], pointsPossible: 100, dueWeek: 6, published: true },
+    { key: "session-assignment", name: "Pricing Strategy Session", descriptionMd: econ241AssignmentDescriptions["session-assignment"], objectiveCodes: ["LO4", "LO5", "LO6"], pointsPossible: 100, dueWeek: 1, published: true },
+    { key: "ps6-tiers", name: "Problem Set 6: Designing Fences", descriptionMd: econ241AssignmentDescriptions["ps6-tiers"], objectiveCodes: ["LO6"], pointsPossible: 100, dueWeek: 8, published: true },
+    { key: "case-oligopoly", name: "Case Analysis: A Competitor Enters", descriptionMd: econ241AssignmentDescriptions["case-oligopoly"], objectiveCodes: ["LO5"], pointsPossible: 75, dueWeek: 9, published: true },
+    { key: "ps7-bundling", name: "Problem Set 7: Bundles and Two Sides", descriptionMd: econ241AssignmentDescriptions["ps7-bundling"], objectiveCodes: ["LO6"], pointsPossible: 100, dueWeek: 10, published: true },
+    { key: "welfare-memo", name: "Policy Memo: Surplus and a Merger Review", descriptionMd: econ241AssignmentDescriptions["welfare-memo"], objectiveCodes: ["LO2", "LO5"], pointsPossible: 50, dueWeek: 11, published: true },
+    { key: "exam-2", name: "Midterm Exam 2: Power, Discrimination, and Welfare", descriptionMd: econ241AssignmentDescriptions["exam-2"], objectiveCodes: ["LO4", "LO5", "LO6"], pointsPossible: 100, dueWeek: 12, published: false },
+    { key: "final-project", name: "Final Pricing Project: A Defensible Market Design", descriptionMd: econ241AssignmentDescriptions["final-project"], objectiveCodes: ["LO6"], pointsPossible: 150, dueWeek: 14, published: false },
   ],
   pages: pagesList,
   materials: materialsList,

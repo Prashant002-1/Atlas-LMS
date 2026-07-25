@@ -34,7 +34,7 @@ import {
   type VoiceTranscriptionState,
 } from "@/components/ai-elements/voice-transcription-button";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
-import { SteeringMark, SteeringPending } from "@/components/ai-elements/steering";
+import { SteeringPending } from "@/components/ai-elements/steering";
 import { useSteering } from "@/components/ai-elements/use-steering";
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput, type ToolState } from "@/components/ai-elements/tool";
 import { AtlasMark } from "@/components/atlas/primitives";
@@ -271,7 +271,9 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
     messages,
     sendAsTurn: sendStudentMessage,
   });
-  settleSteeringRef.current = steering.settleAfterRun;
+  useEffect(() => {
+    settleSteeringRef.current = steering.settleAfterRun;
+  }, [steering.settleAfterRun]);
 
   const activeThreadTitle =
     visibleThreads.find((thread) => thread.id === (learnedThreadId ?? props.threadId))?.title ?? props.threadTitle;

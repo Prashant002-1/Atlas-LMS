@@ -61,7 +61,8 @@ test("review is a URL-selected queue with full records, history, and Atlas prove
   assert.ok(proposals.includes("/teach/atlas?thread="));
   assert.ok(proposals.includes("ProposalQueue"));
   assert.ok(proposals.includes("ProposalPreview"));
-  assert.ok(proposals.includes("Decision history"));
+  assert.ok(proposals.includes("Recent reviews"));
+  assert.equal(proposals.includes("Decision history"), false);
   assert.ok(review.includes('searchParams: Promise<{ proposal?: string }>'));
   assert.ok(review.includes("ProposalHistory"));
   assert.equal(proposals.includes("ProposalCard"), false);

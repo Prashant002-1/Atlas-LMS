@@ -111,7 +111,7 @@ export async function loadSubmissionDetail(
   if (!scope.course) return unavailable("No course in view", "No course is in view for this semester.");
 
   const [course] = await db
-    .select({ id: courses.id, code: courses.code, name: courses.name, term: courses.term, gradeBands: courses.gradeBands })
+    .select({ id: courses.id, code: courses.code, name: courses.name, term: courses.term, gradeScale: courses.gradeScale })
     .from(courses)
     .where(and(eq(courses.orgId, actor.orgId), eq(courses.id, scope.course.id)))
     .limit(1);
@@ -241,7 +241,7 @@ export async function loadSubmissionDetail(
       standing:
         rosterRow.currentGrade ??
         (typeof rosterRow.currentScore === "number"
-          ? `${Math.round(rosterRow.currentScore)} ${gradeLetterFor(rosterRow.currentScore, gradeBandsForCourse(course.gradeBands))}`
+          ? `${Math.round(rosterRow.currentScore)} ${gradeLetterFor(rosterRow.currentScore, gradeBandsForCourse(course.gradeScale))}`
           : null),
     },
     submission: {

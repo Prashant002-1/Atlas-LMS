@@ -105,7 +105,8 @@ test("creation and edits open as deliberate dialogs", () => {
   assert.equal(announcementComposer.includes("RecordDialog"), true);
   assert.equal(announcements.includes("AnnouncementList"), true);
   assert.equal(announcements.includes("Post to course"), false);
-  assert.equal(source("app/teach/announcements/[announcementId]/page.tsx").includes("Markdown"), true);
+  assert.equal(source("app/teach/announcements/[announcementId]/page.tsx").includes("AnnouncementMessage"), true);
+  assert.equal(source("components/teach/announcement-message.tsx").includes("Markdown"), true);
   assert.equal(modules.includes("NewModuleDialog"), true);
   assert.equal(modules.includes("<details"), false);
   assert.equal(moduleDetail.includes("ModuleSwitcher"), true);

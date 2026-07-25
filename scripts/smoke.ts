@@ -68,8 +68,8 @@ const checks: SmokeCheck[] = [
     path: "/teach/settings",
     status: 200,
     auth: { email: "instructor@demo.edu", password: "atlas1234", redirectTo: "/teach/settings" },
-    includes: ["Works for you", "What Atlas can do", "What Atlas remembers", "System boundaries"],
-    excludes: ["Model access", "openai_compatible", "API key", "Version history"],
+    includes: ["Courses", "The course agent", "System boundaries"],
+    excludes: ["Works for you", "What Atlas can do", "What Atlas remembers", "Model access", "openai_compatible", "API key"],
   },
   {
     name: "course setup",
@@ -148,7 +148,7 @@ const checks: SmokeCheck[] = [
     path: "/student/books",
     status: 200,
     auth: { email: "student@demo.edu", password: "atlas1234", redirectTo: "/student/books" },
-    includes: ["Books", "No books listed", "course reading lists"],
+    includes: ["Books", "No books listed"],
   },
 ];
 

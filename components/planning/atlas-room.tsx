@@ -398,7 +398,9 @@ export function PlanningRoom(props: PlanningRoomProps) {
     messages,
     sendAsTurn: sendPlanningMessage,
   });
-  settleSteeringRef.current = steering.settleAfterRun;
+  useEffect(() => {
+    settleSteeringRef.current = steering.settleAfterRun;
+  }, [steering.settleAfterRun]);
 
   const statusByProposal = useMemo(() => {
     const map = new Map<string, PlanningDraftRef["status"]>();

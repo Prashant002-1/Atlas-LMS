@@ -397,7 +397,8 @@ test("the app is pages behind one sidebar, not a monolith", () => {
   assertServerAction("lib/workspace/scope-actions.ts", "setCourseScope");
   assertServerAction("lib/workspace/scope-actions.ts", "setTermScope");
   assertSourceIncludes("components/teach/course-switch.tsx", "setCourseScope");
-  assertSourceIncludes("components/teach/course-switch.tsx", "setTermScope");
+  assertSourceExcludes("components/teach/course-switch.tsx", "setTermScope");
+  assertSourceIncludes("lib/workspace/scope-actions.ts", "termSlugForCourse");
   assertSourceIncludes("app/teach/page.tsx", "CourseSwitch");
 });
 

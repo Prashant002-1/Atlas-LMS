@@ -1,15 +1,14 @@
 import { auth } from "@/lib/auth";
 import { loadInstructorCalendar, type InstructorCalendarEntry } from "@/lib/instructor/workspace";
 import { PageHeader } from "@/components/teach/page-header";
-import { EmptyState } from "@/components/atlas/record";
 import {
-  MonthEntryList,
-  MonthGrid,
   MonthNav,
   monthWindow,
+  monthKey,
   parseMonth,
   type MonthEntry,
 } from "@/components/atlas/month-calendar";
+import { InteractiveMonthCalendar } from "@/components/atlas/interactive-month-calendar";
 
 /**
  * The teaching calendar: every dated fact in the course in view, drafts
@@ -40,7 +39,6 @@ export default async function TeachCalendarPage({
   const entries = calendar.entries.map(toMonthEntry);
   const monthLabel = new Date(year, month, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
   const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
-  const monthEntries = entries.filter((entry) => entry.date.getMonth() === month && entry.date.getFullYear() === year);
 
   return (
     <>
@@ -50,23 +48,13 @@ export default async function TeachCalendarPage({
         action={<MonthNav basePath="/teach/calendar" year={year} month={month} isCurrentMonth={isCurrentMonth} />}
       />
 
-      <MonthGrid year={year} month={month} today={now} entries={entries} />
-
-      <section className="mt-6">
-        <h2 className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">This month</h2>
-        <div className="mt-2.5">
-          {monthEntries.length > 0 ? (
-            <MonthEntryList entries={monthEntries} />
-          ) : (
-            <div className="rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-panel)]">
-              <EmptyState
-                art="month"
-                title="No events"
-              />
-            </div>
-          )}
-        </div>
-      </section>
+      <InteractiveMonthCalendar
+        key={monthKey(year, month)}
+        year={year}
+        month={month}
+        today={now}
+        entries={entries}
+      />
     </>
   );
 }

@@ -151,6 +151,12 @@ export type FixtureMaterial = {
   pageCount?: number;
   /** Visible to students, or instructor-only while it is being prepared. */
   visibility?: "course" | "instructors";
+  /**
+   * Optional public asset retained with the seed package. The material row uses
+   * this location when the demo database is seeded, so course documents can be
+   * opened locally before a live upload provider is configured.
+   */
+  assetPath?: string;
   /** Readable content for grounding, as the ingestion service would return it. */
   extractedText?: string;
 };

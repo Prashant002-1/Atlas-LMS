@@ -197,7 +197,7 @@ test("student filtering and row identity are deterministic", () => {
   assert.equal(sessionTable.includes("toLocaleLowerCase"), false);
   assert.equal(submissionTable.includes("toLocaleLowerCase"), false);
   assert.ok(page.includes("rowId:"));
-  assert.ok(submissionTable.includes("return row.rowId"));
+  assert.ok(submissionTable.includes("<tr key={row.rowId}"));
   assert.ok(submissionTable.includes('typeof pointsPossible === "number"'));
 });
 

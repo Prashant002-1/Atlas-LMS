@@ -1,5 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { v0DemoWorld } from "./v0-demo-world";
 
 test("manifest checks out correctly", () => {
@@ -142,6 +144,37 @@ test("course pages have 300-800 words and no placeholders", () => {
     assert.ok(words >= 300 && words <= 800, `Page ${page.slug} has ${words} words, expected 300-800`);
     assert.ok(!page.bodyMd.includes("TODO"), `Page ${page.slug} has TODOs`);
     assert.ok(!page.bodyMd.includes("lorem ipsum"), `Page ${page.slug} has placeholder text`);
+  }
+});
+
+test("ECON-241 is a deep course record with import-ready teaching assets", () => {
+  const course = v0DemoWorld.currentSchema.package.courses[0];
+  const wordCount = (value: string) => value.trim().split(/\s+/).filter(Boolean).length;
+  const materials = course.materials ?? [];
+
+  assert.ok(wordCount(course.syllabusMd) >= 900, "syllabus should carry a full course contract");
+  assert.equal(course.modules.length, 14, "course should cover a full fourteen-week term");
+  for (const courseModule of course.modules) {
+    assert.ok(wordCount(courseModule.summaryMd) >= 90, `${courseModule.key} summary is too short for a teaching week`);
+  }
+
+  assert.equal(materials.length, 45, "course should have a syllabus, 42 weekly artifacts, and two special records");
+  assert.ok(materials.some((material) => material.contentType === "application/pdf"), "course needs PDF material");
+  assert.ok(materials.some((material) => material.contentType.includes("presentationml")), "course needs a slide deck");
+  assert.ok(materials.some((material) => material.contentType.includes("wordprocessingml")), "course needs Word material");
+  assert.ok(materials.some((material) => material.contentType.includes("spreadsheetml")), "course needs a workbook");
+  for (const material of materials) {
+    if (typeof material.extractedText !== "string") throw new Error(`${material.key} lacks extracted text`);
+    assert.ok(wordCount(material.extractedText) >= 300, `${material.key} extracted text is too short for grounded work`);
+    const assetPath = material.assetPath;
+    if (typeof assetPath !== "string") throw new Error(`${material.key} lacks an ECON-241 asset path`);
+    assert.ok(assetPath.startsWith("/seed-assets/econ-241/fall-2026/"), `${material.key} lacks an ECON-241 asset path`);
+    const assetOnDisk = resolve(process.cwd(), "public", assetPath.slice(1));
+    assert.ok(existsSync(assetOnDisk), `${material.key} asset is missing at ${assetPath}`);
+  }
+
+  for (const assignment of course.assignments) {
+    assert.ok(wordCount(assignment.descriptionMd) >= 140, `${assignment.key} assignment brief is too short`);
   }
 });
 

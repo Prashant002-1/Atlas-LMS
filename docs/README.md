@@ -7,7 +7,7 @@ Read these in order when orienting:
 3. [`v0/README.md`](v0/README.md), the v0 scope map.
 4. [`v0/implementation-plan.md`](v0/implementation-plan.md), current phase status and build plan.
 5. [`v0/architecture.md`](v0/architecture.md), runtime and grading-pipeline design.
-6. [`v0/data-blueprint.md`](v0/data-blueprint.md), the active seed-data contract for the v0 demo world.
+6. [`v0/econ241-seed-contract.md`](v0/econ241-seed-contract.md), the active ECON-241 seed-data contract.
 
 Supporting docs:
 
@@ -20,6 +20,7 @@ Historical/context notes:
 - [`trajectory/`](trajectory/), notes from the product shift.
 - [`demo/pitch-narrative-notes.md`](demo/pitch-narrative-notes.md), pitch-story scratchpad.
 - [`prototypes/`](prototypes/), old visual prototypes.
+- [`v0/data-blueprint.md`](v0/data-blueprint.md), the superseded original v0 design brief.
 
 Removed/superseded work:
 

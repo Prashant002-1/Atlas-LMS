@@ -174,22 +174,12 @@ export function AppShell({
             </div>
           )}
 
-          {/*
-            The nav is sized to hold the course's whole set of destinations
-            without scrolling on an ordinary laptop. A scrollbar inside a
-            fifteen-item sidebar is not a capacity problem, it is a spacing
-            problem: rows at 2.25rem plus 1.25rem between groups overflowed by
-            a few dozen pixels, so the last item hid behind a bar for no reason.
-            Rows are 2rem and groups are 1rem apart, which fits the current set
-            with room to spare. overflow-y-auto remains only as the honest
-            fallback for a genuinely short window or a much longer nav later.
-          */}
-          <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-2" aria-label="Main">
+          <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-2" aria-label="Main">
             {sections.map((section, index) => (
-              <div key={section.label ?? `section-${index}`} className={index > 0 ? "mt-4" : undefined}>
-                {index > 0 && shellCollapsed ? <div className="mx-1 mb-3 h-px bg-[var(--color-border)]" aria-hidden /> : null}
+              <div key={section.label ?? `section-${index}`} className={index > 0 ? "mt-5" : undefined}>
+                {index > 0 && shellCollapsed ? <div className="mx-1 mb-4 h-px bg-[var(--color-border)]" aria-hidden /> : null}
                 {section.label && !shellCollapsed ? (
-                  <p className="mb-1 px-2.5 text-[0.65625rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">
+                  <p className="mb-1.5 px-2.5 text-[0.65625rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-faint)]">
                     {section.label}
                   </p>
                 ) : null}
@@ -204,7 +194,7 @@ export function AppShell({
                           href={item.href}
                           aria-current={active ? "page" : undefined}
                           title={shellCollapsed ? item.label : undefined}
-                          className={`relative flex min-h-8 items-center gap-2.5 rounded-row px-2.5 text-[0.84375rem] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] ${
+                          className={`relative flex min-h-9 items-center gap-2.5 rounded-row px-2.5 text-[0.84375rem] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)] ${
                             shellCollapsed ? "justify-center" : ""
                           } ${
                             active

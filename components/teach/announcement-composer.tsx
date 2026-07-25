@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { Markdown } from "@/components/agent/markdown";
 import { ActionButton } from "@/components/atlas/primitives";
 import { RecordDialog } from "@/components/teach/record-dialog";
+import { RichTextEditor } from "@/components/teach/rich-text-editor";
+import { AnnouncementMessage } from "@/components/teach/announcement-message";
 import { createAnnouncementRecord, startAnnouncementDraftThread } from "@/lib/instructor/actions";
 import { cn } from "@/lib/utils";
 
@@ -11,10 +12,25 @@ type ComposerMode = "write" | "atlas";
 type ComposerStep = "compose" | "review";
 type Delivery = "now" | "scheduled";
 
+/**
+ * Writing an announcement.
+ *
+ * An announcement is a message to thirty people, so the message box is a
+ * formatted one: a heading, a list of what to do, a quoted line. A bare
+ * textarea made the writer either recall Markdown or give up and send a wall.
+ *
+ * Review shows the announcement exactly as students will receive it, in the
+ * same email-shaped component the read view uses, rather than an approximation
+ * that drifts from it.
+ */
 export function AnnouncementComposer({
   defaultOpen,
+  authorName,
+  courseCode,
 }: {
   defaultOpen: boolean;
+  authorName: string;
+  courseCode: string;
 }) {
   const [mode, setMode] = useState<ComposerMode>("write");
   const [step, setStep] = useState<ComposerStep>("compose");
@@ -91,16 +107,20 @@ export function AnnouncementComposer({
                 className={fieldClass}
               />
             </Field>
-            <Field label="Message">
-              <textarea
-                rows={12}
-                required
-                maxLength={4000}
-                value={message}
-                onChange={(event) => setMessage(event.target.value)}
-                className={`${fieldClass} min-h-64 resize-y py-3 leading-6`}
-              />
-            </Field>
+            {/*
+              Uncontrolled inside, so the editor owns its own selection while
+              typing; the composer reads the value back on change to keep the
+              preview and the submit payload in step.
+            */}
+            <RichTextEditor
+              name="composer-message"
+              label="Message"
+              defaultValue={message}
+              rows={12}
+              maxLength={4000}
+              onValueChange={setMessage}
+              placeholder="What students need to know, and what to do about it."
+            />
           </div>
           <div className="mt-6 flex justify-end border-t border-[var(--color-border)] pt-4">
             <ActionButton type="button" onClick={() => setStep("review")} disabled={!title.trim() || !message.trim()}>Review</ActionButton>
@@ -109,11 +129,22 @@ export function AnnouncementComposer({
       ) : (
         <section aria-labelledby="review-announcement-heading">
           <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_16rem]">
-            <article className="min-w-0">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-[var(--color-faint)]">Preview</p>
-              <h3 id="review-announcement-heading" className="atlas-serif mt-2 text-[1.25rem] font-semibold leading-7 text-[var(--color-ink)]">{title}</h3>
-              <Markdown className="mt-5 text-[0.875rem] leading-7 text-[var(--color-muted)]">{message}</Markdown>
-            </article>
+            <div className="min-w-0">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-[var(--color-faint)]">
+                What students will receive
+              </p>
+              <h3 id="review-announcement-heading" className="sr-only">Preview</h3>
+              <div className="mt-3">
+                <AnnouncementMessage
+                  subject={title}
+                  authorName={authorName}
+                  courseCode={courseCode}
+                  audience="Everyone in this course"
+                  messageMd={message}
+                  stampLabel={delivery === "scheduled" && scheduledFor ? `Scheduled for ${localStamp(scheduledFor)}` : "Sends now"}
+                />
+              </div>
+            </div>
 
             <form action={createAnnouncementRecord} className="border-t border-[var(--color-border)] pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
               <input type="hidden" name="title" value={title} />
@@ -187,6 +218,12 @@ function DeliveryOption({ checked, onChange, label }: { checked: boolean; onChan
       {label}
     </label>
   );
+}
+
+function localStamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 const fieldClass = "min-h-10 w-full rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.8125rem] font-normal text-[var(--color-ink)] outline-none transition placeholder:text-[var(--color-faint)] focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]";

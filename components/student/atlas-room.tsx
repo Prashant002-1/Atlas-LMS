@@ -34,6 +34,8 @@ import {
   type VoiceTranscriptionState,
 } from "@/components/ai-elements/voice-transcription-button";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
+import { SteeringMark, SteeringPending } from "@/components/ai-elements/steering";
+import { useSteering } from "@/components/ai-elements/use-steering";
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput, type ToolState } from "@/components/ai-elements/tool";
 import { AtlasMark } from "@/components/atlas/primitives";
 import { archiveStudentAtlasChat } from "@/lib/agent/chat-actions";
@@ -147,8 +149,7 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
   }
 
   const runStorageKey = `atlas-active-run:student:${activeSessionId}`;
-  const [steerQueue, setSteerQueue] = useState<string[]>([]);
-  const steerQueueRef = useRef<string[]>([]);
+  const settleSteeringRef = useRef<() => void>(() => {});
   const transport = useMemo(() => new WorkflowChatTransport<StudentAtlasChatMessage>({
     api: "/api/atlas/student",
     prepareSendMessagesRequest: ({ messages: outgoing }) => ({
@@ -185,11 +186,8 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
     onError: (chatError) => console.error("student Atlas stream failed", chatError),
     onFinish: ({ isAbort, isDisconnect }) => {
       if (isAbort || isDisconnect) return;
-      const [next, ...rest] = steerQueueRef.current;
-      if (!next) return;
-      steerQueueRef.current = rest;
-      setSteerQueue(rest);
-      window.setTimeout(() => sendMessage({ text: next, metadata: atlasMessageMetadataNow() }), 0);
+      /* Anything the run never reached is sent as the next turn instead. */
+      settleSteeringRef.current();
     },
   });
 
@@ -262,6 +260,18 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
     if (!learnedThreadId || props.threadId !== "new") return;
     window.history.replaceState(null, "", `/student/atlas?thread=${learnedThreadId}`);
   }, [learnedThreadId, props.threadId]);
+
+  /*
+   * Steering redirects the response in flight rather than queueing behind it.
+   * A fresh chat learns its id mid-stream, so the note aims at whichever id
+   * the thread has by the time it is typed.
+   */
+  const steering = useSteering({
+    threadId: learnedThreadId ?? (activeSessionId === "new" ? null : activeSessionId),
+    messages,
+    sendAsTurn: sendStudentMessage,
+  });
+  settleSteeringRef.current = steering.settleAfterRun;
 
   const activeThreadTitle =
     visibleThreads.find((thread) => thread.id === (learnedThreadId ?? props.threadId))?.title ?? props.threadTitle;
@@ -354,7 +364,11 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
                     <MessageContent>
                       <StudentMessageParts message={message} streaming={busy && index === messages.length - 1 && message.role === "assistant"} />
                     </MessageContent>
-                    <MessageTimestamp createdAt={message.metadata?.createdAt} />
+                    {/* No clock on an answer still being written. */}
+                    <MessageTimestamp
+                      createdAt={message.metadata?.createdAt}
+                      pending={busy && index === messages.length - 1 && message.role === "assistant"}
+                    />
                   </Message>
                 ))
               )}
@@ -369,7 +383,8 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
             {error ? <p className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{error.message || "Atlas could not finish that turn. Your message is saved."}</p> : null}
             {voiceError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{voiceError}</p> : null}
             {attachmentError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{attachmentError}</p> : null}
-            {steerQueue.length > 0 ? <p className="mb-2 text-[0.71875rem] text-[var(--color-muted)]" role="status">Steer queued · {steerQueue[0]}</p> : null}
+            {steering.error ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{steering.error}</p> : null}
+            <SteeringPending notes={steering.notes} />
             {selectedDocuments.length > 0 ? (
               <ul className="mb-2 flex flex-wrap gap-1.5" aria-label="Documents for this message">
                 {selectedDocuments.map((document) => (
@@ -392,9 +407,8 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
               const text = message.text.trim();
               if (!text) return;
               if (busy) {
-                const nextQueue = [...steerQueueRef.current, text];
-                steerQueueRef.current = nextQueue;
-                setSteerQueue(nextQueue);
+                /* Redirect the response in flight rather than lining up behind it. */
+                void steering.steer(text);
               } else {
                 sendStudentMessage(text);
               }
@@ -413,7 +427,7 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
               >
                 <Plus size={16} aria-hidden />
               </PromptInputButton>
-              <PromptInputTextarea className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-1.5 py-[0.8125rem]" placeholder={busy ? "Steer Atlas..." : "Ask Atlas..."} autoFocus />
+              <PromptInputTextarea className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-1.5 py-[0.8125rem]" placeholder={busy ? "Redirect Atlas..." : "Ask Atlas..."} autoFocus />
               <PromptInputToolbar className="shrink-0 justify-end gap-0.5 px-1.5 py-1.5">
                 <PromptInputTools>
                   <VoiceTranscriptionButton onError={setVoiceError} onStateChange={setVoiceState} />

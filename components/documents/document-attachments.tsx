@@ -18,13 +18,18 @@ export function DocumentAttachmentSection({
 }) {
   const documentBase = audience === "instructor" ? "/teach/documents" : "/student/documents";
   return (
-    <section aria-labelledby="attached-documents-heading" className="mt-7 max-w-4xl py-5">
+    /*
+      The header spans the content column so the action lands on the same right
+      edge as every other page action. Constraining the whole section to
+      max-w-4xl pulled the button inward and made it read as floating.
+    */
+    <section aria-labelledby="attached-documents-heading" className="mt-7 py-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="attached-documents-heading" className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">{title}</h2>
         {owner ? <DocumentUploadDialog owner={owner} /> : null}
       </div>
       {items.length > 0 ? (
-        <ul className="mt-3 divide-y divide-[var(--color-border)]">
+        <ul className="mt-3 max-w-4xl divide-y divide-[var(--color-border)]">
           {items.map((item) => (
             <li key={item.attachmentId} className="flex items-start gap-3 px-2 py-3">
               <FileText size={15} strokeWidth={1.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--color-muted)]" />
@@ -45,7 +50,7 @@ export function DocumentAttachmentSection({
           ))}
         </ul>
       ) : (
-        <p className="mt-3 py-3 text-[0.78125rem] text-[var(--color-muted)]">No documents attached.</p>
+        <p className="mt-3 max-w-4xl py-3 text-[0.78125rem] text-[var(--color-muted)]">No documents attached.</p>
       )}
     </section>
   );
@@ -60,7 +65,13 @@ function DocumentUploadDialog({ owner }: { owner: { type: "syllabus" | "assignme
         <input type="hidden" name="returnTo" value={owner.returnTo} />
         <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           File
-          <input name="file" type="file" required accept={documentAccept} className={`${fieldClass} file:mr-3 file:border-0 file:bg-transparent file:text-[0.75rem] file:font-medium file:text-[var(--color-ink)]`} />
+          <input
+            name="file"
+            type="file"
+            required
+            accept={documentAccept}
+            className={`${fileFieldClass} file:mr-3 file:rounded-control file:border-0 file:bg-[var(--color-surface)] file:px-2.5 file:py-1 file:text-[0.75rem] file:font-medium file:text-[var(--color-ink)] hover:file:bg-[var(--color-surface-muted)]`}
+          />
         </label>
         <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Display name <span className="font-normal text-[var(--color-faint)]">Optional</span>
@@ -89,3 +100,9 @@ function measure(item: DocumentAttachmentItem) {
 
 const documentAccept = ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.rtf,.xml,.json,.jsonl,.yaml,.yml,.html,.css,.js,.jsx,.ts,.tsx,.mjs,.cjs,.py,.java,.c,.cc,.cpp,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.kts,.sql,.sh,.zsh,.bash";
 const fieldClass = "min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.8125rem] text-[var(--color-ink)] outline-none transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]";
+/*
+  A file input renders its own button plus the "no file chosen" label, and a
+  bare min-height leaves both sitting on the box's baseline. Making the control
+  a flex row centres them the way every other field in this dialog is centred.
+*/
+const fileFieldClass = "flex min-h-10 items-center rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-1.5 text-[0.8125rem] text-[var(--color-muted)] outline-none transition focus-within:border-[var(--color-accent-strong)] focus-within:bg-[var(--color-surface)]";

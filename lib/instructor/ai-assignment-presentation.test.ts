@@ -78,11 +78,30 @@ test("student session detail uses direct record language and restrained hierarch
   const grade = read("components/cockpit/report-panel.tsx");
   const transcript = read("components/cockpit/transcript-view.tsx");
 
-  for (const expected of ["Grade", "Submission draft", "Transcript"]) assert.ok(page.includes(expected));
+  /*
+   * The three readings of one session are tabs, so only the selected one is on
+   * screen and switching does not mean scrolling past the other two.
+   */
+  assert.ok(page.includes("SectionTabs"));
+  for (const expected of ["Grade", "Final work", "Transcript"]) assert.ok(page.includes(expected));
+  /* The assignment is already in the back link; the eyebrow must not repeat it. */
+  assert.equal(page.includes("view.assignment.name}`}"), false);
+  assert.ok(page.includes("course={view.course.code}"));
+
+  /* One criterion at a time: the rubric is scannable and depth is on request. */
+  assert.ok(grade.includes("<details"));
   assert.ok(grade.includes("Post final grade"));
-  assert.ok(transcript.includes("Session transcript"));
   assert.equal(grade.includes("StatusBadge"), false);
   assert.equal(grade.includes("Journey report"), false);
+
+  /*
+   * The highlight says "this counted" and nothing more. Criterion keys as
+   * superscripts put internal names in the student's own sentence and repeated
+   * the quote list that the grade already carries.
+   */
+  assert.equal(transcript.includes("<sup"), false);
+  assert.equal(transcript.includes("shortTag"), false);
+  assert.ok(transcript.includes("Highlighted text was used in the grade."));
   assert.equal(transcript.includes("rounded-panel border"), false);
 });
 
@@ -101,14 +120,53 @@ test("regular assignment submissions use the same searchable review table", () =
   assert.ok(page.includes("SubmissionReviewTable"));
   assert.ok(table.includes("Search students"));
   assert.ok(table.includes("Filter submissions"));
-  assert.ok(table.includes("Student response"));
-  assert.ok(table.includes("Update grade"));
   assert.ok(table.includes("appearance-none"));
   assert.ok(table.includes("right-3.5"));
   assert.equal(table.includes('type="checkbox"'), false);
   assert.equal(table.includes('value: "selected"'), false);
   assert.equal(page.includes("StatusBadge"), false);
   assert.equal(page.includes("<Panel"), false);
+
+  /*
+   * Rows navigate rather than expand. A submission is a file, a link, a page of
+   * prose, or a whole session, and none of those fit inside a table cell next to
+   * a score box.
+   */
+  assert.equal(table.includes("setExpanded"), false);
+  assert.equal(table.includes("Student response"), false);
+  assert.equal(table.includes("responsePreview"), false);
+  assert.match(table, /\/submissions\/\$\{row\.studentId\}/);
+  /* The row says what shape the work is, instead of previewing prose. */
+  assert.ok(table.includes("kindLabel"));
+});
+
+test("one student's submission has its own page, with grade and feedback", () => {
+  const page = read("app/teach/assignments/[assignmentId]/submissions/[studentId]/page.tsx");
+  const loader = read("lib/instructor/submission-detail.ts");
+
+  /* The work leads; score and comment sit beside it and save independently. */
+  assert.ok(page.includes("SubmittedWork"));
+  assert.ok(page.includes("saveSubmissionFeedback"));
+  assert.ok(page.includes("gradeSubmission"));
+  assert.ok(page.includes("RichTextEditor"));
+  /* Grading a class should not mean returning to the list between students. */
+  assert.ok(page.includes("RosterPager"));
+
+  /* A submission is not always prose, and the loader says which shape it is. */
+  assert.ok(loader.includes("submissionKind"));
+  for (const shape of ["\"file\"", "\"link\"", "\"session\"", "\"text\""]) {
+    assert.ok(loader.includes(shape), `submission kind ${shape} should exist`);
+  }
+  /* Read-only loader, scoped to the course in view rather than the id alone. */
+  assert.equal(loader.includes(".insert("), false);
+  assert.equal(loader.includes(".update("), false);
+  assert.ok(loader.includes("eq(assignments.courseId, course.id)"));
+
+  /* Feedback is its own record, written by someone, at a time. */
+  assert.match(read("lib/db/schema.ts"), /feedback: text\("feedback"\)/);
+  const action = read("lib/instructor/feedback-actions.ts");
+  assert.ok(action.includes("saveSubmissionFeedback"));
+  assert.ok(action.includes("feedbackById"));
 });
 
 test("the assignment edit dialog matches the persisted assignment contract", () => {

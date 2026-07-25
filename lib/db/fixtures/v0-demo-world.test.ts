@@ -29,7 +29,7 @@ test("current schema package has expected structure", () => {
   const pkg = v0DemoWorld.currentSchema.package;
   assert.equal(pkg.org.slug, "demo-u");
   assert.equal(pkg.terms.length, 1);
-  assert.equal(pkg.terms[0].slug, "summer-2026");
+  assert.equal(pkg.terms[0].slug, "fall-2026");
   assert.ok(pkg.users.length >= 33 && pkg.users.length <= 36, `Expected users count to be between 33 and 36, got ${pkg.users.length}`);
   assert.ok(pkg.courses.length >= 1 && pkg.courses.length <= 4, `Expected courses count to be between 1 and 4, got ${pkg.courses.length}`);
   assert.equal(pkg.courses[0].code, "ECON-241");
@@ -56,9 +56,70 @@ test("exactly one current term, dates do not violate timeline", () => {
   const term = pkg.terms[0];
   assert.ok(term.startsAt < term.endsAt, "term ends before it starts");
 
-  // June 9 2026 must fall within the term
-  const demoDay = "2026-06-09";
+  /*
+   * The term opens two weeks before the demo day and runs fourteen weeks, so
+   * the course is in progress rather than finished: work behind it, work due
+   * now, and most of the term ahead.
+   */
+  const demoDay = "2026-07-24";
   assert.ok(term.startsAt <= demoDay && demoDay <= term.endsAt, "Demo day must fall within current term");
+
+  const startMs = Date.parse(`${term.startsAt}T00:00:00Z`);
+  const endMs = Date.parse(`${term.endsAt}T00:00:00Z`);
+  const weeks = Math.round((endMs - startMs) / (7 * 24 * 60 * 60 * 1000));
+  assert.ok(weeks >= 12 && weeks <= 15, `Expected a 12 to 15 week term, got ${weeks}`);
+
+  const demoWeek = Math.floor((Date.parse(`${demoDay}T00:00:00Z`) - startMs) / (7 * 24 * 60 * 60 * 1000)) + 1;
+  assert.ok(demoWeek >= 2 && demoWeek <= 3, `Demo day should sit early in the term, got week ${demoWeek}`);
+});
+
+test("the course record spans the whole term, with work ahead of today", () => {
+  const course = v0DemoWorld.currentSchema.package.courses[0];
+  assert.ok(course.modules.length >= 12, `expected at least 12 modules, got ${course.modules.length}`);
+  assert.ok(course.assignments.length >= 12, `expected at least 12 assignments, got ${course.assignments.length}`);
+
+  /* Assignments have to reach the end of the term, not stop at week seven. */
+  const lastDueWeek = Math.max(...course.assignments.map((a) => a.dueWeek));
+  assert.ok(lastDueWeek >= 12, `expected work due late in the term, last due week ${lastDueWeek}`);
+
+  /* Every week with a module is a week a professor can open. */
+  const weeks = new Set(course.modules.map((m) => m.week));
+  for (let week = 1; week <= 10; week += 1) {
+    assert.ok(weeks.has(week), `week ${week} has no module`);
+  }
+
+  /* Documents exist and are placed on weeks, which is what a module page reads. */
+  assert.ok((course.materials?.length ?? 0) >= 12, "expected at least 12 course documents");
+  for (const material of course.materials ?? []) {
+    assert.ok(material.week >= 1 && material.week <= 14, `${material.key} sits outside the term`);
+    assert.ok(material.filename.includes("."), `${material.key} has no file extension`);
+  }
+  const slides = (course.materials ?? []).filter((m) => m.kind === "slides").length;
+  assert.ok(slides >= 4, `expected several slide decks, got ${slides}`);
+});
+
+test("submissions vary in shape, length, and voice", () => {
+  const course = v0DemoWorld.currentSchema.package.courses[0];
+  const written = course.submissions.filter((s) => s.state !== "missing");
+
+  /* Not every submission is prose: a real class uploads files and shares links. */
+  const files = written.filter((s) => s.submissionType === "file");
+  const links = written.filter((s) => s.submissionType === "online_url");
+  assert.ok(files.length >= 10, `expected uploaded files, got ${files.length}`);
+  assert.ok(links.length >= 3, `expected shared links, got ${links.length}`);
+  for (const submission of [...files, ...links]) {
+    assert.ok(submission.url, "a file or link submission needs a location");
+  }
+
+  /* Bodies are not all one length, which is what a preview column has to hold. */
+  const lengths = written.map((s) => (s.body ?? "").length).filter((length) => length > 0);
+  assert.ok(Math.min(...lengths) < 120, "expected some very short answers");
+  assert.ok(Math.max(...lengths) > 400, "expected some long answers");
+
+  /* Graded work carries a real comment, because feedback is part of the record. */
+  const graded = course.submissions.filter((s) => s.state === "graded");
+  const withFeedback = graded.filter((s) => (s.feedback ?? "").length > 20);
+  assert.ok(withFeedback.length >= graded.length / 2, "most graded work should carry feedback");
 });
 
 test("objective weights sum to 1.0", () => {

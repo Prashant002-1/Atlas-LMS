@@ -3,7 +3,18 @@ import { SideNoteCardView } from "@/components/session/side-note-card";
 import type { DrillInTurn } from "@/lib/instructor/cockpit";
 import type { SideNoteCard } from "@/lib/agent/session-parts";
 
-/** The frozen session transcript with verified grading evidence highlighted in place. */
+/**
+ * The frozen session transcript, with the text that earned the grade
+ * highlighted where the student wrote it.
+ *
+ * The highlight carries no visible criterion tag. Superscripts like
+ * "conc,mode,tran" put an internal key on the page, broke the sentence the
+ * student actually wrote, and repeated what the grade already says: every
+ * criterion there lists its own quotes, and each quote links to this spot. The
+ * mark answers "this counted"; the grade answers "toward what". The criterion
+ * names stay in the title attribute for anyone who wants the mapping without
+ * leaving the paragraph.
+ */
 export function TranscriptView({
   turns,
   sideNotesByTurnIndex,
@@ -14,13 +25,11 @@ export function TranscriptView({
   criterionNames: Record<string, string>;
 }) {
   return (
-    <section aria-labelledby="session-transcript-heading" className="pt-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="session-transcript-heading" className="text-[1.125rem] font-semibold text-[var(--color-ink)]">Session transcript</h2>
-        <p className="text-[0.75rem] text-[var(--color-muted)]">Highlighted text was used in the grade.</p>
-      </div>
+    <section aria-labelledby="session-transcript-heading">
+      <h2 id="session-transcript-heading" className="sr-only">Session transcript</h2>
+      <p className="text-[0.75rem] text-[var(--color-muted)]">Highlighted text was used in the grade.</p>
 
-      <div className="mt-5 space-y-5">
+      <div className="mt-4 space-y-5">
         {turns.map((turn) => (
           <div key={turn.id} id={`turn-${turn.id}`} className="scroll-mt-24">
             <p className="mb-1.5 text-[0.6875rem] font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]">
@@ -42,9 +51,6 @@ export function TranscriptView({
                     title={segment.spans.map((span) => criterionNames[span.criterionKey] ?? span.criterionKey).join(", ")}
                   >
                     {segment.text}
-                    <sup className="ml-0.5 text-[0.625rem] font-medium text-[var(--color-accent-strong)]">
-                      {[...new Set(segment.spans.map((span) => shortTag(span.criterionKey)))].join(",")}
-                    </sup>
                   </mark>
                 ) : (
                   <span key={index}>{segment.text}</span>
@@ -61,9 +67,4 @@ export function TranscriptView({
       </div>
     </section>
   );
-}
-
-function shortTag(criterionKey: string): string {
-  const word = criterionKey.split("_")[0];
-  return word.slice(0, 4);
 }

@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
+import { loadAccountProfile } from "@/lib/auth/account";
 import { db } from "@/lib/db";
 import { announcements, users } from "@/lib/db/schema";
 import { findEditableCourse } from "@/lib/instructor/workspace";
+import { scopeLabel } from "@/lib/workspace/term-label";
 import { PageHeader } from "@/components/teach/page-header";
 import { EmptyState } from "@/components/atlas/record";
 import { AnnouncementList, type AnnouncementListRow } from "@/components/teach/announcement-list";
@@ -17,9 +19,10 @@ export default async function TeachAnnouncementsPage({ searchParams }: { searchP
   if (!isInstructorLike(session.user.role)) redirect("/student");
   if (!session.user.orgId) redirect("/teach");
 
-  const [course, params] = await Promise.all([
+  const [course, params, profile] = await Promise.all([
     findEditableCourse({ id: session.user.id, orgId: session.user.orgId, role: session.user.role }),
     searchParams,
+    loadAccountProfile(session.user.id),
   ]);
   if (!course) redirect("/teach");
 
@@ -51,8 +54,14 @@ export default async function TeachAnnouncementsPage({ searchParams }: { searchP
     <>
       <PageHeader
         title="Announcements"
-        course={`${course.code} / ${course.term ?? ""}`}
-        action={<AnnouncementComposer defaultOpen={params.new === "1"} />}
+        course={scopeLabel({ code: course.code, termName: course.term })}
+        action={
+          <AnnouncementComposer
+            defaultOpen={params.new === "1"}
+            authorName={profile?.name ?? session.user.name ?? "Course staff"}
+            courseCode={course.code}
+          />
+        }
       />
 
       {rows.length > 0 ? (

@@ -3,6 +3,7 @@ import { loadInstructorWorkspace } from "@/lib/instructor/workspace";
 import { PageHeader } from "@/components/teach/page-header";
 import { ProposalHistory, ProposalPreview, ProposalQueue } from "@/components/teach/proposals";
 import { EmptyState } from "@/components/atlas/record";
+import { scopeLabel } from "@/lib/workspace/term-label";
 
 /** One URL-selected draft, the open queue, and the course's decision history. */
 export default async function TeachReviewPage({ searchParams }: { searchParams: Promise<{ proposal?: string }> }) {
@@ -24,7 +25,7 @@ export default async function TeachReviewPage({ searchParams }: { searchParams: 
 
   return (
     <>
-      <PageHeader title="Review" course={`${workspace.course.code} / ${workspace.course.term}`} />
+      <PageHeader title="Review" course={scopeLabel({ code: workspace.course.code, termName: workspace.course.term })} />
 
       {selected ? (
         <>

@@ -16,6 +16,7 @@
     "test": "tsx --test lib/workspace/*.test.ts lib/db/fixtures/*.test.ts lib/auth/*.test.ts lib/agent/*.test.ts lib/instructor/*.test.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build",
     "smoke": "tsx scripts/smoke.ts",
+    "smoke:workflow": "tsx scripts/smoke-workflow.ts",
     "regrade": "tsx scripts/regrade.ts",
     "db:generate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs migrate",

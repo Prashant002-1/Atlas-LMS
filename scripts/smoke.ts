@@ -246,6 +246,11 @@ async function runCheck(check: SmokeCheck) {
 
 async function signIn(user: AuthSmokeUser) {
   const jar = new CookieJar();
+  const isStudent = user.redirectTo.startsWith("/student");
+  const email = isStudent
+    ? process.env.ATLAS_SMOKE_STUDENT_EMAIL ?? user.email
+    : process.env.ATLAS_SMOKE_INSTRUCTOR_EMAIL ?? user.email;
+  const password = process.env.ATLAS_SMOKE_PASSWORD ?? user.password;
 
   const csrfResponse = await fetch(new URL("/api/auth/csrf", baseUrl), {
     headers: { accept: "application/json" },
@@ -263,8 +268,8 @@ async function signIn(user: AuthSmokeUser) {
 
   const signInResponse = await fetch(new URL("/api/auth/callback/credentials", baseUrl), {
     body: new URLSearchParams({
-      email: user.email,
-      password: user.password,
+      email,
+      password,
       csrfToken: csrfBody.csrfToken,
       callbackUrl: user.redirectTo,
     }),

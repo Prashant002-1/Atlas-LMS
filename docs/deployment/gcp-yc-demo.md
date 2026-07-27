@@ -19,10 +19,10 @@ service-account keys in this document or anywhere else in Git.
 | Region and zone | `us-central1`, `us-central1-a` |
 | Deployment PR | [#50](https://github.com/Prashant002-1/Atlas-LMS/pull/50) |
 | Merge commit | [`bd5b052`](https://github.com/Prashant002-1/Atlas-LMS/commit/bd5b0527ba7ecef03d2755794d180d5a16df38e8) |
-| Live source commit | [`67e981e`](https://github.com/Prashant002-1/Atlas-LMS/commit/67e981efc26ea8eaaa6773fffd72e3a5a6869362) |
-| Cloud Build | `9d7bb320-8526-4792-80e0-c0d2a4ded5ee` |
-| Live image tag | `us-central1-docker.pkg.dev/atlas-yc2026fall/atlas/atlas:67e981e` |
-| Live image digest | `sha256:17c36658b0d9fd9afb9400b7d2e3c1d2be5759eeaad9818785bb40a689ce1be2` |
+| Live source commit | [`43c407f`](https://github.com/Prashant002-1/Atlas-LMS/commit/43c407fbd6372e5b8876111b74758f52c72db878) |
+| Cloud Build | `3d023d81-29ae-4f7a-896b-5950d5593fea` |
+| Live image tag | `us-central1-docker.pkg.dev/atlas-yc2026fall/atlas/atlas:43c407f` |
+| Live image digest | `sha256:48b510575862115dbf5d5c70940b46e3e1c43506e2c8e2f8215a5feda56c1c99` |
 
 The GitHub PR is history and review evidence. It does not serve production.
 The VM serves the pinned Artifact Registry image named in `/opt/atlas/.env`.
@@ -93,8 +93,9 @@ environment.
 - [`infra/gcp/Caddyfile`](../../infra/gcp/Caddyfile) owns public ingress.
 - [`infra/gcp/install-host.sh`](../../infra/gcp/install-host.sh) installs Docker
   and the Google Cloud Ops Agent.
-- [`infra/gcp/deploy-host.sh`](../../infra/gcp/deploy-host.sh) pulls and starts
-  the pinned image.
+- [`infra/gcp/deploy-host.sh`](../../infra/gcp/deploy-host.sh) obtains a fresh
+  short-lived Artifact Registry token from the VM metadata service, pulls the
+  pinned image with a disposable Docker configuration, and starts the services.
 - [`scripts/provision-yc-access.ts`](../../scripts/provision-yc-access.ts)
   disables seeded passwords and enables exactly the two YC accounts.
 - [`scripts/smoke.ts`](../../scripts/smoke.ts) verifies public routes and both
@@ -699,7 +700,10 @@ alerts are managed separately at the billing-account level.
 6. Record the new tag, digest, build id, and Git commit in this runbook.
 
 The deployment is manual. A GitHub merge does not trigger Cloud Build or change
-the VM.
+the VM. `deploy-host.sh` uses the VM service account to obtain a fresh,
+short-lived registry token for each pull and deletes the temporary Docker
+configuration when it exits. Do not persist that token or replace this flow
+with a service-account key.
 
 ## Roll back the application
 

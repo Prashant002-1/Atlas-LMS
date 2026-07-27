@@ -29,7 +29,7 @@ test("the Atlas page is a full viewport operator with quiet streaming feedback",
   assert.match(status, /scrollIntoView/);
   assert.match(room, /Checking the gradebook/);
   assert.match(room, /What is the grade distribution for this class\?/);
-  assert.match(room, /How is Maya Patel doing\?/);
+  assert.match(room, /How is Aman Dutta doing\?/);
   assert.doesNotMatch(room, /Run trace/);
   assert.doesNotMatch(room, /TaskTrigger/);
   assert.doesNotMatch(room, /Starting the run/);

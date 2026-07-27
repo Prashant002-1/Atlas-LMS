@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { demoPackage } from "./package";
 import { v0DemoWorld } from "./v0-demo-world";
 
@@ -36,11 +37,16 @@ test("canonical demo accounts exist exactly once", () => {
   assert.equal(admin[0].role, "admin");
   assert.equal(instructor.length, 1);
   assert.equal(instructor[0].key, "amara");
-  assert.equal(instructor[0].name, "Dr. Amara Osei");
+  assert.equal(instructor[0].name, "Prashant Shah");
+  assert.equal(instructor[0].image, "/avatars/prashant-shah.jpg");
   assert.equal(instructor[0].role, "instructor");
   assert.equal(student.length, 1);
   assert.equal(student[0].key, "maya");
+  assert.equal(student[0].name, "Aman Dutta");
+  assert.equal(student[0].image, "/avatars/aman-dutta.jpg");
   assert.equal(student[0].role, "student");
+  assert.ok(existsSync("public/avatars/prashant-shah.jpg"));
+  assert.ok(existsSync("public/avatars/aman-dutta.jpg"));
 
   const roleCounts = countBy(demoPackage.users, (u) => u.role);
   assert.equal(roleCounts.admin, 1);

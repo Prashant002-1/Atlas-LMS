@@ -487,7 +487,7 @@ The point of the course is not to memorize a graph in isolation. It is to explai
 
 ## Instructor and course rhythm
 
-Dr. Amara Osei teaches ECON-241. A normal week includes lecture slides, a course reader, an evidence workbook, a short applied exercise, and a discussion of what the week's model leaves out. The materials folder contains the full course corpus in the same form the agent can ground against. Bring a calculation and an interpretation to office hours. If the graph and the story disagree, that disagreement is the question to investigate rather than an inconvenience to hide.
+Prashant Shah teaches ECON-241. A normal week includes lecture slides, a course reader, an evidence workbook, a short applied exercise, and a discussion of what the week's model leaves out. The materials folder contains the full course corpus in the same form the agent can ground against. Bring a calculation and an interpretation to office hours. If the graph and the story disagree, that disagreement is the question to investigate rather than an inconvenience to hide.
 
 The course moves through fourteen weekly modules. Weeks 1 through 6 establish the models that support the VidStack case. Week 7 is the assessed Pricing Strategy Session. Weeks 8 through 11 extend the analysis to competition, bundles, information, and policy. Weeks 12 through 14 ask students to use those tools in a final recommendation while acknowledging fairness, uncertainty, and model limits.
 
@@ -514,7 +514,7 @@ Economic reasoning improves when its uncertainty is visible. State whether you a
 
 Atlas is available for explanations, guided practice, and questions within the assignment rules. Ask it to check a setup, test an assumption, identify an omitted distinction, or point to a relevant course material. Do not submit work you cannot defend in your own words. The goal is not to avoid help. The goal is to make sure the help leaves a visible trail of your reasoning and revision.
 
-Problem sets may be submitted up to seven calendar days late with a short note explaining what was revised. Work submitted later requires prior approval. Contact Dr. Osei as soon as possible when illness, caregiving, or an emergency affects attendance or deadlines. Students may miss no more than two class meetings without an approved accommodation. The course respects access needs while keeping the shared work visible enough that students and instructor can plan responsibly.
+Problem sets may be submitted up to seven calendar days late with a short note explaining what was revised. Work submitted later requires prior approval. Contact Prof. Shah as soon as possible when illness, caregiving, or an emergency affects attendance or deadlines. Students may miss no more than two class meetings without an approved accommodation. The course respects access needs while keeping the shared work visible enough that students and instructor can plan responsibly.
 
 ## How to use the materials
 

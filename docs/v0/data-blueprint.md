@@ -184,7 +184,7 @@ Placeholder values:
 | `scenarioKey` | `econ-streaming-pricing` |
 | `courseCode` | `ECON-241` |
 | `courseTitle` | `Intermediate Microeconomics` |
-| `professorName` | `Prof. Amara Osei` |
+| `professorName` | `Prashant Shah` |
 | `professorVoice` | Dry, direct, cares more about reasoning than answers. |
 | `problemTitle` | The Streaming Problem |
 | `problemStatement` | VidStack lost 18% of subscribers after a flat $15 price hike. Design a new pricing structure and defend it. |

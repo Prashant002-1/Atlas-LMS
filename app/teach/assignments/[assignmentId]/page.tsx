@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/teach/page-header";
 import { SubmissionReviewTable, type SubmissionReviewRow } from "@/components/teach/submission-review-table";
 import { RecordDialog } from "@/components/teach/record-dialog";
 import { RichTextEditor } from "@/components/teach/rich-text-editor";
+import { Markdown } from "@/components/agent/markdown";
 import { DocumentAttachmentSection } from "@/components/documents/document-attachments";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
@@ -15,6 +16,7 @@ import {
   type InstructorAssignmentWorkspace,
 } from "@/lib/instructor/workspace";
 import { loadSessionAssignmentBundle } from "@/lib/agent/session-store";
+import { markdownBody } from "@/lib/markdown-presentation";
 
 // The former "Journeys and rubric" entry is now the direct "Sessions and grades" entry.
 export default async function InstructorAssignmentPage({ params }: { params: Promise<{ assignmentId: string }> }) {
@@ -88,7 +90,11 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
         {assignment.points ? <span>{Math.round(assignment.points)} points</span> : null}
       </div>
 
-      {assignment.detail ? <p className="mt-6 max-w-4xl whitespace-pre-wrap text-[0.90625rem] leading-7 text-[var(--color-ink)]">{assignment.detail}</p> : null}
+      {assignment.detail ? (
+        <Markdown className="mt-6 max-w-4xl text-[0.90625rem] leading-7 text-[var(--color-ink)]">
+          {markdownBody(assignment.detail, assignment.title)}
+        </Markdown>
+      ) : null}
 
       {workspace.materials.length > 0 ? <AssignmentMaterials materials={workspace.materials} /> : null}
 

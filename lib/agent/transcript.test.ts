@@ -99,12 +99,12 @@ test("submission body renders the frozen artifact deterministically", () => {
     ],
     expectedRisk: "Minimal cannibalization.",
   };
-  const body = renderFinalArtifactBody(artifact, "Maya Patel");
-  assert.ok(body.startsWith("Pricing Strategy Session final submission by Maya Patel."));
+  const body = renderFinalArtifactBody(artifact, "Aman Dutta");
+  assert.ok(body.startsWith("Pricing Strategy Session final submission by Aman Dutta."));
   assert.ok(body.includes("- Basic (Ads): $7.99 (Ads, 1 screen)"));
   assert.ok(body.includes("Expected risk: Minimal cannibalization."));
 
-  const empty = renderFinalArtifactBody(null, "Maya Patel");
+  const empty = renderFinalArtifactBody(null, "Aman Dutta");
   assert.ok(empty.includes("without a submission draft"));
 });
 

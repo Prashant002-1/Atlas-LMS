@@ -6,7 +6,9 @@ import { loadSessionAssignmentBundle } from "@/lib/agent/session-store";
 import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton, BackLink, ButtonLink, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { DocumentAttachmentSection } from "@/components/documents/document-attachments";
+import { Markdown } from "@/components/agent/markdown";
 import { listDocumentAttachments } from "@/lib/course/documents";
+import { markdownBody } from "@/lib/markdown-presentation";
 
 const tone = { graded: "good", submitted: "accent", open: "neutral", missing: "warn" } as const;
 const label = { graded: "Graded", submitted: "Submitted", open: "Open", missing: "Missing" } as const;
@@ -53,7 +55,9 @@ export default async function StudentAssignmentPage({ params }: { params: Promis
 
       <section className="py-5">
         {assignment.description ? (
-          <p className="max-w-3xl whitespace-pre-wrap text-[0.90625rem] leading-7">{assignment.description}</p>
+          <Markdown className="max-w-3xl text-[0.90625rem] leading-7">
+            {markdownBody(assignment.description, assignment.name)}
+          </Markdown>
         ) : (
           <p className="text-[0.875rem] text-[var(--color-muted)]">No instructions are attached.</p>
         )}

@@ -29,6 +29,8 @@ export type FixtureUser = {
   key: string;
   name: string;
   email: string;
+  /** Same-origin public asset path or absolute URL for the profile photo. */
+  image?: string;
   role: "admin" | "instructor" | "student";
   password?: string; // defaults to the shared demo password
 };

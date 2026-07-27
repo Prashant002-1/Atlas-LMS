@@ -47,6 +47,6 @@ No hidden chain-of-thought is exposed.
 Atlas can answer the two baseline capability checks directly:
 
 - What is the grade distribution for the class?
-- How is Maya Patel doing?
+- How is Aman Dutta doing?
 
 The direct mutation surface is intentionally broad. The lasting safety boundary is scoped typed execution, not model prompting. Later policy work can add approval modes by operation without removing read capability or rebuilding the operator contract.

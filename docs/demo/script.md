@@ -60,13 +60,13 @@ Use these in the written application; the demo shows, it does not cite.
 | Decision | Reason |
 |---|---|
 | One scenario, deep | 3 minutes. Depth is the differentiator; two shallow scenarios read as a feature tour. Exam-prep scenario cut (it looks like every AI study tool; its differentiated parts - performance-aware, teacher-governed - are already carried by the session scenario). |
-| Screen only, no actors | YC anti-promo doctrine. The two-person story (professor and student) is delivered by the professor's voice reading her own posted assignment instructions over the student's screen. The camera never leaves the product. |
+| Screen only, no actors | YC anti-promo doctrine. The two-person story (professor and student) is delivered by the professor's voice reading his own posted assignment instructions over the student's screen. The camera never leaves the product. |
 | The student surface is a work session, not a chatbot | Chat chrome is both commoditized and (founder conviction) an eyesore. Exam-room framing instead: assignment brief pinned, rubric one click away, "grounded in" chips, expected-time, Submit button, and a split view where the student's evolving artifact grows beside the conversation. The conversation is the medium; the screen shows work product. |
 | No refusal/blocking beat | In a fully-AI-enabled session there is nothing to refuse; a blocked student reads as friction. Governance appears as *shaping*: grounded answers, questions asked back, rubric-aware guidance. (In an AI-banned assignment, governance looks different - but that is not this video.) |
-| Creation shown as instrument authorship, not content generation | "AI creates course content" is the single most commoditized image in edtech. What we show being created is an *assessment instrument* (rubric + session config), drafted by the agent from syllabus + outcomes, **edited and approved by a human on camera**. The 10-second weight edit is the difference between "AI generated a rubric" and "the professor's rubric, drafted by her agent." |
+| Creation shown as instrument authorship, not content generation | "AI creates course content" is the single most commoditized image in edtech. What we show being created is an *assessment instrument* (rubric + session config), drafted by the agent from syllabus + outcomes, **edited and approved by a human on camera**. The 10-second weight edit is the difference between "AI generated a rubric" and "the professor's rubric, drafted by his agent." |
 | Side note as margin annotation card, not chat bubble | Structured context injection must look structurally different from model chatter. The visual difference IS the product claim. See Section 6. |
 | Draft before final | The generated grade is visibly a draft. The professor reviews the evidence and posts it from the instructor view, which is the only moment it becomes final. |
-| Feedback flash must quote the student's journey | "AI writes feedback" alone is IgniteAI territory. The differentiator: professor's rough dictation becomes a note in her register that cites the student's actual session. First cut if the video runs over. |
+| Feedback flash must quote the student's journey | "AI writes feedback" alone is IgniteAI territory. The differentiator: professor's rough dictation becomes a note in his register that cites the student's actual session. First cut if the video runs over. |
 | Standard LMS workflows = 5-second montage | Completeness proof only ("the agent runs the boring parts too"). Never linger in the commoditized zone. |
 | Instructions text on screen carries the soft lines | "The transcript is shared with me if I need it, but I'm not reading everything - feel comfortable thinking out loud" stays visible but un-narrated. Partners who pause get rewarded; the voiceover stays tight. |
 
@@ -80,7 +80,7 @@ Use these in the written application; the demo shows, it does not cite.
 | 0:30-0:45 | Agent opening guidance: "what doing well looks like," three bullets from the rubric | Rubric transparency as onboarding. Sets the success criteria *before* work starts, so the later scoring feels fair rather than ambush. Also quietly makes the pedagogy claim (students know what is being measured). |
 | 0:45-1:35 | The session: interrogation, stress-test, **side-note card**, visible revision in the artifact panel, Submit | The side note sits mid-session deliberately: by then the viewer understands the format, so the card reads as context-layer magic rather than confusion. The stress-test -> revision sequence shows Iteration (the rubric's heart) happening live in the artifact diff. |
 | 1:35-1:50 | Student's journey report: four criteria, evidence quotes, appeal chip | Instant payoff closes the student thread; introduces evidence-cited scoring 15 seconds before the professor's version of the same interface, so the review act needs zero explanation. |
-| 1:50-2:20 | Rewind to the professor: rubric drafted -> weight edited -> approved; session config incl. the side-note toggle; her prior "Exam 2 planning" session visible in history | Mystery -> reveal ("everything the agent just did came from here"). Placed AFTER the student act so the viewer already cares what these controls do - and so the video does not open on the commoditized creation image. The visible prior planning session tells the provenance story (Section 6) without a word. |
+| 1:50-2:20 | Rewind to the professor: rubric drafted -> weight edited -> approved; session config incl. the side-note toggle; his prior "Exam 2 planning" session visible in history | Mystery -> reveal ("everything the agent just did came from here"). Placed AFTER the student act so the viewer already cares what these controls do - and so the video does not open on the commoditized creation image. The visible prior planning session tells the provenance story (Section 6) without a word. |
 | 2:20-2:50 | Professor after: 31 journey cards -> drill into one -> "what should Thursday cover?" -> class-level answer -> practice-set proposal -> approve. 10s feedback dictation flash | Order is individual -> aggregate -> loop: one card proves depth, the grid proves scale, the class-insight turn proves the loop closes back into teaching. This beat makes "I'm not reading everything" visual: the rubric read the transcripts, the professor spot-checks cited evidence. |
 | 2:50-3:00 | 5s LMS montage line + close on the journey grid: "This isn't a submission. It's a session." | The montage proves completeness at minimum cost. The close names the new noun and stops. |
 
@@ -90,11 +90,11 @@ Use these in the written application; the demo shows, it does not cite.
 
 **Form.** Not a chat bubble. A visually distinct, flagged, dismissible margin card:
 
-> FLAG - **From your course record**: Elasticity cost you 8 of 12 points on Exam 1, and it anchors the practice set Prof. Osei is planning for Exam 2. This problem is built on it. Worth slowing down here.
+> FLAG - **From your course record**: Elasticity cost you 8 of 12 points on Exam 1, and it anchors the practice set Prof. Shah is planning for Exam 2. This problem is built on it. Worth slowing down here.
 
 Two sentences, structured, source-labeled. The visual difference is the claim: this is not the model freestyling; it is the context layer surfacing something it *knows* - gradebook, exam plan, and syllabus, joined. No general-purpose AI can render this card.
 
-**Provenance (canon, per Prashant 2026-07-03).** The agent knows about Exam 2 because **the professor already planned Exam 2 with the agent** - she worked through the practice set and flagged topics in a prior session. There is no upload ceremony. *The professor's normal work with the agent IS the context ingestion.* Every hour she spends planning with the agent makes every student's session richer. This is a core product mechanic, not a demo trick, and the demo world must contain that prior planning session as a real artifact (visible in her session history during the setup act).
+**Provenance (canon, per Prashant 2026-07-03).** The agent knows about Exam 2 because **the professor already planned Exam 2 with the agent** - he worked through the practice set and flagged topics in a prior session. There is no upload ceremony. *The professor's normal work with the agent IS the context ingestion.* Every hour he spends planning with the agent makes every student's session richer. This is a core product mechanic, not a demo trick, and the demo world must contain that prior planning session as a real artifact (visible in his session history during the setup act).
 
 **Strategy.** This beat answers the hardest question in the thesis: *why would a student stay inside the governed environment instead of alt-tabbing to ChatGPT?* Because this agent knows Exam 2 exists and ChatGPT does not. It knows what the student got wrong in March and what the professor flagged for May. **The governed AI is not the restricted version; it is the more useful version.** Students choose the walled garden out of self-interest. Say that sentence in the written app.
 
@@ -150,7 +150,7 @@ The demo world needs a **memory**, not just seeded courses. The side-note beat i
 
 - [ ] Course profile + syllabus + Weeks 1-6 materials (final scenario's discipline)
 - [ ] Exam 1 gradebook with a real distribution; featured student has the specific, named weakness
-- [ ] **The professor's prior planning session with the agent** (Exam 2 / practice set discussion, topics flagged) - this is the side note's source and appears in her session history on camera
+- [ ] **The professor's prior planning session with the agent** (Exam 2 / practice set discussion, topics flagged) - this is the side note's source and appears in his session history on camera
 - [ ] ~31 students with varied journey outcomes (the review-grid needs believable spread: some Exceeds, some Developing, one or two "delegated everything and it earned nothing")
 - [ ] Professor persona with a stated intent ("they pattern-match formulas; I want to see if they can reason about X")
 - [ ] The assignment itself, configured: rubric, duration, grounding scope, and sanctioned side-note triggers
@@ -182,22 +182,22 @@ This is a content-design task as much as a build task. Do it before the UI - it 
 
 ## 12. Script draft v0.1 (PLACEHOLDER SCENARIO - rewrite when the course is chosen)
 
-Narration budget: ~420 words total. Professor V.O. lines are diegetic (her posted text); NARRATOR lines are the founder's voice. Record real product; jump-cut typing; no music.
+Narration budget: ~420 words total. Professor V.O. lines are diegetic (his posted text); NARRATOR lines are the founder's voice. Record real product; jump-cut typing; no music.
 
 **[0:00-0:30 - The assignment]**
-SCREEN: Student dashboard -> opens "Assignment 4: The Streaming Problem." Instructions fill the frame. Un-narrated soft line visible in the text: "The transcript is shared with me if I need it, but I'm not reading everything. Feel comfortable thinking out loud. - Prof. Osei"
+SCREEN: Student dashboard -> opens "Assignment 4: The Streaming Problem." Instructions fill the frame. Un-narrated soft line visible in the text: "The transcript is shared with me if I need it, but I'm not reading everything. Feel comfortable thinking out loud. - Prof. Shah"
 PROF V.O.: "This week I don't care about the right answer. I care about what getting to it looks like. More than 80% of you already use ChatGPT - I see the same answers. So this time, the assignment IS the chat. There's nowhere to cheat. It's grounded in our course, and my rubric grades your thinking: your questions, your follow-ups, your final design. Take about thirty minutes. Submit when you're ready."
 
 **[0:30-0:45 - What doing well looks like]**
 SCREEN: Session opens. Exam-room chrome: brief pinned top, rubric chip, "Grounded in: Syllabus - Weeks 4-6," empty artifact panel right, Submit button.
-AGENT (on screen): "Before we start, here's what doing well looks like in this session, from Prof. Osei's rubric: (1) Interrogate the problem before you propose - who are VidStack's customers, and why did they leave? (2) Use the tools from Weeks 4-6 - elasticity, price discrimination - and use them correctly. (3) When I push on your design, revise it rather than defend it. Ready when you are."
+AGENT (on screen): "Before we start, here's what doing well looks like in this session, from Prof. Shah's rubric: (1) Interrogate the problem before you propose - who are VidStack's customers, and why did they leave? (2) Use the tools from Weeks 4-6 - elasticity, price discrimination - and use them correctly. (3) When I push on your design, revise it rather than defend it. Ready when you are."
 NARRATOR: "The rules aren't hidden in a syllabus PDF. The session states them up front."
 
 **[0:45-1:35 - The session]**
 STUDENT: "ok so they raised prices and people left. should they just lower it back?"
 AGENT: "That's one lever - but before pricing anything: who left? A flat $15 hits a casual viewer and a four-hours-a-day household the same way. From Week 5: which group has the more elastic demand, and what does that tell you about a single price?"
-SCREEN: **Side-note card slides into the margin**: "FLAG - From your course record: Elasticity cost you 8 of 12 points on Exam 1, and it anchors the practice set Prof. Osei is planning for Exam 2. This problem is built on it. Worth slowing down here."
-NARRATOR: "The agent isn't a chatbot with a syllabus pasted in. It knows this student's record - and what this professor is planning - because she planned it here."
+SCREEN: **Side-note card slides into the margin**: "FLAG - From your course record: Elasticity cost you 8 of 12 points on Exam 1, and it anchors the practice set Prof. Shah is planning for Exam 2. This problem is built on it. Worth slowing down here."
+NARRATOR: "The agent isn't a chatbot with a syllabus pasted in. It knows this student's record - and what this professor is planning - because he planned it here."
 STUDENT: "casual viewers are more elastic... so one price overcharges them and undercharges heavy users. tiers? cheap ad-supported for casuals, premium for heavy users?"
 AGENT: "Now you're doing price discrimination - Week 6. Sketch it: what are your tiers, and what is each group's willingness to pay based on?"
 SCREEN: Artifact panel fills: Basic w/ ads $7.99 / Standard $12.99 / Premium $17.99 + rationale stub.
@@ -207,16 +207,16 @@ SCREEN: Artifact diff highlights the revision. Student clicks **Submit**.
 
 **[1:35-1:50 - The journey report]**
 SCREEN: Student's report: four criteria with level chips and one quoted evidence line each - Framing: Meets. Grounding: Meets ("correctly linked churn asymmetry to elasticity after review"). Iteration: **Exceeds** ("redesigned Basic as a churn fence when cannibalization was raised"). Design: Meets. Status: "Draft grade."
-NARRATOR: "The submission is the journey. Scored against her rubric, every score with a receipt. It stays a draft until the professor posts it."
+NARRATOR: "The submission is the journey. Scored against his rubric, every score with a receipt. It stays a draft until the professor posts it."
 
 **[1:50-2:20 - Where it all came from]**
-SCREEN: Professor's side. Session history shows a prior conversation: "Exam 2 practice set planning - Tue." Then the assignment setup: rubric card drafted from syllabus + outcomes; she edits Iteration 25 -> 30, Framing 25 -> 20; **Approve**. Config: Grounding: course materials - Duration ~30m - Personal-record side notes: **ON**.
-NARRATOR: "Everything the agent just did came from here. It drafted the rubric from her syllabus and outcomes - she reweighted it, because what she cares about is how students respond to being wrong. Even the side note exists because she allowed it. Nothing went live without her sign-off."
+SCREEN: Professor's side. Session history shows a prior conversation: "Exam 2 practice set planning - Tue." Then the assignment setup: rubric card drafted from syllabus + outcomes; he edits Iteration 25 -> 30, Framing 25 -> 20; **Approve**. Config: Grounding: course materials - Duration ~30m - Personal-record side notes: **ON**.
+NARRATOR: "Everything the agent just did came from here. It drafted the rubric from his syllabus and outcomes - he reweighted it, because what he cares about is how students respond to being wrong. Even the side note exists because he allowed it. Nothing went live without his sign-off."
 
 **[2:20-2:50 - The class]**
-SCREEN: 31 journey cards, sortable by criterion. Drill into one. Then she asks: "What should Thursday's session focus on?" Agent: "14 of 31 sessions show elasticity still confused with slope; the strongest recoveries followed the cannibalization push. Draft practice set attached - three problems, ten minutes, mirrors the Exam 2 coverage." **Approve.**
+SCREEN: 31 journey cards, sortable by criterion. Drill into one. Then he asks: "What should Thursday's session focus on?" Agent: "14 of 31 sessions show elasticity still confused with slope; the strongest recoveries followed the cannibalization push. Draft practice set attached - three problems, ten minutes, mirrors the Exam 2 coverage." **Approve.**
 SCREEN (flash, ~8s): She dictates: "good recovery on cannibalization - elasticity still shaky, point them at the week 4 set." Agent drafts a note quoting the student's own exchange. Send.
-NARRATOR: "She's not reading forty transcripts. The rubric already did - she spot-checks the evidence. And for the first time, she can see the class think - and teach to it."
+NARRATOR: "He's not reading forty transcripts. The rubric already did - he spot-checks the evidence. And for the first time, he can see the class think - and teach to it."
 
 **[2:50-3:00 - Close]**
 SCREEN (5s montage): modules, materials, gradebook, calendar.

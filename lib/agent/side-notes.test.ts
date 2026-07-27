@@ -23,7 +23,7 @@ function baseInput(overrides: Partial<SideNoteEvaluationInput> = {}): SideNoteEv
     firedTopics: [],
     turnText: "I think the slope of the demand curve is really steep, so raising the price makes people quit.",
     topicRecords: { elasticity: mayaElasticity },
-    professorHandle: "Prof. Osei",
+    professorHandle: "Prof. Shah",
     planningTitle: "Exam 2 Practice Set Planning",
     planningRef: "planning-session:plan-id",
     ...overrides,
@@ -46,7 +46,7 @@ test("reproduces the canonical demo card from course facts", () => {
   const note = evaluateSideNote(baseInput());
   assert.ok(note);
   assert.ok(note.text.includes("Elasticity cost you 8 of 12 points on Midterm Exam 1"), note.text);
-  assert.ok(note.text.includes("Prof. Osei's Exam 2 Practice Set Planning"), note.text);
+  assert.ok(note.text.includes("Prof. Shah's Exam 2 Practice Set Planning"), note.text);
   assert.ok(note.text.startsWith("From your course:"), note.text);
   assert.ok(note.text.includes("Worth slowing down here."), note.text);
 });
@@ -106,7 +106,7 @@ test("composition drops planning when there is no provenance", () => {
 });
 
 test("professor handle derives from the display name", () => {
-  assert.equal(professorHandleFromName("Dr. Amara Osei"), "Prof. Osei");
+  assert.equal(professorHandleFromName("Prashant Shah"), "Prof. Shah");
   assert.equal(professorHandleFromName("  "), null);
   assert.equal(professorHandleFromName(null), null);
 });

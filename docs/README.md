@@ -15,6 +15,14 @@ Supporting docs:
 - [`DesignSystem.md`](DesignSystem.md), UI token and surface guidance.
 - [`adr/README.md`](adr/README.md), architecture decision records.
 
+Deployment and operations:
+
+- [`deployment/gcp-yc-demo.md`](deployment/gcp-yc-demo.md), the live Google
+  Cloud YC demo inventory, rebuild runbook, secret handling, deployment,
+  verification, rollback, recovery, and teardown source of truth.
+- [`adr/0018-gcp-demo-hosting-and-compute-boundary.md`](adr/0018-gcp-demo-hosting-and-compute-boundary.md),
+  the hosting decision and future isolated code-execution boundary.
+
 Historical/context notes:
 
 - [`trajectory/`](trajectory/), notes from the product shift.

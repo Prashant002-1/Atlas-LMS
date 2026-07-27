@@ -4,6 +4,12 @@ Atlas runs as one long-lived Next.js process on Compute Engine. Caddy owns TLS,
 and Cloud SQL Auth Proxy connects the app to a private PostgreSQL instance.
 The app and Workflow runtime use separate databases on that instance.
 
+The complete live resource inventory, rebuild procedure, secret rotation,
+database bootstrap, monitoring, verification, rollback, recovery, and teardown
+runbook is in [`docs/deployment/gcp-yc-demo.md`](../../docs/deployment/gcp-yc-demo.md).
+The hosting decision and future compute boundary are in
+[`ADR 0018`](../../docs/adr/0018-gcp-demo-hosting-and-compute-boundary.md).
+
 ## Runtime boundaries
 
 - `demo.atlas-lms.com` is the only public app origin.

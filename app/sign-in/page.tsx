@@ -25,9 +25,6 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           <BrandMark />
         </div>
         <SignInForm suggestedEmail={suggestedEmail} />
-        <p className="mt-6 text-center text-[0.75rem] leading-5 text-[var(--color-faint)]">
-          Accounts are provisioned by your institution.
-        </p>
       </div>
     </main>
   );

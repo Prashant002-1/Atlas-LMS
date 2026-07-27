@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users, accounts, sessions, verificationTokens } from "@/lib/db/schema";
 import { verifyPassword } from "@/lib/auth/password";
+import { isLoginEmailAllowed } from "@/lib/auth/access";
 
 /**
  * Atlas sessions carry the tenant + role so every downstream tool can scope itself.
@@ -36,6 +37,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = String(creds?.email ?? "").toLowerCase().trim();
         const password = String(creds?.password ?? "");
         if (!email || !password) return null;
+        if (!isLoginEmailAllowed(email)) return null;
 
         const row = await db.query.users.findFirst({ where: eq(users.email, email) });
         if (!row?.passwordHash) return null;

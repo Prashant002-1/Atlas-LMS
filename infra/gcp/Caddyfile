@@ -1,0 +1,15 @@
+{$ATLAS_DOMAIN} {
+  encode zstd gzip
+
+  @workflow path /.well-known/workflow/*
+  respond @workflow 404
+
+  reverse_proxy atlas:3000
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+  }
+}

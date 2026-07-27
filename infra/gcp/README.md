@@ -18,7 +18,10 @@ The app and Workflow runtime use separate databases on that instance.
 ## Deployment order
 
 1. Build and push a pinned Atlas image to Artifact Registry.
-2. Run Drizzle migrations against the `atlas` database.
+2. For a new empty database, enable the Cloud SQL `vector` extension and run
+   `npm run db:push -- --force` once to create the complete current schema. The
+   checked-in SQL migrations are incremental deltas and are only for an
+   already-initialized database.
 3. Bootstrap the Workflow schema in `atlas_workflow`.
 4. Seed the demo tenant once, then run `npm run demo:provision-yc` once.
 5. Install the host, place the compose file, Caddyfile, and root-owned env file,

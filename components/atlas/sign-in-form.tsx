@@ -7,9 +7,8 @@ import { signInWithCredentials, type SignInState } from "@/lib/auth/actions";
 const initialState: SignInState = {};
 const focusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent-strong)]";
 
-export function SignInForm({ defaultRole = "instructor" }: { defaultRole?: "instructor" | "student" }) {
+export function SignInForm({ suggestedEmail }: { suggestedEmail?: string }) {
   const [state, formAction] = useActionState(signInWithCredentials, initialState);
-  const suggestedEmail = defaultRole === "student" ? "student@demo.edu" : "instructor@demo.edu";
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {

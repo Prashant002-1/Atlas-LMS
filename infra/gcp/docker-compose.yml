@@ -1,0 +1,58 @@
+name: atlas
+
+services:
+  cloud-sql-proxy:
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.18.2
+    command:
+      - "--private-ip"
+      - "--address=0.0.0.0"
+      - "--port=5432"
+      - "${CLOUD_SQL_CONNECTION_NAME}"
+    restart: unless-stopped
+    networks: [private]
+
+  atlas:
+    image: "${ATLAS_IMAGE}"
+    env_file:
+      - /etc/atlas/atlas.env
+    environment:
+      HOSTNAME: "0.0.0.0"
+    depends_on:
+      - cloud-sql-proxy
+    restart: unless-stopped
+    networks: [private]
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  caddy:
+    image: caddy:2.10.2-alpine
+    environment:
+      ATLAS_DOMAIN: "${ATLAS_DOMAIN}"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      atlas:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [private]
+
+networks:
+  private:
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -20,6 +20,7 @@ const nextConfig = {
   // The professor harness loads its reviewed, non-executable authoring files at runtime.
   outputFileTracingIncludes: {
     "/api/atlas/planning": ["./.atlas/**/*"],
+    "/*": ["./node_modules/@workflow/world-postgres/**/*"],
   },
   // pg / pgvector are server-only native deps; keep them out of the bundle.
   serverExternalPackages: ["pg", "pgvector"],

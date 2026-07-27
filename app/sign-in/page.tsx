@@ -11,6 +11,12 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   const params = await searchParams;
   const role = Array.isArray(params?.role) ? params.role[0] : params?.role;
   const defaultRole = role === "student" ? "student" : "instructor";
+  const showDemoEmails = process.env.ATLAS_SHOW_DEMO_EMAILS === "1";
+  const suggestedEmail = showDemoEmails
+    ? defaultRole === "student"
+      ? "student@demo.edu"
+      : "instructor@demo.edu"
+    : undefined;
 
   return (
     <main className="atlas-app-bg flex min-h-screen items-center justify-center px-5 py-10">
@@ -18,7 +24,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         <div className="mb-8 flex justify-center">
           <BrandMark />
         </div>
-        <SignInForm defaultRole={defaultRole} />
+        <SignInForm suggestedEmail={suggestedEmail} />
         <p className="mt-6 text-center text-[0.75rem] leading-5 text-[var(--color-faint)]">
           Accounts are provisioned by your institution.
         </p>

@@ -1,17 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  ClipboardCheck,
-  ExternalLink,
-  File,
-  FileText,
-  Film,
-  Link2,
-  PackageOpen,
-  Presentation,
-  Search,
-} from "lucide-react";
+import { ExternalLink, Search } from "lucide-react";
 import { setCourseMaterialVisibility } from "@/lib/instructor/course-material-actions";
 
 export type CourseMaterialRow = {
@@ -120,7 +110,6 @@ export function CourseMaterialTable({ rows }: { rows: CourseMaterialRow[] }) {
 }
 
 function MaterialRow({ row }: { row: CourseMaterialRow }) {
-  const Icon = KIND_ICONS[row.materialKind] ?? File;
   const nextVisibility = row.visibility === "course" ? "instructors" : "course";
   const documentHref = row.document
     ? `/teach/documents/${encodeURIComponent(row.id)}`
@@ -129,17 +118,14 @@ function MaterialRow({ row }: { row: CourseMaterialRow }) {
   return (
     <tr className="transition hover:bg-[var(--color-surface-muted)]">
       <th scope="row" className="max-w-[24rem] px-3 py-3 align-top font-normal">
-        <div className="flex min-w-0 items-start gap-2.5">
-          <Icon size={15} strokeWidth={1.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--color-muted)]" />
-          <div className="min-w-0">
-            <p className="font-medium leading-5 text-[var(--color-ink)]">{row.displayName}</p>
-            <p className="mt-0.5 truncate text-[0.6875rem] text-[var(--color-faint)]" title={row.filename ?? undefined}>
-              {[row.filename, materialMeasure(row), `Updated ${formatDate(row.updatedAt)}`].filter(Boolean).join(" / ")}
-            </p>
-            {row.processingStatus === "failed" && row.processingError ? (
-              <p className="mt-1 line-clamp-2 text-[0.6875rem] leading-4 text-[var(--color-danger)]">{row.processingError}</p>
-            ) : null}
-          </div>
+        <div className="min-w-0">
+          <p className="font-medium leading-5 text-[var(--color-ink)]">{row.displayName}</p>
+          <p className="mt-0.5 truncate text-[0.6875rem] text-[var(--color-faint)]" title={row.filename ?? undefined}>
+            {[row.filename, materialMeasure(row), `Updated ${formatDate(row.updatedAt)}`].filter(Boolean).join(" / ")}
+          </p>
+          {row.processingStatus === "failed" && row.processingError ? (
+            <p className="mt-1 line-clamp-2 text-[0.6875rem] leading-4 text-[var(--color-danger)]">{row.processingError}</p>
+          ) : null}
         </div>
       </th>
       <td className="px-3 py-3 align-top text-[var(--color-muted)]">{materialKindLabel(row.materialKind)}</td>
@@ -178,16 +164,6 @@ function MaterialRow({ row }: { row: CourseMaterialRow }) {
     </tr>
   );
 }
-
-const KIND_ICONS: Record<string, typeof File> = {
-  document: FileText,
-  slides: Presentation,
-  assessment: ClipboardCheck,
-  media: Film,
-  link: Link2,
-  package: PackageOpen,
-  other: File,
-};
 
 const KIND_LABELS: Record<string, string> = {
   document: "Document",

@@ -11,7 +11,8 @@ test("agent turns use addressable durable workflow streams", () => {
   const workflow = read("workflows/agent-session.ts");
   const reconnect = read("app/api/agent-runs/[runId]/stream/route.ts");
   const planning = read("components/planning/atlas-room.tsx");
-  const student = read("components/session/session-room.tsx");
+  const personalStudent = read("components/student/atlas-room.tsx");
+  const assessedStudent = read("components/session/session-room.tsx");
 
   assert.match(read("next.config.mjs"), /withWorkflow/);
   for (const field of ["activeRunId", "activeRunStartedAt", "deadlineAt", "deadlineRunId"]) {
@@ -24,9 +25,12 @@ test("agent turns use addressable durable workflow streams", () => {
   assert.match(reconnect, /eq\(agentSessions\.userId, user\.id\)/);
   assert.match(reconnect, /getReadable/);
   assert.match(read("vercel.json"), /supportsCancellation/);
-  for (const room of [planning, student]) {
+  for (const room of [planning, personalStudent, assessedStudent]) {
     assert.match(room, /WorkflowChatTransport/);
-    assert.match(room, /resume: Boolean\(props\.activeRunId\)/);
+    assert.match(room, /const resumedRunIdRef = useRef<string \| null>\(null\)/);
+    assert.match(room, /resumedRunIdRef\.current === props\.activeRunId/);
+    assert.match(room, /void resumeStream\(\)/);
+    assert.doesNotMatch(room, /resume: Boolean\(props\.activeRunId\)/);
     assert.match(room, /agent-runs/);
   }
 });

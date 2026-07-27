@@ -193,7 +193,9 @@ test("the student sidebar gains the Atlas group and the surfaces exist", () => {
   const room = read("components/student/atlas-room.tsx");
   assert.match(room, /WorkflowChatTransport/);
   assert.match(room, /\/api\/atlas\/student/);
-  assert.match(room, /resume: Boolean\(props\.activeRunId\)/);
+  assert.match(room, /resumedRunIdRef\.current === props\.activeRunId/);
+  assert.match(room, /void resumeStream\(\)/);
+  assert.doesNotMatch(room, /resume: Boolean\(props\.activeRunId\)/);
   assert.match(room, /ThinkingIndicator/);
   assert.match(room, /SteeringPending/);
   assert.match(room, /allowSubmitWhileBusy/);

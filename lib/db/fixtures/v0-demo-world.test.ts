@@ -338,11 +338,17 @@ test("active course conditions are correctly seeded", () => {
   assert.ok(pkg.courses.length >= 1 && pkg.courses.length <= 4, `Expected courses count to be between 1 and 4, got ${pkg.courses.length}`);
   assert.equal(pkg.courses[0].code, "ECON-241");
   
-  // 2. Professor login exists for Dr. Amara Osei
+  // 2. Professor login exists for Nadia Rahman
   const instructor = pkg.users.find((u) => u.role === "instructor" && u.key === "amara");
   assert.ok(instructor);
   assert.equal(instructor!.key, "amara");
-  assert.equal(instructor!.name, "Dr. Amara Osei");
+  assert.equal(instructor!.name, "Nadia Rahman");
+  assert.equal(instructor!.image, "/avatars/nadia-rahman.svg");
+
+  const featuredStudent = pkg.users.find((u) => u.role === "student" && u.key === "maya");
+  assert.ok(featuredStudent);
+  assert.equal(featuredStudent!.name, "Maya Patel");
+  assert.equal(featuredStudent!.image, "/avatars/maya-patel.jpg");
   
   // 3. Nonzero work waiting to grade & missing states
   const submissions = pkg.courses[0].submissions;

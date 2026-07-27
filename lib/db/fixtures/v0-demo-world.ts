@@ -69,7 +69,7 @@ export const scenario: ScenarioSlots = {
   scenarioKey,
   courseCode,
   courseTitle: "Intermediate Microeconomics",
-  professorName: "Dr. Amara Osei",
+  professorName: "Nadia Rahman",
   professorVoice: "Dry, direct, cares more about reasoning than answers.",
   problemTitle: "The Streaming Problem",
   problemStatement: "VidStack lost 18% of subscribers after a flat $15 price hike. Design a new pricing structure and defend it.",
@@ -938,7 +938,7 @@ export const econCourse: FixtureCourse = {
   classPolicies: [
     {
       title: "Attendance",
-      body: "Students may miss no more than two class meetings without an approved accommodation. Contact Dr. Osei as soon as possible when illness, caregiving, or an emergency affects attendance.",
+      body: "Students may miss no more than two class meetings without an approved accommodation. Contact Prof. Rahman as soon as possible when illness, caregiving, or an emergency affects attendance.",
     },
     {
       title: "Late work",
@@ -1016,11 +1016,17 @@ export const packageData: FixturePackage = {
   ],
   users: [
     { key: "admin", name: "Dr. Elena Vance", email: "admin@demo.edu", role: "admin" },
-    { key: "amara", name: "Dr. Amara Osei", email: "instructor@demo.edu", role: "instructor" },
+    { key: "amara", name: "Nadia Rahman", email: "instructor@demo.edu", image: "/avatars/nadia-rahman.svg", role: "instructor" },
     { key: "keith", name: "Dr. Keith Jenkins", email: "kjenkins@demo.edu", role: "instructor" },
     { key: "sarah", name: "Dr. Sarah Lin", email: "slin@demo.edu", role: "instructor" },
     { key: "marcus", name: "Dr. Marcus Vance", email: "mvance@demo.edu", role: "instructor" },
-    ...studentDefs.map((s) => ({ key: s.key, name: s.name, email: s.email, role: "student" as const })),
+    ...studentDefs.map((s) => ({
+      key: s.key,
+      name: s.name,
+      email: s.email,
+      image: s.key === "maya" ? "/avatars/maya-patel.jpg" : undefined,
+      role: "student" as const,
+    })),
   ],
   courses: [econCourse, cs152Course, stat201Course, hist310Course],
 };
@@ -1090,7 +1096,7 @@ export const sessionAssignment: V0SessionAssignment = {
   orgId,
   courseId,
   assignmentId: sessionAssignmentId,
-  instructions: `VidStack lost 18% of its subscribers after moving from a flat $12.99 plan to a flat $15 plan. Dr. Osei wants a recommendation that explains the loss instead of treating it as a generic request for three prices.
+  instructions: `VidStack lost 18% of its subscribers after moving from a flat $12.99 plan to a flat $15 plan. Prof. Rahman wants a recommendation that explains the loss instead of treating it as a generic request for three prices.
 
 Start by naming the customer groups you think are hidden inside the 18% churn and state what you are assuming about their willingness to pay. Use the course pages on elasticity, revenue, and price discrimination to explain why one price may fail. Do not use the visual steepness of a graph as a substitute for a percentage-response calculation.
 
@@ -1133,7 +1139,7 @@ const planningTurnsRaw = [
 // Featured Recoverer: Maya Patel (22 turns)
 const mayaTurnsRaw = [
   { role: "user" as const, text: "Hi, I am ready to start the streaming pricing problem. The description says VidStack lost 18% of users after raising prices to $15." },
-  { role: "assistant" as const, text: "Welcome Maya. Before we design a solution, let's frame the problem. Why do you think a flat $15 price caused 18% of users to leave? What does that tell us about VidStack's customer base?" },
+  { role: "assistant" as const, text: "Welcome Aman. Before we design a solution, let's frame the problem. Why do you think a flat $15 price caused 18% of users to leave? What does that tell us about VidStack's customer base?" },
   { role: "user" as const, text: "I think some people just don't want to pay that much. Maybe the slope of the demand curve is really steep, so raising the price makes a lot of people quit." },
   { role: "assistant" as const, text: "You're thinking about consumer sensitivity, which is great. But be careful: you mentioned the slope of the demand curve. Is slope the best way to measure consumer sensitivity at different price points?" },
   { role: "user" as const, text: "Wait, isn't slope what shows how much demand changes when price changes? If the slope is high, demand is very sensitive." },
@@ -1149,7 +1155,7 @@ const mayaTurnsRaw = [
   { role: "user" as const, text: "Yes, we can raise Premium to $19.99 because their demand is inelastic, and they get offline downloads as a fence. Standard stays at $12.99, and Basic ads is $7.99." },
   { role: "assistant" as const, text: "Let's summarize your final pricing table and defense." },
   { role: "user" as const, text: "Basic (with ads, 1 screen): $7.99. Standard (ad-free, 2 screens): $12.99. Premium (4K, offline downloads, 4 screens): $19.99. This segments the market based on willingness to pay and prevents cannibalization." },
-  { role: "assistant" as const, text: "Excellent design, Maya. Your reasoning is grounded in elasticity and price discrimination. Submit when you are ready." },
+  { role: "assistant" as const, text: "Excellent design, Aman. Your reasoning is grounded in elasticity and price discrimination. Submit when you are ready." },
   { role: "user" as const, text: "I am ready to submit my pricing table now." },
   { role: "assistant" as const, text: "Thank you. Your session is complete. A journey report has been generated." }
 ];
@@ -1206,7 +1212,7 @@ const mayaTurns = mapTurns(idFor(`agentSession:${courseKey}:maya`), mayaTurnsRaw
 const liamTurns = mapTurns(idFor(`agentSession:${courseKey}:liam`), liamTurnsRaw);
 const sofiaTurns = mapTurns(idFor(`agentSession:${courseKey}:sofia`), sofiaTurnsRaw);
 
-// Maya's 3 artifact state snapshots
+// Maya Patel's 3 artifact state snapshots
 const mayaArtifactStates: V0ArtifactState[] = [
   {
     id: idFor(`artifactState:maya:1`),
@@ -1268,7 +1274,7 @@ const sideNotes: V0SideNoteCard[] = [
     sessionId: idFor(`agentSession:${courseKey}:maya`),
     turnIndex: 5,
     topic: "elasticity",
-    text: "From your course: Elasticity cost you 8 of 12 points on Exam 1, and it anchors the practice set Prof. Osei is planning for Exam 2. This problem is built on it. Worth slowing down here.",
+    text: "From your course: Elasticity cost you 8 of 12 points on Exam 1, and it anchors the practice set Prof. Rahman is planning for Exam 2. This problem is built on it. Worth slowing down here.",
     createdAt: new Date("2026-06-09T10:05:00Z").toISOString(),
     sourceRefs: ["elasticity-revenue-relation"],
     sourcePageSlug: "elasticity-revenue-relation",
@@ -2111,7 +2117,7 @@ export const studentSessions: V0SessionAdaptation[] = [
     anchorType: "assignment",
     anchorId: sessionAssignmentId,
     title: "Pricing Strategy - Maya Patel",
-    summary: "Maya corrected her slope vs elasticity confusion after the side note and designed robust fences against cannibalization.",
+    summary: "Aman corrected his slope vs elasticity confusion after the side note and designed robust fences against cannibalization.",
     compactedThroughTurn: 0,
     totalTurns: 20,
     createdAt: new Date("2026-06-09T10:00:00Z").toISOString(),
@@ -2453,7 +2459,7 @@ export const agentSessions: Array<Record<string, unknown>> = [
     anchorType: "course",
     anchorId: null,
     title: "Exam 2 Practice Set Planning",
-    summary: "Prof. Osei planned Exam 2 practice set and pricing session configurations.",
+    summary: "Prof. Rahman planned Exam 2 practice set and pricing session configurations.",
     compactedThroughTurn: 0,
     totalTurns: 10,
     createdAt: new Date("2026-06-03T10:00:00Z").toISOString(),

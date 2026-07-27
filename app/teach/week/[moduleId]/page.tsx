@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, FileQuestion, FileText, FileType2, Link2, Presentation } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ActionButton, BackLink, StatusBadge } from "@/components/atlas/primitives";
 import { EmptyRecord } from "@/components/atlas/record";
@@ -13,6 +13,8 @@ import { publishModule, updateModuleRecord } from "@/lib/instructor/actions";
 import { loadModuleNavigation } from "@/lib/instructor/module-navigation";
 import { loadModuleContents, type ModuleContentItem } from "@/lib/instructor/module-contents";
 import { loadInstructorModuleWorkspace, type InstructorAssignment, type InstructorModuleWorkspace } from "@/lib/instructor/workspace";
+import { markdownPreview } from "@/lib/markdown-presentation";
+import { withModuleContext } from "@/lib/module-navigation-context";
 
 /**
  * One module, which is one week of the course.
@@ -107,14 +109,14 @@ function ModuleRecord({
         </dl>
       </section>
 
-      <ModuleMaterials items={materials} />
+      <ModuleMaterials items={materials} moduleId={courseModule.id} />
       <RelatedAssignments assignments={workspace.assignments} />
     </>
   );
 }
 
 /** The readings, handouts, and slides for this week, each openable. */
-function ModuleMaterials({ items }: { items: ModuleContentItem[] }) {
+function ModuleMaterials({ items, moduleId }: { items: ModuleContentItem[]; moduleId: string }) {
   return (
     <section aria-labelledby="module-materials-heading" className="mt-8">
       <div className="mb-3 flex items-baseline justify-between gap-4">
@@ -123,7 +125,7 @@ function ModuleMaterials({ items }: { items: ModuleContentItem[] }) {
       </div>
       {items.length > 0 ? (
         <div className="divide-y divide-[var(--color-border)]">
-          {items.map((item) => <MaterialRow key={`${item.kind}-${item.id}`} item={item} />)}
+          {items.map((item) => <MaterialRow key={`${item.kind}-${item.id}`} item={item} moduleId={moduleId} />)}
         </div>
       ) : (
         <p className="py-4 text-[0.8125rem] text-[var(--color-muted)]">
@@ -134,33 +136,31 @@ function ModuleMaterials({ items }: { items: ModuleContentItem[] }) {
   );
 }
 
-function MaterialRow({ item }: { item: ModuleContentItem }) {
+function MaterialRow({ item, moduleId }: { item: ModuleContentItem; moduleId: string }) {
+  const materialHref = item.href ? withModuleContext(item.href, moduleId) : null;
   return (
     <div className="group/material grid gap-2 px-3 py-3.5 transition hover:bg-[var(--color-surface-muted)] sm:grid-cols-[minmax(0,1fr)_7rem_1rem] sm:items-center">
-      <div className="flex min-w-0 items-start gap-2.5">
-        <MaterialIcon kind={item.kind} />
-        <div className="min-w-0">
-          {item.href ? (
-            <Link
-              href={item.href}
-              className="rounded-row text-[0.8125rem] font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] transition hover:text-[var(--color-accent-strong)]"
-            >
-              {item.title}
-            </Link>
-          ) : (
-            <span className="text-[0.8125rem] font-medium text-[var(--color-ink)]">{item.title}</span>
-          )}
-          <p className="mt-0.5 text-[0.71875rem] text-[var(--color-muted)]">
-            {[kindLabel(item.kind), item.detail].filter(Boolean).join(" / ")}
-          </p>
-        </div>
+      <div className="min-w-0">
+        {materialHref ? (
+          <Link
+            href={materialHref}
+            className="rounded-row text-[0.8125rem] font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] transition hover:text-[var(--color-accent-strong)]"
+          >
+            {item.title}
+          </Link>
+        ) : (
+          <span className="text-[0.8125rem] font-medium text-[var(--color-ink)]">{item.title}</span>
+        )}
+        <p className="mt-0.5 text-[0.71875rem] text-[var(--color-muted)]">
+          {[kindLabel(item.kind), item.detail].filter(Boolean).join(" / ")}
+        </p>
       </div>
       <span className="text-[0.71875rem] text-[var(--color-muted)]">
         {item.published ? null : <StatusBadge tone="neutral">Not visible</StatusBadge>}
       </span>
-      {item.href ? (
+      {materialHref ? (
         <Link
-          href={item.href}
+          href={materialHref}
           aria-label={`Open ${item.title}`}
           className="hidden text-[var(--color-faint)] transition group-hover/material:translate-x-0.5 group-hover/material:text-[var(--color-ink)] sm:block"
         >
@@ -214,22 +214,13 @@ function AssignmentRow({ assignment }: { assignment: InstructorAssignment }) {
     <div className="group/assignment grid gap-2 px-3 py-3.5 transition hover:bg-[var(--color-surface-muted)] sm:grid-cols-[minmax(0,1fr)_8rem_5rem_1rem] sm:items-center">
       <div className="min-w-0">
         {assignment.id ? <Link href={`/teach/assignments/${assignment.id}`} className="rounded-row text-[0.8125rem] font-semibold text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">{assignment.title}</Link> : <span className="text-[0.8125rem] font-semibold">{assignment.title}</span>}
-        {assignment.detail ? <p className="mt-0.5 truncate text-[0.75rem] text-[var(--color-muted)]">{assignment.detail}</p> : null}
+        {assignment.detail ? <p className="mt-0.5 truncate text-[0.75rem] text-[var(--color-muted)]">{markdownPreview(assignment.detail, assignment.title)}</p> : null}
       </div>
       <span className="text-[0.75rem] tabular-nums text-[var(--color-muted)]">{assignment.dueAt ? assignment.dueAt.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "No due date"}</span>
       <span className="text-right text-[0.75rem] tabular-nums text-[var(--color-muted)]">{typeof assignment.points === "number" ? `${Math.round(assignment.points)} pts` : "-"}</span>
       {assignment.id ? <Link href={`/teach/assignments/${assignment.id}`} aria-label={`Open ${assignment.title}`} className="hidden text-[var(--color-faint)] transition group-hover/assignment:translate-x-0.5 group-hover/assignment:text-[var(--color-ink)] sm:block"><ChevronRight size={15} aria-hidden /></Link> : null}
     </div>
   );
-}
-
-function MaterialIcon({ kind }: { kind: ModuleContentItem["kind"] }) {
-  const props = { size: 15, strokeWidth: 1.8, "aria-hidden": true, className: "mt-0.5 shrink-0 text-[var(--color-muted)]" } as const;
-  if (kind === "page") return <FileType2 {...props} />;
-  if (kind === "slides") return <Presentation {...props} />;
-  if (kind === "quiz") return <FileQuestion {...props} />;
-  if (kind === "link") return <Link2 {...props} />;
-  return <FileText {...props} />;
 }
 
 function kindLabel(kind: ModuleContentItem["kind"]) {

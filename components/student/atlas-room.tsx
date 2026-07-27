@@ -135,6 +135,7 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [uploadPending, startUploadTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const resumedRunIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -178,10 +179,9 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
     else window.localStorage.removeItem(runStorageKey);
   }, [props.activeRunId, runStorageKey]);
 
-  const { messages, sendMessage, status, error } = useChat<StudentAtlasChatMessage>({
+  const { messages, sendMessage, resumeStream, status, error } = useChat<StudentAtlasChatMessage>({
     id: `student-atlas-${props.threadId}`,
     messages: props.initialMessages,
-    resume: Boolean(props.activeRunId),
     transport,
     onError: (chatError) => console.error("student Atlas stream failed", chatError),
     onFinish: ({ isAbort, isDisconnect }) => {
@@ -190,6 +190,12 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
       settleSteeringRef.current();
     },
   });
+
+  useEffect(() => {
+    if (!props.activeRunId || resumedRunIdRef.current === props.activeRunId) return;
+    resumedRunIdRef.current = props.activeRunId;
+    void resumeStream();
+  }, [props.activeRunId, resumeStream]);
 
   const sendStudentMessage = (text: string) => {
     const attachments = selectedDocuments;

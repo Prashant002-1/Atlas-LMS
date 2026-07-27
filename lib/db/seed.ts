@@ -123,6 +123,7 @@ async function main() {
       orgId,
       name: u.name,
       email: u.email,
+      image: u.image ?? null,
       role: u.role,
       passwordHash,
     }))

@@ -6,6 +6,7 @@ import { Markdown } from "@/components/agent/markdown";
 import { PageHeader } from "@/components/teach/page-header";
 import { BackLink, StatusBadge } from "@/components/atlas/primitives";
 import { EmptyRecord } from "@/components/atlas/record";
+import { moduleReturnHref } from "@/lib/module-navigation-context";
 
 /**
  * One page or practice set, in full.
@@ -15,18 +16,28 @@ import { EmptyRecord } from "@/components/atlas/record";
  * practice sets could be created by Atlas and then never read, which left
  * Review with an approved draft and nowhere to send you. This is that place.
  */
-export default async function CourseRecordPage({ params }: { params: Promise<{ recordId: string }> }) {
+export default async function CourseRecordPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ recordId: string }>;
+  searchParams: Promise<{ fromModule?: string }>;
+}) {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
   if (!isInstructorLike(session.user.role)) redirect("/student");
 
-  const { recordId } = await params;
+  const [{ recordId }, query] = await Promise.all([params, searchParams]);
+  const moduleHref = moduleReturnHref(query.fromModule);
+  const backHref = moduleHref ?? "/teach/materials";
+  const backLabel = moduleHref ? "Module" : "Materials";
   const view = await loadCourseRecord(session.user, recordId);
 
   if (view.problem) {
     return (
       <>
-        <PageHeader title={view.problem.title} />
+        <BackLink href={backHref}>{backLabel}</BackLink>
+        <div className="mt-3"><PageHeader title={view.problem.title} /></div>
         <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">{view.problem.detail}</p>
       </>
     );
@@ -35,7 +46,7 @@ export default async function CourseRecordPage({ params }: { params: Promise<{ r
   if (!view.record) {
     return (
       <>
-        <BackLink href="/teach/materials">Materials</BackLink>
+        <BackLink href={backHref}>{backLabel}</BackLink>
         <div className="mt-3">
           <PageHeader title="Record not found" course={view.course.code} />
         </div>
@@ -49,7 +60,7 @@ export default async function CourseRecordPage({ params }: { params: Promise<{ r
 
   return (
     <>
-      <BackLink href="/teach/materials">Materials</BackLink>
+      <BackLink href={backHref}>{backLabel}</BackLink>
 
       <div className="mt-3">
         <PageHeader

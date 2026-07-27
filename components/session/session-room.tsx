@@ -112,6 +112,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
   const [localDeadlineAt, setLocalDeadlineAt] = useState<string | null>(props.deadlineAt);
   const [closing, setClosing] = useState(false);
   const [grading, setGrading] = useState<StudentGradingProgress | null>(props.grading);
+  const resumedRunIdRef = useRef<string | null>(null);
   /*
    * An assessed session queues rather than steers, on purpose. Every turn here
    * is part of the graded record and counts against the professor's turn
@@ -150,10 +151,9 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
     else window.localStorage.removeItem(runStorageKey);
   }, [props.activeRunId, runStorageKey]);
 
-  const { messages, sendMessage, status, error } = useChat<AssignmentChatMessage>({
+  const { messages, sendMessage, resumeStream, status, error } = useChat<AssignmentChatMessage>({
     id: `session-${props.assignmentId}${props.chatIdSuffix ?? ""}`,
     messages: props.initialMessages,
-    resume: Boolean(props.activeRunId),
     transport,
     onError: (chatError) => console.error("Atlas session stream failed", chatError),
     onFinish: ({ isAbort, isDisconnect }) => {
@@ -170,6 +170,12 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
       window.setTimeout(() => sendMessage({ text: next, metadata: atlasMessageMetadataNow() }), 0);
     },
   });
+
+  useEffect(() => {
+    if (!props.activeRunId || resumedRunIdRef.current === props.activeRunId) return;
+    resumedRunIdRef.current = props.activeRunId;
+    void resumeStream();
+  }, [props.activeRunId, resumeStream]);
   const [inspectorOpen, setInspectorOpen] = useState(false);
 
   useEffect(() => {

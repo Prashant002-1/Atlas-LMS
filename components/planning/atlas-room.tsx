@@ -243,6 +243,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [uploadPending, startUploadTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const resumedRunIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -286,10 +287,9 @@ export function PlanningRoom(props: PlanningRoomProps) {
     else window.localStorage.removeItem(runStorageKey);
   }, [props.activeRunId, runStorageKey]);
 
-  const { messages, sendMessage, status, error } = useChat<PlanningChatMessage>({
+  const { messages, sendMessage, resumeStream, status, error } = useChat<PlanningChatMessage>({
     id: `planning-${props.threadId}`,
     messages: props.initialMessages,
-    resume: Boolean(props.activeRunId),
     transport,
     onError: (chatError) => console.error("Atlas planning stream failed", chatError),
     onFinish: ({ isAbort, isDisconnect }) => {
@@ -298,6 +298,12 @@ export function PlanningRoom(props: PlanningRoomProps) {
       settleSteeringRef.current();
     },
   });
+
+  useEffect(() => {
+    if (!props.activeRunId || resumedRunIdRef.current === props.activeRunId) return;
+    resumedRunIdRef.current = props.activeRunId;
+    void resumeStream();
+  }, [props.activeRunId, resumeStream]);
 
   const sendPlanningMessage = (text: string) => {
     const attachments = selectedDocuments;

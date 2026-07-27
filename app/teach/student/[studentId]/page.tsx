@@ -9,6 +9,7 @@ import {
   type InstructorStudentWorkItem,
   type InstructorStudentWorkspace,
 } from "@/lib/instructor/workspace";
+import { markdownPreview } from "@/lib/markdown-presentation";
 
 const workTone = { graded: "good", submitted: "accent", missing: "warn", open: "neutral" } as const;
 const workLabel = { graded: "Graded", submitted: "Submitted", missing: "Missing", open: "Open" } as const;
@@ -83,7 +84,7 @@ function StudentWorkRow({ item }: { item: InstructorStudentWorkItem }) {
             {item.assignmentId ? <TextLink href={`/teach/assignments/${item.assignmentId}`}>{item.title}</TextLink> : item.title}
           </p>
           <p className="mt-1 text-[0.75rem] text-[var(--color-muted)]">{workMeta(item)}</p>
-          {item.detail ? <p className="mt-2 text-[0.8125rem] leading-5 text-[var(--color-muted)]">{item.detail}</p> : null}
+          {item.detail ? <p className="mt-2 text-[0.8125rem] leading-5 text-[var(--color-muted)]">{markdownPreview(item.detail, item.title)}</p> : null}
           {item.points ? <p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">{Math.round(item.points)} points</p> : null}
         </div>
         <div className="flex flex-wrap items-center gap-2 md:justify-end">

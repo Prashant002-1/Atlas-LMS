@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { users, accounts, sessions, verificationTokens } from "@/lib/db/schema";
 import { verifyPassword } from "@/lib/auth/password";
 import { isLoginEmailAllowed } from "@/lib/auth/access";
+import { resolveLoginIdentity } from "@/lib/auth/login-identity";
 
 /**
  * Atlas sessions carry the tenant + role so every downstream tool can scope itself.
@@ -39,13 +40,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!email || !password) return null;
         if (!isLoginEmailAllowed(email)) return null;
 
-        const row = await db.query.users.findFirst({ where: eq(users.email, email) });
-        if (!row?.passwordHash) return null;
+        const identity = await resolveLoginIdentity(email);
+        if (!identity?.passwordHash) return null;
 
-        const ok = await verifyPassword(password, row.passwordHash);
+        const ok = await verifyPassword(password, identity.passwordHash);
         if (!ok) return null;
 
-        return { id: row.id, email: row.email, name: row.name, image: row.image };
+        return {
+          id: identity.id,
+          email: identity.loginEmail,
+          name: identity.name,
+          image: identity.image,
+        };
       },
     }),
   ],

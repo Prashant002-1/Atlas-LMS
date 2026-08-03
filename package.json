@@ -24,6 +24,7 @@
     "db:studio": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs studio",
     "db:seed": "tsx lib/db/seed.ts",
     "demo:provision-yc": "tsx scripts/provision-yc-access.ts",
+    "demo:provision-spc": "tsx scripts/provision-spc-access.ts",
     "postinstall": "npm run fonts"
   },
   "dependencies": {

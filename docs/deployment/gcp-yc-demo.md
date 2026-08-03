@@ -98,6 +98,9 @@ environment.
   pinned image with a disposable Docker configuration, and starts the services.
 - [`scripts/provision-yc-access.ts`](../../scripts/provision-yc-access.ts)
   disables seeded passwords and enables exactly the two YC accounts.
+- [`scripts/provision-spc-access.ts`](../../scripts/provision-spc-access.ts)
+  adds two credential aliases that resolve to the same seeded YC identities,
+  password hashes, and live records.
 - [`scripts/smoke.ts`](../../scripts/smoke.ts) verifies public routes and both
   actors.
 - [`scripts/smoke-workflow.ts`](../../scripts/smoke-workflow.ts) performs a real
@@ -128,10 +131,17 @@ the production image contains no `.env` file.
 
 The YC password is used only by `npm run demo:provision-yc`. Atlas stores a
 salted `scrypt` hash in PostgreSQL. The plaintext password is not part of the
-running container environment. Only these accounts retain password hashes:
+running container environment. Only these user records retain password hashes:
 
 - `yc-instructor@atlas-lms.com`
 - `yc-student@atlas-lms.com`
+
+The following login aliases carry no password hash or course data of their own.
+They resolve to the matching YC user id and verify against that user's existing
+hash, so both application credential sets see one shared live record:
+
+- `spc-instructor@atlas-lms.com` -> `yc-instructor@atlas-lms.com`
+- `spc-student@atlas-lms.com` -> `yc-student@atlas-lms.com`
 
 The runtime file contains these non-secret settings in addition to the secret
 values and database URLs:
@@ -143,7 +153,7 @@ PG_POOL_MAX=10
 AUTH_URL=https://demo.atlas-lms.com
 AUTH_TRUST_HOST=true
 ATLAS_PUBLIC_APP_URL=https://demo.atlas-lms.com
-ATLAS_ALLOWED_LOGIN_EMAILS=yc-instructor@atlas-lms.com,yc-student@atlas-lms.com
+ATLAS_ALLOWED_LOGIN_EMAILS=yc-instructor@atlas-lms.com,yc-student@atlas-lms.com,spc-instructor@atlas-lms.com,spc-student@atlas-lms.com
 ATLAS_CHAT_PROVIDER=anthropic
 ATLAS_CHAT_MODEL=claude-opus-5
 ATLAS_STRUCTURED_MODEL=claude-opus-5
@@ -205,8 +215,10 @@ The coordinated action depends on the secret:
   password. It is an operator-only bootstrap secret and is not part of the
   running Atlas environment.
 - For `atlas-yc-password`, add the new Secret Manager version and rerun
-  `npm run demo:provision-yc` from the disposable setup container. It is not
-  part of the running Atlas environment.
+  `npm run demo:provision-yc` from the disposable setup container. The
+  provisioner is idempotent after the initial email change. SPC aliases use the
+  same target hashes, so they receive the rotated password automatically. The
+  plaintext password is not part of the running Atlas environment.
 
 ## Rebuild an empty project
 
@@ -584,9 +596,11 @@ gcloud compute ssh atlas-demo-1 \
 3. Run `npx --package=@workflow/world-postgres bootstrap` with
    `WORKFLOW_POSTGRES_URL` set.
 4. Run `npm run db:seed` once.
-5. Run `npm run demo:provision-yc` once with `ATLAS_YC_PASSWORD` supplied from a
+5. Run `npm run demo:provision-yc` with `ATLAS_YC_PASSWORD` supplied from a
    temporary root-owned file. Do not add it to `/etc/atlas/atlas.env`.
-6. Remove the temporary administrator and YC password files.
+6. Run `npm run demo:provision-spc`; it needs no plaintext password because the
+   aliases reuse the enabled target users' hashes.
+7. Remove the temporary administrator and YC password files.
 
 For the extension step, create a temporary root-owned environment file on the
 VM containing only `PGPASSWORD` from `atlas-postgres-password`, then run:
@@ -615,7 +629,8 @@ sudo docker run --rm \
 ```
 
 Then run `demo:provision-yc` in the same disposable setup container with a
-second temporary `--env-file` that contains only `ATLAS_YC_PASSWORD`.
+second temporary `--env-file` that contains only `ATLAS_YC_PASSWORD`, followed
+by `demo:provision-spc` with only the normal runtime environment file.
 
 After setup succeeds, start the full application:
 
@@ -736,6 +751,18 @@ Expected results are a healthy JSON response and `404` for the Workflow route.
 ATLAS_BASE_URL=https://demo.atlas-lms.com \
 ATLAS_SMOKE_INSTRUCTOR_EMAIL=yc-instructor@atlas-lms.com \
 ATLAS_SMOKE_STUDENT_EMAIL=yc-student@atlas-lms.com \
+ATLAS_SMOKE_PASSWORD="$(gcloud secrets versions access latest --project=atlas-yc2026fall --secret=atlas-yc-password)" \
+npm run smoke
+```
+
+### Both SPC aliases
+
+The aliases intentionally use the same password as the matching YC identities.
+
+```bash
+ATLAS_BASE_URL=https://demo.atlas-lms.com \
+ATLAS_SMOKE_INSTRUCTOR_EMAIL=spc-instructor@atlas-lms.com \
+ATLAS_SMOKE_STUDENT_EMAIL=spc-student@atlas-lms.com \
 ATLAS_SMOKE_PASSWORD="$(gcloud secrets versions access latest --project=atlas-yc2026fall --secret=atlas-yc-password)" \
 npm run smoke
 ```

@@ -87,7 +87,10 @@ export default async function TeachSyllabusPage() {
                   {person.title ? <p className="mt-0.5 text-[0.75rem] leading-5 text-[var(--color-muted)]">{person.title}</p> : null}
                 </div>
                 <dl className="grid gap-x-6 gap-y-1.5 text-[0.78125rem] sm:grid-cols-3">
-                  <InlineFact label="Email" value={person.email} />
+                  <InlineFact
+                    label="Email"
+                    value={person.id === session.user.id ? session.user.email ?? person.email : person.email}
+                  />
                   {person.officeLocation ? <InlineFact label="Office" value={person.officeLocation} /> : null}
                   {person.officeHours ? <InlineFact label="Office hours" value={person.officeHours} /> : null}
                 </dl>

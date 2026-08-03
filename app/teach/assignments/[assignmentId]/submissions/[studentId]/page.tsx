@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronLeft, ChevronRight, ExternalLink, FileText } from "lucide-react";
 import { auth } from "@/lib/auth";
+import { displayLoginEmail } from "@/lib/auth/display-email";
 import { isInstructorLike } from "@/lib/auth/session";
 import { loadSubmissionDetail, type SubmissionDetailView } from "@/lib/instructor/submission-detail";
 import { gradeSubmission, markSubmissionMissing } from "@/lib/instructor/actions";
@@ -46,6 +47,12 @@ export default async function SubmissionDetailPage({
     );
   }
 
+  const studentEmail = await displayLoginEmail({
+    viewerEmail: session.user.email,
+    userId: view.student.id,
+    fallback: view.student.email,
+  });
+
   const returnTo = `/teach/assignments/${assignmentId}/submissions/${studentId}`;
 
   return (
@@ -72,7 +79,7 @@ export default async function SubmissionDetailPage({
         {view.submission.submittedAt ? <span>Submitted {stamp(view.submission.submittedAt)}</span> : null}
         {view.submission.late ? <StatusBadge tone="warn">Late</StatusBadge> : null}
         {view.student.standing ? <span>Course standing {view.student.standing}</span> : null}
-        {view.student.email ? <span className="atlas-mono text-[0.71875rem]">{view.student.email}</span> : null}
+        {studentEmail ? <span className="atlas-mono text-[0.71875rem]">{studentEmail}</span> : null}
       </div>
 
       <div className="grid gap-10 xl:grid-cols-[minmax(0,1.35fr)_minmax(19rem,0.65fr)] xl:items-start">

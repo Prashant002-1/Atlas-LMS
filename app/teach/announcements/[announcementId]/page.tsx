@@ -36,6 +36,7 @@ export default async function TeachAnnouncementPage({ params }: { params: Promis
       postedAt: announcements.postedAt,
       published: announcements.published,
       scheduled: sql<boolean>`${announcements.postedAt} > now()`,
+      authorId: users.id,
       authorName: users.name,
       authorEmail: users.email,
     })
@@ -75,6 +76,8 @@ export default async function TeachAnnouncementPage({ params }: { params: Promis
   const studentCount = Number(recipients?.count ?? 0);
 
   const posted = Boolean(record.published && record.postedAt);
+  const authorEmail =
+    record.authorId === session.user.id ? session.user.email ?? record.authorEmail : record.authorEmail;
   return (
     <>
       <BackLink href="/teach/announcements">Announcements</BackLink>
@@ -82,8 +85,8 @@ export default async function TeachAnnouncementPage({ params }: { params: Promis
       <div className="mt-6">
         <AnnouncementMessage
           subject={record.title}
-          authorName={record.authorName ?? record.authorEmail ?? "Course staff"}
-          authorEmail={record.authorEmail}
+          authorName={record.authorName ?? authorEmail ?? "Course staff"}
+          authorEmail={authorEmail}
           courseCode={course.code}
           audience={studentCount > 0 ? `${studentCount} students in ${course.code}` : `Everyone in ${course.code}`}
           messageMd={record.messageMd ?? ""}

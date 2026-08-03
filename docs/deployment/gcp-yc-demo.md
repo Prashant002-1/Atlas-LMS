@@ -100,8 +100,8 @@ environment.
 - [`scripts/provision-yc-access.ts`](../../scripts/provision-yc-access.ts)
   disables seeded passwords and enables exactly the two YC accounts.
 - [`scripts/provision-spc-access.ts`](../../scripts/provision-spc-access.ts)
-  adds two credential aliases that resolve to the same seeded YC identities,
-  password hashes, and live records.
+  adds two credential aliases with their own password that resolve to the same
+  seeded identities and live records.
 - [`scripts/smoke.ts`](../../scripts/smoke.ts) verifies public routes and both
   actors.
 - [`scripts/smoke-workflow.ts`](../../scripts/smoke-workflow.ts) performs a real
@@ -119,6 +119,7 @@ committed.
 | `atlas-workflow-db-password` | Workflow database password | Inside `WORKFLOW_POSTGRES_URL` |
 | `atlas-postgres-password` | Cloud SQL administrator password | No |
 | `atlas-yc-password` | One-time YC account provisioning and operator handoff | No |
+| `atlas-spc-password` | One-time SPC alias provisioning and operator handoff | No |
 | `atlas-anthropic-api-key` | Chat and structured model access | Yes |
 | `atlas-gemini-api-key` | Embeddings and voice transcription | Yes |
 | `atlas-exa-api-key` | Bounded public web search | Yes |
@@ -137,9 +138,9 @@ running container environment. Only these user records retain password hashes:
 - `yc-instructor@atlas-lms.com`
 - `yc-student@atlas-lms.com`
 
-The following login aliases carry no password hash or course data of their own.
-They resolve to the matching YC user id and verify against that user's existing
-hash, so both application credential sets see one shared live record:
+The following login aliases carry their own password hashes but no course data.
+They resolve to the matching user id, so both application credential sets see
+one shared live record while retaining independent credentials:
 
 - `spc-instructor@atlas-lms.com` -> `yc-instructor@atlas-lms.com`
 - `spc-student@atlas-lms.com` -> `yc-student@atlas-lms.com`
@@ -217,9 +218,12 @@ The coordinated action depends on the secret:
   running Atlas environment.
 - For `atlas-yc-password`, add the new Secret Manager version and rerun
   `npm run demo:provision-yc` from the disposable setup container. The
-  provisioner is idempotent after the initial email change. SPC aliases use the
-  same target hashes, so they receive the rotated password automatically. The
-  plaintext password is not part of the running Atlas environment.
+  provisioner is idempotent after the initial email change. SPC credentials do
+  not change. The plaintext password is not part of the running Atlas
+  environment.
+- For `atlas-spc-password`, add the new Secret Manager version and rerun
+  `npm run demo:provision-spc` from the disposable setup container with
+  `ATLAS_SPC_PASSWORD` supplied. YC credentials do not change.
 
 ## Rebuild an empty project
 
@@ -356,7 +360,7 @@ gcloud projects add-iam-policy-binding "$ATLAS_GCP_PROJECT" \
 
 ### 5. Create Secret Manager entries
 
-Create the eight secret containers first:
+Create the nine secret containers first:
 
 ```bash
 for ATLAS_SECRET_NAME in \
@@ -366,6 +370,7 @@ for ATLAS_SECRET_NAME in \
   atlas-exa-api-key \
   atlas-gemini-api-key \
   atlas-postgres-password \
+  atlas-spc-password \
   atlas-workflow-db-password \
   atlas-yc-password
 do
@@ -376,8 +381,8 @@ done
 ```
 
 Add generated URL-safe database/auth values and operator-supplied provider
-keys as version 1. Supply the YC password securely. Never paste values into a
-checked-in shell script.
+keys as version 1. Supply the YC and SPC passwords securely. Never paste values
+into a checked-in shell script.
 
 Generate the platform and database secrets directly into Secret Manager:
 
@@ -394,9 +399,9 @@ do
 done
 ```
 
-Add the Anthropic, Gemini, Exa, and YC values through a private prompt or other
-non-logging input. Use `printf '%s'`, not `echo`, when piping a supplied value
-to `gcloud secrets versions add`, then unset the shell variable.
+Add the Anthropic, Gemini, Exa, YC, and SPC values through a private prompt or
+other non-logging input. Use `printf '%s'`, not `echo`, when piping a supplied
+value to `gcloud secrets versions add`, then unset the shell variable.
 
 ### 6. Create Cloud SQL
 
@@ -599,9 +604,9 @@ gcloud compute ssh atlas-demo-1 \
 4. Run `npm run db:seed` once.
 5. Run `npm run demo:provision-yc` with `ATLAS_YC_PASSWORD` supplied from a
    temporary root-owned file. Do not add it to `/etc/atlas/atlas.env`.
-6. Run `npm run demo:provision-spc`; it needs no plaintext password because the
-   aliases reuse the enabled target users' hashes.
-7. Remove the temporary administrator and YC password files.
+6. Run `npm run demo:provision-spc` with `ATLAS_SPC_PASSWORD` supplied from a
+   temporary root-owned file.
+7. Remove the temporary administrator, YC password, and SPC password files.
 
 For the extension step, create a temporary root-owned environment file on the
 VM containing only `PGPASSWORD` from `atlas-postgres-password`, then run:
@@ -631,7 +636,8 @@ sudo docker run --rm \
 
 Then run `demo:provision-yc` in the same disposable setup container with a
 second temporary `--env-file` that contains only `ATLAS_YC_PASSWORD`, followed
-by `demo:provision-spc` with only the normal runtime environment file.
+by `demo:provision-spc` with another temporary file containing only
+`ATLAS_SPC_PASSWORD`.
 
 After setup succeeds, start the full application:
 
@@ -758,13 +764,14 @@ npm run smoke
 
 ### Both SPC aliases
 
-The aliases intentionally use the same password as the matching YC identities.
+The aliases use their independent SPC password while resolving to the same
+live records as the matching YC identities.
 
 ```bash
 ATLAS_BASE_URL=https://demo.atlas-lms.com \
 ATLAS_SMOKE_INSTRUCTOR_EMAIL=spc-instructor@atlas-lms.com \
 ATLAS_SMOKE_STUDENT_EMAIL=spc-student@atlas-lms.com \
-ATLAS_SMOKE_PASSWORD="$(gcloud secrets versions access latest --project=atlas-yc2026fall --secret=atlas-yc-password)" \
+ATLAS_SMOKE_PASSWORD="$(gcloud secrets versions access latest --project=atlas-yc2026fall --secret=atlas-spc-password)" \
 npm run smoke
 ```
 

@@ -1,5 +1,6 @@
 import "../lib/db/env-loader";
 import { and, eq, inArray } from "drizzle-orm";
+import { hashPassword } from "../lib/auth/password";
 import { db } from "../lib/db";
 import { loginAliases, organizations, users } from "../lib/db/schema";
 
@@ -18,10 +19,15 @@ const SPC_ALIASES = [
 ];
 
 async function main() {
+  const password = process.env.ATLAS_SPC_PASSWORD;
+  if (!password) throw new Error("ATLAS_SPC_PASSWORD is required.");
+
   const org = await db.query.organizations.findFirst({
     where: eq(organizations.slug, DEMO_ORG_SLUG),
   });
   if (!org) throw new Error(`Seeded organization ${DEMO_ORG_SLUG} was not found.`);
+
+  const passwordHash = await hashPassword(password);
 
   await db.transaction(async (tx) => {
     for (const account of SPC_ALIASES) {
@@ -45,10 +51,10 @@ async function main() {
 
       await tx
         .insert(loginAliases)
-        .values({ email: account.email, userId: target.id })
+        .values({ email: account.email, userId: target.id, passwordHash })
         .onConflictDoUpdate({
           target: loginAliases.email,
-          set: { userId: target.id },
+          set: { userId: target.id, passwordHash },
         });
     }
   });
@@ -58,7 +64,7 @@ async function main() {
       email: loginAliases.email,
       targetEmail: users.email,
       role: users.role,
-      passwordHash: users.passwordHash,
+      passwordHash: loginAliases.passwordHash,
     })
     .from(loginAliases)
     .innerJoin(users, eq(users.id, loginAliases.userId))

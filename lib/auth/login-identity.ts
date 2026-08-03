@@ -23,13 +23,12 @@ const identityColumns = {
   role: users.role,
   name: users.name,
   image: users.image,
-  passwordHash: users.passwordHash,
 };
 
 const databaseLoginIdentityLookup: LoginIdentityLookup = {
   async direct(email) {
     const [identity] = await db
-      .select({ ...identityColumns, loginEmail: users.email })
+      .select({ ...identityColumns, passwordHash: users.passwordHash, loginEmail: users.email })
       .from(users)
       .where(eq(users.email, email))
       .limit(1);
@@ -38,7 +37,11 @@ const databaseLoginIdentityLookup: LoginIdentityLookup = {
 
   async alias(email) {
     const [identity] = await db
-      .select({ ...identityColumns, loginEmail: loginAliases.email })
+      .select({
+        ...identityColumns,
+        passwordHash: loginAliases.passwordHash,
+        loginEmail: loginAliases.email,
+      })
       .from(loginAliases)
       .innerJoin(users, eq(users.id, loginAliases.userId))
       .where(eq(loginAliases.email, email))

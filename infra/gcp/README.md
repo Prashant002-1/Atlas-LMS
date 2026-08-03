@@ -19,8 +19,8 @@ The hosting decision and future compute boundary are in
 - Cloud SQL has no public IP. The VM authenticates with its attached service
   account, so no Google service-account key is stored on disk.
 - `/etc/atlas/atlas.env` is root-readable and is populated from Secret Manager.
-- Only the two seeded YC identities retain password hashes after provisioning;
-  SPC login aliases resolve to those same identities and hashes.
+- YC identities and SPC login aliases retain independent password hashes; the
+  aliases resolve to the same seeded identities and live records.
 
 ## Deployment order
 
@@ -31,7 +31,8 @@ The hosting decision and future compute boundary are in
    already-initialized database.
 3. Bootstrap the Workflow schema in `atlas_workflow`.
 4. Seed the demo tenant once, run `npm run demo:provision-yc`, then run
-   `npm run demo:provision-spc` to add the two shared-state SPC login aliases.
+   `npm run demo:provision-spc` with its independent password to add the two
+   shared-state SPC login aliases.
 5. Install the host, place the compose file, Caddyfile, and root-owned env file,
    then run `deploy-host.sh`.
 6. Point the `demo` DNS A record at the VM's static address.

@@ -17,15 +17,16 @@ service-account keys in this document or anywhere else in Git.
 | Google Cloud project | `atlas-yc2026fall` |
 | Named gcloud configuration | `atlas-yc2026fall` |
 | Region and zone | `us-central1`, `us-central1-a` |
-| Deployment PR | [#50](https://github.com/Prashant002-1/Atlas-LMS/pull/50) |
-| Merge commit | [`bd5b052`](https://github.com/Prashant002-1/Atlas-LMS/commit/bd5b0527ba7ecef03d2755794d180d5a16df38e8) |
-| Live source commit | [`43c407f`](https://github.com/Prashant002-1/Atlas-LMS/commit/43c407fbd6372e5b8876111b74758f52c72db878) |
-| Cloud Build | `3d023d81-29ae-4f7a-896b-5950d5593fea` |
-| Live image tag | `us-central1-docker.pkg.dev/atlas-yc2026fall/atlas/atlas:43c407f` |
-| Live image digest | `sha256:48b510575862115dbf5d5c70940b46e3e1c43506e2c8e2f8215a5feda56c1c99` |
+| Original deployment PR | [#50](https://github.com/Prashant002-1/Atlas-LMS/pull/50) |
+| Original merge commit | [`bd5b052`](https://github.com/Prashant002-1/Atlas-LMS/commit/bd5b0527ba7ecef03d2755794d180d5a16df38e8) |
+| Live source commit | `1faf1af` on local branch `codex/spc-login-aliases` |
+| Cloud Build | `92cd024f-81ea-47a8-8815-469fd0d93d54` |
+| Live image tag | `us-central1-docker.pkg.dev/atlas-yc2026fall/atlas/atlas:1faf1af` |
+| Live image digest | `sha256:bf75aaf8da931525aa1d49c892673ae29fba14447039218b42eb238be1b1e4e2` |
 
-The GitHub PR is history and review evidence. It does not serve production.
-The VM serves the pinned Artifact Registry image named in `/opt/atlas/.env`.
+The original GitHub PR is history and review evidence. It does not serve
+production. The current live source commit has not been pushed to GitHub. The
+VM serves the pinned Artifact Registry image named in `/opt/atlas/.env`.
 Merging or deleting a branch does not redeploy or stop that image.
 
 ## Architecture

@@ -145,6 +145,10 @@ one shared live record while retaining independent credentials:
 - `spc-instructor@atlas-lms.com` -> `yc-instructor@atlas-lms.com`
 - `spc-student@atlas-lms.com` -> `yc-student@atlas-lms.com`
 
+The shell, account, syllabus, announcements, and submission views present the
+login email or the matching alias namespace. An SPC session does not expose the
+target YC emails, while a YC session continues to present the YC credentials.
+
 The runtime file contains these non-secret settings in addition to the secret
 values and database URLs:
 

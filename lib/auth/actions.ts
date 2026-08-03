@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { auth, signIn, signOut } from "@/lib/auth";
+import { resolveLoginIdentity } from "@/lib/auth/login-identity";
 import { isInstructorLike } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
@@ -30,8 +31,8 @@ async function signInFromForm(formData: FormData): Promise<SignInState> {
     return { error: "Enter an email and password." };
   }
 
-  const user = await db.query.users.findFirst({ where: eq(users.email, email) });
-  const redirectTo = user && isInstructorLike(user.role) ? "/teach" : "/student";
+  const identity = await resolveLoginIdentity(email);
+  const redirectTo = identity && isInstructorLike(identity.role) ? "/teach" : "/student";
 
   try {
     await signIn("credentials", { email, password, redirectTo });

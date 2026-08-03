@@ -8,12 +8,19 @@ test("allows existing local accounts when no production allowlist is configured"
 });
 
 test("normalizes and enforces the production login allowlist", () => {
-  const value = " Pilot-Instructor@example.edu, pilot-student@example.edu ";
+  const value =
+    " Pilot-Instructor@example.edu, pilot-student@example.edu, Alias-Instructor@example.edu, alias-student@example.edu ";
 
   assert.deepEqual(
     [...(allowedLoginEmails(value) ?? [])],
-    ["pilot-instructor@example.edu", "pilot-student@example.edu"]
+    [
+      "pilot-instructor@example.edu",
+      "pilot-student@example.edu",
+      "alias-instructor@example.edu",
+      "alias-student@example.edu",
+    ]
   );
   assert.equal(isLoginEmailAllowed("PILOT-INSTRUCTOR@EXAMPLE.EDU", value), true);
+  assert.equal(isLoginEmailAllowed("ALIAS-STUDENT@EXAMPLE.EDU", value), true);
   assert.equal(isLoginEmailAllowed("admin@demo.edu", value), false);
 });

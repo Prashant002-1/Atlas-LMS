@@ -124,9 +124,9 @@ export const users = pgTable(
 );
 
 /**
- * Additional credential emails for an existing Atlas identity. Aliases change
- * only how someone signs in: every course, submission, session, and memory read
- * continues to use the target user's stable id.
+ * Additional credentials for an existing Atlas identity. Aliases own their
+ * login email and password while every course, submission, session, and memory
+ * read continues to use the target user's stable id.
  */
 export const loginAliases = pgTable(
   "login_aliases",
@@ -135,6 +135,7 @@ export const loginAliases = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    passwordHash: text("password_hash").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index("login_aliases_user_idx").on(t.userId)]

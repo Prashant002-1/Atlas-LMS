@@ -34,7 +34,11 @@ test("direct login identity takes precedence over an alias", async () => {
 });
 
 test("an alias retains its login email while resolving to the target identity", async () => {
-  const aliasIdentity = { ...instructor, loginEmail: "alias-instructor@example.edu" };
+  const aliasIdentity = {
+    ...instructor,
+    passwordHash: "spc-hash",
+    loginEmail: "alias-instructor@example.edu",
+  };
   const lookup: LoginIdentityLookup = {
     async direct() {
       return null;

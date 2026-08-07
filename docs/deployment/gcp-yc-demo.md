@@ -19,15 +19,17 @@ service-account keys in this document or anywhere else in Git.
 | Region and zone | `us-central1`, `us-central1-a` |
 | Original deployment PR | [#50](https://github.com/Prashant002-1/Atlas-LMS/pull/50) |
 | Original merge commit | [`bd5b052`](https://github.com/Prashant002-1/Atlas-LMS/commit/bd5b0527ba7ecef03d2755794d180d5a16df38e8) |
-| Live source commit | `1faf1af` on local branch `codex/spc-login-aliases` |
-| Cloud Build | `92cd024f-81ea-47a8-8815-469fd0d93d54` |
-| Live image tag | `us-central1-docker.pkg.dev/atlas-yc2026fall/atlas/atlas:1faf1af` |
-| Live image digest | `sha256:bf75aaf8da931525aa1d49c892673ae29fba14447039218b42eb238be1b1e4e2` |
+| Latest source PR | [#51](https://github.com/Prashant002-1/Atlas-LMS/pull/51) |
+| Latest merge commit | [`98c2c56`](https://github.com/Prashant002-1/Atlas-LMS/commit/98c2c56715fb7cfc488c44646e7cb4c866a6dea3) |
+| Live source commit | [`5cce502`](https://github.com/Prashant002-1/Atlas-LMS/commit/5cce5025f2360894bb1be203fc669ecb4a02d610) |
+| Cloud Build | `9a292e23-099c-43bb-96ed-6f52be14dcf8` |
+| Live image tag | `us-central1-docker.pkg.dev/atlas-yc2026fall/atlas/atlas:5cce502` |
+| Live image digest | `sha256:a90b82738c7021b4c92e4e99c88f685d4320ae177178295814bbf6cfd7a167cf` |
 
 The original GitHub PR is history and review evidence. It does not serve
-production. The current live source commit has not been pushed to GitHub. The
-VM serves the pinned Artifact Registry image named in `/opt/atlas/.env`.
-Merging or deleting a branch does not redeploy or stop that image.
+production. The current live source is merged into `main` through PR #51. The VM
+serves the pinned Artifact Registry image named in `/opt/atlas/.env`. Merging or
+deleting a branch does not redeploy or stop that image.
 
 ## Architecture
 

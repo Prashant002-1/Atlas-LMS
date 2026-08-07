@@ -20,6 +20,7 @@ External guidance supports a stricter split between behavior configuration and a
 - 1EdTech Common Cartridge packages interoperable course content and assessments, while QTI exchanges question, test, item-bank, delivery, and results data. [Common Cartridge](https://www.1edtech.org/standards/cc) and [QTI](https://www.1edtech.org/standards/qti/index)
 - Canvas exposes Common Cartridge, QTI, ZIP, course-copy, and selective-import workflows as durable migrations with progress and issue states, not synchronous page parsing. [Canvas content migrations](https://developerdocs.instructure.com/services/canvas/resources/content_migrations)
 - Next.js Server Actions default to a 1 MB body limit and require an explicit bounded override for larger uploads. [Next.js Server Actions configuration](https://nextjs.org/docs/app/api-reference/config/next-config-js/serverActions)
+- AnyDoc provides self-hosted Rust and Node.js parsing for Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, CSV, and text-based PDF inputs. It normalizes supported formats through one document model and Markdown serializer without a model API. [AnyDoc](https://github.com/firecrawl/anydoc)
 
 ## Decision
 
@@ -124,13 +125,15 @@ The maximum file size is 25 MB. Next.js action and proxy body buffers are capped
 
 The existing `files` table remains the durable source record. `course_material_records` is a one-to-one extension carrying job, processing, and access metadata. Existing seeded and imported file rows without extension metadata remain valid and resolve as ready, course-visible LMS material. The exact worker protocol is documented in [Course material ingestion contract](../course-materials/ingestion-contract.md).
 
+The worker planned in [issue #49](https://github.com/Prashant002-1/Atlas-LMS/issues/49) uses self-hosted AnyDoc as its default parser. AnyDoc runs against the exact bytes stored by the worker and returns canonical GitHub-Flavored Markdown through the existing extraction contract. It does not replace storage, authorization, job state, or callbacks. Plain text and code use bounded local decoding. Package formats retain dedicated handlers. Scanned or image-only PDFs require an explicit OCR path and fail clearly when none is configured; private documents are never sent to a hosted parser by default.
+
 ### 8. Document understanding extends the same file record
 
-Atlas does not create a second file library for documents. A model-derived readable artifact extends `course_material_records`, with provider, model, and input-mode provenance. `document_attachments` connects the same file to a course material record, syllabus, assignment, professor thread, or student personal thread through explicit foreign keys and an exactly-one-owner check. Course files carry a course id. Personal student files instead carry the owning user id and require an exact organization, user, and personal-session match; instructors and other students cannot read them.
+Atlas does not create a second file library for documents. AnyDoc Markdown is the canonical derived representation for its supported formats. `document_attachments` connects the same file to a course material record, syllabus, assignment, professor thread, or student personal thread through explicit foreign keys and an exactly-one-owner check. Course files carry a course id. Personal student files instead carry the owning user id and require an exact organization, user, and personal-session match; instructors and other students cannot read them.
 
 Original browser viewing and download use an authenticated Atlas route over the durable ingestion URL. The readable detail surface shows the summary, outline, and content artifact. Notes and annotation controls remain visibly unavailable until their own persistence and authorization design exists.
 
-Native model input is deliberately narrow. First-party provider adapters may receive PDFs where their installed behavior and official provider documentation support it. Text and code are sent as text. Office documents and spreadsheets require worker-extracted text. Generic compatible gateways do not establish native file capability, so Atlas makes no universal parsing claim.
+Document parsing does not depend on the configured model provider. The parser result is saved once and supplies the viewer, search, and bounded agent context. An optional model step may enrich that result with a title, summary, or navigation outline, but it consumes the canonical Markdown and does not parse the original again. Parser name, pinned version, input format, checksum, and any model enrichment provenance remain inspectable. Atlas makes no universal parsing or OCR claim.
 
 ## Consequences
 
@@ -146,11 +149,13 @@ Native model input is deliberately narrow. First-party provider adapters may rec
 - Ready-state and access checks prevent half-processed or instructor-only material from entering student context.
 - Documents attached to professor chats enter model context only after readable processing is ready and the chat's organization, course, and owner checks pass.
 - Documents attached to a student's personal Atlas chat enter bounded model context only after readable processing is ready and organization, student, and personal-session checks pass.
+- Supported office and text-based PDF inputs share one local Markdown parser rather than requiring a model call for document parsing.
 - Existing course files and policies remain compatible.
 
 ### Costs
 
 - Material upload requires an external ingestion service. When it is not configured, upload fails clearly and creates nothing.
+- AnyDoc is an early dependency and does not perform OCR. Atlas must pin a reviewed release, keep format fixtures, bound parser resources and output, and provide an explicit scanned-document failure or OCR path.
 - Configuration is loaded each turn rather than pinned to an open session. This is intentional for immediate propagation, but future audit requirements may add `configVersion` to session and submission records.
 - The legacy `course_ai_policies` row remains until the planned study profile migrates fully to the new specification.
 - Common Cartridge and QTI parsing happens behind the ingestion seam. This change stores package provenance and processing state, but does not implement a complete standards parser inside the Next.js request path.

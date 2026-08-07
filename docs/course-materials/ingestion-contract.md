@@ -2,6 +2,14 @@
 
 Atlas keeps binary storage and extraction outside the Next.js web process. This document defines the HTTPS service contract used by teacher Materials and personal student attachments.
 
+## Parser decision
+
+The ingestion service tracked in [issue #49](https://github.com/Prashant002-1/Atlas-LMS/issues/49) will use self-hosted [AnyDoc](https://github.com/firecrawl/anydoc) as Atlas's default document parser. AnyDoc runs locally without a model API or external parsing service and converts its supported Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, CSV, and text-based PDF formats into one GitHub-Flavored Markdown representation.
+
+AnyDoc is one component inside the ingestion service. It does not replace private original storage, stable job identity, checksums, scoped ownership metadata, authenticated reads, processing states, or signed callbacks. The worker parses the exact bytes it stores durably and returns the resulting Markdown through the existing `extractedText` field. The field name remains for wire and database compatibility; for AnyDoc-supported formats, its canonical content is Markdown.
+
+Atlas does not send every document to an LLM for parsing. Optional model enrichment may derive a title, summary, or navigation outline from the canonical Markdown, but it must not replace that Markdown or re-parse the original as a second source of truth. Plain text and code use bounded local decoding. Package formats such as Common Cartridge, QTI/XML, and ZIP keep their own reviewed handlers. Scanned or image-only PDFs require a separately configured OCR path because AnyDoc does not perform OCR; Atlas must fail clearly when no reviewed OCR path is available and must not silently send private documents to a hosted service.
+
 ## Configuration
 
 | Variable | Purpose |
@@ -76,6 +84,7 @@ Rules:
 - `url` is a durable HTTPS object URL that serves bytes without a redirect, or local HTTP in development.
 - `status` is `processing` or `ready`.
 - `extractedText` is optional and at most 2,000,000 characters.
+- for AnyDoc-supported formats, `extractedText` contains the canonical GitHub-Flavored Markdown produced from the stored bytes;
 - `pageCount` is optional.
 - serialized metadata is at most 50,000 characters.
 - the whole response is at most 3,000,000 characters.
@@ -140,15 +149,10 @@ Instructor context may describe every state. Existing `files` rows with no exten
 
 ## Document understanding and originals
 
-Documents keep the existing `files` row and durable worker URL as the source of truth. `course_material_records` stores the model-derived summary, outline, readable Markdown, provider, model id, input mode, and processing error. `document_attachments` gives each use a real foreign-key owner: course material record, syllabus course, assignment, or Atlas thread. A database check requires exactly one attachment owner and exactly one storage scope. Course rows have `course_id`; personal student rows have `owner_user_id`, `course_id = null`, private visibility, and an established personal-session attachment.
+Documents keep the existing `files` row and durable worker URL as the original-file source of truth. The worker's validated Markdown is the canonical derived document. The first implementation may keep that Markdown in both `files.extracted_text` and `course_material_records.extraction.contentMarkdown` for compatibility with existing search, context, and viewer paths, but those fields must represent the same parser result rather than independent conversions. Parser name, pinned version, input format, checksum, processing state, and bounded errors remain inspectable provenance. Any optional model-derived title, summary, or outline is enrichment attached to the parser result, not the canonical document.
 
-After durable intake is ready, Atlas uses the configured platform model conservatively:
+`document_attachments` gives each use a real foreign-key owner: course material record, syllabus course, assignment, or Atlas thread. A database check requires exactly one attachment owner and exactly one storage scope. Course rows have `course_id`; personal student rows have `owner_user_id`, `course_id = null`, private visibility, and an established personal-session attachment.
 
-- PDFs may be sent natively only through the installed first-party OpenAI, Anthropic, or Google adapters.
-- Text and code are decoded and sent as untrusted text.
-- DOCX, PPTX, XLSX, and their legacy Office variants require worker-extracted text.
-- OpenAI-compatible and OpenRouter models require extracted text for PDFs because the upstream model capability is not established by the adapter alone.
+Atlas does not claim universal parsing. If AnyDoc, a bounded local decoder, or a separately reviewed format handler cannot produce the required representation, readable processing becomes `failed` with a bounded error while the durable original remains stored. Authenticated viewers open or download the original through `/api/documents/[fileId]/original`. Course reads repeat organization, course, enrollment, publication, visibility, and attachment-owner checks. Personal reads instead require the exact organization, owning student, private processing row, and personal session, and reject every instructor or other student.
 
-Atlas does not claim universal parsing. If the required representation is unavailable or the model response fails validation, readable processing becomes `failed` with a bounded error while the durable original remains stored. Authenticated viewers open or download the original through `/api/documents/[fileId]/original`. Course reads repeat organization, course, enrollment, publication, visibility, and attachment-owner checks. Personal reads instead require the exact organization, owning student, private processing row, and personal session, and reject every instructor or other student.
-
-Capability references checked for this decision: [AI SDK file prompt support](https://ai-sdk.dev/docs/foundations/prompts), [OpenAI file inputs](https://developers.openai.com/api/docs/guides/file-inputs), [Anthropic PDF support](https://platform.claude.com/docs/en/build-with-claude/pdf-support), and [Google document understanding](https://ai.google.dev/gemini-api/docs/document-processing).
+Capability references checked for this decision: [AnyDoc repository and format support](https://github.com/firecrawl/anydoc) and [AnyDoc Node.js bindings](https://github.com/firecrawl/anydoc/blob/main/node/README.md).

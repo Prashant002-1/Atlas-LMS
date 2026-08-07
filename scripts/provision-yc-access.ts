@@ -1,5 +1,5 @@
 import "../lib/db/env-loader";
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull, or } from "drizzle-orm";
 import { hashPassword } from "../lib/auth/password";
 import { db } from "../lib/db";
 import { organizations, users } from "../lib/db/schema";
@@ -36,14 +36,28 @@ async function main() {
       .where(and(eq(users.orgId, org.id), isNotNull(users.passwordHash)));
 
     for (const account of YC_ACCOUNTS) {
+      const existing = await tx.query.users.findMany({
+        where: and(
+          eq(users.orgId, org.id),
+          eq(users.role, account.role),
+          or(eq(users.email, account.sourceEmail), eq(users.email, account.email))
+        ),
+      });
+
+      if (existing.length !== 1) {
+        throw new Error(
+          `Expected one ${account.role} account at ${account.sourceEmail} or ${account.email}; found ${existing.length}.`
+        );
+      }
+
       const updated = await tx
         .update(users)
         .set({ email: account.email, passwordHash })
-        .where(and(eq(users.orgId, org.id), eq(users.email, account.sourceEmail), eq(users.role, account.role)))
+        .where(eq(users.id, existing[0].id))
         .returning({ id: users.id });
 
       if (updated.length !== 1) {
-        throw new Error(`Expected one ${account.role} account at ${account.sourceEmail}; found ${updated.length}.`);
+        throw new Error(`Could not enable ${account.email}.`);
       }
     }
   });

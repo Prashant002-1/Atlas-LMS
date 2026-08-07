@@ -79,7 +79,7 @@ export default async function StudentLayout({ children }: { children: ReactNode 
       sections={sections}
       institutionName={institutionName}
       userName={profile?.name ?? session.user.name}
-      userEmail={profile?.email ?? session.user.email}
+      userEmail={session.user.email ?? profile?.email}
       userImage={profile?.image ?? session.user.image}
       accountHref="/student/account"
     >

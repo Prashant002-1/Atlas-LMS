@@ -123,6 +123,24 @@ export const users = pgTable(
   (t) => [uniqueIndex("users_email_idx").on(t.email), index("users_org_idx").on(t.orgId)]
 );
 
+/**
+ * Additional credentials for an existing Atlas identity. Aliases own their
+ * login email and password while every course, submission, session, and memory
+ * read continues to use the target user's stable id.
+ */
+export const loginAliases = pgTable(
+  "login_aliases",
+  {
+    email: text("email").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    passwordHash: text("password_hash").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("login_aliases_user_idx").on(t.userId)]
+);
+
 // Auth.js (NextAuth v5) Drizzle-adapter tables.
 export const accounts = pgTable(
   "accounts",

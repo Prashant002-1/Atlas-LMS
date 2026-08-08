@@ -21,5 +21,8 @@ export default async function TeachDocumentPage({
     fileId,
   });
   if (!document) notFound();
-  return <DocumentViewer document={document} backHref={moduleReturnHref(query.fromModule) ?? "/teach/materials"} />;
+  const backHref = document.assignmentId && document.submissionUserId
+    ? `/teach/assignments/${document.assignmentId}/submissions/${document.submissionUserId}`
+    : moduleReturnHref(query.fromModule) ?? "/teach/materials";
+  return <DocumentViewer document={document} backHref={backHref} />;
 }

@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   check,
   customType,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -18,6 +19,7 @@ import {
   courses,
   files,
   organizations,
+  submissions,
   users,
 } from "./schema";
 
@@ -155,9 +157,10 @@ export const documentOriginals = pgTable(
 );
 
 /**
- * A course file can appear in more than one academic location, while a
- * personal file belongs to one student's personal thread. Every attachment
- * row has one real owner and one course-or-person scope.
+ * A course file can appear in more than one academic location. A private file
+ * belongs either to one student's personal thread or to that student's
+ * assignment submission. Every attachment row has one real owner and one
+ * course-or-person scope.
  */
 export const documentAttachments = pgTable(
   "document_attachments",
@@ -175,13 +178,15 @@ export const documentAttachments = pgTable(
     syllabusCourseId: uuid("syllabus_course_id").references(() => courses.id, { onDelete: "cascade" }),
     assignmentId: uuid("assignment_id").references(() => assignments.id, { onDelete: "cascade" }),
     agentSessionId: uuid("agent_session_id").references(() => agentSessions.id, { onDelete: "cascade" }),
+    submissionAssignmentId: uuid("submission_assignment_id"),
+    submissionUserId: uuid("submission_user_id"),
     createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     check(
       "document_attachments_one_owner_check",
-      sql`num_nonnulls(${table.courseMaterialId}, ${table.syllabusCourseId}, ${table.assignmentId}, ${table.agentSessionId}) = 1`
+      sql`num_nonnulls(${table.submissionAssignmentId}, ${table.submissionUserId}) IN (0, 2) AND num_nonnulls(${table.courseMaterialId}, ${table.syllabusCourseId}, ${table.assignmentId}, ${table.agentSessionId}) + CASE WHEN ${table.submissionAssignmentId} IS NULL THEN 0 ELSE 1 END = 1`
     ),
     check(
       "document_attachments_one_scope_check",
@@ -189,14 +194,21 @@ export const documentAttachments = pgTable(
     ),
     check(
       "document_attachments_private_thread_check",
-      sql`${table.ownerUserId} IS NULL OR (${table.agentSessionId} IS NOT NULL AND ${table.courseMaterialId} IS NULL AND ${table.syllabusCourseId} IS NULL AND ${table.assignmentId} IS NULL)`
+      sql`${table.ownerUserId} IS NULL OR (${table.courseId} IS NULL AND ${table.courseMaterialId} IS NULL AND ${table.syllabusCourseId} IS NULL AND ${table.assignmentId} IS NULL AND ((${table.agentSessionId} IS NOT NULL AND ${table.submissionAssignmentId} IS NULL AND ${table.submissionUserId} IS NULL) OR (${table.agentSessionId} IS NULL AND ${table.submissionAssignmentId} IS NOT NULL AND ${table.submissionUserId} = ${table.ownerUserId})))`
     ),
+    foreignKey({
+      columns: [table.submissionAssignmentId, table.submissionUserId],
+      foreignColumns: [submissions.assignmentId, submissions.userId],
+      name: "document_attachments_submission_fk",
+    }).onDelete("cascade"),
     uniqueIndex("document_attachments_material_file_idx").on(table.courseMaterialId, table.fileId),
     uniqueIndex("document_attachments_syllabus_file_idx").on(table.syllabusCourseId, table.fileId),
     uniqueIndex("document_attachments_assignment_file_idx").on(table.assignmentId, table.fileId),
     uniqueIndex("document_attachments_session_file_idx").on(table.agentSessionId, table.fileId),
+    uniqueIndex("document_attachments_submission_file_idx").on(table.submissionAssignmentId, table.submissionUserId, table.fileId),
     index("document_attachments_scope_idx").on(table.orgId, table.courseId, table.fileId),
     index("document_attachments_owner_idx").on(table.orgId, table.ownerUserId, table.agentSessionId, table.fileId),
+    index("document_attachments_submission_owner_idx").on(table.orgId, table.ownerUserId, table.submissionAssignmentId, table.submissionUserId),
   ]
 );
 

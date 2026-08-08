@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import { isInstructorLike, type Role } from "@/lib/auth/session";
 import {
   DOCUMENT_PARSER_VERSION,
@@ -13,12 +13,14 @@ import {
 import {
   assertSupportedCourseMaterial,
   classifyCourseMaterial,
+  MAX_ASSIGNMENT_SUBMISSION_FILES,
+  MAX_ASSIGNMENT_SUBMISSION_UPLOAD_BYTES,
   MAX_COURSE_MATERIAL_BYTES,
   type MaterialKind,
 } from "@/lib/course/materials";
 import { db } from "@/lib/db";
 import { courseMaterialRecords, documentAttachments, documentOriginals } from "@/lib/db/course-agent-schema";
-import { agentSessions, assignments, enrollments, files, moduleItems, modules } from "@/lib/db/schema";
+import { agentSessions, assignments, enrollments, files, moduleItems, modules, sessionAssignments, submissions } from "@/lib/db/schema";
 
 const MAX_THREAD_DOCUMENTS = 5;
 const MAX_THREAD_DOCUMENT_CONTEXT = 80_000;
@@ -51,6 +53,8 @@ export type DocumentDetail = DocumentAttachmentItem & {
   extractionModel: string | null;
   extractionInputMode: string | null;
   courseId: string | null;
+  assignmentId: string | null;
+  submissionUserId: string | null;
 };
 
 export function personalDocumentAccessAllowed(args: {
@@ -80,6 +84,44 @@ export function personalDocumentAccessAllowed(args: {
     args.sessionUserId === args.actorId &&
     args.sessionCourseId === null &&
     args.sessionSurface === "personal";
+}
+
+export function submissionDocumentAccessAllowed(args: {
+  actorId: string;
+  actorRole: Role;
+  hasCourseAccess: boolean;
+  fileCourseId: string | null;
+  fileOwnerUserId: string | null;
+  recordCourseId: string | null;
+  recordOwnerUserId: string | null;
+  visibility: "course" | "instructors" | "private";
+  attachmentCourseId: string | null;
+  attachmentOwnerUserId: string | null;
+  attachmentSessionId: string | null;
+  submissionAssignmentId: string | null;
+  submissionUserId: string | null;
+  submissionCourseId: string | null;
+  assignmentPublished: boolean | null;
+}): boolean {
+  const correctlyScoped =
+    args.fileCourseId === null &&
+    Boolean(args.submissionUserId) &&
+    args.fileOwnerUserId === args.submissionUserId &&
+    args.recordCourseId === null &&
+    args.recordOwnerUserId === args.submissionUserId &&
+    args.visibility === "private" &&
+    args.attachmentCourseId === null &&
+    args.attachmentOwnerUserId === args.submissionUserId &&
+    args.attachmentSessionId === null &&
+    Boolean(args.submissionAssignmentId) &&
+    Boolean(args.submissionCourseId) &&
+    args.hasCourseAccess;
+  if (!correctlyScoped) return false;
+
+  if (isInstructorLike(args.actorRole) || args.actorRole === "admin" || args.actorRole === "superadmin") {
+    return true;
+  }
+  return args.actorRole === "student" && args.actorId === args.submissionUserId && args.assignmentPublished === true;
 }
 
 export { isDocumentFilename };
@@ -440,6 +482,284 @@ export async function createUploadedPersonalDocument(args: {
   return created;
 }
 
+/**
+ * Save an ordinary student submission and any new private files as one durable
+ * transaction. Submission uploads never enter the course material library.
+ * The instructor can open them through the submitted work record, while only
+ * the student who submitted them can open them from the student surface.
+ */
+export async function saveStudentAssignmentSubmission(args: {
+  actor: DocumentActor;
+  assignmentId: string;
+  body: string;
+  url: string;
+  uploads: File[];
+}): Promise<void> {
+  if (args.actor.role !== "student") throw new Error("Only a student can submit assignment work.");
+  const body = args.body.trim() || null;
+  const url = normalizeSubmissionUrl(args.url);
+  const uploads = args.uploads.filter((file) => file.size > 0);
+  if (uploads.length > MAX_ASSIGNMENT_SUBMISSION_FILES) {
+    throw new Error(`Attach ${MAX_ASSIGNMENT_SUBMISSION_FILES} or fewer files.`);
+  }
+  const uploadBytes = uploads.reduce((total, file) => total + file.size, 0);
+  if (uploadBytes > MAX_ASSIGNMENT_SUBMISSION_UPLOAD_BYTES) {
+    throw new Error("The files in one upload must total 25 MB or less.");
+  }
+  for (const file of uploads) assertSupportedCourseMaterial(file);
+
+  const [assignment] = await db
+    .select({ id: assignments.id, courseId: assignments.courseId })
+    .from(assignments)
+    .where(
+      and(
+        eq(assignments.id, args.assignmentId),
+        eq(assignments.orgId, args.actor.orgId),
+        eq(assignments.published, true)
+      )
+    )
+    .limit(1);
+  if (!assignment) throw new Error("Assignment unavailable.");
+
+  const [[enrollment], [sessionAssignment]] = await Promise.all([
+    db
+      .select({ id: enrollments.id })
+      .from(enrollments)
+      .where(
+        and(
+          eq(enrollments.orgId, args.actor.orgId),
+          eq(enrollments.courseId, assignment.courseId),
+          eq(enrollments.userId, args.actor.id),
+          eq(enrollments.role, "student"),
+          eq(enrollments.state, "active")
+        )
+      )
+      .limit(1),
+    db
+      .select({ id: sessionAssignments.id })
+      .from(sessionAssignments)
+      .where(
+        and(
+          eq(sessionAssignments.orgId, args.actor.orgId),
+          eq(sessionAssignments.courseId, assignment.courseId),
+          eq(sessionAssignments.assignmentId, assignment.id)
+        )
+      )
+      .limit(1),
+  ]);
+  if (!enrollment) throw new Error("Assignment unavailable.");
+  if (sessionAssignment) throw new Error("This assignment is submitted through its Atlas session.");
+
+  const preparedUploads = await Promise.all(
+    uploads.map(async (file) => {
+      const classification = classifyCourseMaterial(file.name, file.type || null);
+      if (isDocumentFilename(file.name)) {
+        const prepared = await prepareDocument(file);
+        return {
+          file,
+          classification,
+          ...prepared,
+          processingStatus: prepared.parsed ? "ready" as const : "failed" as const,
+          metadata: documentMetadata(prepared.parsed),
+        };
+      }
+      const prepared = await prepareOriginal(file);
+      return {
+        file,
+        classification,
+        ...prepared,
+        parsed: null,
+        error: null,
+        processingStatus: "ready" as const,
+        metadata: { originalStorage: "postgres", contentHandling: "stored-only" },
+      };
+    })
+  );
+
+  await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ gradedAt: submissions.gradedAt })
+      .from(submissions)
+      .where(
+        and(
+          eq(submissions.orgId, args.actor.orgId),
+          eq(submissions.courseId, assignment.courseId),
+          eq(submissions.assignmentId, assignment.id),
+          eq(submissions.userId, args.actor.id)
+        )
+      )
+      .limit(1);
+    if (existing?.gradedAt) throw new Error("Graded work can no longer be revised.");
+
+    const existingAttachments = await tx
+      .select({ id: documentAttachments.id })
+      .from(documentAttachments)
+      .where(
+        and(
+          eq(documentAttachments.orgId, args.actor.orgId),
+          eq(documentAttachments.ownerUserId, args.actor.id),
+          eq(documentAttachments.submissionAssignmentId, assignment.id),
+          eq(documentAttachments.submissionUserId, args.actor.id)
+        )
+      );
+    const totalFiles = existingAttachments.length + preparedUploads.length;
+    if (totalFiles > MAX_ASSIGNMENT_SUBMISSION_FILES) {
+      throw new Error(`An assignment can have up to ${MAX_ASSIGNMENT_SUBMISSION_FILES} submitted files.`);
+    }
+    if (!body && !url && totalFiles === 0) {
+      throw new Error("Write a response, attach a file, or add a link before submitting.");
+    }
+
+    const now = new Date();
+    const submissionType = totalFiles > 0 ? "file" : url ? "online_url" : "text";
+    if (existing) {
+      await tx
+        .update(submissions)
+        .set({
+          submittedAt: now,
+          missing: false,
+          workflowState: "submitted",
+          submissionType,
+          body,
+          url,
+        })
+        .where(
+          and(
+            eq(submissions.orgId, args.actor.orgId),
+            eq(submissions.courseId, assignment.courseId),
+            eq(submissions.assignmentId, assignment.id),
+            eq(submissions.userId, args.actor.id)
+          )
+        );
+    } else {
+      await tx.insert(submissions).values({
+        orgId: args.actor.orgId,
+        assignmentId: assignment.id,
+        courseId: assignment.courseId,
+        userId: args.actor.id,
+        submittedAt: now,
+        missing: false,
+        workflowState: "submitted",
+        submissionType,
+        body,
+        url,
+      });
+    }
+
+    for (const prepared of preparedUploads) {
+      const [fileRow] = await tx
+        .insert(files)
+        .values({
+          orgId: args.actor.orgId,
+          courseId: null,
+          ownerUserId: args.actor.id,
+          displayName: cleanDisplayName(null, prepared.file.name),
+          filename: prepared.file.name,
+          contentType: prepared.file.type || null,
+          sizeBytes: prepared.file.size,
+          url: null,
+          extractedText: prepared.parsed?.markdown ?? null,
+        })
+        .returning({ id: files.id });
+
+      await tx.insert(documentOriginals).values({
+        fileId: fileRow.id,
+        orgId: args.actor.orgId,
+        bytes: prepared.bytes,
+        checksumSha256: prepared.checksumSha256,
+      });
+      await tx.insert(courseMaterialRecords).values({
+        orgId: args.actor.orgId,
+        courseId: null,
+        ownerUserId: args.actor.id,
+        fileId: fileRow.id,
+        materialKind: prepared.classification.kind,
+        ingestionSource: prepared.classification.source,
+        processingStatus: prepared.processingStatus,
+        visibility: "private",
+        checksumSha256: prepared.checksumSha256,
+        metadata: prepared.metadata,
+        extraction: prepared.parsed?.extraction ?? null,
+        extractionProvider: prepared.parsed?.parser ?? null,
+        extractionModel: prepared.parsed?.parserVersion ?? null,
+        extractionInputMode: prepared.parsed?.inputMode ?? null,
+        processingError: prepared.error,
+        updatedById: args.actor.id,
+      });
+      await tx.insert(documentAttachments).values({
+        orgId: args.actor.orgId,
+        courseId: null,
+        ownerUserId: args.actor.id,
+        fileId: fileRow.id,
+        submissionAssignmentId: assignment.id,
+        submissionUserId: args.actor.id,
+        createdById: args.actor.id,
+      });
+    }
+  });
+}
+
+export async function listSubmissionDocumentAttachments(args: {
+  orgId: string;
+  courseId: string;
+  assignmentId: string;
+  userId: string;
+}): Promise<DocumentAttachmentItem[]> {
+  return db
+    .select({
+      attachmentId: documentAttachments.id,
+      fileId: files.id,
+      displayName: files.displayName,
+      filename: files.filename,
+      contentType: files.contentType,
+      sizeBytes: files.sizeBytes,
+      processingStatus: courseMaterialRecords.processingStatus,
+      processingError: courseMaterialRecords.processingError,
+      visibility: courseMaterialRecords.visibility,
+      pageCount: courseMaterialRecords.pageCount,
+      createdAt: documentAttachments.createdAt,
+    })
+    .from(documentAttachments)
+    .innerJoin(
+      submissions,
+      and(
+        eq(submissions.orgId, args.orgId),
+        eq(submissions.courseId, args.courseId),
+        eq(submissions.assignmentId, documentAttachments.submissionAssignmentId),
+        eq(submissions.userId, documentAttachments.submissionUserId)
+      )
+    )
+    .innerJoin(
+      files,
+      and(
+        eq(files.id, documentAttachments.fileId),
+        eq(files.orgId, args.orgId),
+        isNull(files.courseId),
+        eq(files.ownerUserId, args.userId)
+      )
+    )
+    .innerJoin(
+      courseMaterialRecords,
+      and(
+        eq(courseMaterialRecords.fileId, files.id),
+        eq(courseMaterialRecords.orgId, args.orgId),
+        isNull(courseMaterialRecords.courseId),
+        eq(courseMaterialRecords.ownerUserId, args.userId),
+        eq(courseMaterialRecords.visibility, "private")
+      )
+    )
+    .where(
+      and(
+        eq(documentAttachments.orgId, args.orgId),
+        isNull(documentAttachments.courseId),
+        eq(documentAttachments.ownerUserId, args.userId),
+        eq(documentAttachments.submissionAssignmentId, args.assignmentId),
+        eq(documentAttachments.submissionUserId, args.userId)
+      )
+    )
+    .orderBy(asc(documentAttachments.createdAt));
+}
+
 export async function attachCourseFilesToThread(args: {
   actor: DocumentActor;
   courseId: string;
@@ -723,6 +1043,8 @@ export async function loadDocumentDetailForActor(args: {
       syllabusCourseId: documentAttachments.syllabusCourseId,
       assignmentId: documentAttachments.assignmentId,
       agentSessionId: documentAttachments.agentSessionId,
+      submissionAssignmentId: documentAttachments.submissionAssignmentId,
+      submissionUserId: documentAttachments.submissionUserId,
       assignmentCourseId: assignments.courseId,
       assignmentPublished: assignments.published,
       sessionUserId: agentSessions.userId,
@@ -733,7 +1055,10 @@ export async function loadDocumentDetailForActor(args: {
     .leftJoin(
       assignments,
       and(
-        eq(assignments.id, documentAttachments.assignmentId),
+        or(
+          eq(assignments.id, documentAttachments.assignmentId),
+          eq(assignments.id, documentAttachments.submissionAssignmentId)
+        ),
         eq(assignments.orgId, args.actor.orgId)
       )
     )
@@ -757,7 +1082,7 @@ export async function loadDocumentDetailForActor(args: {
   let eligibleAttachments: typeof attachments;
   if (row.courseId === null) {
     if (!row.recordId) return null;
-    eligibleAttachments = attachments.filter((attachment) => personalDocumentAccessAllowed({
+    const personalAttachments = attachments.filter((attachment) => personalDocumentAccessAllowed({
       actorId: args.actor.id,
       actorRole: args.actor.role,
       fileCourseId: row.courseId,
@@ -772,6 +1097,30 @@ export async function loadDocumentDetailForActor(args: {
       sessionCourseId: attachment.sessionCourseId,
       sessionSurface: attachment.sessionSurface,
     }));
+    const submissionAttachments = [] as typeof attachments;
+    for (const attachment of attachments) {
+      const hasCourseAccess = attachment.assignmentCourseId
+        ? await actorHasCourseAccess(args.actor, attachment.assignmentCourseId)
+        : false;
+      if (submissionDocumentAccessAllowed({
+        actorId: args.actor.id,
+        actorRole: args.actor.role,
+        hasCourseAccess,
+        fileCourseId: row.courseId,
+        fileOwnerUserId: row.fileOwnerUserId,
+        recordCourseId: row.recordCourseId,
+        recordOwnerUserId: row.recordOwnerUserId,
+        visibility,
+        attachmentCourseId: attachment.courseId,
+        attachmentOwnerUserId: attachment.ownerUserId,
+        attachmentSessionId: attachment.agentSessionId,
+        submissionAssignmentId: attachment.submissionAssignmentId,
+        submissionUserId: attachment.submissionUserId,
+        submissionCourseId: attachment.assignmentCourseId,
+        assignmentPublished: attachment.assignmentPublished,
+      })) submissionAttachments.push(attachment);
+    }
+    eligibleAttachments = [...personalAttachments, ...submissionAttachments];
     if (eligibleAttachments.length === 0) return null;
   } else {
     if (row.fileOwnerUserId !== null) return null;
@@ -800,10 +1149,14 @@ export async function loadDocumentDetailForActor(args: {
   }
 
   const extractionResult = documentExtractionSchema.safeParse(row.extraction);
+  const submissionAttachment = eligibleAttachments.find((attachment) => attachment.submissionAssignmentId);
+  const assignmentAttachment = eligibleAttachments.find((attachment) => attachment.assignmentId);
   return {
     attachmentId: eligibleAttachments[0]?.id ?? row.fileId,
     fileId: row.fileId,
-    courseId: row.courseId,
+    courseId: row.courseId ?? submissionAttachment?.assignmentCourseId ?? null,
+    assignmentId: submissionAttachment?.submissionAssignmentId ?? assignmentAttachment?.assignmentId ?? null,
+    submissionUserId: submissionAttachment?.submissionUserId ?? null,
     displayName: row.displayName,
     filename: row.filename,
     contentType: row.contentType,
@@ -1091,4 +1444,20 @@ function documentMetadata(parsed: ParsedDocument | null) {
 function cleanDisplayName(value: string | null | undefined, fallback: string) {
   const compact = value?.replace(/\s+/g, " ").trim();
   return (compact || fallback).slice(0, 240);
+}
+
+function normalizeSubmissionUrl(value: string): string | null {
+  const compact = value.trim();
+  if (!compact) return null;
+  let url: URL;
+  try {
+    url = new URL(compact);
+  } catch {
+    throw new Error("Enter a valid HTTPS link.");
+  }
+  const blockedHost = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "::1" || url.hostname === "[::1]";
+  if (url.protocol !== "https:" || blockedHost || url.username || url.password) {
+    throw new Error("Submission links must use a public HTTPS address without embedded credentials.");
+  }
+  return url.toString();
 }

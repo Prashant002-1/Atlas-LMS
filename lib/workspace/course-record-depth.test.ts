@@ -25,6 +25,7 @@ test("a submission is whatever shape it actually is", () => {
   assert.equal(submissionKind({ submissionType: "file", body: null, url: "https://x/y.pdf", session: false }), "file");
   assert.equal(submissionKind({ submissionType: null, body: null, url: "https://doc", session: false }), "link");
   assert.equal(submissionKind({ submissionType: "text", body: "an answer", url: null, session: false }), "text");
+  assert.equal(submissionKind({ submissionType: "text", body: "a note", url: null, session: false, fileCount: 2 }), "file");
   /* Whitespace is not a submission. */
   assert.equal(submissionKind({ submissionType: null, body: "   ", url: null, session: false }), "none");
 });
@@ -111,4 +112,18 @@ test("the attach control sits on the page edge and uses the shared centred file 
   assert.ok(attachments.includes("FilePicker"));
   assert.ok(picker.includes("items-center justify-center"));
   assert.equal(picker.includes("No file chosen"), false);
+});
+
+test("student assignment work accepts prose, links, and private file attachments", () => {
+  const work = read("components/student/assignment-work.tsx");
+  const action = read("lib/student/actions.ts");
+  const documents = read("lib/course/documents.ts");
+  assert.ok(work.includes("RichTextEditor"));
+  assert.ok(work.includes("FilePicker"));
+  assert.ok(work.includes('name="url"'));
+  assert.ok(work.includes("existingFiles={files.length}"));
+  assert.ok(action.includes('formData.getAll("files")'));
+  assert.ok(documents.includes('visibility: "private"'));
+  assert.ok(documents.includes("submissionAssignmentId: assignment.id"));
+  assert.ok(documents.includes("MAX_ASSIGNMENT_SUBMISSION_FILES"));
 });

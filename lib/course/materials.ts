@@ -1,4 +1,6 @@
 export const MAX_COURSE_MATERIAL_BYTES = 25 * 1024 * 1024;
+export const MAX_ASSIGNMENT_SUBMISSION_FILES = 10;
+export const MAX_ASSIGNMENT_SUBMISSION_UPLOAD_BYTES = 25 * 1024 * 1024;
 
 export const materialKinds = [
   "document",
@@ -37,6 +39,11 @@ const allowedExtensions = new Set([
   "txt",
   "md",
   "rtf",
+  "png",
+  "jpg",
+  "jpeg",
+  "webp",
+  "heic",
   "mp3",
   "m4a",
   "wav",
@@ -103,6 +110,9 @@ export function classifyCourseMaterial(filename: string, contentType: string | n
   if (["mp3", "m4a", "wav", "mp4", "mov", "webm"].includes(extension) || contentType?.startsWith("audio/") || contentType?.startsWith("video/")) {
     return { kind: "media", source: "upload" };
   }
+  if (["png", "jpg", "jpeg", "webp", "heic"].includes(extension) || contentType?.startsWith("image/")) {
+    return { kind: "other", source: "upload" };
+  }
   if ([
     "pdf", "doc", "docx", "docm", "xls", "xlsx", "xlsm", "xlsb", "csv", "txt", "md", "rtf",
     "odt", "ods", "epub",
@@ -115,7 +125,7 @@ export function classifyCourseMaterial(filename: string, contentType: string | n
 export function assertSupportedCourseMaterial(file: File) {
   const extension = extensionOf(file.name);
   if (!allowedExtensions.has(extension)) {
-    throw new Error("Unsupported material type. Upload a document, PDF, slide deck, spreadsheet, code file, media file, Common Cartridge, QTI package, XML file, or ZIP archive.");
+    throw new Error("Unsupported file type. Upload a document, image, slide deck, spreadsheet, code file, media file, course package, or ZIP archive.");
   }
   if (file.size <= 0) throw new Error("The uploaded material is empty.");
   if (file.size > MAX_COURSE_MATERIAL_BYTES) throw new Error("Course materials must be 25 MB or smaller.");

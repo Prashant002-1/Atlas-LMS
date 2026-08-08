@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { personalDocumentAccessAllowed } from "@/lib/course/documents";
+import { personalDocumentAccessAllowed, submissionDocumentAccessAllowed } from "@/lib/course/documents";
 
 const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), "utf8");
@@ -16,7 +16,8 @@ test("document migration follows personal agents and assessed transcript access"
   assert.equal(existsSync(path.join(root, "drizzle/0009_document_attachments.sql")), false);
   assert.equal(existsSync(path.join(root, "drizzle/0010_document_attachments.sql")), true);
   assert.equal(existsSync(path.join(root, "drizzle/0018_document_originals.sql")), true);
-  for (const owner of ["courseMaterialId", "syllabusCourseId", "assignmentId", "agentSessionId"]) {
+  assert.equal(existsSync(path.join(root, "drizzle/0020_submission_attachments.sql")), true);
+  for (const owner of ["courseMaterialId", "syllabusCourseId", "assignmentId", "agentSessionId", "submissionAssignmentId", "submissionUserId"]) {
     assert.match(schema, new RegExp(owner));
   }
   assert.match(schema, /ownerUserId/);
@@ -35,6 +36,37 @@ test("document migration follows personal agents and assessed transcript access"
   assert.match(originalsMigration, /"bytes" bytea NOT NULL/);
   assert.match(originalsMigration, /octet_length\("bytes"\) <= 26214400/);
   assert.match(originalsMigration, /ON DELETE CASCADE/);
+  const submissionMigration = read("drizzle/0020_submission_attachments.sql");
+  assert.match(submissionMigration, /"submission_assignment_id" uuid/);
+  assert.match(submissionMigration, /"submission_user_id" uuid/);
+  assert.match(submissionMigration, /document_attachments_submission_fk/);
+  assert.match(submissionMigration, /REFERENCES "submissions"\("assignment_id", "user_id"\)/);
+});
+
+test("submission documents admit the owning student and enrolled course staff only", () => {
+  const owned = {
+    actorId: "student-a",
+    actorRole: "student" as const,
+    hasCourseAccess: true,
+    fileCourseId: null,
+    fileOwnerUserId: "student-a",
+    recordCourseId: null,
+    recordOwnerUserId: "student-a",
+    visibility: "private" as const,
+    attachmentCourseId: null,
+    attachmentOwnerUserId: "student-a",
+    attachmentSessionId: null,
+    submissionAssignmentId: "assignment-a",
+    submissionUserId: "student-a",
+    submissionCourseId: "course-a",
+    assignmentPublished: true,
+  };
+  assert.equal(submissionDocumentAccessAllowed(owned), true);
+  assert.equal(submissionDocumentAccessAllowed({ ...owned, actorId: "student-b" }), false);
+  assert.equal(submissionDocumentAccessAllowed({ ...owned, hasCourseAccess: false }), false);
+  assert.equal(submissionDocumentAccessAllowed({ ...owned, actorId: "teacher-a", actorRole: "instructor" }), true);
+  assert.equal(submissionDocumentAccessAllowed({ ...owned, attachmentSessionId: "session-a" }), false);
+  assert.equal(submissionDocumentAccessAllowed({ ...owned, visibility: "course" }), false);
 });
 
 test("personal document access admits only the owning student through a personal session", () => {
@@ -81,6 +113,8 @@ test("document reads and chat context repeat authenticated scope", () => {
   assert.match(documents, /parseDocumentBytes/);
   assert.match(documents, /tx\.insert\(documentOriginals\)/);
   assert.match(documents, /createUploadedCourseMaterial/);
+  assert.match(documents, /saveStudentAssignmentSubmission/);
+  assert.match(documents, /listSubmissionDocumentAttachments/);
   assert.match(documents, /contentHandling: "stored-only"/);
   assert.doesNotMatch(documents, /classification\.kind !== "assessment"/);
   assert.match(documents, /processingStatus: "ready"/);

@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton, TextLink } from "@/components/atlas/primitives";
 import { Markdown } from "@/components/agent/markdown";
 import { RecordDialog } from "@/components/teach/record-dialog";
+import { RichTextEditor } from "@/components/teach/rich-text-editor";
 import { DocumentAttachmentSection } from "@/components/documents/document-attachments";
 import { listDocumentAttachments } from "@/lib/course/documents";
 
@@ -64,7 +65,7 @@ export default async function TeachSyllabusPage() {
       <section aria-labelledby="syllabus-course-heading" className="pb-7">
         <h2 id="syllabus-course-heading" className="text-[1.125rem] font-semibold text-[var(--color-ink)]">{course.name}</h2>
         {course.description?.trim() ? (
-          <p className="mt-2 max-w-3xl text-[0.84375rem] leading-6 text-[var(--color-muted)]">{course.description}</p>
+          <Markdown className="mt-2 max-w-3xl text-[0.84375rem] leading-6 text-[var(--color-muted)]">{course.description}</Markdown>
         ) : null}
         <dl className="mt-6 grid sm:grid-cols-2 lg:grid-cols-4">
           <BandFact label="Term" value={course.term ?? "Not set"} />
@@ -216,7 +217,7 @@ export default async function TeachSyllabusPage() {
             {classPolicies.map((policy) => (
               <div key={policy.title} className="grid gap-x-6 gap-y-1 px-3 py-3 sm:grid-cols-[minmax(0,0.32fr)_minmax(0,1fr)] text-[0.78125rem]">
                 <dt className="font-medium text-[var(--color-ink)]">{policy.title}</dt>
-                <dd className="leading-5 text-[var(--color-muted)]">{policy.body}</dd>
+                <dd><Markdown className="leading-5 text-[var(--color-muted)]">{policy.body}</Markdown></dd>
               </div>
             ))}
           </dl>
@@ -253,17 +254,7 @@ function EditSyllabusDialog({ syllabusMd }: { syllabusMd: string | null }) {
   return (
     <RecordDialog mode="edit" triggerLabel="Edit syllabus" title="Edit syllabus" wide>
       <form action={updateCourseSyllabus} className="grid gap-4">
-        <label className="grid gap-1.5 text-[0.75rem] font-medium">
-          Syllabus
-          <textarea
-            name="syllabus"
-            rows={26}
-            maxLength={80000}
-            autoFocus
-            defaultValue={syllabusMd ?? ""}
-            className={`${fieldClass} atlas-mono min-h-[60vh] resize-y py-3 text-[0.75rem] leading-6`}
-          />
-        </label>
+        <RichTextEditor name="syllabus" label="Syllabus" rows={26} maxLength={80000} defaultValue={syllabusMd ?? ""} />
         <div className="flex justify-end pt-4">
           <ActionButton>Save syllabus</ActionButton>
         </div>
@@ -321,6 +312,3 @@ function titleCase(value: string) {
 function longDate(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
-
-const fieldClass =
-  "min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.8125rem] text-[var(--color-ink)] outline-none transition placeholder:text-[var(--color-faint)] focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]";

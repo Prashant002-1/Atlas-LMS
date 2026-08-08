@@ -137,8 +137,9 @@ export type FixtureCoursePolicy = {
  * contains. Seeded as a file row plus a course-material record so the materials
  * library, the module page, and the agent's grounding all see the same object.
  *
- * `extractedText` stands in for the ingestion pipeline's output, so a seeded PDF
- * is readable by the agent without running a live extraction.
+ * The seed reads `assetPath`, stores the exact original bytes, and runs the same
+ * local document parser as an authenticated upload. `extractedText` remains
+ * fixture-authored reference text for validating each record's course context.
  */
 export type FixtureMaterial = {
   /** Stable key unique within the course. */
@@ -154,9 +155,8 @@ export type FixtureMaterial = {
   /** Visible to students, or instructor-only while it is being prepared. */
   visibility?: "course" | "instructors";
   /**
-   * Optional public asset retained with the seed package. The material row uses
-   * this location when the demo database is seeded, so course documents can be
-   * opened locally before a live upload provider is configured.
+   * Checked-in source asset for deterministic seed ingestion. The seed copies
+   * these bytes into private original storage and records the path as provenance.
    */
   assetPath?: string;
   /** Readable content for grounding, as local document parsing would return it. */

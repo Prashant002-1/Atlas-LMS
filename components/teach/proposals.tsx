@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ChevronRight } from "lucide-react";
 import { Markdown } from "@/components/agent/markdown";
 import { ActionButton, TextLink } from "@/components/atlas/primitives";
 import { RubricCard } from "@/components/planning/rubric-card";
@@ -9,41 +10,42 @@ import type { InstructorProposal } from "@/lib/instructor/workspace";
 
 export function ProposalQueue({
   proposals,
-  selectedId,
 }: {
   proposals: InstructorProposal[];
-  selectedId?: string;
 }) {
   return (
     <section aria-labelledby="draft-queue-heading">
-      <div className="flex items-baseline justify-between gap-3 pb-3">
-        <h2 id="draft-queue-heading" className="text-[0.875rem] font-semibold text-[var(--color-ink)]">Drafts</h2>
-        <span className="text-[0.71875rem] tabular-nums text-[var(--color-faint)]">{proposals.length}</span>
+      <div>
+        <h2 id="draft-queue-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Drafts</h2>
+        <p className="mt-1 text-[0.75rem] tabular-nums text-[var(--color-muted)]">{proposals.length} open</p>
       </div>
       {proposals.length > 0 ? (
-        <nav aria-label="Draft queue" className="border-b border-[var(--color-border)]">
+        <nav aria-label="Draft queue" className="mt-4 overflow-hidden border-b border-[var(--color-border)]">
+          <div className="hidden grid-cols-[minmax(0,1fr)_10rem_11rem_1rem] gap-4 border-b border-[var(--color-border)] px-3 py-2.5 text-[0.71875rem] font-medium text-[var(--color-muted)] sm:grid">
+            <span>Draft</span>
+            <span>Record</span>
+            <span>Created</span>
+            <span className="sr-only">Open</span>
+          </div>
+          <div className="divide-y divide-[var(--color-border)]">
           {proposals.map((proposal) => {
-            const selected = proposal.id === selectedId;
             return (
               <Link
                 key={proposal.id}
                 href={`/teach/review?proposal=${proposal.id}`}
-                aria-current={selected ? "page" : undefined}
-                className={`block border-t border-[var(--color-border)] px-3 py-3.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)] ${
-                  selected ? "bg-[var(--color-surface-muted)]" : "hover:bg-[var(--color-surface-muted)]"
-                }`}
+                className="group/draft grid gap-2 px-3 py-3.5 transition hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)] sm:grid-cols-[minmax(0,1fr)_10rem_11rem_1rem] sm:items-center sm:gap-4"
               >
-                <span className="block text-[0.8125rem] font-medium leading-5 text-[var(--color-ink)]">{proposal.title}</span>
-                <span className="mt-1 flex items-center justify-between gap-3 text-[0.6875rem] text-[var(--color-faint)]">
-                  <span>{proposal.recordLabel}</span>
-                  <time dateTime={proposal.createdAt?.toISOString()}>{shortStamp(proposal.createdAt)}</time>
-                </span>
+                <span className="min-w-0 text-[0.8125rem] font-semibold leading-5 text-[var(--color-ink)]">{proposal.title}</span>
+                <span className="text-[0.75rem] text-[var(--color-muted)]">{proposal.recordLabel}</span>
+                <time dateTime={proposal.createdAt?.toISOString()} className="text-[0.71875rem] tabular-nums text-[var(--color-muted)]">{shortStamp(proposal.createdAt)}</time>
+                <ChevronRight size={15} aria-hidden className="hidden text-[var(--color-faint)] transition group-hover/draft:translate-x-0.5 group-hover/draft:text-[var(--color-ink)] sm:block" />
               </Link>
             );
           })}
+          </div>
         </nav>
       ) : (
-        <p className="border-y border-[var(--color-border)] px-3 py-5 text-[0.8125rem] text-[var(--color-muted)]">No open drafts.</p>
+        <p className="py-4 text-[0.8125rem] text-[var(--color-muted)]">No open drafts.</p>
       )}
     </section>
   );
@@ -52,59 +54,47 @@ export function ProposalQueue({
 export function ProposalPreview({ proposal }: { proposal: InstructorProposal }) {
   const open = proposal.status === "pending";
   const returnTo = `/teach/review?proposal=${proposal.id}`;
+  const reviewedAt = open ? proposal.createdAt : proposal.decidedAt ?? proposal.createdAt;
+  const appliedRecords = proposal.appliedRecords.filter((record) => record.href !== proposal.destination?.href);
 
   return (
-    <article aria-labelledby="proposal-preview-heading" className="min-w-0">
-      <header className="border-b border-[var(--color-border)] pb-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            {/*
-              The record type leads, because it is what you need before
-              deciding: the title says which rubric, this says that it is a
-              rubric at all. The decision, when there is one, sits beside it.
-            */}
-            <p className="text-[0.6875rem] font-medium text-[var(--color-faint)]">
-              {proposal.recordLabel}
-              {open ? null : <span className="text-[var(--color-muted)]"> / {decisionLabel(proposal.status)}</span>}
-            </p>
-            <h2 id="proposal-preview-heading" className="atlas-serif mt-1.5 text-[1.375rem] font-semibold leading-7 text-[var(--color-ink)]">{proposal.title}</h2>
-          </div>
-          <time dateTime={proposal.createdAt?.toISOString()} className="text-[0.71875rem] tabular-nums text-[var(--color-faint)]">
-            {fullStamp(proposal.createdAt)}
-          </time>
-        </div>
-        {proposal.summary && proposal.summary !== proposal.title ? (
-          <p className="mt-3 max-w-3xl text-[0.8125rem] leading-6 text-[var(--color-muted)]">{proposal.summary}</p>
-        ) : null}
-        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[0.75rem] text-[var(--color-muted)]">
+    <article aria-label={`${proposal.recordLabel} review`} className="min-w-0 max-w-5xl">
+      <header className="-mt-4 border-b border-[var(--color-border)] pb-5">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[0.75rem] text-[var(--color-muted)]">
+          <span className="font-medium text-[var(--color-ink)]">{decisionLabel(proposal.status)}</span>
+          <time dateTime={reviewedAt?.toISOString()} className="tabular-nums">{fullStamp(reviewedAt)}</time>
           {proposal.thread ? (
             <span>
               From <TextLink href={`/teach/atlas?thread=${proposal.thread.id}`} className="text-[0.75rem]">{proposal.thread.title ?? "Atlas chat"}</TextLink>
             </span>
           ) : null}
-          {/*
-            The subject is reachable whatever the decision was. A dismissed
-            rubric revision still opens the rubric it would have replaced,
-            which is how you decide whether to ask for it differently.
-          */}
           {proposal.destination ? (
             <TextLink href={proposal.destination.href} className="text-[0.75rem]">Open {proposal.destination.label.toLowerCase()}</TextLink>
           ) : null}
         </div>
+        {proposal.summary && !isRedundantSummary(proposal.summary, proposal.title) ? (
+          <p className="mt-4 max-w-3xl text-[0.8125rem] leading-6 text-[var(--color-muted)]">{proposal.summary}</p>
+        ) : null}
       </header>
 
       <div className="divide-y divide-[var(--color-border)]">
         {proposal.blocks.length > 0 ? (
-          proposal.blocks.map((block, index) => <ProposalBlockPreview key={`${block.type}-${index}`} block={block} />)
+          proposal.blocks.map((block, index) => (
+            <ProposalBlockPreview
+              key={`${block.type}-${index}`}
+              block={block}
+              hideHeading={index === 0 && blockTitle(block) === proposal.title}
+            />
+          ))
         ) : (
           <p className="py-8 text-[0.8125rem] text-[var(--color-muted)]">This draft has no readable records.</p>
         )}
       </div>
 
-      {proposal.appliedRecords.length > 0 ? (
+      {appliedRecords.length > 0 ? (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--color-border)] py-4 text-[0.75rem]">
           <span className="text-[var(--color-faint)]">Applied records</span>
-          {proposal.appliedRecords.map((record) => <TextLink key={record.href} href={record.href} className="text-[0.75rem]">{record.label}</TextLink>)}
+          {appliedRecords.map((record) => <TextLink key={record.href} href={record.href} className="text-[0.75rem]">{record.label}</TextLink>)}
         </div>
       ) : null}
 
@@ -123,10 +113,6 @@ export function ProposalPreview({ proposal }: { proposal: InstructorProposal }) 
             <ActionButton variant="danger">Dismiss</ActionButton>
           </form>
         </div>
-      ) : proposal.decidedAt ? (
-        <p className="border-t border-[var(--color-border)] pt-4 text-[0.75rem] text-[var(--color-muted)]">
-          {decisionLabel(proposal.status)} {fullStamp(proposal.decidedAt)}
-        </p>
       ) : null}
     </article>
   );
@@ -134,17 +120,18 @@ export function ProposalPreview({ proposal }: { proposal: InstructorProposal }) 
 
 export function ProposalHistory({
   proposals,
-  selectedId,
 }: {
   proposals: InstructorProposal[];
-  selectedId?: string;
 }) {
   if (proposals.length === 0) return null;
 
   return (
-    <section aria-labelledby="recent-reviews-heading" className="mt-10">
-      <h2 id="recent-reviews-heading" className="text-[0.875rem] font-semibold text-[var(--color-ink)]">Recent reviews</h2>
-      <div className="mt-3 overflow-x-auto border-b border-[var(--color-border)]">
+    <section aria-labelledby="recent-reviews-heading" className="mt-8">
+      <div>
+        <h2 id="recent-reviews-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Recent reviews</h2>
+        <p className="mt-1 text-[0.75rem] tabular-nums text-[var(--color-muted)]">{proposals.length} {proposals.length === 1 ? "review" : "reviews"}</p>
+      </div>
+      <div className="mt-4 overflow-x-auto border-b border-[var(--color-border)]">
         <table className="w-full min-w-[40rem] border-collapse text-left">
           <thead>
             <tr className="border-b border-[var(--color-border)] text-[0.6875rem] text-[var(--color-faint)]">
@@ -156,7 +143,7 @@ export function ProposalHistory({
           </thead>
           <tbody className="divide-y divide-[var(--color-border)] text-[0.78125rem]">
             {proposals.map((proposal) => (
-              <tr key={proposal.id} className={proposal.id === selectedId ? "bg-[var(--color-surface-muted)]" : undefined}>
+              <tr key={proposal.id} className="transition hover:bg-[var(--color-surface-muted)]">
                 <th scope="row" className="px-3 py-3.5 font-medium text-[var(--color-ink)]">
                   <Link href={`/teach/review?proposal=${proposal.id}`} className="underline decoration-[color-mix(in_oklch,var(--color-ink)_28%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">
                     {proposal.title}
@@ -174,26 +161,26 @@ export function ProposalHistory({
   );
 }
 
-function ProposalBlockPreview({ block }: { block: Block }) {
+function ProposalBlockPreview({ block, hideHeading }: { block: Block; hideHeading?: boolean }) {
   if (block.type === "announcement") {
-    return <RecordSection label="Announcement" title={block.title}><Markdown className="mt-4 text-[0.84375rem] leading-7">{block.messageMd}</Markdown></RecordSection>;
+    return <RecordSection label="Announcement" title={block.title} hideHeading={hideHeading}><Markdown className="mt-4 text-[0.84375rem] leading-7">{block.messageMd}</Markdown></RecordSection>;
   }
   if (block.type === "page") {
-    return <RecordSection label="Page" title={block.title}><Markdown className="mt-4 text-[0.84375rem] leading-7">{block.bodyMd}</Markdown></RecordSection>;
+    return <RecordSection label="Page" title={block.title} hideHeading={hideHeading}><Markdown className="mt-4 text-[0.84375rem] leading-7">{block.bodyMd}</Markdown></RecordSection>;
   }
   if (block.type === "module") {
-    return <RecordSection label={block.week ? `Week ${block.week}` : "Module"} title={block.name}><Markdown className="mt-4 text-[0.84375rem] leading-7">{block.summaryMd}</Markdown></RecordSection>;
+    return <RecordSection label={block.week ? `Week ${block.week}` : "Module"} title={block.name} hideHeading={hideHeading}><Markdown className="mt-4 text-[0.84375rem] leading-7">{block.summaryMd}</Markdown></RecordSection>;
   }
   if (block.type === "assignment") {
     return (
-      <RecordSection label="Assignment" title={block.name} meta={`${block.pointsPossible} points${block.dueWeek ? ` / due week ${block.dueWeek}` : ""}`}>
+      <RecordSection label="Assignment" title={block.name} meta={`${block.pointsPossible} points${block.dueWeek ? ` / due week ${block.dueWeek}` : ""}`} hideHeading={hideHeading}>
         <Markdown className="mt-4 text-[0.84375rem] leading-7">{block.descriptionMd}</Markdown>
       </RecordSection>
     );
   }
   if (block.type === "objective") {
     return (
-      <RecordSection label="Learning objective" title={`${block.code}: ${block.description}`}>
+      <RecordSection label="Learning objective" title={`${block.code}: ${block.description}`} hideHeading={hideHeading}>
         <dl className="mt-4 grid gap-4 text-[0.78125rem] sm:grid-cols-2">
           <Fact label="Level" value={titleCase(block.bloomLevel)} />
           <Fact label="Assessment weight" value={`${Math.round(block.assessmentWeight * 100)}%`} />
@@ -203,7 +190,7 @@ function ProposalBlockPreview({ block }: { block: Block }) {
   }
   if (block.type === "practice_set") {
     return (
-      <RecordSection label="Practice set" title={block.title} meta={`${block.questions.length} questions`}>
+      <RecordSection label="Practice set" title={block.title} meta={`${block.questions.length} questions`} hideHeading={hideHeading}>
         <p className="mt-4 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{block.base}</p>
         <ol className="mt-5 divide-y divide-[var(--color-border)] border-b border-[var(--color-border)]">
           {block.questions.map((question, index) => (
@@ -220,7 +207,7 @@ function ProposalBlockPreview({ block }: { block: Block }) {
   }
   if (block.type === "ai_assignment") {
     return (
-      <RecordSection label="AI assignment" title={block.title}>
+      <RecordSection label="AI assignment" title={block.title} hideHeading={hideHeading}>
         <dl className="mt-4">
           <Fact label="Session" value={`${block.durationMinutes} minutes`} />
         </dl>
@@ -231,7 +218,7 @@ function ProposalBlockPreview({ block }: { block: Block }) {
   }
   if (block.type === "session_rubric") {
     return (
-      <RecordSection label="Rubric revision" title={block.title}>
+      <RecordSection label="Rubric revision" title={block.title} hideHeading={hideHeading}>
         <RubricCard criteria={block.criteria} className="mt-5" />
         <p className="mt-3 text-[0.75rem] text-[var(--color-muted)]">Existing grades remain on their original rubric version.</p>
       </RecordSection>
@@ -239,7 +226,7 @@ function ProposalBlockPreview({ block }: { block: Block }) {
   }
   if (block.type === "rubric") {
     return (
-      <RecordSection label="Rubric" title={block.title}>
+      <RecordSection label="Rubric" title={block.title} hideHeading={hideHeading}>
         <div className="mt-4 divide-y divide-[var(--color-border)] border-b border-[var(--color-border)]">
           {block.criteria.map((criterion) => (
             <section key={criterion.name} className="py-4">
@@ -257,24 +244,65 @@ function ProposalBlockPreview({ block }: { block: Block }) {
     );
   }
   if (block.type === "explanation") {
-    return <RecordSection label="Explanation" title={block.headline}><Markdown className="mt-4 text-[0.84375rem] leading-7">{block.bodyMd}</Markdown></RecordSection>;
+    return <RecordSection label="Explanation" title={block.headline} hideHeading={hideHeading}><Markdown className="mt-4 text-[0.84375rem] leading-7">{block.bodyMd}</Markdown></RecordSection>;
   }
-  return <RecordSection label="Answer" title="Draft response"><Markdown className="mt-4 text-[0.84375rem] leading-7">{block.bodyMd}</Markdown></RecordSection>;
+  return <RecordSection label="Answer" title="Draft response" hideHeading={hideHeading}><Markdown className="mt-4 text-[0.84375rem] leading-7">{block.bodyMd}</Markdown></RecordSection>;
 }
 
-function RecordSection({ label, title, meta, children }: { label: string; title: string; meta?: string; children?: ReactNode }) {
+function RecordSection({
+  label,
+  title,
+  meta,
+  hideHeading = false,
+  children,
+}: {
+  label: string;
+  title: string;
+  meta?: string;
+  hideHeading?: boolean;
+  children?: ReactNode;
+}) {
   return (
     <section className="py-6 first:pt-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div>
-          <p className="text-[0.6875rem] font-medium text-[var(--color-faint)]">{label}</p>
-          <h3 className="mt-1 text-[1rem] font-semibold leading-6 text-[var(--color-ink)]">{title}</h3>
+      {hideHeading ? (
+        meta ? <p className="text-[0.71875rem] tabular-nums text-[var(--color-muted)]">{meta}</p> : null
+      ) : (
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <div>
+            <p className="text-[0.6875rem] font-medium text-[var(--color-faint)]">{label}</p>
+            <h3 className="mt-1 text-[1rem] font-semibold leading-6 text-[var(--color-ink)]">{title}</h3>
+          </div>
+          {meta ? <p className="text-[0.71875rem] tabular-nums text-[var(--color-muted)]">{meta}</p> : null}
         </div>
-        {meta ? <p className="text-[0.71875rem] tabular-nums text-[var(--color-muted)]">{meta}</p> : null}
-      </div>
+      )}
       {children}
     </section>
   );
+}
+
+function blockTitle(block: Block): string {
+  if (block.type === "module" || block.type === "assignment") return block.name;
+  if (block.type === "objective") return `${block.code}: ${block.description}`;
+  if (block.type === "explanation") return block.headline;
+  if (block.type === "answer") return "Draft response";
+  return block.title;
+}
+
+function isRedundantSummary(summary: string, title: string): boolean {
+  const normalizedSummary = comparableRecordTitle(summary);
+  const normalizedTitle = comparableRecordTitle(title);
+  return normalizedSummary === normalizedTitle
+    || normalizedSummary.includes(normalizedTitle)
+    || normalizedTitle.includes(normalizedSummary);
+}
+
+function comparableRecordTitle(value: string): string {
+  return value
+    .toLocaleLowerCase("en-US")
+    .replace(/\b(ai assignment|practice set|rubric revision)\b/g, " ")
+    .replace(/\b(run|as|an|a|the|about)\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function Fact({ label, value, row = false }: { label: string; value: string; row?: boolean }) {

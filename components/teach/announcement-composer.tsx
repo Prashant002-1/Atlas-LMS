@@ -76,16 +76,14 @@ export function AnnouncementComposer({
                 className={fieldClass}
               />
             </Field>
-            <Field label="What should students know?">
-              <textarea
-                name="brief"
-                rows={7}
-                maxLength={2000}
-                value={brief}
-                onChange={(event) => setBrief(event.target.value)}
-                className={`${fieldClass} min-h-40 resize-y py-3 leading-6`}
-              />
-            </Field>
+            <RichTextEditor
+              name="brief"
+              label="What should students know?"
+              rows={7}
+              maxLength={2000}
+              defaultValue={brief}
+              onValueChange={setBrief}
+            />
             <div className="mt-2 flex justify-end border-t border-[var(--color-border)] pt-4">
               <ActionButton disabled={!brief.trim()}>Continue in Atlas</ActionButton>
             </div>

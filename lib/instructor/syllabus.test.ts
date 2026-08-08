@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { GRADE_BANDS, assignDueWeeks, type SyllabusAssignment } from "@/lib/instructor/syllabus";
 import { gradeLetterFor } from "@/lib/agent/grading";
+import { inferModuleIdFromDueDate } from "@/lib/course/module-assignment-placement";
 
 /** The syllabus letter bands and the gradebook's own mapping stay in step. */
 test("syllabus grade bands agree with gradeLetterFor", () => {
@@ -47,4 +48,17 @@ test("courses without dated modules map no work into the schedule", () => {
     [work("anything", new Date("2026-01-08T00:00:00Z"))]
   );
   assert.equal(byWeek.size, 0);
+});
+
+test("an unplaced assignment resolves to its due-date week", () => {
+  const weeks = [
+    { id: "w1", opensAt: new Date("2026-01-05T00:00:00Z") },
+    { id: "w2", opensAt: new Date("2026-01-12T00:00:00Z") },
+    { id: "w3", opensAt: new Date("2026-01-19T00:00:00Z") },
+  ];
+
+  assert.equal(inferModuleIdFromDueDate(weeks, new Date("2026-01-16T12:00:00Z")), "w2");
+  assert.equal(inferModuleIdFromDueDate(weeks, new Date("2026-01-01T12:00:00Z")), "w1");
+  assert.equal(inferModuleIdFromDueDate(weeks, new Date("2026-02-01T12:00:00Z")), "w3");
+  assert.equal(inferModuleIdFromDueDate(weeks, null), null);
 });

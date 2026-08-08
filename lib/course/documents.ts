@@ -18,7 +18,7 @@ import {
 } from "@/lib/course/materials";
 import { db } from "@/lib/db";
 import { courseMaterialRecords, documentAttachments, documentOriginals } from "@/lib/db/course-agent-schema";
-import { agentSessions, assignments, enrollments, files } from "@/lib/db/schema";
+import { agentSessions, assignments, enrollments, files, moduleItems, modules } from "@/lib/db/schema";
 
 const MAX_THREAD_DOCUMENTS = 5;
 const MAX_THREAD_DOCUMENT_CONTEXT = 80_000;
@@ -99,6 +99,7 @@ export async function createUploadedDocument(args: {
   displayName?: string | null;
   visibility: "course" | "instructors";
   target?: DocumentTarget;
+  moduleId?: string;
   materialKind?: MaterialKind;
 }): Promise<DocumentAttachmentItem> {
   assertSupportedDocument(args.file);
@@ -107,6 +108,7 @@ export async function createUploadedDocument(args: {
     courseId: args.courseId,
     target: args.target,
   });
+  await assertModuleTarget({ actor: args.actor, courseId: args.courseId, moduleId: args.moduleId });
 
   const classification = classifyCourseMaterial(args.file.name, args.file.type || null);
   const prepared = await prepareDocument(args.file);
@@ -178,6 +180,31 @@ export async function createUploadedDocument(args: {
       });
     }
 
+    if (args.moduleId) {
+      const [lastItem] = await tx
+        .select({ position: moduleItems.position })
+        .from(moduleItems)
+        .where(
+          and(
+            eq(moduleItems.orgId, args.actor.orgId),
+            eq(moduleItems.courseId, args.courseId),
+            eq(moduleItems.moduleId, args.moduleId)
+          )
+        )
+        .orderBy(desc(moduleItems.position))
+        .limit(1);
+      await tx.insert(moduleItems).values({
+        orgId: args.actor.orgId,
+        courseId: args.courseId,
+        moduleId: args.moduleId,
+        title: fileRow.displayName,
+        type: "File",
+        contentId: fileRow.id,
+        position: (lastItem?.position ?? 0) + 1,
+        published: args.visibility === "course",
+      });
+    }
+
     return {
       attachmentId: libraryAttachment.id,
       fileId: fileRow.id,
@@ -207,13 +234,17 @@ export async function createUploadedCourseMaterial(args: {
   file: File;
   displayName?: string | null;
   visibility: "course" | "instructors";
+  target?: DocumentTarget;
+  moduleId?: string;
   materialKind?: MaterialKind;
 }): Promise<DocumentAttachmentItem> {
   const classification = classifyCourseMaterial(args.file.name, args.file.type || null);
-  if (isDocumentFilename(args.file.name) && classification.kind !== "assessment") {
+  if (isDocumentFilename(args.file.name)) {
     return createUploadedDocument(args);
   }
   assertSupportedCourseMaterial(args.file);
+  await assertDocumentTarget({ actor: args.actor, courseId: args.courseId, target: args.target });
+  await assertModuleTarget({ actor: args.actor, courseId: args.courseId, moduleId: args.moduleId });
 
   const prepared = await prepareOriginal(args.file);
 
@@ -265,6 +296,43 @@ export async function createUploadedCourseMaterial(args: {
         createdById: args.actor.id,
       })
       .returning({ id: documentAttachments.id });
+
+    if (args.target) {
+      await tx.insert(documentAttachments).values({
+        orgId: args.actor.orgId,
+        courseId: args.courseId,
+        fileId: fileRow.id,
+        syllabusCourseId: args.target.type === "syllabus" ? args.target.id : null,
+        assignmentId: args.target.type === "assignment" ? args.target.id : null,
+        agentSessionId: args.target.type === "thread" ? args.target.id : null,
+        createdById: args.actor.id,
+      });
+    }
+
+    if (args.moduleId) {
+      const [lastItem] = await tx
+        .select({ position: moduleItems.position })
+        .from(moduleItems)
+        .where(
+          and(
+            eq(moduleItems.orgId, args.actor.orgId),
+            eq(moduleItems.courseId, args.courseId),
+            eq(moduleItems.moduleId, args.moduleId)
+          )
+        )
+        .orderBy(desc(moduleItems.position))
+        .limit(1);
+      await tx.insert(moduleItems).values({
+        orgId: args.actor.orgId,
+        courseId: args.courseId,
+        moduleId: args.moduleId,
+        title: fileRow.displayName,
+        type: "File",
+        contentId: fileRow.id,
+        position: (lastItem?.position ?? 0) + 1,
+        published: args.visibility === "course",
+      });
+    }
 
     return {
       attachmentId: attachment.id,
@@ -928,6 +996,26 @@ async function assertDocumentTarget(args: {
     )
     .limit(1);
   if (!thread) throw new Error("That Atlas thread is not yours in this course.");
+}
+
+async function assertModuleTarget(args: {
+  actor: DocumentActor;
+  courseId: string;
+  moduleId?: string;
+}) {
+  if (!args.moduleId) return;
+  const [row] = await db
+    .select({ id: modules.id })
+    .from(modules)
+    .where(
+      and(
+        eq(modules.id, args.moduleId),
+        eq(modules.orgId, args.actor.orgId),
+        eq(modules.courseId, args.courseId)
+      )
+    )
+    .limit(1);
+  if (!row) throw new Error("That module is not in this course.");
 }
 
 async function assertPersonalThread(args: { actor: DocumentActor; sessionId: string }) {

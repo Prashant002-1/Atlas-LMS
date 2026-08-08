@@ -12,8 +12,8 @@ The course is Intermediate Microeconomics, Fall 2026, taught through the VidStac
 
 - `lib/db/fixtures/courses/econ241-course-corpus.ts` owns ECON-241's modules, course pages, material metadata and extracted text, long syllabus, course description, and assignment briefs.
 - `lib/db/fixtures/v0-demo-world.ts` owns students, enrollment, assessment history, submissions, agent-session records, grading, and the fixture package shape.
-- `lib/db/seed.ts` persists material `assetPath` values as their local file URLs. The normal deterministic demo seed remains the import path.
-- `public/seed-assets/econ-241/fall-2026/asset-manifest.json` maps stable asset identifiers to files for a future upload/import workflow.
+- `lib/db/seed.ts` reads each material's `assetPath`, stores the exact bytes in `document_originals`, and runs the same AnyDoc pipeline as an authenticated upload. The normal deterministic demo seed remains the import path.
+- `public/seed-assets/econ-241/fall-2026/asset-manifest.json` maps stable asset identifiers to the source files used by seed ingestion.
 
 Do not restore short placeholder pages or file links for ECON-241. When changing the course, update the corpus, the material manifest if a binary changes, and the fixture tests together.
 
@@ -31,7 +31,7 @@ Do not restore short placeholder pages or file links for ECON-241. When changing
 
 ## Documents and import mapping
 
-The static asset pack is intentionally canonical rather than creating a separate binary for every one of the forty-five material records. The week-specific records point to a durable document family, while their own filenames and extracted text retain the exact course context. This keeps the seed realistic without storing fourteen copies of the same deck, reader, or workbook.
+The static asset pack is intentionally canonical rather than generating a separate source file for every one of the forty-five material records. Week-specific records share a course-wide deck, reader, or workbook source. Seed ingestion stores an original beside each file record because originals follow that record's lifecycle, while fixture metadata retains the exact week and course context.
 
 | Asset ID | File | Used by |
 | --- | --- | --- |
@@ -42,7 +42,7 @@ The static asset pack is intentionally canonical rather than creating a separate
 | `econ241-fall2026-pricing-case-pack` | `econ241-pricing-strategy-session-case-pack.docx` | Pricing Strategy Session, Week 7 |
 | `econ241-fall2026-exam2-outline` | `econ241-exam2-drafting-outline.docx` | Instructor-only Exam 2 planning, Week 10 |
 
-All paths use the form `/seed-assets/econ-241/fall-2026/<file>`. In a later storage-backed importer, preserve the asset ID and map every material row with that path to the imported document ID. The source metadata includes a `week`, a course-specific display name and filename, visibility, material kind, and extracted text, so duplicate binary storage is not necessary to preserve the course record.
+All paths use the form `/seed-assets/econ-241/fall-2026/<file>`. The seed stores those bytes privately, records the source path and checksum as metadata, and saves AnyDoc's canonical Markdown and structured extraction. Re-ingestion is idempotent and updates only seeded document records.
 
 ## Content rules
 
@@ -57,4 +57,4 @@ All paths use the form `/seed-assets/econ-241/fall-2026/<file>`. In a later stor
 
 The fixture test suite must verify substantive descriptions, term coverage, page and material depth, document variety, material asset paths, varied submission shapes, and the existing deterministic scenario aggregates. The seed must remain idempotent for the demo tenant and must not reset unrelated tenants.
 
-Before handoff, verify the TypeScript fixture tests and inspect the generated PDFs, Word documents, deck, and workbook. If database connectivity is available, run the scoped local demo seed after migrations are current; otherwise the pack and manifest remain import-ready at the canonical paths above.
+Before handoff, verify the TypeScript fixture tests, inspect the generated PDFs, Word documents, deck, and workbook, and confirm every seeded material has an original plus a structured extraction after seeding.

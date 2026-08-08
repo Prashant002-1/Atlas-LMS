@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton, BackLink, ButtonLink, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { DocumentAttachmentSection } from "@/components/documents/document-attachments";
 import { Markdown } from "@/components/agent/markdown";
+import { RichTextEditor } from "@/components/teach/rich-text-editor";
 import { listDocumentAttachments } from "@/lib/course/documents";
 import { markdownBody } from "@/lib/markdown-presentation";
 
@@ -109,7 +110,7 @@ export default async function StudentAssignmentPage({ params }: { params: Promis
       {assignment.response ? (
         <section className="mt-6 py-5">
           <p className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Your response</p>
-          <p className="mt-2 max-w-3xl whitespace-pre-wrap text-[0.875rem] leading-6">{assignment.response}</p>
+          <Markdown className="mt-2 max-w-3xl text-[0.875rem] leading-6">{assignment.response}</Markdown>
         </section>
       ) : null}
 
@@ -119,16 +120,15 @@ export default async function StudentAssignmentPage({ params }: { params: Promis
           <form action={submitAssignment} className="mt-3 grid max-w-3xl gap-3">
             <input type="hidden" name="assignmentId" value={assignment.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
-            <label className="sr-only" htmlFor="response-body">Response</label>
-            <textarea
-              id="response-body"
+            <RichTextEditor
               name="body"
+              label="Response"
               required
               minLength={20}
-              rows={6}
+              rows={8}
+              maxLength={12000}
               defaultValue={assignment.response ?? ""}
               placeholder="Write your response here."
-              className="w-full resize-y rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2.5 text-[0.875rem] leading-6 transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]"
             />
             <div><ActionButton>{canRevise ? "Update response" : "Submit response"}</ActionButton></div>
           </form>

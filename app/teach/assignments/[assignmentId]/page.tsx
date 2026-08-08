@@ -16,22 +16,36 @@ import {
   type InstructorAssignmentWorkspace,
 } from "@/lib/instructor/workspace";
 import { loadSessionAssignmentBundle } from "@/lib/agent/session-store";
+import { loadCourseMaterialPlacementOptions } from "@/lib/instructor/course-material-options";
 import { markdownBody } from "@/lib/markdown-presentation";
+import { moduleReturnHref, withModuleContext } from "@/lib/module-navigation-context";
 
 // The former "Journeys and rubric" entry is now the direct "Sessions and grades" entry.
-export default async function InstructorAssignmentPage({ params }: { params: Promise<{ assignmentId: string }> }) {
+export default async function InstructorAssignmentPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ assignmentId: string }>;
+  searchParams: Promise<{ fromModule?: string }>;
+}) {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
   if (!isInstructorLike(session.user.role)) redirect("/student");
 
-  const { assignmentId } = await params;
+  const [{ assignmentId }, query] = await Promise.all([params, searchParams]);
+  const moduleHref = moduleReturnHref(query.fromModule);
+  const backHref = moduleHref ?? "/teach/assignments";
+  const backLabel = moduleHref ? "Module" : "Assignments";
+  const assignmentHref = moduleHref && query.fromModule
+    ? withModuleContext(`/teach/assignments/${assignmentId}`, query.fromModule)
+    : `/teach/assignments/${assignmentId}`;
   const workspace = await loadInstructorAssignmentWorkspace(session.user, assignmentId);
   const sessionBundle = session.user.orgId ? await loadSessionAssignmentBundle(session.user.orgId, assignmentId) : null;
 
   if (workspace.problem || !workspace.assignment) {
     return (
       <>
-        <BackLink href="/teach/assignments">Assignments</BackLink>
+        <BackLink href={backHref}>{backLabel}</BackLink>
         <div className="mt-3"><PageHeader title={workspace.problem?.title ?? "Assignment unavailable"} /></div>
         <p className="max-w-lg text-[0.875rem] leading-6 text-[var(--color-muted)]">
           {workspace.problem?.detail ?? "This assignment is not in a course you teach."}
@@ -41,6 +55,9 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
   }
 
   const assignment = workspace.assignment;
+  const placementOptions = session.user.orgId && workspace.course.id
+    ? await loadCourseMaterialPlacementOptions({ orgId: session.user.orgId, courseId: workspace.course.id })
+    : { modules: [], assignments: [] };
   const attachedDocuments = session.user.orgId && workspace.course.id
     ? await listDocumentAttachments({
         orgId: session.user.orgId,
@@ -70,15 +87,15 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
 
   return (
     <>
-      <BackLink href="/teach/assignments">Assignments</BackLink>
+      <BackLink href={backHref}>{backLabel}</BackLink>
       <div className="mt-3">
         <PageHeader
           title={assignment.title}
           course={`${workspace.course.code} / Assignment`}
           action={assignment.id ? (
             <div className="flex items-center gap-2">
-              {assignment.status !== "approved" ? <PublishControl assignmentId={assignment.id} /> : null}
-              <AssignmentEditDialog assignment={assignment} />
+              {assignment.status !== "approved" ? <PublishControl assignmentId={assignment.id} returnTo={assignmentHref} /> : null}
+              <AssignmentEditDialog assignment={assignment} moduleId={workspace.moduleId} modules={placementOptions.modules} returnTo={assignmentHref} />
             </div>
           ) : undefined}
         />
@@ -101,7 +118,7 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
       <DocumentAttachmentSection
         items={attachedDocuments}
         audience="instructor"
-        owner={{ type: "assignment", id: assignmentId, returnTo: `/teach/assignments/${assignmentId}` }}
+        owner={{ type: "assignment", id: assignmentId, returnTo: assignmentHref }}
       />
 
       {sessionBundle ? (
@@ -125,11 +142,11 @@ export default async function InstructorAssignmentPage({ params }: { params: Pro
   );
 }
 
-function PublishControl({ assignmentId }: { assignmentId: string }) {
+function PublishControl({ assignmentId, returnTo }: { assignmentId: string; returnTo: string }) {
   return (
     <form action={publishAssignment}>
       <input type="hidden" name="assignmentId" value={assignmentId} />
-      <input type="hidden" name="returnTo" value={`/teach/assignments/${assignmentId}`} />
+      <input type="hidden" name="returnTo" value={returnTo} />
       <ActionButton size="sm">Publish</ActionButton>
     </form>
   );
@@ -150,13 +167,23 @@ function AssignmentMaterials({ materials }: { materials: InstructorAssignmentWor
   );
 }
 
-function AssignmentEditDialog({ assignment }: { assignment: InstructorAssignment }) {
+function AssignmentEditDialog({
+  assignment,
+  moduleId,
+  modules,
+  returnTo,
+}: {
+  assignment: InstructorAssignment;
+  moduleId: string | null;
+  modules: Awaited<ReturnType<typeof loadCourseMaterialPlacementOptions>>["modules"];
+  returnTo: string;
+}) {
   if (!assignment.id) return null;
   return (
     <RecordDialog mode="edit" triggerLabel="Edit assignment" title="Edit assignment" triggerVariant="secondary">
       <form action={updateAssignmentRecord} className="grid gap-4">
         <input type="hidden" name="assignmentId" value={assignment.id} />
-        <input type="hidden" name="returnTo" value={`/teach/assignments/${assignment.id}`} />
+        <input type="hidden" name="returnTo" value={returnTo} />
         {assignment.objectiveCodes.map((code) => <input key={code} type="hidden" name="objectiveCode" value={code} />)}
         <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Title
@@ -170,6 +197,13 @@ function AssignmentEditDialog({ assignment }: { assignment: InstructorAssignment
           rows={10}
           maxLength={1600}
         />
+        <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
+          Module / week <span className="font-normal text-[var(--color-faint)]">Optional</span>
+          <select name="moduleId" defaultValue={moduleId ?? ""} className={fieldClass}>
+            <option value="">Use due date</option>
+            {modules.map((module) => <option key={module.id} value={module.id}>{module.label}</option>)}
+          </select>
+        </label>
         <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
           <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
             Due date

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FileText } from "lucide-react";
 import { ActionButton } from "@/components/atlas/primitives";
 import { RecordDialog } from "@/components/teach/record-dialog";
+import { documentFileAccept, FilePicker } from "@/components/teach/file-picker";
 import type { DocumentAttachmentItem } from "@/lib/course/documents";
 import { uploadOwnedDocument } from "@/lib/instructor/document-actions";
 
@@ -63,16 +64,7 @@ function DocumentUploadDialog({ owner }: { owner: { type: "syllabus" | "assignme
         <input type="hidden" name="ownerType" value={owner.type} />
         <input type="hidden" name="ownerId" value={owner.id} />
         <input type="hidden" name="returnTo" value={owner.returnTo} />
-        <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
-          File
-          <input
-            name="file"
-            type="file"
-            required
-            accept={documentAccept}
-            className={`${fileFieldClass} file:mr-3 file:rounded-control file:border-0 file:bg-[var(--color-surface)] file:px-2.5 file:py-1 file:text-[0.75rem] file:font-medium file:text-[var(--color-ink)] hover:file:bg-[var(--color-surface-muted)]`}
-          />
-        </label>
+        <FilePicker name="file" required accept={documentFileAccept} />
         <label className="grid gap-1.5 text-[0.75rem] font-medium text-[var(--color-ink)]">
           Display name <span className="font-normal text-[var(--color-faint)]">Optional</span>
           <input name="displayName" type="text" maxLength={240} className={fieldClass} />
@@ -98,11 +90,4 @@ function measure(item: DocumentAttachmentItem) {
   return `${(item.sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const documentAccept = ".pdf,.doc,.docx,.docm,.ppt,.pps,.pot,.pptx,.pptm,.ppsx,.ppsm,.xls,.xlsx,.xlsm,.xlsb,.odt,.ods,.odp,.rtf,.epub,.csv,.txt,.md,.xml,.json,.jsonl,.yaml,.yml,.html,.css,.js,.jsx,.ts,.tsx,.mjs,.cjs,.py,.java,.c,.cc,.cpp,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.kts,.sql,.sh,.zsh,.bash";
 const fieldClass = "min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.8125rem] text-[var(--color-ink)] outline-none transition focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]";
-/*
-  A file input renders its own button plus the "no file chosen" label, and a
-  bare min-height leaves both sitting on the box's baseline. Making the control
-  a flex row centres them the way every other field in this dialog is centred.
-*/
-const fileFieldClass = "flex min-h-10 items-center rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-1.5 text-[0.8125rem] text-[var(--color-muted)] outline-none transition focus-within:border-[var(--color-accent-strong)] focus-within:bg-[var(--color-surface)]";

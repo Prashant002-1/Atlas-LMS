@@ -30,6 +30,7 @@ export function RichTextEditor({
   labelHidden = false,
   defaultValue = "",
   rows = 10,
+  minLength,
   maxLength,
   placeholder,
   required = false,
@@ -41,6 +42,7 @@ export function RichTextEditor({
   labelHidden?: boolean;
   defaultValue?: string;
   rows?: number;
+  minLength?: number;
   maxLength?: number;
   placeholder?: string;
   required?: boolean;
@@ -167,6 +169,7 @@ export function RichTextEditor({
           id={`${name}-editor`}
           name={name}
           rows={rows}
+          minLength={minLength}
           maxLength={maxLength}
           required={required}
           placeholder={placeholder}
@@ -179,16 +182,16 @@ export function RichTextEditor({
         />
       </div>
 
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="text-[0.6875rem] text-[var(--color-faint)]">
-          {hint ?? "Markdown formatting"}
-        </span>
-        {maxLength ? (
-          <span className="text-[0.6875rem] tabular-nums text-[var(--color-faint)]">
-            {value.length} / {maxLength}
-          </span>
-        ) : null}
-      </div>
+      {hint || maxLength ? (
+        <div className={`flex flex-wrap items-baseline gap-2 ${hint ? "justify-between" : "justify-end"}`}>
+          {hint ? <span className="text-[0.6875rem] text-[var(--color-faint)]">{hint}</span> : null}
+          {maxLength ? (
+            <span className="text-[0.6875rem] tabular-nums text-[var(--color-faint)]">
+              {value.length} / {maxLength}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

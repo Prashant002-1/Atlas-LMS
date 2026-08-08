@@ -102,11 +102,13 @@ test("the materials header locates the page instead of counting", () => {
   assert.ok(page.includes("Visible to students"));
 });
 
-test("the attach control sits on the page edge and centres its file input", () => {
+test("the attach control sits on the page edge and uses the shared centred file picker", () => {
   const attachments = read("components/documents/document-attachments.tsx");
+  const picker = read("components/teach/file-picker.tsx");
   /* The header row spans the column so the action lands on the right edge. */
   assert.equal(attachments.includes('className="mt-7 max-w-4xl py-5"'), false);
-  /* A file input needs a flex row, or its button sits on the box baseline. */
-  assert.ok(attachments.includes("fileFieldClass"));
-  assert.ok(attachments.includes("flex min-h-10 items-center"));
+  /* Native file chrome does not expose a permanent "no file chosen" label. */
+  assert.ok(attachments.includes("FilePicker"));
+  assert.ok(picker.includes("items-center justify-center"));
+  assert.equal(picker.includes("No file chosen"), false);
 });

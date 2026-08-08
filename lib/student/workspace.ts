@@ -8,12 +8,14 @@ import {
   courses,
   enrollments,
   learningObjectives,
+  moduleItems,
   modules,
   submissions,
   type CourseAiPolicy,
 } from "@/lib/db/schema";
 import type { Role } from "@/lib/auth/session";
 import type { WorkspaceCourse } from "@/lib/workspace/scope";
+import { inferModuleIdFromDueDate } from "@/lib/course/module-assignment-placement";
 
 /**
  * Student read layer. Three views, all from the published course record:
@@ -466,11 +468,30 @@ export async function loadStudentMaterialWorkspace(
   if (!material) {
     return { ...base.workspace, problem: { title: "Material unavailable", detail: "This material is not part of this course." } };
   }
-  const codes = new Set(material.objectiveCodes);
+  const assignmentPlacementRows = actor?.orgId
+    ? await db
+        .select({ moduleId: moduleItems.moduleId, contentId: moduleItems.contentId, type: moduleItems.type })
+        .from(moduleItems)
+        .where(and(eq(moduleItems.orgId, actor.orgId), eq(moduleItems.courseId, base.workspace.course.id)))
+    : [];
+  const assignmentPlacements = assignmentPlacementRows.filter((item) => item.type.toLowerCase() === "assignment" && item.contentId);
+  const explicitlyPlacedIds = new Set(assignmentPlacements.map((item) => item.contentId));
+  const placedHereIds = new Set(
+    assignmentPlacements.filter((item) => item.moduleId === moduleId).map((item) => item.contentId)
+  );
+  const explicitlyPlaced = base.allAssignments.filter((assignment) => placedHereIds.has(assignment.id));
+  const datedHere = base.allAssignments.filter(
+    (assignment) =>
+      !explicitlyPlacedIds.has(assignment.id) &&
+      inferModuleIdFromDueDate(
+        base.allMaterials.map((module) => ({ id: module.id, opensAt: module.unlockAt ?? null })),
+        assignment.dueAt
+      ) === moduleId
+  );
   return {
     ...base.workspace,
     material,
-    relatedAssignments: base.allAssignments.filter((a) => a.objectiveCodes.some((c) => codes.has(c))).slice(0, 4),
+    relatedAssignments: [...explicitlyPlaced, ...datedHere].slice(0, 4),
   };
 }
 

@@ -27,6 +27,8 @@ import {
 import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton, ButtonLink, TextLink } from "@/components/atlas/primitives";
 import { RecordDialog } from "@/components/teach/record-dialog";
+import { RichTextEditor } from "@/components/teach/rich-text-editor";
+import { Markdown } from "@/components/agent/markdown";
 
 /**
  * Course setup is the course control center: identity and offering facts,
@@ -82,9 +84,11 @@ export default async function TeachCourseSetupPage() {
 
       <section aria-labelledby="course-overview-heading" className="pb-7">
         <h2 id="course-overview-heading" className="sr-only">Course overview</h2>
-        <p className="max-w-[75ch] text-[0.84375rem] leading-6 text-[var(--color-muted)]">
-          {course.description?.trim() || "No course description has been added."}
-        </p>
+        {course.description?.trim() ? (
+          <Markdown className="max-w-[75ch] text-[0.84375rem] leading-6 text-[var(--color-muted)]">{course.description}</Markdown>
+        ) : (
+          <p className="max-w-[75ch] text-[0.84375rem] leading-6 text-[var(--color-muted)]">No course description has been added.</p>
+        )}
         <dl className="mt-5 flex flex-wrap gap-x-10 gap-y-3 text-[0.78125rem]">
           <CourseFact label="Term" value={course.term ?? "Not set"} />
           <CourseFact label="Starts" value={course.startDate ? longDate(course.startDate) : "Not set"} />
@@ -121,7 +125,7 @@ export default async function TeachCourseSetupPage() {
             {classPolicies.map((policy) => (
               <div key={policy.title} className="grid gap-1.5 px-3 py-3.5 sm:grid-cols-[12rem_minmax(0,1fr)_auto] sm:gap-6">
                 <dt className="text-[0.8125rem] font-medium text-[var(--color-ink)]">{policy.title}</dt>
-                <dd className="min-w-0 text-[0.8125rem] leading-5 text-[var(--color-muted)]">{policy.body}</dd>
+                <dd className="min-w-0"><Markdown className="text-[0.8125rem] leading-5 text-[var(--color-muted)]">{policy.body}</Markdown></dd>
                 <dd className="flex items-start gap-3">
                   <ClassPolicyDialog mode="edit" policy={policy} />
                   <form action={removeClassPolicy}>
@@ -258,10 +262,7 @@ function EditCourseDialog({ course }: { course: { name: string; description: str
           Name
           <input name="name" type="text" required autoFocus maxLength={200} defaultValue={course.name} className={fieldClass} />
         </label>
-        <label className="grid gap-1.5 text-[0.75rem] font-medium">
-          Description
-          <textarea name="description" rows={4} maxLength={2000} defaultValue={course.description ?? ""} className={`${fieldClass} min-h-24 resize-y py-2.5 leading-6`} />
-        </label>
+        <RichTextEditor name="description" label="Description" rows={6} maxLength={2000} defaultValue={course.description ?? ""} />
         <div className="flex justify-end pt-4">
           <ActionButton>Save course</ActionButton>
         </div>
@@ -331,10 +332,7 @@ function ClassPolicyDialog({ mode, policy }: { mode: "create" | "edit"; policy?:
           Title
           <input name="title" type="text" required autoFocus maxLength={80} defaultValue={policy?.title ?? ""} placeholder="Late work" className={fieldClass} />
         </label>
-        <label className="grid gap-1.5 text-[0.75rem] font-medium">
-          Policy
-          <textarea name="body" rows={4} required maxLength={1000} defaultValue={policy?.body ?? ""} className={`${fieldClass} min-h-24 resize-y py-2.5 leading-6`} />
-        </label>
+        <RichTextEditor name="body" label="Policy" rows={6} required maxLength={1000} defaultValue={policy?.body ?? ""} />
         <div className="flex justify-end pt-4">
           <ActionButton>{mode === "create" ? "Add policy" : "Save policy"}</ActionButton>
         </div>

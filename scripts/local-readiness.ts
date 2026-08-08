@@ -67,18 +67,40 @@ async function main() {
       if (!demoUsers.get(email)) errors.push(`Seeded login is missing or disabled: ${email}. Run npm run db:seed.`);
     }
 
-    const assetsResult = await appPool.query<{ url: string }>(`
-      SELECT DISTINCT url
+    const assetsResult = await appPool.query<{
+      fileId: string;
+      displayName: string;
+      assetPath: string | null;
+      hasOriginal: boolean;
+      hasExtraction: boolean;
+    }>(`
+      SELECT
+        files.id AS "fileId",
+        files.display_name AS "displayName",
+        course_material_records.metadata ->> 'seedAssetPath' AS "assetPath",
+        document_originals.file_id IS NOT NULL AS "hasOriginal",
+        course_material_records.extraction IS NOT NULL AS "hasExtraction"
       FROM files
-      WHERE url LIKE '/seed-assets/%'
-      ORDER BY url
+      INNER JOIN course_material_records ON course_material_records.file_id = files.id
+      LEFT JOIN document_originals
+        ON document_originals.file_id = files.id
+        AND document_originals.org_id = files.org_id
+      WHERE course_material_records.ingestion_source = 'seed'
+      ORDER BY files.display_name
     `);
     if (assetsResult.rows.length === 0) {
-      warnings.push("No seeded file URLs were found. Run npm run db:seed if you expect the demo world.");
+      warnings.push("No seeded document records were found. Run npm run db:seed if you expect the demo world.");
     }
     for (const row of assetsResult.rows) {
-      const assetPath = resolve(process.cwd(), "public", row.url.replace(/^\//, ""));
-      if (!existsSync(assetPath)) errors.push(`Seeded file is missing from disk: ${row.url}`);
+      if (!row.hasOriginal || !row.hasExtraction) {
+        errors.push(`Seeded document is not fully ingested: ${row.displayName}. Run npm run documents:reingest-seed.`);
+      }
+      if (!row.assetPath?.startsWith("/seed-assets/")) {
+        errors.push(`Seeded document has no source asset path: ${row.displayName}.`);
+        continue;
+      }
+      const assetPath = resolve(process.cwd(), "public", row.assetPath.replace(/^\//, ""));
+      if (!existsSync(assetPath)) errors.push(`Seeded file is missing from disk: ${row.assetPath}`);
     }
   } finally {
     await Promise.all([appPool.end(), workflowPool.end()]);
@@ -97,7 +119,7 @@ main()
     if (errors.length > 0) {
       console.error("Local Atlas is not ready:");
       for (const error of errors) console.error(`- ${error}`);
-      console.error("Run npm run db:upgrade, npm run workflow:bootstrap, and npm run local:check before starting Atlas.");
+      console.error("Repair the named boundary, then run npm run local:check before starting Atlas.");
       process.exitCode = 1;
       return;
     }

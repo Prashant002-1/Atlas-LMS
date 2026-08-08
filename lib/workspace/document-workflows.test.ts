@@ -63,7 +63,11 @@ test("personal document access admits only the owning student through a personal
 
 test("document reads and chat context repeat authenticated scope", () => {
   const documents = read("lib/course/documents.ts");
-  const original = read("app/api/documents/[fileId]/original/route.ts");
+  const legacyOriginal = read("app/api/documents/[fileId]/original/route.ts");
+  const cleanOriginal = read("app/documents/[fileId]/[filename]/route.ts");
+  const originalResponse = read("lib/course/document-original-response.ts");
+  const seed = read("lib/db/seed.ts");
+  const reingest = read("scripts/reingest-seed-documents.ts");
   const planningRoute = read("app/api/atlas/planning/route.ts");
   const runtime = read("lib/agent/professor-runtime.ts");
   const studentRoute = read("app/api/atlas/student/route.ts");
@@ -78,15 +82,23 @@ test("document reads and chat context repeat authenticated scope", () => {
   assert.match(documents, /tx\.insert\(documentOriginals\)/);
   assert.match(documents, /createUploadedCourseMaterial/);
   assert.match(documents, /contentHandling: "stored-only"/);
-  assert.match(documents, /classification\.kind !== "assessment"/);
+  assert.doesNotMatch(documents, /classification\.kind !== "assessment"/);
   assert.match(documents, /processingStatus: "ready"/);
   assert.doesNotMatch(documents, /ingestUploadedCourseMaterial|resolvePlatformModel|generateText/);
-  assert.match(original, /loadDocumentDetailForActor/);
-  assert.match(original, /documentOriginals\.bytes/);
-  assert.match(original, /Content-Disposition/);
-  assert.match(original, /Cache-Control.*private, no-store/);
-  assert.match(original, /Content-Security-Policy/);
-  assert.match(original, /safeInlineContentType/);
+  assert.match(legacyOriginal, /documentOriginalPath/);
+  assert.match(legacyOriginal, /NextResponse\.redirect/);
+  assert.match(cleanOriginal, /serveDocumentOriginal/);
+  assert.match(originalResponse, /loadDocumentDetailForActor/);
+  assert.match(originalResponse, /documentOriginals\.bytes/);
+  assert.match(originalResponse, /Content-Disposition/);
+  assert.match(originalResponse, /Cache-Control.*private, no-store/);
+  assert.match(originalResponse, /Content-Security-Policy/);
+  assert.match(originalResponse, /safeInlineContentType/);
+  assert.match(originalResponse, /document\.url\.startsWith\("\/seed-assets\/"\)/);
+  assert.match(seed, /prepareSeedDocument/);
+  assert.match(seed, /insert\(documentOriginals\)/);
+  assert.match(reingest, /ingestion_source = 'seed'/);
+  assert.match(reingest, /ON CONFLICT \(file_id\) DO UPDATE/);
   assert.match(planningRoute, /attachCourseFilesToThread/);
   assert.match(planningRoute, /data-document-attachments/);
   assert.match(planningRoute, /attachmentId: document\.attachmentId/);
@@ -121,6 +133,8 @@ test("the first document slice is connected without claiming annotations", () =>
   assert.match(materials, /CourseMaterialTable/);
   assert.match(materials, /isDocumentFilename/);
   assert.doesNotMatch(courseSetup, /CourseMaterialTable/);
+  assert.match(viewer, /documentOriginalPath/);
+  assert.doesNotMatch(viewer, /\/api\/documents\//);
   assert.match(viewer, />Notes<\/button>/);
   assert.match(viewer, />Annotate<\/button>/);
   assert.equal((viewer.match(/disabled/g) ?? []).length >= 2, true);

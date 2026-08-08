@@ -51,7 +51,7 @@ test("the students page leads with the roster", () => {
   assert.ok(roster < work, "the roster renders before the course work");
 });
 
-test("review is a URL-selected queue with full records, history, and Atlas provenance", () => {
+test("review follows the instructor list-to-record hierarchy", () => {
   const workspace = read("lib/instructor/workspace.ts");
   const proposals = read("components/teach/proposals.tsx");
   const review = read("app/teach/review/page.tsx");
@@ -65,6 +65,14 @@ test("review is a URL-selected queue with full records, history, and Atlas prove
   assert.equal(proposals.includes("Decision history"), false);
   assert.ok(review.includes('searchParams: Promise<{ proposal?: string }>'));
   assert.ok(review.includes("ProposalHistory"));
+  assert.ok(review.includes('<BackLink href="/teach/review">Review</BackLink>'));
+  assert.ok(review.includes("params.proposal"));
+  assert.equal(review.includes("?? open[0] ?? decided[0]"), false);
+  assert.equal(review.includes("lg:grid-cols-[18rem_minmax(0,1fr)]"), false);
+  assert.equal(review.includes("EmptyState"), false);
+  assert.ok(proposals.includes("No open drafts."));
+  assert.ok(proposals.includes("hideHeading={index === 0 && blockTitle(block) === proposal.title}"));
+  assert.ok(proposals.includes("!isRedundantSummary(proposal.summary, proposal.title)"));
   assert.equal(proposals.includes("ProposalCard"), false);
   assert.equal(proposals.includes("StatusBadge"), false);
 });

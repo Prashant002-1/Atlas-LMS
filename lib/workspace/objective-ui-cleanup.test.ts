@@ -33,7 +33,9 @@ test("material knowledge lives on Materials, and settings tracks no objectives",
   const settings = read("app/teach/settings/page.tsx");
   assert.equal(settings.toLowerCase().includes("objectives"), false);
   const materials = read("app/teach/materials/page.tsx");
-  assert.ok(materials.includes("Add material"));
+  const materialIntake = read("components/teach/add-material-dialog.tsx");
+  assert.ok(materials.includes("AddMaterialDialog"));
+  assert.ok(materialIntake.includes("Add material"));
   assert.ok(materials.includes("Visible to students"));
 });
 

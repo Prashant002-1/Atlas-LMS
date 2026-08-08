@@ -18,15 +18,23 @@ test("module material links retain their module as a bounded return destination"
   assert.equal(moduleReturnHref(undefined), null);
 });
 
-test("document and course-record readers honor module context", () => {
+test("module-linked records return to their originating module", () => {
   const week = read("app/teach/week/[moduleId]/page.tsx");
   const document = read("app/teach/documents/[fileId]/page.tsx");
   const record = read("app/teach/records/[recordId]/page.tsx");
+  const assignment = read("app/teach/assignments/[assignmentId]/page.tsx");
+  const actions = read("lib/instructor/actions.ts");
 
   assert.match(week, /withModuleContext/);
   assert.match(week, /href=\{materialHref\}/);
+  assert.match(week, /href=\{assignmentHref\}/);
   for (const reader of [document, record]) {
     assert.match(reader, /fromModule/);
     assert.match(reader, /moduleReturnHref/);
   }
+  assert.match(assignment, /searchParams: Promise<\{ fromModule\?: string \}>/);
+  assert.match(assignment, /moduleReturnHref\(query\.fromModule\)/);
+  assert.match(assignment, /<BackLink href=\{backHref\}>\{backLabel\}<\/BackLink>/);
+  assert.match(assignment, /returnTo=\{assignmentHref\}/);
+  assert.match(actions, /query\.size === 1 && moduleReturnHref\(fromModule\)/);
 });

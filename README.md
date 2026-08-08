@@ -4,12 +4,29 @@ Atlas is an LMS rebuilt around teacher-governed AI. The active product direction
 
 ## Quickstart
 
+For a brand-new checkout with an empty database volume:
+
 ```bash
 docker compose up -d db
 npm install
 cp .env.example .env.local
-npm run db:push
+npm run db:push -- --force
+npm run db:upgrade -- --allow-destructive
+npm run workflow:bootstrap
 npm run db:seed
+npm run local:check
+npm run dev
+```
+
+`db:push` is only the empty-database initializer. For an existing local
+database, use the managed upgrade path instead:
+
+```bash
+docker compose up -d db
+npm install
+npm run db:upgrade
+npm run workflow:bootstrap
+npm run local:check
 npm run dev
 ```
 

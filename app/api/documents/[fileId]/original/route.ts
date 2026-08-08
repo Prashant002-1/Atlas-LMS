@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
+import { and, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { loadDocumentDetailForActor } from "@/lib/course/documents";
+import { db } from "@/lib/db";
+import { documentOriginals } from "@/lib/db/course-agent-schema";
 
 export const maxDuration = 60;
 
@@ -16,7 +19,31 @@ export async function GET(request: Request, { params }: { params: Promise<{ file
     actor: { id: user.id, orgId: user.orgId, role: user.role },
     fileId,
   });
-  if (!document?.url) {
+  if (!document?.hasOriginal) {
+    return NextResponse.json({ error: "The original document is unavailable." }, { status: 404 });
+  }
+
+  const download = new URL(request.url).searchParams.get("download") === "1";
+  const filename = document.filename ?? document.displayName;
+  const [stored] = await db
+    .select({ bytes: documentOriginals.bytes })
+    .from(documentOriginals)
+    .where(
+      and(
+        eq(documentOriginals.orgId, user.orgId),
+        eq(documentOriginals.fileId, document.fileId)
+      )
+    )
+    .limit(1);
+  if (stored) {
+    const contentType = document.contentType || "application/octet-stream";
+    return new Response(new Uint8Array(stored.bytes), {
+      status: 200,
+      headers: originalHeaders({ filename, contentType, download, contentLength: stored.bytes.byteLength }),
+    });
+  }
+
+  if (!document.url) {
     return NextResponse.json({ error: "The original document is unavailable." }, { status: 404 });
   }
 
@@ -41,19 +68,34 @@ export async function GET(request: Request, { params }: { params: Promise<{ file
     return NextResponse.json({ error: "The original document could not be opened." }, { status: 502 });
   }
 
-  const download = new URL(request.url).searchParams.get("download") === "1";
-  const filename = document.filename ?? document.displayName;
   const sourceContentType = document.contentType || upstream.headers.get("content-type") || "application/octet-stream";
+  const contentLength = upstream.headers.get("content-length");
+  const headers = originalHeaders({
+    filename,
+    contentType: sourceContentType,
+    download,
+    contentLength: contentLength ? Number(contentLength) : null,
+  });
+  return new Response(upstream.body, { status: 200, headers });
+}
+
+function originalHeaders(args: {
+  filename: string;
+  contentType: string;
+  download: boolean;
+  contentLength: number | null;
+}) {
   const headers = new Headers({
-    "Content-Type": download ? sourceContentType : safeInlineContentType(sourceContentType),
-    "Content-Disposition": contentDisposition(filename, download),
+    "Content-Type": args.download ? args.contentType : safeInlineContentType(args.contentType),
+    "Content-Disposition": contentDisposition(args.filename, args.download),
     "Cache-Control": "private, no-store",
     "Content-Security-Policy": "sandbox; default-src 'none'",
     "X-Content-Type-Options": "nosniff",
   });
-  const contentLength = upstream.headers.get("content-length");
-  if (contentLength) headers.set("Content-Length", contentLength);
-  return new Response(upstream.body, { status: 200, headers });
+  if (args.contentLength !== null && Number.isSafeInteger(args.contentLength) && args.contentLength >= 0) {
+    headers.set("Content-Length", String(args.contentLength));
+  }
+  return headers;
 }
 
 function safeInlineContentType(contentType: string) {

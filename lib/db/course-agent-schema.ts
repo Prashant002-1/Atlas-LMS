@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   check,
+  customType,
   index,
   integer,
   jsonb,
@@ -19,6 +20,12 @@ import {
   organizations,
   users,
 } from "./schema";
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
 
 /**
  * Agent configuration and course material processing are kept in this focused
@@ -124,6 +131,32 @@ export const courseMaterialRecords = pgTable(
 );
 
 /**
+ * Private original bytes for a document uploaded through Atlas. Access always
+ * starts from the authenticated file record; this table is never a public
+ * object store or an independently addressable asset.
+ */
+export const documentOriginals = pgTable(
+  "document_originals",
+  {
+    fileId: uuid("file_id")
+      .primaryKey()
+      .references(() => files.id, { onDelete: "cascade" }),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    bytes: bytea("bytes").notNull(),
+    checksumSha256: text("checksum_sha256").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    check("document_originals_nonempty_check", sql`octet_length(${table.bytes}) > 0`),
+    check("document_originals_size_check", sql`octet_length(${table.bytes}) <= 26214400`),
+    check("document_originals_checksum_check", sql`${table.checksumSha256} ~ '^[0-9a-f]{64}$'`),
+    index("document_originals_org_idx").on(table.orgId, table.fileId),
+  ]
+);
+
+/**
  * A course file can appear in more than one academic location, while a
  * personal file belongs to one student's personal thread. Every attachment
  * row has one real owner and one course-or-person scope.
@@ -172,3 +205,4 @@ export const documentAttachments = pgTable(
 export type CourseAgentConfigRow = typeof courseAgentConfigs.$inferSelect;
 export type CourseMaterialRecord = typeof courseMaterialRecords.$inferSelect;
 export type DocumentAttachment = typeof documentAttachments.$inferSelect;
+export type DocumentOriginal = typeof documentOriginals.$inferSelect;

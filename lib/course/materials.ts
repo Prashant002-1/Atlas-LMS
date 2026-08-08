@@ -20,10 +20,22 @@ const allowedExtensions = new Set([
   "pdf",
   "doc",
   "docx",
+  "docm",
   "ppt",
+  "pps",
+  "pot",
   "pptx",
+  "pptm",
+  "ppsx",
+  "ppsm",
   "xls",
   "xlsx",
+  "xlsm",
+  "xlsb",
+  "odt",
+  "ods",
+  "odp",
+  "epub",
   "csv",
   "txt",
   "md",
@@ -105,11 +117,16 @@ export function classifyCourseMaterial(filename: string, contentType: string | n
   if (extension === "imscc") return { kind: "package", source: "common_cartridge" };
   if (extension === "qti" || extension === "xml") return { kind: "assessment", source: "qti" };
   if (extension === "zip") return { kind: "package", source: "upload" };
-  if (extension === "ppt" || extension === "pptx") return { kind: "slides", source: "upload" };
+  if (["ppt", "pps", "pot", "pptx", "pptm", "ppsx", "ppsm", "odp"].includes(extension)) {
+    return { kind: "slides", source: "upload" };
+  }
   if (["mp3", "m4a", "wav", "mp4", "mov", "webm"].includes(extension) || contentType?.startsWith("audio/") || contentType?.startsWith("video/")) {
     return { kind: "media", source: "upload" };
   }
-  if (["pdf", "doc", "docx", "xls", "xlsx", "csv", "txt", "md", "rtf"].includes(extension) || codeExtensions.has(extension)) {
+  if ([
+    "pdf", "doc", "docx", "docm", "xls", "xlsx", "xlsm", "xlsb", "csv", "txt", "md", "rtf",
+    "odt", "ods", "epub",
+  ].includes(extension) || codeExtensions.has(extension)) {
     return { kind: "document", source: "upload" };
   }
   return { kind: "other", source: "upload" };

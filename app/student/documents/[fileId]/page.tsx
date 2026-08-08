@@ -13,5 +13,10 @@ export default async function StudentDocumentPage({ params }: { params: Promise<
     fileId,
   });
   if (!document) notFound();
-  return <DocumentViewer document={document} backHref={document.courseId ? `/student/course/${document.courseId}/assignments` : "/student/atlas"} />;
+  const backHref = document.assignmentId
+    ? `/student/assignments/${document.assignmentId}`
+    : document.courseId
+      ? `/student/course/${document.courseId}/assignments`
+      : "/student/atlas";
+  return <DocumentViewer document={document} backHref={backHref} />;
 }

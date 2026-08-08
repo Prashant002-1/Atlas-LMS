@@ -9,7 +9,11 @@ import {
   submissions,
   users,
 } from "@/lib/db/schema";
-import { listDocumentAttachments, type DocumentAttachmentItem } from "@/lib/course/documents";
+import {
+  listDocumentAttachments,
+  listSubmissionDocumentAttachments,
+  type DocumentAttachmentItem,
+} from "@/lib/course/documents";
 import { resolveScope, type WorkspaceCourse } from "@/lib/workspace/scope";
 import { gradeLetterFor } from "@/lib/agent/grading";
 import { gradeBandsForCourse } from "@/lib/course/policies";
@@ -56,6 +60,7 @@ export type SubmissionDetailView = {
     feedbackByName: string | null;
   };
   documents: DocumentAttachmentItem[];
+  submissionDocuments: DocumentAttachmentItem[];
   /** Present when this assignment is an assessed Atlas session. */
   sessionSubmissionId: string | null;
   sessionReportStatus: "draft" | "final" | null;
@@ -92,6 +97,7 @@ export async function loadSubmissionDetail(
       feedbackByName: null,
     },
     documents: [],
+    submissionDocuments: [],
     sessionSubmissionId: null,
     sessionReportStatus: null,
     previous: null,
@@ -203,18 +209,20 @@ export async function loadSubmissionDetail(
     )
     .limit(1);
 
-  /*
-   * Documents the instructor attached to the assignment itself, shown beside
-   * the work so a grader can read the prompt's own handout without leaving.
-   * Student uploads are not modeled as attachments yet: a file submission
-   * arrives as `url` on the row, which is what submissionKind reads.
-   */
-  const documents = await listDocumentAttachments({
-    orgId: actor.orgId,
-    courseId: course.id,
-    owner: { type: "assignment", id: assignment.id },
-    audience: "instructor",
-  }).catch(() => [] as DocumentAttachmentItem[]);
+  const [documents, submissionDocuments] = await Promise.all([
+    listDocumentAttachments({
+      orgId: actor.orgId,
+      courseId: course.id,
+      owner: { type: "assignment", id: assignment.id },
+      audience: "instructor",
+    }).catch(() => [] as DocumentAttachmentItem[]),
+    listSubmissionDocumentAttachments({
+      orgId: actor.orgId,
+      courseId: course.id,
+      assignmentId: assignment.id,
+      userId: studentId,
+    }).catch(() => [] as DocumentAttachmentItem[]),
+  ]);
 
   const status = row
     ? row.missing
@@ -250,6 +258,7 @@ export async function loadSubmissionDetail(
         body: row?.body ?? null,
         url: row?.url ?? null,
         session: Boolean(sessionRow?.id),
+        fileCount: submissionDocuments.length,
       }),
       status,
       submittedAt: row?.submittedAt ?? null,
@@ -264,6 +273,7 @@ export async function loadSubmissionDetail(
       feedbackByName: row?.feedbackByName ?? null,
     },
     documents,
+    submissionDocuments,
     sessionSubmissionId: sessionRow?.id ?? null,
     sessionReportStatus: (sessionRow?.reportStatus as "draft" | "final" | undefined) ?? null,
     previous: index > 0 ? neighbor(rosterRows[index - 1]) : null,
@@ -287,8 +297,10 @@ export function submissionKind(args: {
   body: string | null;
   url: string | null;
   session: boolean;
+  fileCount?: number;
 }): SubmissionKind {
   if (args.session || args.submissionType === "session") return "session";
+  if ((args.fileCount ?? 0) > 0) return "file";
   if (args.submissionType === "file" || args.submissionType === "upload") return "file";
   if (args.url) return "link";
   if (args.body && args.body.trim().length > 0) return "text";

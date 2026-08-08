@@ -49,6 +49,12 @@ export const managedMigrations: ManagedMigration[] = [
     destructive: true,
     reason: "removes the retired asynchronous material-ingestion job column",
   },
+  {
+    id: "0020_submission_attachments",
+    file: "drizzle/0020_submission_attachments.sql",
+    destructive: false,
+    reason: "attaches private student files to durable assignment submissions",
+  },
 ];
 
 export type MigrationSource = ManagedMigration & {

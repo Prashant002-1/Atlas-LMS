@@ -123,21 +123,43 @@ function SubmittedWork({ view }: { view: SubmissionDetailView }) {
         </div>
       ) : submission.kind === "file" || submission.kind === "link" ? (
         <div className="mt-3 border-t border-[var(--color-border)] pt-4">
+          {view.submissionDocuments.length > 0 ? (
+            <ul className="divide-y divide-[var(--color-border)]">
+              {view.submissionDocuments.map((document) => (
+                <li key={document.attachmentId} className="flex items-start gap-2.5 py-2.5">
+                  <FileText size={14} aria-hidden className="mt-0.5 shrink-0 text-[var(--color-muted)]" />
+                  <div className="min-w-0">
+                    <Link
+                      href={`/teach/documents/${document.fileId}`}
+                      className="text-[0.8125rem] font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_24%,transparent)] underline-offset-[3px] transition hover:text-[var(--color-accent-strong)]"
+                    >
+                      {document.displayName}
+                    </Link>
+                    <p className="mt-0.5 text-[0.6875rem] text-[var(--color-faint)]">
+                      {[document.filename, fileSize(document.sizeBytes)].filter(Boolean).join(" / ")}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {submission.url ? (
-            <a
-              href={submission.url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 text-[0.875rem] font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_24%,transparent)] underline-offset-[3px] transition hover:text-[var(--color-accent-strong)]"
-            >
-              {submission.kind === "file" ? <FileText size={15} aria-hidden /> : <ExternalLink size={14} aria-hidden />}
-              {submission.kind === "file" ? "Open the submitted file" : "Open the submitted link"}
-            </a>
-          ) : (
+            <p className={view.submissionDocuments.length > 0 ? "mt-4" : undefined}>
+              <a
+                href={submission.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 text-[0.875rem] font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_24%,transparent)] underline-offset-[3px] transition hover:text-[var(--color-accent-strong)]"
+              >
+                <ExternalLink size={14} aria-hidden />
+                Open the submitted link
+              </a>
+            </p>
+          ) : view.submissionDocuments.length === 0 ? (
             <p className="text-[0.8125rem] text-[var(--color-muted)]">
               The submission record has no readable location.
             </p>
-          )}
+          ) : null}
           {submission.body ? (
             <div className="mt-5 border-t border-[var(--color-border)] pt-4">
               <p className="text-[0.71875rem] font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]">
@@ -341,6 +363,13 @@ function statusLabel(status: SubmissionDetailView["submission"]["status"]) {
 
 function stamp(date: Date) {
   return date.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function fileSize(bytes: number | null) {
+  if (typeof bytes !== "number") return null;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 const fieldClass =

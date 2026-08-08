@@ -45,6 +45,7 @@ export type StudentAssignment = {
   status: "graded" | "submitted" | "open" | "missing";
   description?: string | null;
   response?: string | null;
+  submissionUrl?: string | null;
   dueAt?: Date | null;
   points?: number | null;
   submittedAt?: Date | null;
@@ -595,6 +596,7 @@ async function loadCourseRecords(actor: Actor & { orgId: string }, courseId: str
       grade: submissions.grade,
       missing: submissions.missing,
       body: submissions.body,
+      url: submissions.url,
     })
     .from(submissions)
     .where(and(eq(submissions.orgId, actor.orgId), eq(submissions.courseId, courseId), eq(submissions.userId, actor.id)));
@@ -618,6 +620,7 @@ async function loadCourseRecords(actor: Actor & { orgId: string }, courseId: str
       status: submissionStatus(s),
       description: a.descriptionMd,
       response: s?.body ?? null,
+      submissionUrl: s?.url ?? null,
       dueAt: a.dueAt,
       points: a.pointsPossible,
       submittedAt: s?.submittedAt ?? null,

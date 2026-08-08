@@ -4,11 +4,11 @@ import { submitAssignment } from "@/lib/student/actions";
 import { loadStudentAssignmentWorkspace, type StudentAssignment } from "@/lib/student/workspace";
 import { loadSessionAssignmentBundle } from "@/lib/agent/session-store";
 import { PageHeader } from "@/components/teach/page-header";
-import { ActionButton, BackLink, ButtonLink, StatusBadge, TextLink } from "@/components/atlas/primitives";
+import { BackLink, ButtonLink, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { DocumentAttachmentSection } from "@/components/documents/document-attachments";
 import { Markdown } from "@/components/agent/markdown";
-import { RichTextEditor } from "@/components/teach/rich-text-editor";
-import { listDocumentAttachments } from "@/lib/course/documents";
+import { AssignmentWork } from "@/components/student/assignment-work";
+import { listDocumentAttachments, listSubmissionDocumentAttachments } from "@/lib/course/documents";
 import { markdownBody } from "@/lib/markdown-presentation";
 
 const tone = { graded: "good", submitted: "accent", open: "neutral", missing: "warn" } as const;
@@ -35,14 +35,22 @@ export default async function StudentAssignmentPage({ params }: { params: Promis
   const assignment = workspace.assignment;
   const returnTo = `/student/assignments/${assignment.id}`;
   const sessionBundle = session.user.orgId ? await loadSessionAssignmentBundle(session.user.orgId, assignment.id) : null;
-  const attachedDocuments = session.user.orgId
-    ? await listDocumentAttachments({
-        orgId: session.user.orgId,
-        courseId: workspace.course.id,
-        owner: { type: "assignment", id: assignment.id },
-        audience: "student",
-      })
-    : [];
+  const [attachedDocuments, submissionDocuments] = session.user.orgId
+    ? await Promise.all([
+        listDocumentAttachments({
+          orgId: session.user.orgId,
+          courseId: workspace.course.id,
+          owner: { type: "assignment", id: assignment.id },
+          audience: "student",
+        }),
+        listSubmissionDocumentAttachments({
+          orgId: session.user.orgId,
+          courseId: workspace.course.id,
+          assignmentId: assignment.id,
+          userId: session.user.id,
+        }),
+      ])
+    : [[], []];
   const canSubmit = !sessionBundle && (assignment.status === "open" || assignment.status === "missing");
   const canRevise = !sessionBundle && assignment.status === "submitted";
 
@@ -107,32 +115,24 @@ export default async function StudentAssignmentPage({ params }: { params: Promis
         </section>
       ) : null}
 
-      {assignment.response ? (
-        <section className="mt-6 py-5">
-          <p className="text-[0.8125rem] font-semibold text-[var(--color-ink)]">Your response</p>
-          <Markdown className="mt-2 max-w-3xl text-[0.875rem] leading-6">{assignment.response}</Markdown>
-        </section>
-      ) : null}
-
-      {canSubmit || canRevise ? (
-        <section className="mt-4 rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-panel)]">
-          <p className="text-[0.875rem] font-semibold">{canRevise ? "Revise your response" : "Submit your response"}</p>
-          <form action={submitAssignment} className="mt-3 grid max-w-3xl gap-3">
-            <input type="hidden" name="assignmentId" value={assignment.id} />
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <RichTextEditor
-              name="body"
-              label="Response"
-              required
-              minLength={20}
-              rows={8}
-              maxLength={12000}
-              defaultValue={assignment.response ?? ""}
-              placeholder="Write your response here."
-            />
-            <div><ActionButton>{canRevise ? "Update response" : "Submit response"}</ActionButton></div>
-          </form>
-        </section>
+      {assignment.response || assignment.submissionUrl || submissionDocuments.length > 0 || canSubmit || canRevise ? (
+        <AssignmentWork
+          assignmentId={assignment.id}
+          returnTo={returnTo}
+          response={assignment.response}
+          url={assignment.submissionUrl}
+          files={submissionDocuments.map((document) => ({
+            attachmentId: document.attachmentId,
+            fileId: document.fileId,
+            displayName: document.displayName,
+            filename: document.filename,
+            sizeBytes: document.sizeBytes,
+          }))}
+          submittedLabel={assignment.submittedAt ? `Submitted ${assignment.submittedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : null}
+          canSubmit={canSubmit}
+          canRevise={canRevise}
+          action={submitAssignment}
+        />
       ) : null}
     </>
   );

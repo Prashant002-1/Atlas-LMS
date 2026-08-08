@@ -30,8 +30,10 @@ export function RichTextEditor({
   labelHidden = false,
   defaultValue = "",
   rows = 10,
+  autoFocus = false,
   minLength,
   maxLength,
+  countMode = "always",
   placeholder,
   required = false,
   hint,
@@ -42,8 +44,10 @@ export function RichTextEditor({
   labelHidden?: boolean;
   defaultValue?: string;
   rows?: number;
+  autoFocus?: boolean;
   minLength?: number;
   maxLength?: number;
+  countMode?: "always" | "near-limit" | "hidden";
   placeholder?: string;
   required?: boolean;
   hint?: ReactNode;
@@ -53,6 +57,11 @@ export function RichTextEditor({
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const [value, setValueState] = useState(defaultValue);
   const [preview, setPreview] = useState(false);
+  const showCount = Boolean(
+    maxLength &&
+      countMode !== "hidden" &&
+      (countMode === "always" || value.length >= Math.floor(maxLength * 0.8))
+  );
 
   /* One writer for the text, so the mirror can never fall out of step. */
   const setValue = (next: string) => {
@@ -100,10 +109,13 @@ export function RichTextEditor({
 
   return (
     <div className="grid gap-1.5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className={cn("text-[0.75rem] font-medium text-[var(--color-ink)]", labelHidden && "sr-only")}>
+      <div className={cn("flex flex-wrap items-baseline gap-2", labelHidden ? "justify-end" : "justify-between")}>
+        <label
+          htmlFor={`${name}-editor`}
+          className={cn("text-[0.75rem] font-medium text-[var(--color-ink)]", labelHidden && "sr-only")}
+        >
           {label}
-        </span>
+        </label>
         <button
           type="button"
           onClick={() => setPreview((open) => !open)}
@@ -169,6 +181,7 @@ export function RichTextEditor({
           id={`${name}-editor`}
           name={name}
           rows={rows}
+          autoFocus={autoFocus}
           minLength={minLength}
           maxLength={maxLength}
           required={required}
@@ -182,10 +195,10 @@ export function RichTextEditor({
         />
       </div>
 
-      {hint || maxLength ? (
+      {hint || showCount ? (
         <div className={`flex flex-wrap items-baseline gap-2 ${hint ? "justify-between" : "justify-end"}`}>
           {hint ? <span className="text-[0.6875rem] text-[var(--color-faint)]">{hint}</span> : null}
-          {maxLength ? (
+          {showCount && maxLength ? (
             <span className="text-[0.6875rem] tabular-nums text-[var(--color-faint)]">
               {value.length} / {maxLength}
             </span>

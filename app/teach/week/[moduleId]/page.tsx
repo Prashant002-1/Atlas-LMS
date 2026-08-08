@@ -2,9 +2,11 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ActionButton, BackLink, StatusBadge } from "@/components/atlas/primitives";
+import { AddMaterialDialog } from "@/components/teach/add-material-dialog";
 import { EmptyRecord } from "@/components/atlas/record";
 import { PageHeader } from "@/components/teach/page-header";
 import { ModuleSwitcher } from "@/components/teach/module-switcher";
+import { NewAssignmentDialog } from "@/components/teach/new-assignment-dialog";
 import { RecordDialog } from "@/components/teach/record-dialog";
 import { RichTextEditor } from "@/components/teach/rich-text-editor";
 import { auth } from "@/lib/auth";
@@ -12,9 +14,11 @@ import { isInstructorLike } from "@/lib/auth/session";
 import { publishModule, updateModuleRecord } from "@/lib/instructor/actions";
 import { loadModuleNavigation } from "@/lib/instructor/module-navigation";
 import { loadModuleContents, type ModuleContentItem } from "@/lib/instructor/module-contents";
+import { loadCourseMaterialPlacementOptions, type CourseMaterialPlacementOptions } from "@/lib/instructor/course-material-options";
 import { loadInstructorModuleWorkspace, type InstructorAssignment, type InstructorModuleWorkspace } from "@/lib/instructor/workspace";
 import { markdownPreview } from "@/lib/markdown-presentation";
 import { withModuleContext } from "@/lib/module-navigation-context";
+import { Markdown } from "@/components/agent/markdown";
 
 /**
  * One module, which is one week of the course.
@@ -43,6 +47,10 @@ export default async function InstructorWeekPage({ params }: { params: Promise<{
           moduleId,
         })
       : { items: [], documents: [], pages: [] };
+  const placementOptions =
+    session.user.orgId && workspace.course.id
+      ? await loadCourseMaterialPlacementOptions({ orgId: session.user.orgId, courseId: workspace.course.id })
+      : { modules: [], assignments: [] };
 
   return (
     <>
@@ -57,7 +65,7 @@ export default async function InstructorWeekPage({ params }: { params: Promise<{
           <p className="mt-1 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{workspace.problem?.detail ?? "This module is not in a course you teach."}</p>
         </div>
       ) : (
-        <ModuleRecord workspace={workspace} contents={contents} />
+        <ModuleRecord workspace={workspace} contents={contents} placementOptions={placementOptions} />
       )}
     </>
   );
@@ -66,9 +74,11 @@ export default async function InstructorWeekPage({ params }: { params: Promise<{
 function ModuleRecord({
   workspace,
   contents,
+  placementOptions,
 }: {
   workspace: InstructorModuleWorkspace;
   contents: Awaited<ReturnType<typeof loadModuleContents>>;
+  placementOptions: CourseMaterialPlacementOptions;
 }) {
   const courseModule = workspace.module;
   if (!courseModule || !courseModule.id) return null;
@@ -97,7 +107,7 @@ function ModuleRecord({
       <section aria-labelledby="module-summary-heading" className="max-w-4xl">
         <h2 id="module-summary-heading" className="sr-only">Module summary</h2>
         {courseModule.summary ? (
-          <p className="text-[0.9375rem] leading-7 text-[var(--color-ink)]">{courseModule.summary}</p>
+          <Markdown className="text-[0.9375rem] leading-7 text-[var(--color-ink)]">{courseModule.summary}</Markdown>
         ) : (
           <p className="text-[0.8125rem] text-[var(--color-muted)]">No summary.</p>
         )}
@@ -109,19 +119,35 @@ function ModuleRecord({
         </dl>
       </section>
 
-      <ModuleMaterials items={materials} moduleId={courseModule.id} />
-      <RelatedAssignments assignments={workspace.assignments} />
+      <ModuleMaterials items={materials} moduleId={courseModule.id} placementOptions={placementOptions} />
+      <RelatedAssignments assignments={workspace.assignments} moduleId={courseModule.id} modules={placementOptions.modules} />
     </>
   );
 }
 
 /** The readings, handouts, and slides for this week, each openable. */
-function ModuleMaterials({ items, moduleId }: { items: ModuleContentItem[]; moduleId: string }) {
+function ModuleMaterials({
+  items,
+  moduleId,
+  placementOptions,
+}: {
+  items: ModuleContentItem[];
+  moduleId: string;
+  placementOptions: CourseMaterialPlacementOptions;
+}) {
   return (
     <section aria-labelledby="module-materials-heading" className="mt-8">
       <div className="mb-3 flex items-baseline justify-between gap-4">
         <h2 id="module-materials-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Materials</h2>
-        <p className="text-[0.75rem] text-[var(--color-muted)]">{items.length} {items.length === 1 ? "item" : "items"}</p>
+        <div className="flex items-center gap-3">
+          <p className="text-[0.75rem] text-[var(--color-muted)]">{items.length} {items.length === 1 ? "item" : "items"}</p>
+          <AddMaterialDialog
+            options={placementOptions}
+            defaultModuleId={moduleId}
+            returnTo={`/teach/week/${moduleId}`}
+            triggerVariant="secondary"
+          />
+        </div>
       </div>
       {items.length > 0 ? (
         <div className="divide-y divide-[var(--color-border)]">
@@ -137,17 +163,18 @@ function ModuleMaterials({ items, moduleId }: { items: ModuleContentItem[]; modu
 }
 
 function MaterialRow({ item, moduleId }: { item: ModuleContentItem; moduleId: string }) {
-  const materialHref = item.href ? withModuleContext(item.href, moduleId) : null;
+  const external = item.href?.startsWith("https://") ?? false;
+  const materialHref = item.href ? (external ? item.href : withModuleContext(item.href, moduleId)) : null;
+  const linkClass = "rounded-row text-[0.8125rem] font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] transition hover:text-[var(--color-accent-strong)]";
   return (
     <div className="group/material grid gap-2 px-3 py-3.5 transition hover:bg-[var(--color-surface-muted)] sm:grid-cols-[minmax(0,1fr)_7rem_1rem] sm:items-center">
       <div className="min-w-0">
         {materialHref ? (
-          <Link
-            href={materialHref}
-            className="rounded-row text-[0.8125rem] font-medium text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] transition hover:text-[var(--color-accent-strong)]"
-          >
-            {item.title}
-          </Link>
+          external ? (
+            <a href={materialHref} target="_blank" rel="noopener noreferrer" className={linkClass}>{item.title}</a>
+          ) : (
+            <Link href={materialHref} className={linkClass}>{item.title}</Link>
+          )
         ) : (
           <span className="text-[0.8125rem] font-medium text-[var(--color-ink)]">{item.title}</span>
         )}
@@ -159,13 +186,15 @@ function MaterialRow({ item, moduleId }: { item: ModuleContentItem; moduleId: st
         {item.published ? null : <StatusBadge tone="neutral">Not visible</StatusBadge>}
       </span>
       {materialHref ? (
-        <Link
-          href={materialHref}
-          aria-label={`Open ${item.title}`}
-          className="hidden text-[var(--color-faint)] transition group-hover/material:translate-x-0.5 group-hover/material:text-[var(--color-ink)] sm:block"
-        >
-          <ChevronRight size={15} aria-hidden />
-        </Link>
+        external ? (
+          <a href={materialHref} target="_blank" rel="noopener noreferrer" aria-label={`Open ${item.title}`} className="hidden text-[var(--color-faint)] transition group-hover/material:translate-x-0.5 group-hover/material:text-[var(--color-ink)] sm:block">
+            <ChevronRight size={15} aria-hidden />
+          </a>
+        ) : (
+          <Link href={materialHref} aria-label={`Open ${item.title}`} className="hidden text-[var(--color-faint)] transition group-hover/material:translate-x-0.5 group-hover/material:text-[var(--color-ink)] sm:block">
+            <ChevronRight size={15} aria-hidden />
+          </Link>
+        )
       ) : null}
     </div>
   );
@@ -191,16 +220,27 @@ function EditModuleDialog({ module }: { module: NonNullable<InstructorModuleWork
   );
 }
 
-function RelatedAssignments({ assignments }: { assignments: InstructorAssignment[] }) {
+function RelatedAssignments({
+  assignments,
+  moduleId,
+  modules,
+}: {
+  assignments: InstructorAssignment[];
+  moduleId: string;
+  modules: CourseMaterialPlacementOptions["modules"];
+}) {
   return (
     <section aria-labelledby="module-assignments-heading" className="mt-8">
       <div className="mb-3 flex items-baseline justify-between gap-4">
         <h2 id="module-assignments-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Assignments</h2>
-        <p className="text-[0.75rem] text-[var(--color-muted)]">{assignments.length} {assignments.length === 1 ? "assignment" : "assignments"}</p>
+        <div className="flex items-center gap-3">
+          <p className="text-[0.75rem] text-[var(--color-muted)]">{assignments.length} {assignments.length === 1 ? "assignment" : "assignments"}</p>
+          <NewAssignmentDialog modules={modules} defaultModuleId={moduleId} triggerVariant="secondary" />
+        </div>
       </div>
       {assignments.length > 0 ? (
         <div className="divide-y divide-[var(--color-border)]">
-          {assignments.map((assignment) => <AssignmentRow key={assignment.id ?? assignment.title} assignment={assignment} />)}
+          {assignments.map((assignment) => <AssignmentRow key={assignment.id ?? assignment.title} assignment={assignment} moduleId={moduleId} />)}
         </div>
       ) : (
         <div><EmptyRecord title="No assignments" /></div>
@@ -209,16 +249,20 @@ function RelatedAssignments({ assignments }: { assignments: InstructorAssignment
   );
 }
 
-function AssignmentRow({ assignment }: { assignment: InstructorAssignment }) {
+function AssignmentRow({ assignment, moduleId }: { assignment: InstructorAssignment; moduleId: string }) {
+  const assignmentHref = assignment.id
+    ? withModuleContext(`/teach/assignments/${assignment.id}`, moduleId)
+    : null;
+
   return (
     <div className="group/assignment grid gap-2 px-3 py-3.5 transition hover:bg-[var(--color-surface-muted)] sm:grid-cols-[minmax(0,1fr)_8rem_5rem_1rem] sm:items-center">
       <div className="min-w-0">
-        {assignment.id ? <Link href={`/teach/assignments/${assignment.id}`} className="rounded-row text-[0.8125rem] font-semibold text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">{assignment.title}</Link> : <span className="text-[0.8125rem] font-semibold">{assignment.title}</span>}
+        {assignmentHref ? <Link href={assignmentHref} className="rounded-row text-[0.8125rem] font-semibold text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">{assignment.title}</Link> : <span className="text-[0.8125rem] font-semibold">{assignment.title}</span>}
         {assignment.detail ? <p className="mt-0.5 truncate text-[0.75rem] text-[var(--color-muted)]">{markdownPreview(assignment.detail, assignment.title)}</p> : null}
       </div>
       <span className="text-[0.75rem] tabular-nums text-[var(--color-muted)]">{assignment.dueAt ? assignment.dueAt.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "No due date"}</span>
       <span className="text-right text-[0.75rem] tabular-nums text-[var(--color-muted)]">{typeof assignment.points === "number" ? `${Math.round(assignment.points)} pts` : "-"}</span>
-      {assignment.id ? <Link href={`/teach/assignments/${assignment.id}`} aria-label={`Open ${assignment.title}`} className="hidden text-[var(--color-faint)] transition group-hover/assignment:translate-x-0.5 group-hover/assignment:text-[var(--color-ink)] sm:block"><ChevronRight size={15} aria-hidden /></Link> : null}
+      {assignmentHref ? <Link href={assignmentHref} aria-label={`Open ${assignment.title}`} className="hidden text-[var(--color-faint)] transition group-hover/assignment:translate-x-0.5 group-hover/assignment:text-[var(--color-ink)] sm:block"><ChevronRight size={15} aria-hidden /></Link> : null}
     </div>
   );
 }

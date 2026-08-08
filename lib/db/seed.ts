@@ -43,7 +43,8 @@ import {
   classRollups,
   orgAgentPolicies,
 } from "./schema";
-import { courseMaterialRecords, documentAttachments } from "./course-agent-schema";
+import { courseMaterialRecords, documentAttachments, documentOriginals } from "./course-agent-schema";
+import { prepareSeedDocument, seedDocumentMetadata } from "./seed-document-assets";
 import { demoPackage } from "./fixtures/package";
 import {
   agentSessions as v0AgentSessions,
@@ -546,18 +547,29 @@ async function seedCourse(db: Db, orgId: string, c: FixtureCourse) {
     for (const material of c.materials) {
       const fileId = idFor(`file:${ck}:${material.key}`);
       const weekStart = new Date(termStart.getTime() + (material.week - 1) * 7 * DAY);
+      const prepared = material.assetPath ? await prepareSeedDocument(material.assetPath) : null;
       await db.insert(files).values({
         id: fileId,
         orgId,
         courseId,
         displayName: material.displayName,
-        filename: material.filename,
+        filename: prepared?.sourceFilename ?? material.filename,
         contentType: material.contentType,
-        sizeBytes: material.sizeBytes,
-        url: material.assetPath ?? `https://files.demo.edu/${c.code.toLowerCase()}/${material.filename}`,
-        extractedText: material.extractedText ?? null,
+        sizeBytes: prepared?.bytes.byteLength ?? material.sizeBytes,
+        url: prepared ? null : material.assetPath ?? `https://files.demo.edu/${c.code.toLowerCase()}/${material.filename}`,
+        extractedText: prepared?.parsed?.markdown ?? material.extractedText ?? null,
         createdAt: weekStart,
       });
+
+      if (prepared) {
+        await db.insert(documentOriginals).values({
+          fileId,
+          orgId,
+          bytes: prepared.bytes,
+          checksumSha256: prepared.checksumSha256,
+          createdAt: weekStart,
+        });
+      }
 
       const materialRecordId = idFor(`material:${ck}:${material.key}`);
       await db.insert(courseMaterialRecords).values({
@@ -567,9 +579,16 @@ async function seedCourse(db: Db, orgId: string, c: FixtureCourse) {
         fileId,
         materialKind: materialKindFor(material.kind),
         ingestionSource: "seed",
-        processingStatus: "ready",
+        processingStatus: prepared?.parsed === null ? "failed" : "ready",
         visibility: material.visibility ?? "course",
         pageCount: material.pageCount ?? null,
+        checksumSha256: prepared?.checksumSha256 ?? null,
+        metadata: prepared ? seedDocumentMetadata(prepared) : {},
+        extraction: prepared?.parsed?.extraction ?? null,
+        extractionProvider: prepared?.parsed?.parser ?? null,
+        extractionModel: prepared?.parsed?.parserVersion ?? null,
+        extractionInputMode: prepared?.parsed?.inputMode ?? null,
+        processingError: prepared?.error ?? null,
         updatedById: idFor(`user:${c.instructorKey}`),
         createdAt: weekStart,
         updatedAt: weekStart,

@@ -60,8 +60,17 @@ export async function loadModuleContents(args: {
       contentId: moduleItems.contentId,
       published: moduleItems.published,
       position: moduleItems.position,
+      fileUrl: files.url,
     })
     .from(moduleItems)
+    .leftJoin(
+      files,
+      and(
+        eq(files.id, moduleItems.contentId),
+        eq(files.orgId, args.orgId),
+        eq(files.courseId, args.courseId)
+      )
+    )
     .where(
       and(
         eq(moduleItems.orgId, args.orgId),
@@ -76,9 +85,15 @@ export async function loadModuleContents(args: {
     kind: normalizeKind(item.type),
     title: item.title,
     detail: null,
-    href: hrefForPlacedItem(item.type, item.contentId),
+    href: hrefForPlacedItem(item.type, item.contentId, item.fileUrl),
     published: item.published,
   }));
+  const explicitlyPlacedFileIds = new Set(
+    placedRows
+      .filter((item) => ["file", "externalurl", "link"].includes(item.type.toLowerCase()))
+      .map((item) => item.contentId)
+      .filter((value): value is string => Boolean(value))
+  );
 
   /*
    * Course pages that serve this module's objectives. Alignment is the
@@ -142,7 +157,7 @@ export async function loadModuleContents(args: {
       )
       .orderBy(asc(files.displayName));
 
-    documents = fileRows.map((file) => ({
+    documents = fileRows.filter((file) => !explicitlyPlacedFileIds.has(file.id)).map((file) => ({
       id: file.id,
       kind: file.materialKind === "slides" ? ("slides" as const) : ("document" as const),
       title: file.displayName,
@@ -166,11 +181,22 @@ function normalizeKind(type: string): ModuleContentKind {
   return "document";
 }
 
-function hrefForPlacedItem(type: string, contentId: string | null): string | null {
+function hrefForPlacedItem(type: string, contentId: string | null, fileUrl: string | null): string | null {
   if (!contentId) return null;
   const kind = normalizeKind(type);
   if (kind === "assignment") return `/teach/assignments/${contentId}`;
   if (kind === "page" || kind === "quiz") return `/teach/records/${contentId}`;
   if (kind === "document" || kind === "slides") return `/teach/documents/${contentId}`;
+  if (kind === "link") return safeExternalHref(fileUrl);
   return null;
+}
+
+function safeExternalHref(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" && !parsed.username && !parsed.password ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
 }

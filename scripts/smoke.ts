@@ -6,6 +6,8 @@ type SmokeCheck = {
   auth?: AuthSmokeUser;
   includes?: string[];
   excludes?: string[];
+  contentType?: string;
+  minimumBytes?: number;
   json?: (body: unknown) => string | null;
 };
 
@@ -95,7 +97,31 @@ const checks: SmokeCheck[] = [
       password: "atlas1234",
       redirectTo: "/teach/documents/5f4ad2c1-d506-434f-a622-68d8bad95e91",
     },
-    includes: ["ECON-241 Syllabus and course schedule", "Open original", "Download"],
+    includes: ["ECON-241 Syllabus and course schedule", "Open original", "Download", "Summary", "Content"],
+    excludes: ["/api/documents/"],
+  },
+  {
+    name: "seeded document original",
+    path: "/documents/5f4ad2c1-d506-434f-a622-68d8bad95e91/econ241-syllabus-fall2026.pdf",
+    status: 200,
+    auth: {
+      email: "instructor@demo.edu",
+      password: "atlas1234",
+      redirectTo: "/documents/5f4ad2c1-d506-434f-a622-68d8bad95e91/econ241-syllabus-fall2026.pdf",
+    },
+    contentType: "application/pdf",
+    minimumBytes: 1_000,
+  },
+  {
+    name: "legacy document original redirect",
+    path: "/api/documents/5f4ad2c1-d506-434f-a622-68d8bad95e91/original",
+    status: 307,
+    redirectTo: "/documents/5f4ad2c1-d506-434f-a622-68d8bad95e91/econ241-syllabus-fall2026.pdf",
+    auth: {
+      email: "instructor@demo.edu",
+      password: "atlas1234",
+      redirectTo: "/api/documents/5f4ad2c1-d506-434f-a622-68d8bad95e91/original",
+    },
   },
   {
     name: "syllabus",
@@ -234,6 +260,20 @@ async function runCheck(check: SmokeCheck) {
     } else {
       const problem = check.json(await response.json());
       if (problem) problems.push(problem);
+    }
+  }
+
+  if (check.contentType) {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.startsWith(check.contentType)) {
+      problems.push(`expected content type ${check.contentType}, got ${contentType || "none"}`);
+    }
+  }
+
+  if (check.minimumBytes) {
+    const body = await response.arrayBuffer();
+    if (body.byteLength < check.minimumBytes) {
+      problems.push(`expected at least ${check.minimumBytes} bytes, got ${body.byteLength}`);
     }
   }
 

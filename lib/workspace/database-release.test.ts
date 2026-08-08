@@ -34,6 +34,7 @@ test("package scripts gate local startup on the release and runtime contract", (
   assert.match(packageJson.scripts["db:migrate"], /db:upgrade/);
   assert.match(packageJson.scripts["db:check"], /db-release\.ts check/);
   assert.match(packageJson.scripts["local:check"], /local-readiness\.ts/);
+  assert.match(packageJson.scripts["documents:reingest-seed"], /reingest-seed-documents\.ts/);
 });
 
 test("database mutation distinguishes loopback from remote targets", () => {

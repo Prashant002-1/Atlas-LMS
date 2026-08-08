@@ -1,6 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { assignments, courses, enrollments, modules, sessionAssignments, users } from "@/lib/db/schema";
+import { assignments, courses, enrollments, moduleItems, modules, sessionAssignments, users } from "@/lib/db/schema";
 import {
   loadActiveCourseAgentConfig,
   type ResolvedCourseAgentConfig,
@@ -12,6 +12,7 @@ import {
   type ClassPolicy,
   type GradeBand,
 } from "@/lib/course/policies";
+import { inferModuleIdFromDueDate } from "@/lib/course/module-assignment-placement";
 
 /**
  * The syllabus is a composed view of the course record. Every section below
@@ -89,22 +90,14 @@ export function assignDueWeeks<Week extends { id: string; opensAt: Date | null }
   weeks: Week[],
   work: SyllabusAssignment[]
 ): Map<string, SyllabusAssignment[]> {
-  const dated = weeks
-    .filter((week): week is Week & { opensAt: Date } => week.opensAt !== null)
-    .sort((a, b) => a.opensAt.getTime() - b.opensAt.getTime());
   const byWeek = new Map<string, SyllabusAssignment[]>();
-  if (dated.length === 0) return byWeek;
 
   for (const item of work) {
-    if (!item.dueAt) continue;
-    let target = dated[0];
-    for (const week of dated) {
-      if (week.opensAt.getTime() <= item.dueAt.getTime()) target = week;
-      else break;
-    }
-    const list = byWeek.get(target.id) ?? [];
+    const moduleId = inferModuleIdFromDueDate(weeks, item.dueAt);
+    if (!moduleId) continue;
+    const list = byWeek.get(moduleId) ?? [];
     list.push(item);
-    byWeek.set(target.id, list);
+    byWeek.set(moduleId, list);
   }
 
   for (const list of byWeek.values()) {
@@ -134,7 +127,7 @@ export async function loadCourseSyllabus(orgId: string, courseId: string): Promi
     .limit(1);
   if (!course) return null;
 
-  const [instructorRows, moduleRows, workRows, agent] = await Promise.all([
+  const [instructorRows, moduleRows, workRows, assignmentPlacementRows, agent] = await Promise.all([
     db
       .select({
         id: users.id,
@@ -187,6 +180,10 @@ export async function loadCourseSyllabus(orgId: string, courseId: string): Promi
       )
       .where(and(eq(assignments.orgId, orgId), eq(assignments.courseId, course.id)))
       .orderBy(asc(assignments.dueAt), asc(assignments.position), asc(assignments.createdAt)),
+    db
+      .select({ moduleId: moduleItems.moduleId, contentId: moduleItems.contentId, type: moduleItems.type })
+      .from(moduleItems)
+      .where(and(eq(moduleItems.orgId, orgId), eq(moduleItems.courseId, course.id))),
     loadActiveCourseAgentConfig(orgId, course.id),
   ]);
 
@@ -199,7 +196,23 @@ export async function loadCourseSyllabus(orgId: string, courseId: string): Promi
     session: row.sessionDuration === null ? null : { durationMinutes: row.sessionDuration },
   }));
 
-  const dueByWeek = assignDueWeeks(moduleRows, work);
+  const assignmentPlacements = assignmentPlacementRows.filter(
+    (item) => item.type.toLowerCase() === "assignment" && item.contentId
+  );
+  const explicitlyPlacedIds = new Set(assignmentPlacements.map((item) => item.contentId));
+  const workById = new Map(work.map((item) => [item.id, item]));
+  const dueByWeek = assignDueWeeks(
+    moduleRows,
+    work.filter((item) => !explicitlyPlacedIds.has(item.id))
+  );
+  for (const placement of assignmentPlacements) {
+    const item = placement.contentId ? workById.get(placement.contentId) : null;
+    if (!item) continue;
+    const placed = dueByWeek.get(placement.moduleId) ?? [];
+    if (!placed.some((existing) => existing.id === item.id)) placed.push(item);
+    placed.sort((a, b) => (a.dueAt?.getTime() ?? Number.MAX_SAFE_INTEGER) - (b.dueAt?.getTime() ?? Number.MAX_SAFE_INTEGER));
+    dueByWeek.set(placement.moduleId, placed);
+  }
   const weeks: SyllabusWeek[] = moduleRows.map((row) => ({
     id: row.id,
     name: row.name,

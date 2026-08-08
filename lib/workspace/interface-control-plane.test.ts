@@ -83,6 +83,7 @@ test("gradebook is an explicit searchable comparison table", () => {
     assert.equal(table.includes(expected), true, `gradebook should include ${expected}`);
   }
   assert.equal(page.includes('from "lucide-react"'), false);
+  assert.equal(table.includes('String(index + 1).padStart(2, "0")'), false);
 });
 
 test("teacher assignment states are dated and filterable", () => {

@@ -100,11 +100,10 @@ export function GradebookTable({ columns, rows }: { columns: GradebookTableColum
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-muted)]">
               <th scope="col" className="sticky left-0 z-20 min-w-[12rem] border-r border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-[0.71875rem] font-semibold text-[var(--color-muted)]">Student</th>
-              {selectedColumns.map(({ column, index }) => (
+              {selectedColumns.map(({ column }) => (
                 <th key={column.id} scope="col" className="min-w-[10.5rem] border-r border-[var(--color-border)] px-3 py-3 align-bottom last:border-r-0">
                   <Link href={`/teach/assignments/${column.id}`} className="group/col block rounded-row focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]">
-                    <span className="atlas-mono block text-[0.625rem] font-medium tabular-nums text-[var(--color-faint)]">{String(index + 1).padStart(2, "0")}</span>
-                    <span className="mt-1 block text-[0.75rem] font-semibold leading-4 text-[var(--color-ink)] transition group-hover/col:text-[var(--color-accent-strong)]">{column.name}</span>
+                    <span className="block text-[0.75rem] font-semibold leading-4 text-[var(--color-ink)] transition group-hover/col:text-[var(--color-accent-strong)]">{column.name}</span>
                     <span className="mt-1 block text-[0.65625rem] font-normal leading-4 text-[var(--color-faint)]">{assignmentMeta(column)}</span>
                   </Link>
                 </th>

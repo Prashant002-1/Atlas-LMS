@@ -12,9 +12,11 @@ const fixtureRoot = path.join(process.cwd(), "public/seed-assets/econ-241/fall-2
 
 for (const fixture of [
   { filename: "econ241-syllabus-fall2026.pdf", contains: "Intermediate Microeconomics", minimumChars: 10_000 },
+  { filename: "econ241-course-reader-weeks-1-14.pdf", contains: "Applied microeconomics", minimumChars: 10_000 },
   { filename: "econ241-exam2-drafting-outline.docx", contains: "Exam 2 drafting outline", minimumChars: 1_000 },
   { filename: "econ241-lecture-slides-weeks-1-14.pptx", contains: "WEEK 14", minimumChars: 3_000 },
   { filename: "econ241-data-workbook.xlsx", contains: "Demand and supply", minimumChars: 1_500 },
+  { filename: "econ241-pricing-strategy-session-case-pack.docx", contains: "Pricing Strategy Session", minimumChars: 2_000 },
 ]) {
   test(`AnyDoc converts the real Atlas fixture ${fixture.filename}`, async () => {
     const bytes = readFileSync(path.join(fixtureRoot, fixture.filename));

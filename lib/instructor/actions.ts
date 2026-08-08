@@ -14,10 +14,13 @@ import {
   courses,
   enrollments,
   learningObjectives,
+  moduleItems,
   modules,
   submissions,
 } from "@/lib/db/schema";
 import { isInstructorLike } from "@/lib/auth/session";
+import { assertSupportedDocument, createUploadedDocument } from "@/lib/course/documents";
+import { MAX_COURSE_MATERIAL_BYTES } from "@/lib/course/materials";
 import { findEditableCourse } from "@/lib/instructor/workspace";
 import { applyProposal, dismissProposal } from "@/lib/agent/apply";
 import { createCommandSession, titleCommandSessionFromIntent } from "@/lib/agent/session";
@@ -27,6 +30,7 @@ import {
   gradeScaleSchema,
   parseClassPolicies,
 } from "@/lib/course/policies";
+import { moduleReturnHref } from "@/lib/module-navigation-context";
 
 export async function createModuleRecord(formData: FormData) {
   const user = await requireInstructorActor();
@@ -36,7 +40,7 @@ export async function createModuleRecord(formData: FormData) {
   }
 
   const title = compactField(formData.get("title"), "Week title is required.", 200);
-  const summary = optionalLongField(formData.get("summary"), 1200);
+  const summary = optionalLongField(formData.get("summary"), 2400);
   const objectiveCodes = objectiveCodesFromForm(formData);
   let createdId: string | undefined;
 
@@ -83,6 +87,28 @@ export async function createAssignmentRecord(formData: FormData) {
   const dueAt = dateField(formData.get("dueDate"));
   const pointsPossible = positiveNumberField(formData.get("points")) ?? 100;
   const objectiveCodes = objectiveCodesFromForm(formData);
+  const moduleId = optionalCompactField(formData.get("moduleId"), 80);
+  const documents = formData
+    .getAll("documents")
+    .filter((value): value is File => value instanceof File && value.size > 0);
+  if (documents.length > 10) {
+    throw new Error("Attach no more than 10 documents to an assignment.");
+  }
+  if (documents.reduce((total, document) => total + document.size, 0) > MAX_COURSE_MATERIAL_BYTES) {
+    throw new Error("Assignment documents must be 25 MB total or smaller.");
+  }
+  documents.forEach(assertSupportedDocument);
+
+  if (moduleId) {
+    const [selectedModule] = await db
+      .select({ id: modules.id })
+      .from(modules)
+      .where(and(eq(modules.id, moduleId), eq(modules.orgId, user.orgId), eq(modules.courseId, course.id)))
+      .limit(1);
+    if (!selectedModule) {
+      throw new Error("That module is unavailable.");
+    }
+  }
   let createdId: string | undefined;
 
   await db.transaction(async (tx) => {
@@ -110,8 +136,44 @@ export async function createAssignmentRecord(formData: FormData) {
     createdId = created?.id;
     if (createdId) {
       await linkObjectives(tx, user.orgId, course.id, createdId, "assignment", objectiveCodes);
+      if (moduleId) {
+        const [lastItem] = await tx
+          .select({ position: moduleItems.position })
+          .from(moduleItems)
+          .where(
+            and(
+              eq(moduleItems.orgId, user.orgId),
+              eq(moduleItems.courseId, course.id),
+              eq(moduleItems.moduleId, moduleId)
+            )
+          )
+          .orderBy(desc(moduleItems.position))
+          .limit(1);
+        await tx.insert(moduleItems).values({
+          orgId: user.orgId,
+          courseId: course.id,
+          moduleId,
+          title,
+          type: "Assignment",
+          contentId: createdId,
+          position: (lastItem?.position ?? 0) + 1,
+          published: false,
+        });
+      }
     }
   });
+
+  if (createdId) {
+    for (const document of documents) {
+      await createUploadedDocument({
+        actor: user,
+        courseId: course.id,
+        file: document,
+        visibility: "course",
+        target: { type: "assignment", id: createdId },
+      });
+    }
+  }
 
   revalidatePath("/teach");
   revalidatePath("/student");
@@ -187,7 +249,7 @@ export async function updateModuleRecord(formData: FormData) {
 
   const moduleId = String(formData.get("moduleId") ?? "");
   const title = compactField(formData.get("title"), "Week title is required.", 200);
-  const summary = optionalLongField(formData.get("summary"), 1200);
+  const summary = optionalLongField(formData.get("summary"), 2400);
   const objectiveCodes = objectiveCodesFromForm(formData);
   const returnTo = instructorWeekReturnPath(formData.get("returnTo"), moduleId, "/teach/weeks");
 
@@ -224,10 +286,23 @@ export async function publishAssignment(formData: FormData) {
     throw new Error("No assignment selected.");
   }
 
-  await db
-    .update(assignments)
-    .set({ published: true, updatedAt: new Date() })
-    .where(and(eq(assignments.id, assignmentId), eq(assignments.orgId, user.orgId), eq(assignments.courseId, course.id)));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(assignments)
+      .set({ published: true, updatedAt: new Date() })
+      .where(and(eq(assignments.id, assignmentId), eq(assignments.orgId, user.orgId), eq(assignments.courseId, course.id)));
+    await tx
+      .update(moduleItems)
+      .set({ published: true })
+      .where(
+        and(
+          eq(moduleItems.orgId, user.orgId),
+          eq(moduleItems.courseId, course.id),
+          eq(moduleItems.type, "Assignment"),
+          eq(moduleItems.contentId, assignmentId)
+        )
+      );
+  });
 
   revalidatePath("/teach");
   revalidatePath(returnTo);
@@ -255,6 +330,16 @@ export async function publishDraftRecords() {
       .update(assignments)
       .set({ published: true, updatedAt: now })
       .where(and(eq(assignments.orgId, user.orgId), eq(assignments.courseId, course.id), eq(assignments.published, false)));
+    await tx
+      .update(moduleItems)
+      .set({ published: true })
+      .where(
+        and(
+          eq(moduleItems.orgId, user.orgId),
+          eq(moduleItems.courseId, course.id),
+          eq(moduleItems.type, "Assignment")
+        )
+      );
   });
 
   revalidatePath("/teach");
@@ -275,10 +360,30 @@ export async function updateAssignmentRecord(formData: FormData) {
   const dueAt = dateField(formData.get("dueDate"));
   const pointsPossible = positiveNumberField(formData.get("points"));
   const objectiveCodes = objectiveCodesFromForm(formData);
+  const moduleId = optionalCompactField(formData.get("moduleId"), 80);
   const returnTo = instructorAssignmentReturnPath(formData.get("returnTo"), assignmentId, "/teach/assignments");
 
   if (!assignmentId) {
     throw new Error("No assignment selected.");
+  }
+
+  const [existingAssignment] = await db
+    .select({ id: assignments.id, published: assignments.published })
+    .from(assignments)
+    .where(and(eq(assignments.id, assignmentId), eq(assignments.orgId, user.orgId), eq(assignments.courseId, course.id)))
+    .limit(1);
+  if (!existingAssignment) {
+    throw new Error("Assignment unavailable.");
+  }
+  if (moduleId) {
+    const [selectedModule] = await db
+      .select({ id: modules.id })
+      .from(modules)
+      .where(and(eq(modules.id, moduleId), eq(modules.orgId, user.orgId), eq(modules.courseId, course.id)))
+      .limit(1);
+    if (!selectedModule) {
+      throw new Error("That module is unavailable.");
+    }
   }
 
   await db.transaction(async (tx) => {
@@ -292,6 +397,42 @@ export async function updateAssignmentRecord(formData: FormData) {
         updatedAt: new Date(),
       })
       .where(and(eq(assignments.id, assignmentId), eq(assignments.orgId, user.orgId), eq(assignments.courseId, course.id)));
+
+    await tx
+      .delete(moduleItems)
+      .where(
+        and(
+          eq(moduleItems.orgId, user.orgId),
+          eq(moduleItems.courseId, course.id),
+          eq(moduleItems.type, "Assignment"),
+          eq(moduleItems.contentId, assignmentId)
+        )
+      );
+
+    if (moduleId) {
+      const [lastItem] = await tx
+        .select({ position: moduleItems.position })
+        .from(moduleItems)
+        .where(
+          and(
+            eq(moduleItems.orgId, user.orgId),
+            eq(moduleItems.courseId, course.id),
+            eq(moduleItems.moduleId, moduleId)
+          )
+        )
+        .orderBy(desc(moduleItems.position))
+        .limit(1);
+      await tx.insert(moduleItems).values({
+        orgId: user.orgId,
+        courseId: course.id,
+        moduleId,
+        title,
+        type: "Assignment",
+        contentId: assignmentId,
+        position: (lastItem?.position ?? 0) + 1,
+        published: existingAssignment.published,
+      });
+    }
 
     await replaceObjectiveLinks(tx, user.orgId, course.id, assignmentId, "assignment", objectiveCodes);
   });
@@ -1027,7 +1168,15 @@ function assessmentWeightField(value: FormDataEntryValue | null) {
 
 function instructorAssignmentReturnPath(value: FormDataEntryValue | null, assignmentId: string, fallback = "/teach/assignments") {
   const path = typeof value === "string" ? value : "";
-  return path === `/teach/assignments/${assignmentId}` ? path : fallback;
+  const assignmentPath = `/teach/assignments/${assignmentId}`;
+  if (path === assignmentPath) return path;
+  if (!path.startsWith(`${assignmentPath}?`)) return fallback;
+
+  const query = new URLSearchParams(path.slice(assignmentPath.length + 1));
+  const fromModule = query.get("fromModule") ?? undefined;
+  return query.size === 1 && moduleReturnHref(fromModule)
+    ? `${assignmentPath}?fromModule=${encodeURIComponent(fromModule!)}`
+    : fallback;
 }
 
 function instructorWeekReturnPath(value: FormDataEntryValue | null, moduleId: string, fallback = "/teach/weeks") {

@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { loadStudentCourseWorkspace, type StudentAssignment } from "@/lib/student/workspace";
 import { dueLabel, isOverdue } from "@/lib/student/format";
 import { PageHeader } from "@/components/teach/page-header";
+import { Markdown } from "@/components/agent/markdown";
 import { RecordRow, StatusBadge, TextLink } from "@/components/atlas/primitives";
 
 /** A lean course home: current module, open assignments, and recent announcements. */
@@ -47,7 +48,7 @@ export default async function StudentCoursePage({ params }: { params: Promise<{ 
                 <p className="text-[0.9375rem] font-semibold leading-6">
                   <TextLink href={`/student/material/${workspace.currentWeek.id}`}>{workspace.currentWeek.title}</TextLink>
                 </p>
-                {workspace.currentWeek.summary ? <p className="mt-1 max-w-2xl text-[0.8125rem] leading-6 text-[var(--color-muted)]">{workspace.currentWeek.summary}</p> : null}
+                {workspace.currentWeek.summary ? <Markdown className="mt-1 max-w-2xl text-[0.8125rem] leading-6 text-[var(--color-muted)]">{workspace.currentWeek.summary}</Markdown> : null}
               </div>
             </section>
           ) : null}

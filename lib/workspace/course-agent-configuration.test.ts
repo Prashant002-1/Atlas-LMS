@@ -180,16 +180,19 @@ test("the course agent is transparent in Course setup and conversation edited", 
 
 test("materials have their own page and course setup stays a control center", () => {
   const materialsPage = read("app/teach/materials/page.tsx");
+  const materialIntake = read("components/teach/add-material-dialog.tsx");
+  const filePicker = read("components/teach/file-picker.tsx");
   const coursePage = read("app/teach/course/page.tsx");
   const actions = read("lib/instructor/course-material-actions.ts");
   const materials = read("lib/course/materials.ts");
   const context = read("lib/agent/context.ts");
 
-  assert.match(materialsPage, /Add material/);
+  assert.match(materialsPage, /AddMaterialDialog/);
+  assert.match(materialIntake, /Add material/);
   assert.match(materialsPage, /CourseMaterialTable/);
-  assert.match(materialsPage, /\.imscc/);
-  assert.match(materialsPage, /QTI\/XML/);
-  assert.match(materialsPage, /\.odt/);
+  assert.match(filePicker, /\.imscc/);
+  assert.match(filePicker, /\.qti/);
+  assert.match(filePicker, /\.odt/);
   assert.match(coursePage, /Edit course/);
   assert.doesNotMatch(coursePage, /CourseMaterialTable/);
   assert.doesNotMatch(coursePage, /uploadCourseMaterial/);
@@ -199,7 +202,8 @@ test("materials have their own page and course setup stays a control center", ()
   assert.doesNotMatch(actions, /ingestUploadedCourseMaterial|ingestLinkedCourseMaterial/);
   assert.match(actions, /courseMaterialRecords/);
   assert.match(actions, /processingStatus: "ready"/);
-  assert.match(actions, /redirect\("\/teach\/materials"\)/);
+  assert.match(actions, /materialReturnPath/);
+  assert.match(actions, /redirect\(returnTo\)/);
   assert.doesNotMatch(actions, /\/teach\/course#materials/);
   assert.match(materials, /MAX_COURSE_MATERIAL_BYTES/);
   assert.match(materials, /normalizeCourseMaterialLink/);

@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ExternalLink, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { documentOriginalPath } from "@/lib/course/document-routes";
 import { setCourseMaterialVisibility } from "@/lib/instructor/course-material-actions";
 
 export type CourseMaterialRow = {
@@ -93,7 +95,6 @@ export function CourseMaterialTable({ rows }: { rows: CourseMaterialRow[] }) {
                 <th scope="col" className="px-3 py-2.5 font-medium">Source</th>
                 <th scope="col" className="px-3 py-2.5 font-medium">State</th>
                 <th scope="col" className="px-3 py-2.5 font-medium">Access</th>
-                <th scope="col" className="px-3 py-2.5 text-right font-medium">Open</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-border)] text-[0.78125rem]">
@@ -116,14 +117,22 @@ function MaterialRow({ row }: { row: CourseMaterialRow }) {
     ? `/teach/documents/${encodeURIComponent(row.id)}`
     : null;
   const storedOriginalHref = row.storedOriginal
-    ? `/api/documents/${encodeURIComponent(row.id)}/original`
+    ? documentOriginalPath({ fileId: row.id, filename: row.filename ?? row.displayName })
     : null;
   const openHref = documentHref ?? row.url ?? storedOriginalHref;
   return (
     <tr className="transition hover:bg-[var(--color-surface-muted)]">
       <th scope="row" className="max-w-[24rem] px-3 py-3 align-top font-normal">
         <div className="min-w-0">
-          <p className="font-medium leading-5 text-[var(--color-ink)]">{row.displayName}</p>
+          {openHref ? (
+            documentHref ? (
+              <Link href={openHref} className={materialLinkClass}>{row.displayName}</Link>
+            ) : (
+              <a href={openHref} target="_blank" rel="noopener noreferrer" className={materialLinkClass}>{row.displayName}</a>
+            )
+          ) : (
+            <p className="font-medium leading-5 text-[var(--color-ink)]">{row.displayName}</p>
+          )}
           <p className="mt-0.5 truncate text-[0.6875rem] text-[var(--color-faint)]" title={row.filename ?? undefined}>
             {[row.filename, materialMeasure(row), `Updated ${formatDate(row.updatedAt)}`].filter(Boolean).join(" / ")}
           </p>
@@ -152,22 +161,11 @@ function MaterialRow({ row }: { row: CourseMaterialRow }) {
           </button>
         </form>
       </td>
-      <td className="px-3 py-3 text-right align-top">
-        {openHref ? (
-          <a
-            href={openHref}
-            target={documentHref ? undefined : "_blank"}
-            rel={documentHref ? undefined : "noopener noreferrer"}
-            aria-label={`Open ${row.displayName}`}
-            className="inline-flex size-7 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]"
-          >
-            <ExternalLink size={13} aria-hidden />
-          </a>
-        ) : <span className="text-[var(--color-faint)]">-</span>}
-      </td>
     </tr>
   );
 }
+
+const materialLinkClass = "inline rounded-row font-medium leading-5 text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_30%,transparent)] underline-offset-[3px] transition hover:text-[var(--color-accent-strong)] hover:decoration-[var(--color-accent-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-strong)]";
 
 const KIND_LABELS: Record<string, string> = {
   document: "Document",

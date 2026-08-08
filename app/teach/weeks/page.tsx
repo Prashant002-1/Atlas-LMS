@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton } from "@/components/atlas/primitives";
 import { EmptyState } from "@/components/atlas/record";
 import { RecordDialog } from "@/components/teach/record-dialog";
+import { RichTextEditor } from "@/components/teach/rich-text-editor";
+import { markdownPreview } from "@/lib/markdown-presentation";
 
 export default async function TeachModulesPage({ searchParams }: { searchParams: Promise<{ new?: string }> }) {
   const session = await auth();
@@ -57,7 +59,7 @@ function ModuleRow({ module }: { module: InstructorWorkspace["modules"][number] 
         {module.id ? (
           <Link href={`/teach/week/${module.id}`} className="rounded-row text-[0.84375rem] font-semibold text-[var(--color-ink)] underline decoration-[color-mix(in_oklch,var(--color-ink)_25%,transparent)] underline-offset-[3px] hover:text-[var(--color-accent-strong)]">{module.title}</Link>
         ) : <span className="text-[0.84375rem] font-semibold text-[var(--color-ink)]">{module.title}</span>}
-        {module.summary ? <p className="mt-0.5 truncate text-[0.75rem] text-[var(--color-muted)]">{module.summary}</p> : null}
+        {module.summary ? <p className="mt-0.5 truncate text-[0.75rem] text-[var(--color-muted)]">{markdownPreview(module.summary, module.title)}</p> : null}
       </div>
       <div className="flex items-center justify-end gap-3">
         {module.status !== "approved" ? <span className="text-[0.71875rem] text-[var(--color-muted)]">{module.status === "needs-review" ? "Review" : "Draft"}</span> : null}
@@ -88,10 +90,7 @@ function NewModuleDialog({ defaultOpen }: { defaultOpen: boolean }) {
           Title
           <input name="title" type="text" required autoFocus placeholder="Week 8: Confidence intervals in practice" className={fieldClass} />
         </label>
-        <label className="grid gap-1.5 text-[0.75rem] font-medium">
-          Summary
-          <textarea name="summary" rows={8} className={`${fieldClass} min-h-48 resize-y py-3 leading-6`} />
-        </label>
+        <RichTextEditor name="summary" label="Summary" rows={8} maxLength={2400} />
         <div className="flex justify-end pt-4">
           <ActionButton>Create module</ActionButton>
         </div>

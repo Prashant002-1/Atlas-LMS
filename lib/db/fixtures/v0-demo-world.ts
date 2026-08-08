@@ -654,8 +654,9 @@ const modulesList = econ241Modules;
 /*
  * Course documents, placed by week. A real week is a reading plus a handout plus
  * a deck, and the module page reads these from the file rows the same way the
- * materials library does. Extracted text stands in for the ingestion pipeline so
- * a seeded PDF is groundable without a live extraction.
+ * materials library does. The seed ingests the checked-in assets through the
+ * current parser; fixture text keeps the intended week-specific course context
+ * explicit and testable at the source.
  */
 const materialsList = econ241Materials;
 

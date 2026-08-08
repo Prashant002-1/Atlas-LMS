@@ -19,6 +19,7 @@ export type ModuleDraft = {
   week: string;
   title: string;
   summary?: string | null;
+  unlockAt?: Date | null;
   objectiveCodes: string[];
   status: "draft" | "needs-review" | "approved";
 };

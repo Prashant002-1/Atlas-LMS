@@ -10,6 +10,7 @@ import {
   enrollments,
   learningObjectives,
   journeyReports,
+  moduleItems,
   modules,
   sessionAssignments,
   sessionSubmissions,
@@ -22,6 +23,7 @@ import { loadProposalBlocks } from "@/lib/agent/apply";
 import type { Block } from "@/lib/agent/blocks";
 import { recordDestination, recordKindOfBlock, reviewRecordLabel } from "@/lib/instructor/review-records";
 import { submissionKind } from "@/lib/instructor/submission-detail";
+import { inferModuleIdFromDueDate } from "@/lib/course/module-assignment-placement";
 import type { Objective, ModuleDraft } from "@/lib/workspace/records";
 import { courseAiPolicies, type CourseAiPolicy } from "@/lib/db/schema";
 
@@ -108,6 +110,7 @@ export type InstructorAssignmentWorkspace = {
   source: InstructorWorkspace["source"];
   course: InstructorWorkspace["course"];
   assignment?: InstructorAssignment;
+  moduleId: string | null;
   materials: ModuleDraft[];
   progress?: InstructorWorkProgress;
   courseObjectives: Objective[];
@@ -254,6 +257,7 @@ export async function loadInstructorWorkspace(actor?: Actor | null): Promise<Ins
         name: modules.name,
         summaryMd: modules.summaryMd,
         position: modules.position,
+        unlockAt: modules.unlockAt,
         published: modules.published,
       })
       .from(modules)
@@ -788,6 +792,7 @@ export async function loadInstructorAssignmentWorkspace(
   const base = {
     source: workspace.source,
     course: workspace.course,
+    moduleId: null,
     materials: [] as ModuleDraft[],
     courseObjectives: workspace.objectives,
     submissions: [] as InstructorAssignmentSubmission[],
@@ -814,13 +819,34 @@ export async function loadInstructorAssignmentWorkspace(
   const progress =
     workspace.workProgress.find((item) => item.assignmentId === assignment.id) ??
     emptyWorkProgress(assignment);
-  const objectiveCodes = new Set(assignment.objectiveCodes);
-  const materials = workspace.modules.filter((module) => module.objectiveCodes.some((code) => objectiveCodes.has(code)));
+  let moduleId: string | null = null;
+  if (actor?.orgId && workspace.course.id && workspace.source === "database") {
+    const placementRows = await db
+      .select({ moduleId: moduleItems.moduleId, type: moduleItems.type })
+      .from(moduleItems)
+      .where(
+        and(
+          eq(moduleItems.orgId, actor.orgId),
+          eq(moduleItems.courseId, workspace.course.id),
+          eq(moduleItems.contentId, assignmentId)
+        )
+      );
+    moduleId = placementRows.find((item) => item.type.toLowerCase() === "assignment")?.moduleId ?? null;
+  }
+  const moduleDates = workspace.modules.flatMap((item) =>
+    item.id ? [{ id: item.id, opensAt: item.unlockAt ?? null }] : []
+  );
+  const materials = moduleId
+    ? workspace.modules.filter((module) => module.id === moduleId)
+    : workspace.modules.filter(
+        (module) => module.id === inferModuleIdFromDueDate(moduleDates, assignment.dueAt)
+      );
 
   if (!actor?.orgId || !workspace.course.id || workspace.source !== "database") {
     return {
       ...base,
       assignment,
+      moduleId,
       materials,
       progress,
       submissions: previewSubmissions(workspace.students),
@@ -939,6 +965,7 @@ export async function loadInstructorAssignmentWorkspace(
   return {
     ...base,
     assignment,
+    moduleId,
     materials,
     progress,
     submissions: roster,
@@ -978,7 +1005,27 @@ export async function loadInstructorModuleWorkspace(
 
   const objectiveCodes = new Set(courseModule.objectiveCodes);
   const objectives = workspace.objectives.filter((objective) => objectiveCodes.has(objective.code));
-  const assignments = workspace.assignments.filter((assignment) => assignment.objectiveCodes.some((code) => objectiveCodes.has(code)));
+  const assignmentPlacementRows = actor?.orgId && workspace.course.id
+    ? await db
+        .select({ moduleId: moduleItems.moduleId, contentId: moduleItems.contentId, type: moduleItems.type })
+        .from(moduleItems)
+        .where(and(eq(moduleItems.orgId, actor.orgId), eq(moduleItems.courseId, workspace.course.id)))
+    : [];
+  const assignmentPlacements = assignmentPlacementRows.filter((item) => item.type.toLowerCase() === "assignment" && item.contentId);
+  const explicitlyPlacedIds = new Set(assignmentPlacements.map((item) => item.contentId));
+  const placedHereIds = new Set(
+    assignmentPlacements.filter((item) => item.moduleId === moduleId).map((item) => item.contentId)
+  );
+  const moduleDates = workspace.modules.flatMap((module) =>
+    module.id ? [{ id: module.id, opensAt: module.unlockAt ?? null }] : []
+  );
+  const explicitlyPlaced = workspace.assignments.filter((assignment) => assignment.id && placedHereIds.has(assignment.id));
+  const datedHere = workspace.assignments.filter(
+    (assignment) =>
+      (!assignment.id || !explicitlyPlacedIds.has(assignment.id)) &&
+      inferModuleIdFromDueDate(moduleDates, assignment.dueAt) === moduleId
+  );
+  const assignments = [...explicitlyPlaced, ...datedHere];
 
   return {
     ...base,
@@ -1224,6 +1271,7 @@ function toModuleDrafts(
     name: string;
     summaryMd: string | null;
     position: number | null;
+    unlockAt: Date | null;
     published: boolean;
   }>,
   alignmentRows: Array<{
@@ -1252,6 +1300,7 @@ function toModuleDrafts(
     week: String(module.position ?? index + 1).padStart(2, "0"),
     title: module.name,
     summary: module.summaryMd,
+    unlockAt: module.unlockAt,
     objectiveCodes: codesByModule.get(module.id) ?? [],
     status: module.published ? "approved" : "draft",
   }));

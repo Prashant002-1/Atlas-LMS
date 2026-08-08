@@ -8,18 +8,14 @@ import { courseMaterialRecords, documentOriginals } from "@/lib/db/course-agent-
 import { classifyCourseMaterial } from "@/lib/course/materials";
 import { isDocumentFilename } from "@/lib/course/documents";
 import { findEditableCourse } from "@/lib/instructor/workspace";
-import {
-  addLinkedCourseMaterial,
-  uploadCourseMaterial,
-} from "@/lib/instructor/course-material-actions";
 import { PageHeader } from "@/components/teach/page-header";
 import { scopeLabel } from "@/lib/workspace/term-label";
-import { ActionButton } from "@/components/atlas/primitives";
-import { RecordDialog } from "@/components/teach/record-dialog";
+import { AddMaterialDialog } from "@/components/teach/add-material-dialog";
 import {
   CourseMaterialTable,
   type CourseMaterialRow,
 } from "@/components/teach/course-material-table";
+import { loadCourseMaterialPlacementOptions } from "@/lib/instructor/course-material-options";
 
 /**
  * The course material library: what exists, what is ready, and what students
@@ -34,42 +30,45 @@ export default async function TeachMaterialsPage() {
   const course = await findEditableCourse({ id: session.user.id, orgId: session.user.orgId, role: session.user.role });
   if (!course) redirect("/teach");
 
-  const materialRows = await db
-    .select({
-      id: files.id,
-      displayName: files.displayName,
-      filename: files.filename,
-      contentType: files.contentType,
-      sizeBytes: files.sizeBytes,
-      url: files.url,
-      createdAt: files.createdAt,
-      materialKind: courseMaterialRecords.materialKind,
-      ingestionSource: courseMaterialRecords.ingestionSource,
-      processingStatus: courseMaterialRecords.processingStatus,
-      processingError: courseMaterialRecords.processingError,
-      visibility: courseMaterialRecords.visibility,
-      pageCount: courseMaterialRecords.pageCount,
-      updatedAt: courseMaterialRecords.updatedAt,
-      storedOriginalFileId: documentOriginals.fileId,
-    })
-    .from(files)
-    .leftJoin(
-      courseMaterialRecords,
-      and(
-        eq(courseMaterialRecords.fileId, files.id),
-        eq(courseMaterialRecords.orgId, session.user.orgId),
-        eq(courseMaterialRecords.courseId, course.id)
+  const [materialRows, placementOptions] = await Promise.all([
+    db
+      .select({
+        id: files.id,
+        displayName: files.displayName,
+        filename: files.filename,
+        contentType: files.contentType,
+        sizeBytes: files.sizeBytes,
+        url: files.url,
+        createdAt: files.createdAt,
+        materialKind: courseMaterialRecords.materialKind,
+        ingestionSource: courseMaterialRecords.ingestionSource,
+        processingStatus: courseMaterialRecords.processingStatus,
+        processingError: courseMaterialRecords.processingError,
+        visibility: courseMaterialRecords.visibility,
+        pageCount: courseMaterialRecords.pageCount,
+        updatedAt: courseMaterialRecords.updatedAt,
+        storedOriginalFileId: documentOriginals.fileId,
+      })
+      .from(files)
+      .leftJoin(
+        courseMaterialRecords,
+        and(
+          eq(courseMaterialRecords.fileId, files.id),
+          eq(courseMaterialRecords.orgId, session.user.orgId),
+          eq(courseMaterialRecords.courseId, course.id)
+        )
       )
-    )
-    .leftJoin(
-      documentOriginals,
-      and(
-        eq(documentOriginals.fileId, files.id),
-        eq(documentOriginals.orgId, session.user.orgId)
+      .leftJoin(
+        documentOriginals,
+        and(
+          eq(documentOriginals.fileId, files.id),
+          eq(documentOriginals.orgId, session.user.orgId)
+        )
       )
-    )
-    .where(and(eq(files.orgId, session.user.orgId), eq(files.courseId, course.id)))
-    .orderBy(asc(files.displayName));
+      .where(and(eq(files.orgId, session.user.orgId), eq(files.courseId, course.id)))
+      .orderBy(asc(files.displayName)),
+    loadCourseMaterialPlacementOptions({ orgId: session.user.orgId, courseId: course.id }),
+  ]);
 
   const materials: CourseMaterialRow[] = materialRows.map((row) => {
     const legacy = classifyCourseMaterial(row.filename ?? row.displayName, row.contentType);
@@ -104,7 +103,7 @@ export default async function TeachMaterialsPage() {
       <PageHeader
         title="Materials"
         course={scopeLabel({ code: course.code, termName: course.term })}
-        action={<AddMaterialDialog />}
+        action={<AddMaterialDialog options={placementOptions} returnTo="/teach/materials" />}
       />
 
       {materials.length > 0 ? (
@@ -135,82 +134,6 @@ export default async function TeachMaterialsPage() {
   );
 }
 
-function AddMaterialDialog() {
-  return (
-    <RecordDialog
-      mode="create"
-      triggerLabel="Add material"
-      title="Add course material"
-      triggerVariant="primary"
-    >
-      <div className="space-y-7">
-        <form action={uploadCourseMaterial} className="grid gap-4">
-          <div>
-            <h3 className="text-[0.875rem] font-semibold text-[var(--color-ink)]">Upload</h3>
-            <p className="mt-1 text-[0.71875rem] leading-5 text-[var(--color-muted)]">PDF, Office, text, code, media, .imscc, QTI/XML, or ZIP. Maximum 25 MB.</p>
-          </div>
-          <label className="grid gap-1.5 text-[0.75rem] font-medium">
-            File
-            <input name="file" type="file" required accept=".pdf,.doc,.docx,.docm,.ppt,.pps,.pot,.pptx,.pptm,.ppsx,.ppsm,.xls,.xlsx,.xlsm,.xlsb,.odt,.ods,.odp,.rtf,.epub,.csv,.txt,.md,.xml,.json,.jsonl,.yaml,.yml,.html,.css,.js,.jsx,.ts,.tsx,.mjs,.cjs,.py,.java,.c,.cc,.cpp,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.kts,.sql,.sh,.zsh,.bash,.mp3,.m4a,.wav,.mp4,.mov,.webm,.imscc,.qti,.zip" className={`${fieldClass} file:mr-3 file:border-0 file:bg-transparent file:text-[0.75rem] file:font-medium file:text-[var(--color-ink)]`} />
-          </label>
-          <label className="grid gap-1.5 text-[0.75rem] font-medium">
-            Display name <span className="font-normal text-[var(--color-faint)]">Optional</span>
-            <input name="displayName" type="text" maxLength={240} className={fieldClass} />
-          </label>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="grid gap-1.5 text-[0.75rem] font-medium">
-              Type
-              <select name="materialKind" defaultValue="" className={fieldClass}>
-                <option value="">Detect from file</option>
-                <option value="document">Document</option>
-                <option value="slides">Slides</option>
-                <option value="assessment">Assessment or test</option>
-                <option value="media">Media</option>
-                <option value="package">Course package</option>
-                <option value="other">Other</option>
-              </select>
-            </label>
-            <VisibilityField />
-          </div>
-          <div className="flex justify-end">
-            <ActionButton>Upload material</ActionButton>
-          </div>
-        </form>
-
-        <form action={addLinkedCourseMaterial} className="grid gap-4 pt-6">
-          <div>
-            <h3 className="text-[0.875rem] font-semibold text-[var(--color-ink)]">Link</h3>
-          </div>
-          <label className="grid gap-1.5 text-[0.75rem] font-medium">
-            Name
-            <input name="displayName" type="text" required maxLength={240} className={fieldClass} />
-          </label>
-          <label className="grid gap-1.5 text-[0.75rem] font-medium">
-            URL
-            <input name="sourceUrl" type="url" required maxLength={2000} placeholder="https://" className={fieldClass} />
-          </label>
-          <VisibilityField />
-          <div className="flex justify-end">
-            <ActionButton variant="secondary">Add link</ActionButton>
-          </div>
-        </form>
-      </div>
-    </RecordDialog>
-  );
-}
-
-function VisibilityField() {
-  return (
-    <label className="grid gap-1.5 text-[0.75rem] font-medium">
-      Access
-      <select name="visibility" defaultValue="course" className={fieldClass}>
-        <option value="course">Course</option>
-        <option value="instructors">Instructors only</option>
-      </select>
-    </label>
-  );
-}
-
 function safeMaterialUrl(value: string | null) {
   if (!value) return null;
   try {
@@ -221,5 +144,3 @@ function safeMaterialUrl(value: string | null) {
     return null;
   }
 }
-
-const fieldClass = "min-h-10 rounded-control border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 text-[0.8125rem] text-[var(--color-ink)] outline-none transition placeholder:text-[var(--color-faint)] focus:border-[var(--color-accent-strong)] focus:bg-[var(--color-surface)]";

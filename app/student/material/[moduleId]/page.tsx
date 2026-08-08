@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { loadStudentMaterialWorkspace } from "@/lib/student/workspace";
 import { PageHeader } from "@/components/teach/page-header";
+import { Markdown } from "@/components/agent/markdown";
 import { BackLink, StatusBadge, TextLink } from "@/components/atlas/primitives";
 
 const tone = { graded: "good", submitted: "accent", open: "neutral", missing: "warn" } as const;
@@ -33,7 +34,7 @@ export default async function StudentMaterialPage({ params }: { params: Promise<
 
       <section className="py-5">
         {material.summary ? (
-          <p className="max-w-3xl whitespace-pre-wrap text-[0.90625rem] leading-7">{material.summary}</p>
+          <Markdown className="max-w-3xl text-[0.90625rem] leading-7">{material.summary}</Markdown>
         ) : (
           <p className="text-[0.875rem] text-[var(--color-muted)]">No summary is attached to this material.</p>
         )}

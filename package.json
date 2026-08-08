@@ -26,6 +26,7 @@
     "db:check": "node --env-file-if-exists=.env.local --import tsx scripts/db-release.ts check",
     "db:upgrade": "node --env-file-if-exists=.env.local --import tsx scripts/db-release.ts upgrade",
     "local:check": "node --env-file-if-exists=.env.local --import tsx scripts/local-readiness.ts",
+    "documents:reingest-seed": "node --env-file-if-exists=.env.local --import tsx scripts/reingest-seed-documents.ts",
     "workflow:bootstrap": "node --env-file-if-exists=.env.local node_modules/@workflow/world-postgres/bin/setup.js",
     "demo:provision-yc": "tsx scripts/provision-yc-access.ts",
     "demo:provision-spc": "tsx scripts/provision-spc-access.ts",

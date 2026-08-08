@@ -2,10 +2,14 @@ import { Download, ExternalLink } from "lucide-react";
 import { BackLink } from "@/components/atlas/primitives";
 import { Markdown } from "@/components/agent/markdown";
 import { PageHeader } from "@/components/teach/page-header";
+import { documentOriginalPath } from "@/lib/course/document-routes";
 import type { DocumentDetail } from "@/lib/course/documents";
 
 export function DocumentViewer({ document, backHref }: { document: DocumentDetail; backHref: string }) {
-  const originalHref = `/api/documents/${encodeURIComponent(document.fileId)}/original`;
+  const originalHref = documentOriginalPath({
+    fileId: document.fileId,
+    filename: document.filename ?? document.displayName,
+  });
   const facts = [
     document.filename,
     document.pageCount ? `${document.pageCount} ${document.pageCount === 1 ? "page" : "pages"}` : formatBytes(document.sizeBytes),
@@ -27,7 +31,7 @@ export function DocumentViewer({ document, backHref }: { document: DocumentDetai
                     <ExternalLink size={13} aria-hidden />
                     Open original
                   </a>
-                  <a href={`${originalHref}?download=1`} className={secondaryActionClass}>
+                  <a href={documentOriginalPath({ fileId: document.fileId, filename: document.filename ?? document.displayName, download: true })} className={secondaryActionClass}>
                     <Download size={13} aria-hidden />
                     Download
                   </a>

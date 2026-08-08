@@ -21,7 +21,7 @@ export function DocumentViewer({ document, backHref }: { document: DocumentDetai
           course={facts}
           action={
             <div className="flex flex-wrap items-center gap-2">
-              {document.url ? (
+              {document.hasOriginal ? (
                 <>
                   <a href={originalHref} target="_blank" rel="noopener noreferrer" className={secondaryActionClass}>
                     <ExternalLink size={13} aria-hidden />
@@ -48,7 +48,7 @@ export function DocumentViewer({ document, backHref }: { document: DocumentDetai
         <p role="status" className="mb-6 text-[0.8125rem] text-[var(--color-muted)]">Readable content is {document.processingStatus}.</p>
       ) : !document.extraction ? (
         <p role="status" className="mb-6 text-[0.8125rem] text-[var(--color-muted)]">
-          {document.url
+          {document.hasOriginal
             ? "No readable artifact has been prepared for this existing course file. Open the original to read it."
             : "No readable artifact or durable original is available for this existing course file."}
         </p>
@@ -76,14 +76,7 @@ export function DocumentViewer({ document, backHref }: { document: DocumentDetai
           ) : null}
 
           <section aria-labelledby="document-content-heading" className="py-7">
-            <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <h2 id="document-content-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Content</h2>
-              {document.extractionProvider && document.extractionModel ? (
-                <span className="text-[0.6875rem] text-[var(--color-faint)]">
-                  {inputLabel(document.extractionInputMode)} / {document.extractionProvider} / {document.extractionModel}
-                </span>
-              ) : null}
-            </div>
+            <h2 id="document-content-heading" className="text-[1rem] font-semibold text-[var(--color-ink)]">Content</h2>
             <div className="mt-5">
               <Markdown className="text-[0.875rem] leading-7">{document.extraction.contentMarkdown}</Markdown>
             </div>
@@ -96,10 +89,6 @@ export function DocumentViewer({ document, backHref }: { document: DocumentDetai
 
 function statusLabel(status: DocumentDetail["processingStatus"]) {
   return { queued: "Queued", processing: "Processing", ready: "Ready", failed: "Failed" }[status];
-}
-
-function inputLabel(mode: string | null) {
-  return mode === "native_pdf" ? "Native PDF" : "Extracted text";
 }
 
 function pageLabel(start: number, end: number | null) {

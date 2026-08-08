@@ -207,6 +207,9 @@ test("the new schema and bounded upload path are deployment visible", () => {
   assert.match(read("drizzle.config.ts"), /course-agent-schema/);
   assert.match(read("next.config.mjs"), /bodySizeLimit: "26mb"/);
   assert.match(read("next.config.mjs"), /proxyClientMaxBodySize: "26mb"/);
+  assert.match(read("next.config.mjs"), /@firecrawl\/anydoc/);
+  assert.match(read("package.json"), /"@firecrawl\/anydoc": "0\.1\.7"/);
+  assert.match(read("drizzle/0018_document_originals.sql"), /document_originals/);
   assert.match(read(".env.example"), /ATLAS_MATERIAL_INGEST_URL/);
   assert.match(read(".env.example"), /ATLAS_MATERIAL_CALLBACK_SECRET/);
   assert.match(read("docker-compose.yml"), /ATLAS_MATERIAL_CALLBACK_SECRET/);

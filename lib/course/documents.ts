@@ -1,32 +1,26 @@
+import { createHash } from "node:crypto";
 import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
-import { z } from "zod";
 import { isInstructorLike, type Role } from "@/lib/auth/session";
 import {
-  canReadDocumentBytesDirectly,
-  understandDocument,
+  DOCUMENT_PARSER_VERSION,
+  documentParseErrorMessage,
   documentExtractionSchema,
+  isDocumentFilename,
+  parseDocumentBytes,
   type DocumentExtraction,
-} from "@/lib/course/document-understanding";
+  type ParsedDocument,
+} from "@/lib/course/document-parser";
 import {
   classifyCourseMaterial,
-  ingestUploadedCourseMaterial,
   MAX_COURSE_MATERIAL_BYTES,
   type MaterialKind,
 } from "@/lib/course/materials";
 import { db } from "@/lib/db";
-import { courseMaterialRecords, documentAttachments } from "@/lib/db/course-agent-schema";
+import { courseMaterialRecords, documentAttachments, documentOriginals } from "@/lib/db/course-agent-schema";
 import { agentSessions, assignments, enrollments, files } from "@/lib/db/schema";
-import { resolvePlatformModel } from "@/lib/ai/platform-model";
 
 const MAX_THREAD_DOCUMENTS = 5;
 const MAX_THREAD_DOCUMENT_CONTEXT = 80_000;
-
-const DOCUMENT_EXTENSIONS = new Set([
-  "pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "csv", "txt", "md", "rtf", "xml",
-  "json", "jsonl", "yaml", "yml", "html", "css", "js", "jsx", "ts", "tsx", "mjs", "cjs",
-  "py", "java", "c", "cc", "cpp", "h", "hpp", "go", "rs", "rb", "php", "swift", "kt", "kts",
-  "sql", "sh", "zsh", "bash",
-]);
 
 export type DocumentActor = { id: string; orgId: string; role: Role };
 export type DocumentTarget =
@@ -50,6 +44,7 @@ export type DocumentAttachmentItem = {
 
 export type DocumentDetail = DocumentAttachmentItem & {
   url: string | null;
+  hasOriginal: boolean;
   extraction: DocumentExtraction | null;
   extractionProvider: string | null;
   extractionModel: string | null;
@@ -86,14 +81,14 @@ export function personalDocumentAccessAllowed(args: {
     args.sessionSurface === "personal";
 }
 
-export function isDocumentFilename(filename: string): boolean {
-  return DOCUMENT_EXTENSIONS.has(extensionOf(filename));
-}
+export { isDocumentFilename };
 
 export function assertSupportedDocument(file: File) {
   if (!isDocumentFilename(file.name)) {
     throw new Error("Attach a PDF, Office document, text file, spreadsheet, presentation, or code file.");
   }
+  if (file.size <= 0) throw new Error("The uploaded document is empty.");
+  if (file.size > MAX_COURSE_MATERIAL_BYTES) throw new Error("Documents must be 25 MB or smaller.");
 }
 
 export async function createUploadedDocument(args: {
@@ -113,13 +108,8 @@ export async function createUploadedDocument(args: {
   });
 
   const classification = classifyCourseMaterial(args.file.name, args.file.type || null);
-  const ingested = await ingestUploadedCourseMaterial({
-    orgId: args.actor.orgId,
-    courseId: args.courseId,
-    uploadedById: args.actor.id,
-    file: args.file,
-  });
-  const bytes = Buffer.from(await args.file.arrayBuffer());
+  const prepared = await prepareDocument(args.file);
+  const processingStatus = prepared.parsed ? "ready" as const : "failed" as const;
 
   const created = await db.transaction(async (tx) => {
     const [fileRow] = await tx
@@ -131,10 +121,17 @@ export async function createUploadedDocument(args: {
         filename: args.file.name,
         contentType: args.file.type || null,
         sizeBytes: args.file.size,
-        url: ingested.url,
-        extractedText: ingested.extractedText ?? null,
+        url: null,
+        extractedText: prepared.parsed?.markdown ?? null,
       })
       .returning({ id: files.id, displayName: files.displayName, createdAt: files.createdAt });
+
+    await tx.insert(documentOriginals).values({
+      fileId: fileRow.id,
+      orgId: args.actor.orgId,
+      bytes: prepared.bytes,
+      checksumSha256: prepared.checksumSha256,
+    });
 
     const [materialRow] = await tx
       .insert(courseMaterialRecords)
@@ -142,14 +139,17 @@ export async function createUploadedDocument(args: {
         orgId: args.actor.orgId,
         courseId: args.courseId,
         fileId: fileRow.id,
-        ingestionJobId: ingested.jobId,
         materialKind: args.materialKind ?? classification.kind,
         ingestionSource: classification.source,
-        processingStatus: ingested.status,
+        processingStatus,
         visibility: args.visibility,
-        pageCount: ingested.pageCount ?? null,
-        checksumSha256: ingested.checksumSha256,
-        metadata: ingested.metadata,
+        checksumSha256: prepared.checksumSha256,
+        metadata: documentMetadata(prepared.parsed),
+        extraction: prepared.parsed?.extraction ?? null,
+        extractionProvider: prepared.parsed?.parser ?? null,
+        extractionModel: prepared.parsed?.parserVersion ?? null,
+        extractionInputMode: prepared.parsed?.inputMode ?? null,
+        processingError: prepared.error,
         updatedById: args.actor.id,
       })
       .returning({ id: courseMaterialRecords.id });
@@ -184,23 +184,14 @@ export async function createUploadedDocument(args: {
       filename: args.file.name,
       contentType: args.file.type || null,
       sizeBytes: args.file.size,
-      processingStatus: ingested.status,
-      processingError: null,
+      processingStatus,
+      processingError: prepared.error,
       visibility: args.visibility,
-      pageCount: ingested.pageCount ?? null,
+      pageCount: null,
       createdAt: fileRow.createdAt,
     } satisfies DocumentAttachmentItem;
   });
-
-  if (ingested.status !== "ready") return created;
-
-  const processed = await processDocumentUnderstanding({
-    orgId: args.actor.orgId,
-    courseId: args.courseId,
-    fileId: created.fileId,
-    bytes,
-  });
-  return { ...created, processingStatus: processed.status, processingError: processed.error };
+  return created;
 }
 
 /**
@@ -219,14 +210,8 @@ export async function createUploadedPersonalDocument(args: {
   await assertPersonalThread({ actor: args.actor, sessionId: args.sessionId });
 
   const classification = classifyCourseMaterial(args.file.name, args.file.type || null);
-  const ingested = await ingestUploadedCourseMaterial({
-    orgId: args.actor.orgId,
-    courseId: null,
-    ownerUserId: args.actor.id,
-    uploadedById: args.actor.id,
-    file: args.file,
-  });
-  const bytes = Buffer.from(await args.file.arrayBuffer());
+  const prepared = await prepareDocument(args.file);
+  const processingStatus = prepared.parsed ? "ready" as const : "failed" as const;
 
   const created = await db.transaction(async (tx) => {
     const [fileRow] = await tx
@@ -239,24 +224,34 @@ export async function createUploadedPersonalDocument(args: {
         filename: args.file.name,
         contentType: args.file.type || null,
         sizeBytes: args.file.size,
-        url: ingested.url,
-        extractedText: ingested.extractedText ?? null,
+        url: null,
+        extractedText: prepared.parsed?.markdown ?? null,
       })
       .returning({ id: files.id, displayName: files.displayName, createdAt: files.createdAt });
+
+    await tx.insert(documentOriginals).values({
+      fileId: fileRow.id,
+      orgId: args.actor.orgId,
+      bytes: prepared.bytes,
+      checksumSha256: prepared.checksumSha256,
+    });
 
     await tx.insert(courseMaterialRecords).values({
       orgId: args.actor.orgId,
       courseId: null,
       ownerUserId: args.actor.id,
       fileId: fileRow.id,
-      ingestionJobId: ingested.jobId,
       materialKind: classification.kind,
       ingestionSource: classification.source,
-      processingStatus: ingested.status,
+      processingStatus,
       visibility: "private",
-      pageCount: ingested.pageCount ?? null,
-      checksumSha256: ingested.checksumSha256,
-      metadata: ingested.metadata,
+      checksumSha256: prepared.checksumSha256,
+      metadata: documentMetadata(prepared.parsed),
+      extraction: prepared.parsed?.extraction ?? null,
+      extractionProvider: prepared.parsed?.parser ?? null,
+      extractionModel: prepared.parsed?.parserVersion ?? null,
+      extractionInputMode: prepared.parsed?.inputMode ?? null,
+      processingError: prepared.error,
       updatedById: args.actor.id,
     });
 
@@ -279,131 +274,14 @@ export async function createUploadedPersonalDocument(args: {
       filename: args.file.name,
       contentType: args.file.type || null,
       sizeBytes: args.file.size,
-      processingStatus: ingested.status,
-      processingError: null,
+      processingStatus,
+      processingError: prepared.error,
       visibility: "private",
-      pageCount: ingested.pageCount ?? null,
+      pageCount: null,
       createdAt: fileRow.createdAt,
     } satisfies DocumentAttachmentItem;
   });
-
-  if (ingested.status !== "ready") return created;
-  const processed = await processDocumentUnderstanding({
-    orgId: args.actor.orgId,
-    courseId: null,
-    ownerUserId: args.actor.id,
-    fileId: created.fileId,
-    bytes,
-  });
-  return { ...created, processingStatus: processed.status, processingError: processed.error };
-}
-
-export async function processDocumentUnderstanding(args: {
-  orgId: string;
-  courseId: string | null;
-  ownerUserId?: string | null;
-  fileId: string;
-  bytes?: Buffer | null;
-}): Promise<{ status: "ready" | "failed"; error: string | null }> {
-  assertStorageScope(args);
-  const materialScope = args.courseId
-    ? and(eq(courseMaterialRecords.courseId, args.courseId), isNull(courseMaterialRecords.ownerUserId))
-    : and(isNull(courseMaterialRecords.courseId), eq(courseMaterialRecords.ownerUserId, args.ownerUserId!));
-  const fileScope = args.courseId
-    ? and(eq(files.courseId, args.courseId), isNull(files.ownerUserId))
-    : and(isNull(files.courseId), eq(files.ownerUserId, args.ownerUserId!));
-  const [row] = await db
-    .select({
-      recordId: courseMaterialRecords.id,
-      filename: files.filename,
-      displayName: files.displayName,
-      contentType: files.contentType,
-      extractedText: files.extractedText,
-      url: files.url,
-    })
-    .from(courseMaterialRecords)
-    .innerJoin(files, eq(files.id, courseMaterialRecords.fileId))
-    .where(
-      and(
-        eq(courseMaterialRecords.orgId, args.orgId),
-        eq(courseMaterialRecords.fileId, args.fileId),
-        materialScope,
-        eq(files.orgId, args.orgId),
-        fileScope
-      )
-    )
-    .limit(1);
-  if (!row) throw new Error("Document processing record not found.");
-
-  const resolvedModel = resolvePlatformModel();
-  await db
-    .update(courseMaterialRecords)
-    .set({
-      extraction: null,
-      extractionProvider: resolvedModel?.provider ?? null,
-      extractionModel: resolvedModel?.modelId ?? null,
-      extractionInputMode: null,
-      processingStatus: "processing",
-      processingError: null,
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(courseMaterialRecords.id, row.recordId),
-        eq(courseMaterialRecords.orgId, args.orgId),
-        materialScope
-      )
-    );
-
-  try {
-    const mediaType = row.contentType?.trim() || "application/octet-stream";
-    const durableBytes = !args.bytes && row.url && resolvedModel && canReadDocumentBytesDirectly({
-      provider: resolvedModel.provider,
-      filename: row.filename ?? row.displayName,
-      mediaType,
-    })
-      ? await loadDurableDocumentBytes(row.url)
-      : null;
-    const understood = await understandDocument({
-      filename: row.filename ?? row.displayName,
-      mediaType: row.contentType,
-      bytes: args.bytes ?? durableBytes,
-      upstreamText: row.extractedText,
-      resolvedModel,
-    });
-    await db
-      .update(courseMaterialRecords)
-      .set({
-        extraction: understood.extraction,
-        extractionProvider: understood.provider,
-        extractionModel: understood.modelId,
-        extractionInputMode: understood.inputMode,
-        processingStatus: "ready",
-        processingError: null,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(courseMaterialRecords.id, row.recordId),
-          eq(courseMaterialRecords.orgId, args.orgId),
-          materialScope
-        )
-      );
-    return { status: "ready", error: null };
-  } catch (error) {
-    const message = boundedError(error);
-    await db
-      .update(courseMaterialRecords)
-      .set({ processingStatus: "failed", processingError: message, updatedAt: new Date() })
-      .where(
-        and(
-          eq(courseMaterialRecords.id, row.recordId),
-          eq(courseMaterialRecords.orgId, args.orgId),
-          materialScope
-        )
-      );
-    return { status: "failed", error: message };
-  }
+  return created;
 }
 
 export async function attachCourseFilesToThread(args: {
@@ -655,6 +533,7 @@ export async function loadDocumentDetailForActor(args: {
       extractionProvider: courseMaterialRecords.extractionProvider,
       extractionModel: courseMaterialRecords.extractionModel,
       extractionInputMode: courseMaterialRecords.extractionInputMode,
+      storedOriginalFileId: documentOriginals.fileId,
       recordId: courseMaterialRecords.id,
       recordCourseId: courseMaterialRecords.courseId,
       recordOwnerUserId: courseMaterialRecords.ownerUserId,
@@ -666,6 +545,13 @@ export async function loadDocumentDetailForActor(args: {
       and(
         eq(courseMaterialRecords.fileId, files.id),
         eq(courseMaterialRecords.orgId, args.actor.orgId)
+      )
+    )
+    .leftJoin(
+      documentOriginals,
+      and(
+        eq(documentOriginals.fileId, files.id),
+        eq(documentOriginals.orgId, args.actor.orgId)
       )
     )
     .where(and(eq(files.id, args.fileId), eq(files.orgId, args.actor.orgId)))
@@ -767,6 +653,7 @@ export async function loadDocumentDetailForActor(args: {
     contentType: row.contentType,
     sizeBytes: row.sizeBytes,
     url: row.url,
+    hasOriginal: Boolean(row.storedOriginalFileId || row.url),
     processingStatus: status,
     processingError: row.processingError ?? null,
     visibility,
@@ -974,12 +861,6 @@ async function assertPersonalThread(args: { actor: DocumentActor; sessionId: str
   if (!thread) throw new Error("That personal Atlas thread is not yours.");
 }
 
-function assertStorageScope(args: { courseId: string | null; ownerUserId?: string | null }) {
-  if (Number(Boolean(args.courseId)) + Number(Boolean(args.ownerUserId)) !== 1) {
-    throw new Error("A document must belong to one course or one person.");
-  }
-}
-
 async function actorHasCourseAccess(actor: DocumentActor, courseId: string) {
   if (actor.role === "admin" || actor.role === "superadmin") return true;
   const [row] = await db
@@ -997,52 +878,36 @@ async function actorHasCourseAccess(actor: DocumentActor, courseId: string) {
   return Boolean(row);
 }
 
-function extensionOf(filename: string) {
-  return filename.toLowerCase().split(".").pop() ?? "";
-}
-
 function escapeReferenceText(value: string) {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
-async function loadDurableDocumentBytes(url: string): Promise<Buffer> {
-  const source = new URL(url);
-  const local = source.hostname === "localhost" || source.hostname === "127.0.0.1";
-  if (source.username || source.password || (source.protocol !== "https:" && !(local && source.protocol === "http:"))) {
-    throw new Error("The durable original location is invalid.");
+async function prepareDocument(file: File): Promise<{
+  bytes: Buffer;
+  checksumSha256: string;
+  parsed: ParsedDocument | null;
+  error: string | null;
+}> {
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const checksumSha256 = createHash("sha256").update(bytes).digest("hex");
+  try {
+    const parsed = await parseDocumentBytes({ filename: file.name, bytes });
+    return { bytes, checksumSha256, parsed, error: null };
+  } catch (error) {
+    return { bytes, checksumSha256, parsed: null, error: documentParseErrorMessage(error) };
   }
-  const response = await fetch(source, {
-    redirect: "error",
-    signal: AbortSignal.timeout(30_000),
-    cache: "no-store",
-  });
-  if (!response.ok || !response.body) throw new Error("The durable original could not be read for document processing.");
-  const contentLength = Number(response.headers.get("content-length") ?? 0);
-  if (Number.isFinite(contentLength) && contentLength > MAX_COURSE_MATERIAL_BYTES) {
-    throw new Error("The durable original is too large for document processing.");
-  }
-  const chunks: Buffer[] = [];
-  const reader = response.body.getReader();
-  let total = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > MAX_COURSE_MATERIAL_BYTES) {
-      await reader.cancel();
-      throw new Error("The durable original is too large for document processing.");
-    }
-    chunks.push(Buffer.from(value));
-  }
-  return Buffer.concat(chunks, total);
+}
+
+function documentMetadata(parsed: ParsedDocument | null) {
+  return {
+    originalStorage: "postgres",
+    parser: parsed ? { name: parsed.parser, version: parsed.parserVersion } : null,
+    canonicalText: parsed ? "markdown" : null,
+    anydocVersion: DOCUMENT_PARSER_VERSION,
+  };
 }
 
 function cleanDisplayName(value: string | null | undefined, fallback: string) {
   const compact = value?.replace(/\s+/g, " ").trim();
   return (compact || fallback).slice(0, 240);
-}
-
-function boundedError(error: unknown) {
-  const message = error instanceof Error ? error.message : "Atlas could not read this document.";
-  return z.string().max(1000).parse(message.slice(0, 1000));
 }

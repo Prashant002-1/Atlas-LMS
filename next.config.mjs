@@ -22,8 +22,8 @@ const nextConfig = {
     "/api/atlas/planning": ["./.atlas/**/*"],
     "/*": ["./node_modules/@workflow/world-postgres/**/*"],
   },
-  // pg / pgvector are server-only native deps; keep them out of the bundle.
-  serverExternalPackages: ["pg", "pgvector"],
+  // Database drivers and AnyDoc's platform binding are server-only native deps.
+  serverExternalPackages: ["pg", "pgvector", "@firecrawl/anydoc"],
 };
 
 export default withWorkflow(nextConfig);

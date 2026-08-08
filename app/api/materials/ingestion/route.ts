@@ -5,7 +5,11 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { files } from "@/lib/db/schema";
 import { courseMaterialRecords } from "@/lib/db/course-agent-schema";
-import { isDocumentFilename, processDocumentUnderstanding } from "@/lib/course/documents";
+import {
+  extractionFromMarkdown,
+  isDocumentFilename,
+  type DocumentExtraction,
+} from "@/lib/course/document-parser";
 
 export const maxDuration = 120;
 const MAX_CALLBACK_BYTES = 3_000_000;
@@ -79,9 +83,8 @@ export async function POST(request: Request) {
       fileId: files.id,
       filename: files.filename,
       displayName: files.displayName,
+      extractedText: files.extractedText,
       status: courseMaterialRecords.processingStatus,
-      extractionProvider: courseMaterialRecords.extractionProvider,
-      updatedAt: courseMaterialRecords.updatedAt,
     })
     .from(courseMaterialRecords)
     .innerJoin(files, eq(files.id, courseMaterialRecords.fileId))
@@ -106,9 +109,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Course material is already in a terminal state." }, { status: 409 });
   }
   if (terminal && input.status === record.status) return NextResponse.json({ ok: true });
-  const understandingInProgress = input.status === "ready" && record.status === "processing" && record.extractionProvider &&
-    Date.now() - record.updatedAt.getTime() < 5 * 60_000;
-  if (understandingInProgress) return NextResponse.json({ ok: true }, { status: 202 });
+
+  const isDocument = isDocumentFilename(record.filename ?? record.displayName);
+  const canonicalMarkdown = input.extractedText ?? record.extractedText;
+  let effectiveStatus = input.status;
+  let extraction: DocumentExtraction | null = null;
+  let processingError = input.status === "failed" ? input.error ?? "Material processing failed." : null;
+  if (input.status === "ready" && isDocument) {
+    try {
+      extraction = extractionFromMarkdown({
+        filename: record.filename ?? record.displayName,
+        markdown: canonicalMarkdown ?? "",
+      });
+    } catch {
+      effectiveStatus = "failed";
+      processingError = "The material service returned no readable document text.";
+    }
+  }
 
   await db.transaction(async (tx) => {
     const fileUpdate: Partial<typeof files.$inferInsert> = {};
@@ -122,10 +139,16 @@ export async function POST(request: Request) {
     }
 
     const materialUpdate: Partial<typeof courseMaterialRecords.$inferInsert> = {
-      processingStatus: input.status,
-      processingError: input.status === "failed" ? input.error ?? "Material processing failed." : null,
+      processingStatus: effectiveStatus,
+      processingError,
       updatedAt: new Date(),
     };
+    if (extraction) {
+      materialUpdate.extraction = extraction;
+      materialUpdate.extractionProvider = "external";
+      materialUpdate.extractionModel = null;
+      materialUpdate.extractionInputMode = "markdown";
+    }
     if (input.pageCount !== undefined) materialUpdate.pageCount = input.pageCount;
     if (input.metadata !== undefined) materialUpdate.metadata = input.metadata;
 
@@ -140,15 +163,6 @@ export async function POST(request: Request) {
         )
       );
   });
-
-  if (input.status === "ready" && isDocumentFilename(record.filename ?? record.displayName)) {
-    await processDocumentUnderstanding({
-      orgId: input.orgId,
-      courseId: input.courseId ?? null,
-      ownerUserId: input.ownerUserId ?? null,
-      fileId: record.fileId,
-    });
-  }
 
   return NextResponse.json({ ok: true });
 }

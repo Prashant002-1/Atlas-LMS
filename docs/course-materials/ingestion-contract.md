@@ -1,16 +1,18 @@
 # Course material ingestion contract
 
-Atlas keeps binary storage and extraction outside the Next.js web process. This document defines the HTTPS service contract used by teacher Materials and personal student attachments.
+Atlas has two bounded intake paths. Supported document uploads are parsed locally in the Next.js server process and stored privately in PostgreSQL. Links, packages, media, and other non-document material may use the separate HTTPS ingestion contract documented below.
 
 ## Parser decision
 
-The ingestion service tracked in [issue #49](https://github.com/Prashant002-1/Atlas-LMS/issues/49) will use self-hosted [AnyDoc](https://github.com/firecrawl/anydoc) as Atlas's default document parser. AnyDoc runs locally without a model API or external parsing service and converts its supported Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, CSV, and text-based PDF formats into one GitHub-Flavored Markdown representation.
+Atlas uses self-hosted [AnyDoc](https://github.com/firecrawl/anydoc), pinned at `@firecrawl/anydoc@0.1.7`, as its default document parser. AnyDoc runs in the Atlas server process without a model API or external parsing service and converts its supported Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, CSV, and text-based PDF formats into one GitHub-Flavored Markdown representation.
 
-AnyDoc is one component inside the ingestion service. It does not replace private original storage, stable job identity, checksums, scoped ownership metadata, authenticated reads, processing states, or signed callbacks. The worker parses the exact bytes it stores durably and returns the resulting Markdown through the existing `extractedText` field. The field name remains for wire and database compatibility; for AnyDoc-supported formats, its canonical content is Markdown.
+The document action validates the authenticated owner and 25 MB limit, reads the exact upload bytes once, computes SHA-256, and invokes AnyDoc before one database transaction. The transaction writes the existing `files` record, private original bytes in `document_originals`, processing provenance in `course_material_records`, and the attachment owner. AnyDoc Markdown is saved unchanged in both `files.extracted_text` and `course_material_records.extraction.contentMarkdown` for compatibility with search, agent context, and the viewer. Those fields are two uses of one parser result, not independent conversions.
 
-Atlas does not send every document to an LLM for parsing. Optional model enrichment may derive a title, summary, or navigation outline from the canonical Markdown, but it must not replace that Markdown or re-parse the original as a second source of truth. Plain text and code use bounded local decoding. Package formats such as Common Cartridge, QTI/XML, and ZIP keep their own reviewed handlers. Scanned or image-only PDFs require a separately configured OCR path because AnyDoc does not perform OCR; Atlas must fail clearly when no reviewed OCR path is available and must not silently send private documents to a hosted service.
+Atlas does not send documents to an LLM for parsing or structure. Title, summary, and outline are derived deterministically from the canonical Markdown. Plain text and code use strict, bounded UTF-8 decoding. Package formats such as Common Cartridge, QTI/XML, and ZIP keep separate reviewed handlers. Scanned or image-only PDFs fail clearly because AnyDoc does not perform OCR; Atlas does not silently send private documents to a hosted service.
 
-## Configuration
+## External material configuration
+
+Document uploads do not require these variables. They apply only to intake that still uses the external material service.
 
 | Variable | Purpose |
 | --- | --- |
@@ -21,7 +23,9 @@ Atlas does not send every document to an LLM for parsing. Optional model enrichm
 
 Production ingestion and material URLs must use HTTPS. Local development may use HTTP only for `localhost` or `127.0.0.1`.
 
-## Upload request
+## External material upload request
+
+This request is not used for a filename accepted by the local document parser.
 
 Atlas sends `multipart/form-data`:
 
@@ -84,7 +88,6 @@ Rules:
 - `url` is a durable HTTPS object URL that serves bytes without a redirect, or local HTTP in development.
 - `status` is `processing` or `ready`.
 - `extractedText` is optional and at most 2,000,000 characters.
-- for AnyDoc-supported formats, `extractedText` contains the canonical GitHub-Flavored Markdown produced from the stored bytes;
 - `pageCount` is optional.
 - serialized metadata is at most 50,000 characters.
 - the whole response is at most 3,000,000 characters.
@@ -140,8 +143,8 @@ The callback:
 
 | State | Meaning | Student context |
 | --- | --- | --- |
-| `queued` | extension row created before a worker starts | excluded |
-| `processing` | accepted by worker, extraction incomplete | excluded |
+| `queued` | extension row created before asynchronous external work starts | excluded |
+| `processing` | accepted by external material work, extraction incomplete | excluded |
 | `ready` | durable material is available | included for course context only when access is `course`; included for personal context only for the owning student's exact session |
 | `failed` | terminal failure with a bounded error | excluded |
 
@@ -149,10 +152,12 @@ Instructor context may describe every state. Existing `files` rows with no exten
 
 ## Document understanding and originals
 
-Documents keep the existing `files` row and durable worker URL as the original-file source of truth. The worker's validated Markdown is the canonical derived document. The first implementation may keep that Markdown in both `files.extracted_text` and `course_material_records.extraction.contentMarkdown` for compatibility with existing search, context, and viewer paths, but those fields must represent the same parser result rather than independent conversions. Parser name, pinned version, input format, checksum, processing state, and bounded errors remain inspectable provenance. Any optional model-derived title, summary, or outline is enrichment attached to the parser result, not the canonical document.
+Documents keep the existing `files` row as their source record. `document_originals` stores one private `bytea` value keyed by `file_id`, with organization, checksum, a non-empty check, and the same 25 MB database limit enforced by the action. Deleting the file cascades to its original. New local document uploads do not require a public object URL, job id, callback, or second model pass.
+
+The canonical AnyDoc Markdown is saved in both existing readable fields in the same transaction. Deterministic title, summary, and heading sections accompany it for the viewer, while agents receive the same Markdown through the existing bounded context path. Parser name, exact version, input mode, checksum, processing state, and bounded errors remain inspectable provenance.
 
 `document_attachments` gives each use a real foreign-key owner: course material record, syllabus course, assignment, or Atlas thread. A database check requires exactly one attachment owner and exactly one storage scope. Course rows have `course_id`; personal student rows have `owner_user_id`, `course_id = null`, private visibility, and an established personal-session attachment.
 
-Atlas does not claim universal parsing. If AnyDoc, a bounded local decoder, or a separately reviewed format handler cannot produce the required representation, readable processing becomes `failed` with a bounded error while the durable original remains stored. Authenticated viewers open or download the original through `/api/documents/[fileId]/original`. Course reads repeat organization, course, enrollment, publication, visibility, and attachment-owner checks. Personal reads instead require the exact organization, owning student, private processing row, and personal session, and reject every instructor or other student.
+Atlas does not claim universal parsing. If AnyDoc or the bounded local decoder cannot produce Markdown, the same transaction stores the private original and a `failed` readable state with a stable bounded error. Authenticated viewers open or download database-backed originals through `/api/documents/[fileId]/original`; the route retains the durable HTTPS URL path only for legacy files. Course reads repeat organization, course, enrollment, publication, visibility, and attachment-owner checks. Personal reads instead require the exact organization, owning student, private processing row, and personal session, and reject every instructor or other student.
 
 Capability references checked for this decision: [AnyDoc repository and format support](https://github.com/firecrawl/anydoc) and [AnyDoc Node.js bindings](https://github.com/firecrawl/anydoc/blob/main/node/README.md).

@@ -2,59 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { canReadDocumentBytesDirectly, planDocumentInput } from "@/lib/course/document-understanding";
 import { personalDocumentAccessAllowed } from "@/lib/course/documents";
 
 const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), "utf8");
-
-test("document input planning is conservative by provider and format", () => {
-  assert.deepEqual(
-    planDocumentInput({ provider: "openai", filename: "reading.pdf", mediaType: "application/pdf", hasBytes: true, hasText: false }),
-    { mode: "native_pdf", reason: null }
-  );
-  assert.deepEqual(
-    planDocumentInput({ provider: "anthropic", filename: "reading.pdf", mediaType: "application/pdf", hasBytes: true, hasText: false }),
-    { mode: "native_pdf", reason: null }
-  );
-  assert.deepEqual(
-    planDocumentInput({ provider: "google", filename: "reading.pdf", mediaType: "application/pdf", hasBytes: true, hasText: false }),
-    { mode: "native_pdf", reason: null }
-  );
-
-  const compatiblePdf = planDocumentInput({
-    provider: "openai_compatible",
-    filename: "reading.pdf",
-    mediaType: "application/pdf",
-    hasBytes: true,
-    hasText: false,
-  });
-  assert.equal(compatiblePdf.mode, null);
-  assert.match(compatiblePdf.reason ?? "", /does not have confirmed native PDF input/);
-
-  const officeWithoutWorker = planDocumentInput({
-    provider: "openai",
-    filename: "lecture.pptx",
-    mediaType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    hasBytes: true,
-    hasText: false,
-  });
-  assert.equal(officeWithoutWorker.mode, null);
-  assert.match(officeWithoutWorker.reason ?? "", /worker-extracted text/);
-
-  assert.deepEqual(
-    planDocumentInput({ provider: "openai", filename: "lecture.pptx", mediaType: "application/octet-stream", hasBytes: true, hasText: true }),
-    { mode: "text", reason: null }
-  );
-  assert.deepEqual(
-    planDocumentInput({ provider: "openrouter", filename: "analysis.ts", mediaType: "text/plain", hasBytes: true, hasText: true }),
-    { mode: "text", reason: null }
-  );
-  assert.equal(canReadDocumentBytesDirectly({ provider: "openai", filename: "reading.pdf", mediaType: "application/pdf" }), true);
-  assert.equal(canReadDocumentBytesDirectly({ provider: "openrouter", filename: "reading.pdf", mediaType: "application/pdf" }), false);
-  assert.equal(canReadDocumentBytesDirectly({ provider: "google", filename: "deck.pptx", mediaType: "application/octet-stream" }), false);
-  assert.equal(canReadDocumentBytesDirectly({ provider: "google", filename: "deck.pptx", mediaType: "text/plain" }), false);
-});
 
 test("document migration follows personal agents and assessed transcript access", () => {
   const schema = read("lib/db/course-agent-schema.ts");
@@ -64,6 +15,7 @@ test("document migration follows personal agents and assessed transcript access"
   assert.equal(existsSync(path.join(root, "drizzle/0008_document_attachments.sql")), false);
   assert.equal(existsSync(path.join(root, "drizzle/0009_document_attachments.sql")), false);
   assert.equal(existsSync(path.join(root, "drizzle/0010_document_attachments.sql")), true);
+  assert.equal(existsSync(path.join(root, "drizzle/0018_document_originals.sql")), true);
   for (const owner of ["courseMaterialId", "syllabusCourseId", "assignmentId", "agentSessionId"]) {
     assert.match(schema, new RegExp(owner));
   }
@@ -78,6 +30,11 @@ test("document migration follows personal agents and assessed transcript access"
   assert.match(migration, /ALTER COLUMN "course_id" DROP NOT NULL/);
   assert.match(migration, /"owner_user_id" uuid REFERENCES "users"/);
   assert.match(migration, /INSERT INTO "document_attachments"/);
+  const originalsMigration = read("drizzle/0018_document_originals.sql");
+  assert.match(schema, /documentOriginals/);
+  assert.match(originalsMigration, /"bytes" bytea NOT NULL/);
+  assert.match(originalsMigration, /octet_length\("bytes"\) <= 26214400/);
+  assert.match(originalsMigration, /ON DELETE CASCADE/);
 });
 
 test("personal document access admits only the owning student through a personal session", () => {
@@ -118,7 +75,11 @@ test("document reads and chat context repeat authenticated scope", () => {
   assert.match(documents, /eq\(courseMaterialRecords\.processingStatus, "ready"\)/);
   assert.match(documents, /eq\(agentSessions\.userId, args\.userId\)/);
   assert.match(documents, /escapeReferenceText\(parsed\.data\.contentMarkdown\)/);
+  assert.match(documents, /parseDocumentBytes/);
+  assert.match(documents, /tx\.insert\(documentOriginals\)/);
+  assert.doesNotMatch(documents, /ingestUploadedCourseMaterial|resolvePlatformModel|generateText/);
   assert.match(original, /loadDocumentDetailForActor/);
+  assert.match(original, /documentOriginals\.bytes/);
   assert.match(original, /Content-Disposition/);
   assert.match(original, /Cache-Control.*private, no-store/);
   assert.match(original, /Content-Security-Policy/);
@@ -126,7 +87,8 @@ test("document reads and chat context repeat authenticated scope", () => {
   assert.match(planningRoute, /attachCourseFilesToThread/);
   assert.match(planningRoute, /data-document-attachments/);
   assert.match(planningRoute, /attachmentId: document\.attachmentId/);
-  assert.match(ingestionRoute, /understandingInProgress/);
+  assert.match(ingestionRoute, /extractionFromMarkdown/);
+  assert.doesNotMatch(ingestionRoute, /processDocumentUnderstanding|generateText/);
   assert.match(runtime, /loadReadyThreadDocumentContext/);
   assert.match(runtime, /remember: personalMemoryTool/);
   assert.match(runtime, /attachedDocuments/);

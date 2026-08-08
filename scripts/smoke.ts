@@ -87,6 +87,17 @@ const checks: SmokeCheck[] = [
     includes: ["Materials", "Add material"],
   },
   {
+    name: "seeded document detail",
+    path: "/teach/documents/5f4ad2c1-d506-434f-a622-68d8bad95e91",
+    status: 200,
+    auth: {
+      email: "instructor@demo.edu",
+      password: "atlas1234",
+      redirectTo: "/teach/documents/5f4ad2c1-d506-434f-a622-68d8bad95e91",
+    },
+    includes: ["ECON-241 Syllabus and course schedule", "Open original", "Download"],
+  },
+  {
     name: "syllabus",
     path: "/teach/syllabus",
     status: 200,
@@ -120,7 +131,7 @@ const checks: SmokeCheck[] = [
     path: "/student/atlas",
     status: 200,
     auth: { email: "student@demo.edu", password: "atlas1234", redirectTo: "/student/atlas" },
-    includes: ["Atlas", "What are you working on"],
+    includes: ["Atlas", "Ask Atlas"],
   },
   {
     name: "student profile",
@@ -174,6 +185,7 @@ const failures: string[] = [];
 for (const check of checks) {
   await runCheck(check);
 }
+await runInvalidCredentialCheck();
 
 if (failures.length > 0) {
   console.error(`\nSmoke failed against ${baseUrl}`);
@@ -294,6 +306,47 @@ async function signIn(user: AuthSmokeUser) {
   }
 
   return jar;
+}
+
+async function runInvalidCredentialCheck() {
+  try {
+    const jar = new CookieJar();
+    const csrfResponse = await fetch(new URL("/api/auth/csrf", baseUrl), {
+      headers: { accept: "application/json" },
+    });
+    jar.store(csrfResponse);
+    if (!csrfResponse.ok) throw new Error(`csrf request failed with ${csrfResponse.status}`);
+
+    const csrfBody = (await csrfResponse.json()) as { csrfToken?: string };
+    if (!csrfBody.csrfToken) throw new Error("csrf token missing");
+
+    const response = await fetch(new URL("/api/auth/callback/credentials", baseUrl), {
+      body: new URLSearchParams({
+        email: "missing-user@atlas.invalid",
+        password: "invalid-password",
+        csrfToken: csrfBody.csrfToken,
+        callbackUrl: "/teach",
+      }),
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        "x-auth-return-redirect": "1",
+        cookie: jar.header(),
+      },
+      method: "POST",
+      redirect: "manual",
+    });
+    if (!response.ok) throw new Error(`expected handled response, got ${response.status}`);
+
+    const body = (await response.json()) as { url?: string };
+    const target = pathnameWithSearch(body.url ?? "");
+    if (!target.startsWith("/sign-in?error=CredentialsSignin")) {
+      throw new Error(`expected credentials error, got ${target}`);
+    }
+    console.log("PASS invalid credentials");
+  } catch (error) {
+    failures.push(`invalid credentials: ${errorMessage(error)}`);
+    console.error("FAIL invalid credentials");
+  }
 }
 
 function normalizeBaseUrl(value: string) {

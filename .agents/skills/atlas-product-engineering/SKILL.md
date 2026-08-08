@@ -55,6 +55,8 @@ If the user says `tell me first`, `audit`, `chat`, `do nothing else`, or otherwi
 
 - Read [references/product-doctrine.md](references/product-doctrine.md) for product direction, actor journeys, interface posture, visual language, copy, and demo-data credibility.
 - Read [references/execution-doctrine.md](references/execution-doctrine.md) for implementation, debugging, verification, documentation, collaboration, and Git workflows.
+- Read [references/solo-engineering-discipline.md](references/solo-engineering-discipline.md) for local startup, database migrations, environment and asset drift, release readiness, deployment provenance, and the operating cadence for one developer maintaining Atlas.
 - Read both for mixed product and engineering tasks.
 
 For a pure branch refresh, checkout, or merge, the execution reference is enough. For a visual or product task, do not skip the product reference.
+For startup failures, database errors, environment drift, deployment freshness, or release preparation, do not skip the solo-engineering reference.

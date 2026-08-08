@@ -1,4 +1,4 @@
--- Keep one private original beside every document Atlas parses locally.
+-- Keep one private original beside every file Atlas stores locally.
 -- The application authenticates through the owning file record before these
 -- bytes are read. Files remain the lifecycle owner through ON DELETE CASCADE.
 

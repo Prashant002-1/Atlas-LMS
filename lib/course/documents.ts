@@ -11,6 +11,7 @@ import {
   type ParsedDocument,
 } from "@/lib/course/document-parser";
 import {
+  assertSupportedCourseMaterial,
   classifyCourseMaterial,
   MAX_COURSE_MATERIAL_BYTES,
   type MaterialKind,
@@ -192,6 +193,93 @@ export async function createUploadedDocument(args: {
     } satisfies DocumentAttachmentItem;
   });
   return created;
+}
+
+/**
+ * Course-library uploads have one storage path. Readable documents are parsed
+ * locally by createUploadedDocument. Media, archives, and other accepted files
+ * are stored unchanged and become available immediately without pretending
+ * that Atlas extracted or understood their contents.
+ */
+export async function createUploadedCourseMaterial(args: {
+  actor: DocumentActor;
+  courseId: string;
+  file: File;
+  displayName?: string | null;
+  visibility: "course" | "instructors";
+  materialKind?: MaterialKind;
+}): Promise<DocumentAttachmentItem> {
+  const classification = classifyCourseMaterial(args.file.name, args.file.type || null);
+  if (isDocumentFilename(args.file.name) && classification.kind !== "assessment") {
+    return createUploadedDocument(args);
+  }
+  assertSupportedCourseMaterial(args.file);
+
+  const prepared = await prepareOriginal(args.file);
+
+  return db.transaction(async (tx) => {
+    const [fileRow] = await tx
+      .insert(files)
+      .values({
+        orgId: args.actor.orgId,
+        courseId: args.courseId,
+        displayName: cleanDisplayName(args.displayName, args.file.name),
+        filename: args.file.name,
+        contentType: args.file.type || null,
+        sizeBytes: args.file.size,
+        url: null,
+        extractedText: null,
+      })
+      .returning({ id: files.id, displayName: files.displayName, createdAt: files.createdAt });
+
+    await tx.insert(documentOriginals).values({
+      fileId: fileRow.id,
+      orgId: args.actor.orgId,
+      bytes: prepared.bytes,
+      checksumSha256: prepared.checksumSha256,
+    });
+
+    const [materialRow] = await tx
+      .insert(courseMaterialRecords)
+      .values({
+        orgId: args.actor.orgId,
+        courseId: args.courseId,
+        fileId: fileRow.id,
+        materialKind: args.materialKind ?? classification.kind,
+        ingestionSource: classification.source,
+        processingStatus: "ready",
+        visibility: args.visibility,
+        checksumSha256: prepared.checksumSha256,
+        metadata: { originalStorage: "postgres", contentHandling: "stored-only" },
+        updatedById: args.actor.id,
+      })
+      .returning({ id: courseMaterialRecords.id });
+
+    const [attachment] = await tx
+      .insert(documentAttachments)
+      .values({
+        orgId: args.actor.orgId,
+        courseId: args.courseId,
+        fileId: fileRow.id,
+        courseMaterialId: materialRow.id,
+        createdById: args.actor.id,
+      })
+      .returning({ id: documentAttachments.id });
+
+    return {
+      attachmentId: attachment.id,
+      fileId: fileRow.id,
+      displayName: fileRow.displayName,
+      filename: args.file.name,
+      contentType: args.file.type || null,
+      sizeBytes: args.file.size,
+      processingStatus: "ready",
+      processingError: null,
+      visibility: args.visibility,
+      pageCount: null,
+      createdAt: fileRow.createdAt,
+    };
+  });
 }
 
 /**
@@ -888,14 +976,19 @@ async function prepareDocument(file: File): Promise<{
   parsed: ParsedDocument | null;
   error: string | null;
 }> {
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const checksumSha256 = createHash("sha256").update(bytes).digest("hex");
+  const { bytes, checksumSha256 } = await prepareOriginal(file);
   try {
     const parsed = await parseDocumentBytes({ filename: file.name, bytes });
     return { bytes, checksumSha256, parsed, error: null };
   } catch (error) {
     return { bytes, checksumSha256, parsed: null, error: documentParseErrorMessage(error) };
   }
+}
+
+async function prepareOriginal(file: File): Promise<{ bytes: Buffer; checksumSha256: string }> {
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const checksumSha256 = createHash("sha256").update(bytes).digest("hex");
+  return { bytes, checksumSha256 };
 }
 
 function documentMetadata(parsed: ParsedDocument | null) {

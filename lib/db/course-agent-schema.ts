@@ -101,7 +101,6 @@ export const courseMaterialRecords = pgTable(
     fileId: uuid("file_id")
       .notNull()
       .references(() => files.id, { onDelete: "cascade" }),
-    ingestionJobId: text("ingestion_job_id"),
     materialKind: materialKindEnum("material_kind").notNull(),
     ingestionSource: materialSourceEnum("ingestion_source").notNull(),
     processingStatus: materialStatusEnum("processing_status").notNull().default("queued"),
@@ -124,14 +123,13 @@ export const courseMaterialRecords = pgTable(
       sql`num_nonnulls(${table.courseId}, ${table.ownerUserId}) = 1`
     ),
     uniqueIndex("course_material_records_file_idx").on(table.fileId),
-    uniqueIndex("course_material_records_job_idx").on(table.ingestionJobId),
     index("course_material_records_course_idx").on(table.orgId, table.courseId, table.processingStatus),
     index("course_material_records_owner_idx").on(table.orgId, table.ownerUserId, table.processingStatus),
   ]
 );
 
 /**
- * Private original bytes for a document uploaded through Atlas. Access always
+ * Private original bytes for a file uploaded through Atlas. Access always
  * starts from the authenticated file record; this table is never a public
  * object store or an independently addressable asset.
  */

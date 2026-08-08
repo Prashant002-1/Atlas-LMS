@@ -63,12 +63,11 @@ Teacher Materials and personal student document intake use authenticated server 
 | Action | External work | Database work |
 | --- | --- | --- |
 | upload supported document | parses bounded bytes locally with AnyDoc or strict UTF-8 | transaction inserts `files`, `document_originals`, `course_material_records`, and its attachment; failed readable conversion still preserves the original |
-| upload other material | forwards a bounded file to the configured HTTPS ingestion service | transaction inserts `files` plus `course_material_records` |
-| add linked material | asks the ingestion service to process one HTTPS URL | transaction inserts `files` plus `course_material_records` |
-| signed ingestion callback | worker sends HMAC-signed job status and extraction data | updates the scoped `files` and `course_material_records` rows for that job |
+| upload other material | none; the bytes are not parsed | transaction stores the private original and inserts a ready `files`, `course_material_records`, and attachment record |
+| add linked material | none; Atlas does not fetch the URL | transaction stores the validated HTTPS URL in a ready `files` and `course_material_records` record |
 | change material access | none | updates or creates one `course_material_records` extension row |
 | attach a personal student document | parses bounded bytes locally with the same document adapter | inserts one student-owned `files` row, private original, private processing record, and exact personal-session attachment with no course id |
 
-Local document intake stores the original and either a ready canonical Markdown result or a failed readable state in one transaction. External material intake creates no row if its initial service request fails, and asynchronous work is correlated by a stable unique job id. Existing course `files` rows without an extension row resolve as ready, course-visible LMS material. Personal rows require a private processing record and exact student/session ownership.
+Local document intake stores the original and either a ready canonical Markdown result or a failed readable state in one transaction. Other uploads are stored unchanged and marked ready. Links are references only. Existing course `files` rows without an extension row resolve as ready, course-visible LMS material. Personal rows require a private processing record and exact student/session ownership.
 
-Proof: [`lib/course/documents.ts`](../../lib/course/documents.ts), [`lib/course/document-parser.ts`](../../lib/course/document-parser.ts), [`lib/instructor/course-material-actions.ts`](../../lib/instructor/course-material-actions.ts), [`lib/course/materials.ts`](../../lib/course/materials.ts), [`app/api/materials/ingestion/route.ts`](../../app/api/materials/ingestion/route.ts), and [`lib/db/course-agent-schema.ts`](../../lib/db/course-agent-schema.ts).
+Proof: [`lib/course/documents.ts`](../../lib/course/documents.ts), [`lib/course/document-parser.ts`](../../lib/course/document-parser.ts), [`lib/instructor/course-material-actions.ts`](../../lib/instructor/course-material-actions.ts), [`lib/course/materials.ts`](../../lib/course/materials.ts), and [`lib/db/course-agent-schema.ts`](../../lib/db/course-agent-schema.ts).

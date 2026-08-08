@@ -19,6 +19,7 @@ export type CourseMaterialRow = {
   pageCount: number | null;
   updatedAt: string;
   document: boolean;
+  storedOriginal: boolean;
 };
 
 const KIND_OPTIONS = ["all", "document", "slides", "assessment", "media", "link", "package", "other"] as const;
@@ -114,7 +115,10 @@ function MaterialRow({ row }: { row: CourseMaterialRow }) {
   const documentHref = row.document
     ? `/teach/documents/${encodeURIComponent(row.id)}`
     : null;
-  const openHref = documentHref ?? row.url;
+  const storedOriginalHref = row.storedOriginal
+    ? `/api/documents/${encodeURIComponent(row.id)}/original`
+    : null;
+  const openHref = documentHref ?? row.url ?? storedOriginalHref;
   return (
     <tr className="transition hover:bg-[var(--color-surface-muted)]">
       <th scope="row" className="max-w-[24rem] px-3 py-3 align-top font-normal">

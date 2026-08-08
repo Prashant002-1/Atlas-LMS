@@ -117,15 +117,13 @@ Supported intake types include documents, PDFs, Office files, slide decks, sprea
 
 ### 7. Uploaded bytes never live on the web container filesystem
 
-The web process never writes uploads to its filesystem. Supported documents are validated, read once in memory, checksummed, parsed locally, and written to PostgreSQL in one transaction. Other material types and HTTPS links may still be forwarded to an institution-configured ingestion service. That adapter uses a server-only outbound token, and callback HMAC uses a separate server-only secret.
-
-The service returns a stable job id, durable object URL, and optional extracted text, page count, metadata, and `processing` or `ready` state. A processing result is accepted only when Atlas has an externally reachable callback URL and callback secret. The worker signs the exact callback body with HMAC-SHA256 and sends the job id to `/api/materials/ingestion`; the callback repeats organization plus the exact course or personal owner predicates before updating the matching row. Atlas creates no database row when the initial service request fails.
+The web process never writes uploads to its filesystem. Every accepted upload is validated, read once in memory, checksummed, and written to private PostgreSQL storage in one transaction. Supported documents are also parsed locally before that transaction. Media and package uploads are stored unchanged and marked ready without extraction. HTTPS links are stored as references and are never fetched by Atlas.
 
 The maximum file size is 25 MB. Next.js action and proxy body buffers are capped at 26 MB to allow multipart overhead.
 
-The existing `files` table remains the durable source record. `course_material_records` is a one-to-one extension carrying processing, parser, and access metadata. `document_originals` stores private original document bytes with a file foreign key, checksum, and database-enforced size bounds. Existing seeded and imported file rows without extension metadata remain valid and resolve as ready, course-visible LMS material. The remaining external material protocol is documented in [Course material ingestion contract](../course-materials/ingestion-contract.md).
+The existing `files` table remains the durable source record. `course_material_records` is a one-to-one extension carrying processing, parser, and access metadata. `document_originals` stores private original upload bytes with a file foreign key, checksum, and database-enforced size bounds. Existing seeded and imported file rows without extension metadata remain valid and resolve as ready, course-visible LMS material. The complete intake behavior is documented in [Course material intake](../course-materials/ingestion-contract.md).
 
-The document path tracked in [issue #49](https://github.com/Prashant002-1/Atlas-LMS/issues/49) uses `@firecrawl/anydoc@0.1.7` directly in Atlas. It runs against the exact uploaded bytes and returns canonical GitHub-Flavored Markdown before the intake transaction. Plain text and code use strict bounded UTF-8 decoding. Package formats retain dedicated handlers. Scanned or image-only PDFs fail clearly because no OCR path is configured; private documents are never sent to a hosted parser by default.
+The document path tracked in [issue #49](https://github.com/Prashant002-1/Atlas-LMS/issues/49) uses `@firecrawl/anydoc@0.1.7` directly in Atlas. It runs against the exact uploaded bytes and returns canonical GitHub-Flavored Markdown before the intake transaction. Plain text and code use strict bounded UTF-8 decoding. Packages are stored unchanged. Scanned or image-only PDFs fail clearly because no OCR path is configured; private documents are never sent to a hosted parser by default.
 
 ### 8. Document understanding extends the same file record
 
@@ -154,9 +152,8 @@ Document parsing does not depend on the configured model provider. The parser re
 
 ### Costs
 
-- Non-document material and link intake still require the external ingestion service. Supported document uploads do not.
 - Private originals consume PostgreSQL storage and pass through one bounded server request. The 25 MB action and database checks are the current operational ceiling.
 - AnyDoc is an early dependency and does not perform OCR. Atlas must pin a reviewed release, keep format fixtures, bound parser resources and output, and provide an explicit scanned-document failure or OCR path.
 - Configuration is loaded each turn rather than pinned to an open session. This is intentional for immediate propagation, but future audit requirements may add `configVersion` to session and submission records.
 - The legacy `course_ai_policies` row remains until the planned study profile migrates fully to the new specification.
-- Common Cartridge and QTI parsing happens behind the ingestion seam. This change stores package provenance and processing state, but does not implement a complete standards parser inside the Next.js request path.
+- Media transcription, video analysis, and package inspection are not part of material intake. They require separate explicit capabilities if Atlas adds them later.

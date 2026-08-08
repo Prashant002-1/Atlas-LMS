@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Atlas is signed-in software. Only authentication, health, and the signed
- * material-ingestion callback enter without an Auth.js session. Every public
- * machine endpoint performs its own authentication.
+ * Atlas is signed-in software. Only authentication and health endpoints enter
+ * without an Auth.js session. Every public machine endpoint performs its own
+ * authentication.
  */
 
 const PUBLIC_PATHS = new Set(["/sign-in", "/sign-up"]);
-const PUBLIC_PREFIXES = ["/api/auth", "/api/health", "/api/materials/ingestion"];
+const PUBLIC_PREFIXES = ["/api/auth", "/api/health"];
 
 function hasSessionCookie(req: NextRequest): boolean {
   return Boolean(

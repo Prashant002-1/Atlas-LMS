@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { files } from "@/lib/db/schema";
-import { courseMaterialRecords } from "@/lib/db/course-agent-schema";
+import { courseMaterialRecords, documentOriginals } from "@/lib/db/course-agent-schema";
 import { classifyCourseMaterial } from "@/lib/course/materials";
 import { isDocumentFilename } from "@/lib/course/documents";
 import { findEditableCourse } from "@/lib/instructor/workspace";
@@ -50,6 +50,7 @@ export default async function TeachMaterialsPage() {
       visibility: courseMaterialRecords.visibility,
       pageCount: courseMaterialRecords.pageCount,
       updatedAt: courseMaterialRecords.updatedAt,
+      storedOriginalFileId: documentOriginals.fileId,
     })
     .from(files)
     .leftJoin(
@@ -58,6 +59,13 @@ export default async function TeachMaterialsPage() {
         eq(courseMaterialRecords.fileId, files.id),
         eq(courseMaterialRecords.orgId, session.user.orgId),
         eq(courseMaterialRecords.courseId, course.id)
+      )
+    )
+    .leftJoin(
+      documentOriginals,
+      and(
+        eq(documentOriginals.fileId, files.id),
+        eq(documentOriginals.orgId, session.user.orgId)
       )
     )
     .where(and(eq(files.orgId, session.user.orgId), eq(files.courseId, course.id)))
@@ -80,6 +88,7 @@ export default async function TeachMaterialsPage() {
       pageCount: row.pageCount,
       updatedAt: (row.updatedAt ?? row.createdAt).toISOString(),
       document: isDocumentFilename(row.filename ?? row.displayName),
+      storedOriginal: Boolean(row.storedOriginalFileId),
     };
   });
   const readyMaterials = materials.filter((material) => material.processingStatus === "ready").length;
@@ -142,7 +151,7 @@ function AddMaterialDialog() {
           </div>
           <label className="grid gap-1.5 text-[0.75rem] font-medium">
             File
-            <input name="file" type="file" required accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.rtf,.xml,.json,.jsonl,.yaml,.yml,.html,.css,.js,.jsx,.ts,.tsx,.mjs,.cjs,.py,.java,.c,.cc,.cpp,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.kts,.sql,.sh,.zsh,.bash,.mp3,.m4a,.wav,.mp4,.mov,.webm,.imscc,.qti,.zip" className={`${fieldClass} file:mr-3 file:border-0 file:bg-transparent file:text-[0.75rem] file:font-medium file:text-[var(--color-ink)]`} />
+            <input name="file" type="file" required accept=".pdf,.doc,.docx,.docm,.ppt,.pps,.pot,.pptx,.pptm,.ppsx,.ppsm,.xls,.xlsx,.xlsm,.xlsb,.odt,.ods,.odp,.rtf,.epub,.csv,.txt,.md,.xml,.json,.jsonl,.yaml,.yml,.html,.css,.js,.jsx,.ts,.tsx,.mjs,.cjs,.py,.java,.c,.cc,.cpp,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.kts,.sql,.sh,.zsh,.bash,.mp3,.m4a,.wav,.mp4,.mov,.webm,.imscc,.qti,.zip" className={`${fieldClass} file:mr-3 file:border-0 file:bg-transparent file:text-[0.75rem] file:font-medium file:text-[var(--color-ink)]`} />
           </label>
           <label className="grid gap-1.5 text-[0.75rem] font-medium">
             Display name <span className="font-normal text-[var(--color-faint)]">Optional</span>

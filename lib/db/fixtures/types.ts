@@ -159,7 +159,7 @@ export type FixtureMaterial = {
    * opened locally before a live upload provider is configured.
    */
   assetPath?: string;
-  /** Readable content for grounding, as the ingestion service would return it. */
+  /** Readable content for grounding, as local document parsing would return it. */
   extractedText?: string;
 };
 

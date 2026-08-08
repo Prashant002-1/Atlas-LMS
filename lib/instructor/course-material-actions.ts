@@ -8,13 +8,12 @@ import { isInstructorLike } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { files } from "@/lib/db/schema";
 import { courseMaterialRecords, documentAttachments } from "@/lib/db/course-agent-schema";
-import { createUploadedDocument, isDocumentFilename } from "@/lib/course/documents";
+import { createUploadedCourseMaterial, isDocumentFilename } from "@/lib/course/documents";
 import { findEditableCourse } from "@/lib/instructor/workspace";
 import {
   classifyCourseMaterial,
-  ingestLinkedCourseMaterial,
-  ingestUploadedCourseMaterial,
   materialKinds,
+  normalizeCourseMaterialLink,
   type MaterialKind,
 } from "@/lib/course/materials";
 
@@ -30,59 +29,17 @@ export async function uploadCourseMaterial(formData: FormData) {
   const classification = classifyCourseMaterial(value.name, value.type || null);
   const requestedKind = materialKindField(formData.get("materialKind"));
 
-  if (isDocumentFilename(value.name)) {
-    await createUploadedDocument({
-      actor,
-      courseId: course.id,
-      file: value,
-      displayName,
-      visibility,
-      materialKind: requestedKind ?? classification.kind,
-    });
-    refreshCourseMaterials(course.id);
-    redirect("/teach/course#materials");
-  }
-
-  const ingested = await ingestUploadedCourseMaterial({
-    orgId: actor.orgId,
+  await createUploadedCourseMaterial({
+    actor,
     courseId: course.id,
-    uploadedById: actor.id,
     file: value,
-  });
-
-  await db.transaction(async (tx) => {
-    const [createdFile] = await tx
-      .insert(files)
-      .values({
-        orgId: actor.orgId,
-        courseId: course.id,
-        displayName,
-        filename: value.name,
-        contentType: value.type || null,
-        sizeBytes: value.size,
-        url: ingested.url,
-        extractedText: ingested.extractedText ?? null,
-      })
-      .returning({ id: files.id });
-
-    await tx.insert(courseMaterialRecords).values({
-      orgId: actor.orgId,
-      courseId: course.id,
-      fileId: createdFile.id,
-      ingestionJobId: ingested.jobId,
-      materialKind: requestedKind ?? classification.kind,
-      ingestionSource: classification.source,
-      processingStatus: ingested.status,
-      visibility,
-      pageCount: ingested.pageCount ?? null,
-      checksumSha256: ingested.checksumSha256,
-      metadata: ingested.metadata,
-      updatedById: actor.id,
-    });
+    displayName,
+    visibility,
+    materialKind: requestedKind ?? classification.kind,
   });
 
   refreshCourseMaterials(course.id);
-  redirect("/teach/course#materials");
+  redirect("/teach/materials");
 }
 
 export async function addLinkedCourseMaterial(formData: FormData) {
@@ -91,15 +48,10 @@ export async function addLinkedCourseMaterial(formData: FormData) {
   if (!course) throw new Error("No editable course found for this instructor.");
 
   const displayName = compactRequired(formData.get("displayName"), "Material name is required.", 240);
-  const sourceUrl = compactRequired(formData.get("sourceUrl"), "Material URL is required.", 2000);
+  const sourceUrl = normalizeCourseMaterialLink(
+    compactRequired(formData.get("sourceUrl"), "Material URL is required.", 2000)
+  );
   const visibility = visibilityField(formData.get("visibility"));
-  const ingested = await ingestLinkedCourseMaterial({
-    orgId: actor.orgId,
-    courseId: course.id,
-    uploadedById: actor.id,
-    sourceUrl,
-    displayName,
-  });
 
   await db.transaction(async (tx) => {
     const [createdFile] = await tx
@@ -111,8 +63,8 @@ export async function addLinkedCourseMaterial(formData: FormData) {
         filename: null,
         contentType: null,
         sizeBytes: null,
-        url: ingested.url,
-        extractedText: ingested.extractedText ?? null,
+        url: sourceUrl,
+        extractedText: null,
       })
       .returning({ id: files.id });
 
@@ -120,20 +72,18 @@ export async function addLinkedCourseMaterial(formData: FormData) {
       orgId: actor.orgId,
       courseId: course.id,
       fileId: createdFile.id,
-      ingestionJobId: ingested.jobId,
       materialKind: "link",
       ingestionSource: "external",
-      processingStatus: ingested.status,
+      processingStatus: "ready",
       visibility,
-      pageCount: ingested.pageCount ?? null,
       checksumSha256: null,
-      metadata: ingested.metadata,
+      metadata: {},
       updatedById: actor.id,
     });
   });
 
   refreshCourseMaterials(course.id);
-  redirect("/teach/course#materials");
+  redirect("/teach/materials");
 }
 
 export async function setCourseMaterialVisibility(formData: FormData) {
@@ -214,7 +164,7 @@ export async function setCourseMaterialVisibility(formData: FormData) {
   }
 
   refreshCourseMaterials(course.id);
-  redirect("/teach/course#materials");
+  redirect("/teach/materials");
 }
 
 async function requireInstructorActor() {

@@ -65,7 +65,6 @@ test("document reads and chat context repeat authenticated scope", () => {
   const documents = read("lib/course/documents.ts");
   const original = read("app/api/documents/[fileId]/original/route.ts");
   const planningRoute = read("app/api/atlas/planning/route.ts");
-  const ingestionRoute = read("app/api/materials/ingestion/route.ts");
   const runtime = read("lib/agent/professor-runtime.ts");
   const studentRoute = read("app/api/atlas/student/route.ts");
   const studentRuntime = read("lib/agent/student-atlas-runtime.ts");
@@ -77,6 +76,10 @@ test("document reads and chat context repeat authenticated scope", () => {
   assert.match(documents, /escapeReferenceText\(parsed\.data\.contentMarkdown\)/);
   assert.match(documents, /parseDocumentBytes/);
   assert.match(documents, /tx\.insert\(documentOriginals\)/);
+  assert.match(documents, /createUploadedCourseMaterial/);
+  assert.match(documents, /contentHandling: "stored-only"/);
+  assert.match(documents, /classification\.kind !== "assessment"/);
+  assert.match(documents, /processingStatus: "ready"/);
   assert.doesNotMatch(documents, /ingestUploadedCourseMaterial|resolvePlatformModel|generateText/);
   assert.match(original, /loadDocumentDetailForActor/);
   assert.match(original, /documentOriginals\.bytes/);
@@ -87,8 +90,7 @@ test("document reads and chat context repeat authenticated scope", () => {
   assert.match(planningRoute, /attachCourseFilesToThread/);
   assert.match(planningRoute, /data-document-attachments/);
   assert.match(planningRoute, /attachmentId: document\.attachmentId/);
-  assert.match(ingestionRoute, /extractionFromMarkdown/);
-  assert.doesNotMatch(ingestionRoute, /processDocumentUnderstanding|generateText/);
+  assert.equal(existsSync(path.join(root, "app/api/materials/ingestion/route.ts")), false);
   assert.match(runtime, /loadReadyThreadDocumentContext/);
   assert.match(runtime, /remember: personalMemoryTool/);
   assert.match(runtime, /attachedDocuments/);

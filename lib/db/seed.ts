@@ -565,7 +565,6 @@ async function seedCourse(db: Db, orgId: string, c: FixtureCourse) {
         orgId,
         courseId,
         fileId,
-        ingestionJobId: `seed:${ck}:${material.key}`,
         materialKind: materialKindFor(material.kind),
         ingestionSource: "seed",
         processingStatus: "ready",

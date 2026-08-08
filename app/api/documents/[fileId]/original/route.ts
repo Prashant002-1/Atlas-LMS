@@ -11,7 +11,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ file
   const session = await auth();
   const user = session?.user;
   if (!user?.id || !user.orgId) {
-    return NextResponse.json({ error: "Sign in to open this document." }, { status: 401 });
+    return NextResponse.json({ error: "Sign in to open this file." }, { status: 401 });
   }
 
   const { fileId } = await params;
@@ -20,7 +20,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ file
     fileId,
   });
   if (!document?.hasOriginal) {
-    return NextResponse.json({ error: "The original document is unavailable." }, { status: 404 });
+    return NextResponse.json({ error: "The original file is unavailable." }, { status: 404 });
   }
 
   const download = new URL(request.url).searchParams.get("download") === "1";
@@ -44,18 +44,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ file
   }
 
   if (!document.url) {
-    return NextResponse.json({ error: "The original document is unavailable." }, { status: 404 });
+    return NextResponse.json({ error: "The original file is unavailable." }, { status: 404 });
   }
 
   let source: URL;
   try {
     source = new URL(document.url);
   } catch {
-    return NextResponse.json({ error: "The original document location is invalid." }, { status: 502 });
+    return NextResponse.json({ error: "The original file location is invalid." }, { status: 502 });
   }
   const local = source.hostname === "localhost" || source.hostname === "127.0.0.1";
   if (source.username || source.password || (source.protocol !== "https:" && !(local && source.protocol === "http:"))) {
-    return NextResponse.json({ error: "The original document location is invalid." }, { status: 502 });
+    return NextResponse.json({ error: "The original file location is invalid." }, { status: 502 });
   }
 
   const upstream = await fetch(source, {
@@ -65,7 +65,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ file
     cache: "no-store",
   });
   if (!upstream.ok || !upstream.body) {
-    return NextResponse.json({ error: "The original document could not be opened." }, { status: 502 });
+    return NextResponse.json({ error: "The original file could not be opened." }, { status: 502 });
   }
 
   const sourceContentType = document.contentType || upstream.headers.get("content-type") || "application/octet-stream";
@@ -108,6 +108,6 @@ function safeInlineContentType(contentType: string) {
 }
 
 function contentDisposition(filename: string, download: boolean) {
-  const ascii = filename.replace(/[^\x20-\x7E]+/g, "_").replace(/["\\]/g, "_").slice(0, 180) || "document";
+  const ascii = filename.replace(/[^\x20-\x7E]+/g, "_").replace(/["\\]/g, "_").slice(0, 180) || "file";
   return `${download ? "attachment" : "inline"}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
 }

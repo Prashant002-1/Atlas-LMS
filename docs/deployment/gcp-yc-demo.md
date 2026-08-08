@@ -160,7 +160,6 @@ PORT=3000
 PG_POOL_MAX=10
 AUTH_URL=https://demo.atlas-lms.com
 AUTH_TRUST_HOST=true
-ATLAS_PUBLIC_APP_URL=https://demo.atlas-lms.com
 ATLAS_ALLOWED_LOGIN_EMAILS=yc-instructor@atlas-lms.com,yc-student@atlas-lms.com,spc-instructor@atlas-lms.com,spc-student@atlas-lms.com
 ATLAS_CHAT_PROVIDER=anthropic
 ATLAS_CHAT_MODEL=claude-opus-5

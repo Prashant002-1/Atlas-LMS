@@ -15,7 +15,7 @@ Supporting docs:
 - [`DesignSystem.md`](DesignSystem.md), UI token and surface guidance.
 - [`adr/README.md`](adr/README.md), architecture decision records.
 - [`course-materials/ingestion-contract.md`](course-materials/ingestion-contract.md),
-  durable document intake, private originals, parser choice, and callback contract.
+  document parsing, private originals, opaque uploads, and link intake.
 
 Deployment and operations:
 

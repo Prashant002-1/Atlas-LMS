@@ -14,14 +14,23 @@ export function messageHasVisibleOutput(message: UIMessage | undefined): boolean
   return (message.parts as LoosePart[]).some((part) => {
     const type = String(part.type ?? "");
     if (type === "text") return typeof part.text === "string" && part.text.trim().length > 0;
-    return type.startsWith("tool-") || type === "data-side-note" || type === "data-session-end";
+    if (type === "step-start" || type === "data-atlas-ref" || type === "data-planning-ref" || type === "data-run-context") return false;
+    return type === "reasoning"
+      || type === "file"
+      || type === "reasoning-file"
+      || type === "source-url"
+      || type === "source-document"
+      || type === "custom"
+      || type === "dynamic-tool"
+      || type.startsWith("tool-")
+      || type.startsWith("data-");
   });
 }
 
 export function ThinkingIndicator({ label }: { label: string }) {
   const activity = sentenceCaseActivity(label);
   return (
-    <div className="py-1" role="status" aria-live="polite">
+    <div className="flex min-h-10 items-center py-1" role="status" aria-live="polite">
       <Shimmer as="span" duration={1.6} spread={1.5} className="text-[0.78125rem] font-medium">{activity}</Shimmer>
     </div>
   );

@@ -110,7 +110,7 @@ export async function loadStudentAtlasRoom(
     const turnRows = await loadFullSessionTurns(scope.orgId, thread.id);
     active = {
       id: thread.id,
-      title: thread.title ?? "Atlas chat",
+      title: threads.find((candidate) => candidate.id === thread.id)?.title ?? thread.title ?? "Atlas chat",
       messages: turnsToUIMessages(turnRows),
       activeRunId: publicWorkflowRunId(thread.activeRunId),
     };
@@ -120,7 +120,7 @@ export async function loadStudentAtlasRoom(
       const turnRows = await loadFullSessionTurns(scope.orgId, newest.id);
       active = {
         id: newest.id,
-        title: newest.title ?? "Atlas chat",
+        title: threads.find((candidate) => candidate.id === newest.id)?.title ?? newest.title ?? "Atlas chat",
         messages: turnsToUIMessages(turnRows),
         activeRunId: publicWorkflowRunId(newest.activeRunId),
       };

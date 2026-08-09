@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
 import { type UIMessage } from "ai";
 import { WorkflowChatTransport } from "@ai-sdk/workflow";
@@ -23,7 +24,8 @@ import {
   ConversationEmptyState,
 } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageTimestamp } from "@/components/ai-elements/message";
-import { Response } from "@/components/ai-elements/response";
+import { AtlasMessageParts, type AtlasLoosePart } from "@/components/agent/message-parts";
+import { ChatThreadRow } from "@/components/agent/chat-thread-row";
 import {
   messageHasVisibleOutput,
   PromptCheckpointRail,
@@ -46,14 +48,14 @@ import {
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { SteeringMark, SteeringPending } from "@/components/ai-elements/steering";
 import { useSteering } from "@/components/ai-elements/use-steering";
-import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput, type ToolState } from "@/components/ai-elements/tool";
 import { AtlasMark, StatusBadge, TextLink } from "@/components/atlas/primitives";
 import { RubricCard } from "@/components/planning/rubric-card";
 import type { RubricCriterion } from "@/lib/agent/session-parts";
-import { archiveProfessorAtlasChat } from "@/lib/agent/chat-actions";
+import { archiveProfessorAtlasChat, archiveProfessorAtlasChatFromList } from "@/lib/agent/chat-actions";
 import { atlasMessageMetadataNow, type AtlasMessageMetadata } from "@/lib/agent/ui-message";
 import type { ProfessorDocumentAttachment } from "@/lib/agent/professor-runtime";
 import { uploadProfessorChatDocument } from "@/lib/instructor/document-actions";
+import { atlasChatTitleFromIntent, firstUserTextFromParts, isDefaultAtlasChatTitle } from "@/lib/agent/chat-title";
 
 type PlanningChatMessage = UIMessage<AtlasMessageMetadata>;
 
@@ -96,7 +98,7 @@ export type PlanningRoomProps = {
 const STATUS_TONE = { pending: "accent", approved: "good", rejected: "neutral", applied: "good" } as const;
 const STATUS_LABEL = { pending: "Ready", approved: "Approved", rejected: "Dismissed", applied: "Applied" } as const;
 
-type LoosePart = { type?: unknown; state?: unknown; input?: unknown; output?: unknown; data?: unknown; text?: unknown } & Record<string, unknown>;
+type LoosePart = AtlasLoosePart;
 
 
 type RunContext = {
@@ -183,14 +185,6 @@ function threadIdFromMessages(messages: UIMessage[]): string | null {
   return null;
 }
 
-function toolState(part: LoosePart): ToolState {
-  const output = outputObject(part);
-  if (output?.ok === false) return "output-error";
-  if (output || part.state === "output-available") return "output-available";
-  if (part.state === "input-available") return "input-available";
-  return "input-streaming";
-}
-
 const TOOL_TITLES: Record<string, string> = {
   "tool-inspect_lms": "Checking the course",
   "tool-read_gradebook": "Checking the gradebook",
@@ -218,11 +212,6 @@ function toolLabel(part: LoosePart): string {
   return TOOL_TITLES[type] ?? type.replace(/^tool-/, "").replaceAll("_", " ");
 }
 
-function errorText(part: LoosePart): string | undefined {
-  const output = outputObject(part);
-  return output?.ok === false && typeof output.error === "string" ? output.error : undefined;
-}
-
 function actionSummary(part: LoosePart): string | null {
   const output = outputObject(part);
   return output?.ok === true && typeof output.summary === "string" ? output.summary : null;
@@ -234,6 +223,7 @@ function isActionResult(part: LoosePart): boolean {
 }
 
 export function PlanningRoom(props: PlanningRoomProps) {
+  const router = useRouter();
   const initialThreadId = props.threadId;
   const [railOpen, setRailOpen] = useState(false);
   const [railView, setRailView] = useState<"threads" | "drafts">("threads");
@@ -287,7 +277,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
     else window.localStorage.removeItem(runStorageKey);
   }, [props.activeRunId, runStorageKey]);
 
-  const { messages, sendMessage, resumeStream, status, error } = useChat<PlanningChatMessage>({
+  const { messages, sendMessage, resumeStream, addToolApprovalResponse, status, error } = useChat<PlanningChatMessage>({
     id: `planning-${props.threadId}`,
     messages: props.initialMessages,
     transport,
@@ -296,6 +286,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
       if (isAbort || isDisconnect) return;
       /* Anything the run never reached is sent as the next turn instead. */
       settleSteeringRef.current();
+      router.refresh();
     },
   });
 
@@ -349,17 +340,21 @@ export function PlanningRoom(props: PlanningRoomProps) {
 
   const learnedThreadId = useMemo(() => threadIdFromMessages(messages), [messages]);
   const visibleThreads = useMemo(() => {
-    if (!learnedThreadId || props.threads.some((thread) => thread.id === learnedThreadId)) return props.threads;
     const firstUserMessage = messages.find((message) => message.role === "user");
-    const firstText = (firstUserMessage?.parts as LoosePart[] | undefined)?.find(
-      (part) => part.type === "text" && typeof part.text === "string"
-    )?.text;
-    const compact = typeof firstText === "string" ? firstText.replace(/\s+/g, " ").trim() : "New chat";
-    const title = compact.length > 64 ? `${compact.slice(0, 61)}...` : compact || "New chat";
+    const firstText = firstUserTextFromParts(firstUserMessage?.parts) ?? "";
+    const title = atlasChatTitleFromIntent(firstText, "New chat");
+    const targetId = learnedThreadId ?? (props.threadId !== "new" ? props.threadId : null);
+    if (!targetId) return props.threads;
+    const existing = props.threads.find((thread) => thread.id === targetId);
+    if (existing) {
+      return isDefaultAtlasChatTitle(existing.title) && firstText
+        ? props.threads.map((thread) => thread.id === targetId ? { ...thread, title } : thread)
+        : props.threads;
+    }
     const contextPart = messages.flatMap((message) => message.parts as LoosePart[]).find((part) => part.type === "data-run-context");
     const context = contextPart?.data as RunContext | undefined;
-    return [{ id: learnedThreadId, title, userTurnCount: 1, draftCount: 0, decidedCount: 0, updatedAt: context?.builtAt ?? new Date(0).toISOString() }, ...props.threads];
-  }, [learnedThreadId, messages, props.threads]);
+    return [{ id: targetId, title, userTurnCount: 1, draftCount: 0, decidedCount: 0, updatedAt: context?.builtAt ?? new Date(0).toISOString() }, ...props.threads];
+  }, [learnedThreadId, messages, props.threadId, props.threads]);
 
   const visibleDrafts = useMemo(() => {
     const byId = new Map(props.drafts.map((draft) => [draft.proposalId, draft]));
@@ -509,7 +504,12 @@ export function PlanningRoom(props: PlanningRoomProps) {
                     from={message.role === "user" ? "user" : "assistant"}
                   >
                     <MessageContent>
-                      <PlanningMessageParts message={message} streaming={busy && index === messages.length - 1 && message.role === "assistant"} statusByProposal={statusByProposal} />
+                      <PlanningMessageParts
+                        message={message}
+                        streaming={busy && index === messages.length - 1 && message.role === "assistant"}
+                        statusByProposal={statusByProposal}
+                        onToolApproval={({ id, approved }) => void addToolApprovalResponse({ id, approved })}
+                      />
                     </MessageContent>
                     {/* No clock on an answer still being written. */}
                     <MessageTimestamp
@@ -599,77 +599,74 @@ export function PlanningRoom(props: PlanningRoomProps) {
           <button type="button" onClick={() => updateRail(false)} aria-label="Close Atlas sidebar" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"><PanelRightClose size={15} aria-hidden /></button>
         </div>
         <div className="min-h-0 w-[min(21rem,92vw)] flex-1 overflow-y-auto px-3 py-3">
-          {railView === "threads" ? <ThreadsPanel threads={visibleThreads} activeId={learnedThreadId ?? props.threadId} /> : <ThreadDraftsPanel drafts={visibleDrafts} pendingProposals={pendingReviewCount} />}
+          {railView === "threads" ? <ThreadsPanel threads={visibleThreads} activeId={learnedThreadId ?? props.threadId} busy={busy} /> : <ThreadDraftsPanel drafts={visibleDrafts} pendingProposals={pendingReviewCount} />}
         </div>
       </aside>
     </div>
   );
 }
 
-function PlanningMessageParts({ message, streaming, statusByProposal }: { message: UIMessage; streaming: boolean; statusByProposal: Map<string, PlanningDraftRef["status"]> }) {
-  const parts = (message.parts ?? []) as LoosePart[];
-  const rendered: ReactNode[] = [];
-  const toolParts = parts.filter((part) => String(part.type ?? "").startsWith("tool-"));
-
-  parts.forEach((part, index) => {
+function PlanningMessageParts({
+  message,
+  streaming,
+  statusByProposal,
+  onToolApproval,
+}: {
+  message: UIMessage;
+  streaming: boolean;
+  statusByProposal: Map<string, PlanningDraftRef["status"]>;
+  onToolApproval: (approval: { id: string; approved: boolean }) => void;
+}) {
+  const renderDataPart = (part: LoosePart, { index }: { index: number }) => {
     const type = String(part.type ?? "");
     if (type === "data-document-attachments") {
       const data = part.data as { attachments?: ProfessorDocumentAttachment[] } | undefined;
       const attachments = Array.isArray(data?.attachments) ? data.attachments : [];
-      if (attachments.length > 0) rendered.push(<MessageDocumentAttachments key={`documents-${index}`} attachments={attachments} />);
-      return;
+      return attachments.length > 0 ? <MessageDocumentAttachments key={`documents-${index}`} attachments={attachments} /> : null;
     }
     /* Show the redirection where it landed, so the change of course is legible. */
     if (type === "data-steering-applied") {
       const data = part.data as { notes?: unknown } | undefined;
       const notes = Array.isArray(data?.notes) ? data.notes.filter((note): note is string => typeof note === "string") : [];
-      if (notes.length > 0) rendered.push(<SteeringMark key={`steering-${index}`} notes={notes} />);
-      return;
+      return notes.length > 0 ? <SteeringMark key={`steering-${index}`} notes={notes} /> : null;
     }
-    if (type.startsWith("data-")) return;
+    return undefined;
+  };
 
-    if (type === "text" && typeof part.text === "string") {
-      rendered.push(<Response key={index} streaming={streaming && index === parts.length - 1}>{part.text}</Response>);
-      return;
-    }
-
-    if (!type.startsWith("tool-")) return;
-    const state = toolState(part);
-    if (state === "output-error") {
-      rendered.push(<ToolError key={`error-${index}`} part={part} />);
-      return;
-    }
-
-    if (isActionResult(part) && state === "output-available") {
+  const renderToolResult = (part: LoosePart, { index }: { index: number }) => {
+    if (isActionResult(part) && part.state === "output-available") {
       const summary = actionSummary(part);
-      if (summary) rendered.push(<ActionReceipt key={`action-${index}`} summary={summary} />);
-      return;
+      return summary ? <ActionReceipt key={`action-${index}`} summary={summary} /> : null;
     }
 
+    const type = String(part.type ?? "");
     if (type === "tool-draft_ai_assignment") {
       const output = aiAssignmentOutputFrom(part);
-      if (output?.ok) rendered.push(<AiAssignmentDraftCard key={`draft-${index}`} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} />);
-      return;
+      return output?.ok ? <AiAssignmentDraftCard key={`draft-${index}`} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} /> : null;
     }
 
     if (type === "tool-draft_rubric") {
       const output = rubricOutputFrom(part);
-      if (output?.ok) rendered.push(<RubricDraftCard key={`draft-${index}`} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} />);
-      return;
+      return output?.ok ? <RubricDraftCard key={`draft-${index}`} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} /> : null;
     }
 
     if (type === "tool-draft_course") {
       const output = courseDraftOutputFrom(part);
-      if (output?.ok) rendered.push(<CourseDraftCard key={`draft-${index}`} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} />);
+      return output?.ok ? <CourseDraftCard key={`draft-${index}`} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} /> : null;
     }
-  });
+    return undefined;
+  };
 
-  if (streaming) {
-    const activeTool = [...toolParts].reverse().find((part) => toolState(part) === "input-streaming" || toolState(part) === "input-available");
-    if (activeTool) rendered.push(<ThinkingIndicator key="working" label={toolLabel(activeTool)} />);
-  }
-
-  return <>{rendered}</>;
+  return (
+    <AtlasMessageParts
+      message={message}
+      streaming={streaming}
+      toolTitle={toolLabel}
+      renderDataPart={renderDataPart}
+      renderToolResult={renderToolResult}
+      onToolApproval={onToolApproval}
+    />
+  );
 }
 
 function MessageDocumentAttachments({ attachments }: { attachments: ProfessorDocumentAttachment[] }) {
@@ -698,18 +695,6 @@ function ActionReceipt({ summary }: { summary: string }) {
       <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-[var(--color-good)]" aria-hidden />
       <span>{summary}</span>
     </div>
-  );
-}
-
-function ToolError({ part }: { part: LoosePart }) {
-  return (
-    <Tool defaultOpen className="max-w-[42rem] border-[color-mix(in_oklch,var(--color-danger)_35%,var(--color-border))]">
-      <ToolHeader type={String(part.type ?? "tool")} state="output-error" title={toolLabel(part)} />
-      <ToolContent>
-        <ToolInput input={part.input ?? {}} />
-        <ToolOutput errorText={errorText(part)} />
-      </ToolContent>
-    </Tool>
   );
 }
 
@@ -772,13 +757,25 @@ function ThreadDraftsPanel({ drafts, pendingProposals }: { drafts: PlanningDraft
   );
 }
 
-function ThreadsPanel({ threads, activeId }: { threads: PlanningThreadRef[]; activeId: string }) {
+function ThreadsPanel({ threads, activeId, busy }: { threads: PlanningThreadRef[]; activeId: string; busy: boolean }) {
   if (threads.length === 0) return <div className="px-2 py-8 text-center"><History size={18} className="mx-auto text-[var(--color-faint)]" aria-hidden /><p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">No chats.</p></div>;
   return (
     <ul className="space-y-0.5">
       {threads.map((thread) => {
         const active = thread.id === activeId;
-        return <li key={thread.id}><Link href={`/teach/atlas?thread=${thread.id}`} aria-current={active ? "page" : undefined} className={cn("block rounded-row px-2.5 py-2.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]", active ? "bg-[var(--color-surface-muted)]" : "hover:bg-[var(--color-surface-muted)]")}><span className={cn("block truncate text-[0.78125rem]", active ? "font-medium text-[var(--color-ink)]" : "text-[var(--color-muted)]")}>{thread.title}</span>{thread.draftCount > 0 ? <span className="mt-1 block text-[0.65625rem] text-[var(--color-faint)]">{thread.draftCount} draft{thread.draftCount === 1 ? "" : "s"}</span> : null}</Link></li>;
+        return (
+          <ChatThreadRow
+            key={thread.id}
+            id={thread.id}
+            title={thread.title}
+            href={`/teach/atlas?thread=${thread.id}`}
+            active={active}
+            secondary={thread.draftCount > 0 ? `${thread.draftCount} draft${thread.draftCount === 1 ? "" : "s"}` : undefined}
+            archiveAction={archiveProfessorAtlasChatFromList}
+            activeChatId={activeId}
+            archiveDisabled={active && busy}
+          />
+        );
       })}
     </ul>
   );

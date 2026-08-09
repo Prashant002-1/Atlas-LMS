@@ -1,22 +1,20 @@
-import ReactMarkdown, { type Components } from "react-markdown";
-import remarkGfm from "remark-gfm";
+"use client";
+
+import { cjk } from "@streamdown/cjk";
+import { code } from "@streamdown/code";
+import { math } from "@streamdown/math";
+import { Streamdown, type Components, type DiagramPlugin, type UrlTransform } from "streamdown";
+import { cn } from "@/lib/utils";
 
 /**
- * One Markdown renderer for agent output and stored draft prose. Embedded HTML
- * stays disabled, images never make automatic external requests, and links are
- * limited to internal paths or HTTPS destinations that require a user click.
+ * One streaming Markdown renderer for every Atlas surface.
+ *
+ * Streamdown owns incomplete-markdown repair, GFM tables, Shiki code, KaTeX,
+ * and opt-in Mermaid previews. Atlas still owns the trust boundary: embedded
+ * HTML is skipped, Markdown images never make automatic requests, and links
+ * are limited to internal paths or HTTPS destinations. Explicit AI SDK file
+ * parts are rendered by the message-part renderer instead.
  */
-
-function closeOpenMarkdown(input: string): string {
-  let text = input;
-  if ((text.match(/```/g)?.length ?? 0) % 2 === 1) return `${text}\n\`\`\``;
-  text = text.replace(/!?\[[^\]]*\]\([^)]*$/u, "");
-  text = text.replace(/!?\[[^\]]*$/u, "");
-  if ((text.match(/`/g)?.length ?? 0) % 2 === 1) text += "`";
-  if ((text.match(/\*\*/g)?.length ?? 0) % 2 === 1) text += "**";
-  if ((text.match(/(?<!\*)\*(?!\*)/g)?.length ?? 0) % 2 === 1) text += "*";
-  return text;
-}
 
 function safeHref(href: string | undefined): string | null {
   if (!href) return null;
@@ -29,15 +27,17 @@ function safeHref(href: string | undefined): string | null {
   }
 }
 
-const COMPONENTS: Components = {
+const urlTransform: UrlTransform = (url) => safeHref(url);
+
+const COMPONENTS = {
   a(props) {
-    const href = safeHref(props.href);
+    const href = safeHref(typeof props.href === "string" ? props.href : undefined);
     if (!href) return <span>{props.children}</span>;
     const external = href.startsWith("https://");
     return (
       <a
         href={href}
-        title={props.title}
+        title={typeof props.title === "string" ? props.title : undefined}
         target={external ? "_blank" : undefined}
         rel={external ? "noopener noreferrer" : undefined}
       >
@@ -46,9 +46,31 @@ const COMPONENTS: Components = {
     );
   },
   img(props) {
-    return props.alt ? <span>{props.alt}</span> : null;
+    return props.alt ? <span className="text-[var(--color-muted)]">{props.alt}</span> : null;
+  },
+} satisfies Components;
+
+/** Keep Mermaid and its parser out of the initial chat bundle. */
+const lazyMermaid: DiagramPlugin = {
+  language: "mermaid",
+  name: "mermaid",
+  type: "diagram",
+  getMermaid(initialConfig) {
+    let config = initialConfig;
+    return {
+      initialize(nextConfig) {
+        config = { ...config, ...nextConfig };
+      },
+      async render(id, source) {
+        const { createMermaidPlugin } = await import("@streamdown/mermaid");
+        const theme = document.documentElement.getAttribute("data-theme") === "light" ? "default" : "dark";
+        return createMermaidPlugin({ config: { ...config, theme } }).getMermaid().render(id, source);
+      },
+    };
   },
 };
+
+const plugins = { cjk, code, math, mermaid: lazyMermaid };
 
 export function Markdown({
   children,
@@ -59,12 +81,25 @@ export function Markdown({
   streaming?: boolean;
   className?: string;
 }) {
-  const source = children ?? "";
   return (
-    <div className={`atlas-prose ${className ?? ""}`}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={COMPONENTS} skipHtml>
-        {streaming ? closeOpenMarkdown(source) : source}
-      </ReactMarkdown>
-    </div>
+    <Streamdown
+      className={cn("atlas-prose", className)}
+      components={COMPONENTS}
+      controls={{
+        code: { copy: true, download: false },
+        mermaid: { copy: true, download: true, fullscreen: true, panZoom: true },
+        table: { copy: true, download: true, fullscreen: true },
+      }}
+      isAnimating={streaming}
+      lineNumbers
+      linkSafety={{ enabled: false }}
+      mermaid={{ config: { securityLevel: "strict" } }}
+      mode={streaming ? "streaming" : "static"}
+      plugins={plugins}
+      skipHtml
+      urlTransform={urlTransform}
+    >
+      {children ?? ""}
+    </Streamdown>
   );
 }

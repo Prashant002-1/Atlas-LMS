@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -25,7 +25,7 @@ import {
   ConversationEmptyState,
 } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageTimestamp } from "@/components/ai-elements/message";
-import { Response } from "@/components/ai-elements/response";
+import { AtlasMessageParts, type AtlasLoosePart } from "@/components/agent/message-parts";
 import {
   messageHasVisibleOutput,
   PromptCheckpointRail,
@@ -151,7 +151,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
     else window.localStorage.removeItem(runStorageKey);
   }, [props.activeRunId, runStorageKey]);
 
-  const { messages, sendMessage, resumeStream, status, error } = useChat<AssignmentChatMessage>({
+  const { messages, sendMessage, resumeStream, addToolApprovalResponse, status, error } = useChat<AssignmentChatMessage>({
     id: `session-${props.assignmentId}${props.chatIdSuffix ?? ""}`,
     messages: props.initialMessages,
     transport,
@@ -376,7 +376,11 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                         from={message.role === "user" ? "user" : "assistant"}
                       >
                         <MessageContent>
-                          <MessageParts message={message} streaming={busy && index === messages.length - 1 && message.role === "assistant"} />
+                          <MessageParts
+                            message={message}
+                            streaming={busy && index === messages.length - 1 && message.role === "assistant"}
+                            onToolApproval={({ id, approved }) => void addToolApprovalResponse({ id, approved })}
+                          />
                         </MessageContent>
                         {/* No clock on an answer still being written. */}
                         <MessageTimestamp
@@ -513,27 +517,19 @@ function GradingStatusLine({ grading }: { grading: StudentGradingProgress }) {
   );
 }
 
-function MessageParts({ message, streaming }: { message: UIMessage; streaming: boolean }) {
-  const parts = message.parts ?? [];
-  const rendered: ReactNode[] = [];
+function MessageParts({ message, streaming, onToolApproval }: { message: UIMessage; streaming: boolean; onToolApproval: (approval: { id: string; approved: boolean }) => void }) {
+  const renderDataPart = (part: AtlasLoosePart) => {
+    if (part.type !== "data-side-note") return undefined;
+    const notes = sideNotesFromParts([part]);
+    return notes.length > 0 ? <>{notes.map((note) => <SideNoteCardView key={note.id} note={note} />)}</> : null;
+  };
+  const renderToolResult = (part: AtlasLoosePart) => {
+    if (!isArtifactToolPartType(part.type) || part.state !== "output-available") return undefined;
+    return <p className="flex items-center gap-1.5 text-[0.75rem] font-medium text-[var(--color-accent-strong)]"><CheckCircle2 size={13} aria-hidden />Submission draft updated</p>;
+  };
+  const toolTitle = (part: AtlasLoosePart) => isArtifactToolPartType(part.type) ? "Updating submission draft" : String(part.type ?? "Tool").replace(/^tool-/, "").replaceAll("_", " ");
 
-  parts.forEach((part, index) => {
-    const type = String(part.type ?? "");
-    if (type === "text" && "text" in part && typeof part.text === "string") {
-      rendered.push(<Response key={index} streaming={streaming && index === parts.length - 1}>{part.text}</Response>);
-      return;
-    }
-    if (isArtifactToolPartType(type)) {
-      rendered.push(<p key={index} className="flex items-center gap-1.5 text-[0.75rem] font-medium text-[var(--color-accent-strong)]"><CheckCircle2 size={13} aria-hidden />Submission draft updated</p>);
-      return;
-    }
-    if (type === "data-side-note") {
-      const notes = sideNotesFromParts([part]);
-      for (const note of notes) rendered.push(<SideNoteCardView key={`${index}-${note.id}`} note={note} />);
-    }
-  });
-
-  return <>{rendered}</>;
+  return <AtlasMessageParts message={message} streaming={streaming} toolTitle={toolTitle} renderDataPart={renderDataPart} renderToolResult={renderToolResult} onToolApproval={onToolApproval} />;
 }
 
 function turnIndexOf(messageId: string): number {

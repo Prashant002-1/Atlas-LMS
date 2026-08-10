@@ -35,6 +35,7 @@ import {
 import { loadAtlasSkill } from "@/lib/agent/atlas-harness";
 import { parseRubricCriteria, type RubricCriterion } from "@/lib/agent/session-parts";
 import type { ProfessorScope } from "@/lib/agent/professor-context";
+import { resolveProposalRevision, supersedeProposal } from "@/lib/agent/proposal-revisions";
 
 /**
  * The professor harness exposes five domain tools. There is no arbitrary SQL,
@@ -63,11 +64,12 @@ export type RubricProposalOutput =
       criteria: RubricCriterion[];
       replacesVersion: number;
       replacesCriteria: RubricCriterion[];
+      revision: number;
     }
   | { ok: false; error: string };
 
 export type CourseDraftOutput =
-  | { ok: true; proposalId: string; summary: string; records: Array<{ type: string; title: string }> }
+  | { ok: true; proposalId: string; summary: string; revision: number; records: Array<{ type: string; title: string }> }
   | { ok: false; error: string };
 
 export type AiAssignmentProposalOutput =
@@ -81,6 +83,7 @@ export type AiAssignmentProposalOutput =
       criteria: RubricCriterion[];
       usedStandardFrame: boolean;
       note: string | null;
+      revision: number;
     }
   | { ok: false; error: string };
 
@@ -102,11 +105,13 @@ const professorCourseBlockSchema = z.discriminatedUnion("type", [
 
 const draftCourseSchema = z.object({
   summary: z.string().min(8).max(300).describe("One plain line naming the requested drafts."),
+  revisesProposalId: z.string().uuid().optional().describe("The open course proposal id when revising a draft in chat."),
   blocks: z.array(professorCourseBlockSchema).min(1).max(6),
 });
 
 const aiAssignmentDraftSchema = z.object({
   assignmentId: z.string().uuid().describe("An existing assignment id returned by inspect_course."),
+  revisesProposalId: z.string().uuid().optional().describe("The open AI-assignment proposal id when revising a draft in chat."),
   brief: z.string().min(10).max(2000).describe("The problem, deliverable, and session instructions the student sees."),
   durationMinutes: z.number().int().min(5).max(240).optional(),
   criteria: z.array(rubricDraftCriterionSchema).min(2).max(8).optional(),
@@ -390,7 +395,7 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
       if (!roundTrip || roundTrip.type !== "ai_assignment") return { ok: false, error: "The AI assignment draft is invalid." };
 
       try {
-        const proposalId = await db.transaction(async (tx) => {
+        const created = await db.transaction(async (tx) => {
           await tx.execute(
             sql`select pg_advisory_xact_lock(hashtextextended(${`atlas:ai-assignment:${scope.orgId}:${scope.courseId}:${draft.assignmentId}`}, 0))`
           );
@@ -408,8 +413,16 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
           if (configured) {
             throw new DraftConflict(`${target.name} is already an AI assignment. Use draft_rubric to revise its rubric.`);
           }
+          const revision = await resolveProposalRevision(tx, {
+            orgId: scope.orgId,
+            courseId: scope.courseId,
+            sessionId,
+            revisesProposalId: draft.revisesProposalId,
+            kind: "assignment",
+            targetKey: `ai-assignment:${draft.assignmentId}`,
+          });
           const pending = await tx
-            .select({ diff: changeProposals.diff })
+            .select({ id: changeProposals.id, diff: changeProposals.diff })
             .from(changeProposals)
             .where(
               and(
@@ -419,7 +432,7 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
                 eq(changeProposals.status, "pending")
               )
             );
-          if (pending.some((row) => (row.diff as { assignmentId?: string } | null)?.assignmentId === draft.assignmentId)) {
+          if (pending.some((row) => row.id !== revision.supersedesProposalId && (row.diff as { assignmentId?: string } | null)?.assignmentId === draft.assignmentId)) {
             throw new DraftConflict("A draft for that AI assignment is already open.");
           }
 
@@ -432,7 +445,9 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
               kind: "assignment",
               status: "pending",
               summary: `AI assignment: ${target.name}`,
-              diff: { source: "atlas_harness", assignmentId: draft.assignmentId, note: draft.note ?? null },
+              diff: { source: "atlas_harness", assignmentId: draft.assignmentId, revisionKey: `ai-assignment:${draft.assignmentId}`, note: draft.note ?? null },
+              revision: revision.revision,
+              supersedesProposalId: revision.supersedesProposalId,
               sessionId,
             })
             .returning({ id: changeProposals.id });
@@ -445,11 +460,13 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
             data: blockData,
             status: "pending",
           });
-          return proposal.id;
+          await supersedeProposal(tx, revision.supersedesProposalId);
+          return { proposalId: proposal.id, revision: revision.revision };
         });
         return {
           ok: true,
-          proposalId,
+          proposalId: created.proposalId,
+          revision: created.revision,
           assignmentId: draft.assignmentId,
           assignmentName: target.name,
           instructions: block.instructions,
@@ -459,7 +476,8 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
           note: draft.note ?? null,
         };
       } catch (error) {
-        if (error instanceof DraftConflict) return { ok: false, error: error.message };
+        const message = error instanceof Error ? error.message : "";
+        if (error instanceof DraftConflict || /^(A draft|That draft)/.test(message)) return { ok: false, error: message };
         return { ok: false, error: "Could not store the draft. Nothing changed." };
       }
     },
@@ -499,12 +517,20 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
       if (!block) return { ok: false, error: "The rubric draft is invalid." };
 
       try {
-        const proposalId = await db.transaction(async (tx) => {
+        const created = await db.transaction(async (tx) => {
           await tx.execute(
             sql`select pg_advisory_xact_lock(hashtextextended(${`atlas:rubric:${scope.orgId}:${scope.courseId}:${draft.assignmentId}`}, 0))`
           );
+          const revision = await resolveProposalRevision(tx, {
+            orgId: scope.orgId,
+            courseId: scope.courseId,
+            sessionId,
+            revisesProposalId: draft.revisesProposalId,
+            kind: "rubric",
+            targetKey: `rubric:${draft.assignmentId}`,
+          });
           const pending = await tx
-            .select({ diff: changeProposals.diff })
+            .select({ id: changeProposals.id, diff: changeProposals.diff })
             .from(changeProposals)
             .where(
               and(
@@ -514,7 +540,7 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
                 eq(changeProposals.status, "pending")
               )
             );
-          if (pending.some((row) => (row.diff as { assignmentId?: string } | null)?.assignmentId === draft.assignmentId)) {
+          if (pending.some((row) => row.id !== revision.supersedesProposalId && (row.diff as { assignmentId?: string } | null)?.assignmentId === draft.assignmentId)) {
             throw new DraftConflict("A rubric draft for that assignment is already open.");
           }
 
@@ -530,9 +556,12 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
               diff: {
                 source: "atlas_harness",
                 assignmentId: draft.assignmentId,
+                revisionKey: `rubric:${draft.assignmentId}`,
                 replacesVersion: target.rubricVersion,
                 note: draft.note ?? null,
               },
+              revision: revision.revision,
+              supersedesProposalId: revision.supersedesProposalId,
               sessionId,
             })
             .returning({ id: changeProposals.id });
@@ -545,11 +574,13 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
             data: sessionRubricBlockData(block),
             status: "pending",
           });
-          return proposal.id;
+          await supersedeProposal(tx, revision.supersedesProposalId);
+          return { proposalId: proposal.id, revision: revision.revision };
         });
         return {
           ok: true,
-          proposalId,
+          proposalId: created.proposalId,
+          revision: created.revision,
           assignmentId: draft.assignmentId,
           assignmentName: target.assignmentName,
           title: draft.title,
@@ -559,7 +590,8 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
           replacesCriteria: parseRubricCriteria(target.rubricCriteria) ?? [],
         };
       } catch (error) {
-        if (error instanceof DraftConflict) return { ok: false, error: error.message };
+        const message = error instanceof Error ? error.message : "";
+        if (error instanceof DraftConflict || /^(A draft|That draft)/.test(message)) return { ok: false, error: message };
         return { ok: false, error: "Could not store the draft. Nothing changed." };
       }
     },
@@ -568,7 +600,7 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
   const draft_course = tool({
     description: "Prepare up to six modules, assignments, pages, announcements, practice sets, or internal objective links.",
     inputSchema: draftCourseSchema,
-    execute: async ({ summary, blocks }): Promise<CourseDraftOutput> => {
+    execute: async ({ summary, blocks, revisesProposalId }): Promise<CourseDraftOutput> => {
       const storedBlocks = blocks.map((block) => {
         const { type, ...data } = block;
         return { type, data };
@@ -578,17 +610,27 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
       }
 
       try {
-        const proposalId = await db.transaction(async (tx) => {
+        const created = await db.transaction(async (tx) => {
+          const kind = kindForBlockTypes(blocks.map((block) => block.type));
+          const revision = await resolveProposalRevision(tx, {
+            orgId: scope.orgId,
+            courseId: scope.courseId,
+            sessionId,
+            revisesProposalId,
+            kind,
+          });
           const [proposal] = await tx
             .insert(changeProposals)
             .values({
               orgId: scope.orgId,
               courseId: scope.courseId,
               authorId: scope.instructorId,
-              kind: kindForBlockTypes(blocks.map((block) => block.type)),
+              kind,
               status: "pending",
               summary,
               diff: { source: "atlas_harness" },
+              revision: revision.revision,
+              supersedesProposalId: revision.supersedesProposalId,
               sessionId,
             })
             .returning({ id: changeProposals.id });
@@ -603,16 +645,19 @@ export function professorTools(args: { scope: ProfessorScope; sessionId: string 
               status: "pending" as const,
             }))
           );
-          return proposal.id;
+          await supersedeProposal(tx, revision.supersedesProposalId);
+          return { proposalId: proposal.id, revision: revision.revision };
         });
         return {
           ok: true,
-          proposalId,
+          proposalId: created.proposalId,
+          revision: created.revision,
           summary,
           records: blocks.map((block) => ({ type: block.type, title: blockTitle(block) })),
         };
-      } catch {
-        return { ok: false, error: "Could not store the drafts. Nothing changed." };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "";
+        return { ok: false, error: /^(A draft|That draft)/.test(message) ? message : "Could not store the drafts. Nothing changed." };
       }
     },
   });

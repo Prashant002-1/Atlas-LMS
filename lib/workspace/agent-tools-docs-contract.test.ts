@@ -75,6 +75,8 @@ const tools = [
   "load_skill",
   ...actions,
   "configure_agent",
+  "inspect_course_guidance",
+  "propose_course_guidance",
   "remember",
   "draft_ai_assignment",
   "draft_rubric",
@@ -116,6 +118,7 @@ test("documented live tool registry matches the professor runtime", () => {
   assert.match(operator, /const actions = directActionTools/);
   assert.match(operator, /\.\.\.actions/);
   assert.match(runtime, /configure_agent: courseAgentConfigurationTool/);
+  assert.match(runtime, /courseGuidanceTools/);
   assert.match(runtime, /remember: personalMemoryTool/);
   assert.match(runtime, /governedWebSearchTools/);
   assert.match(runtime, /\.\.\.webSearch\.tools/);
@@ -150,10 +153,11 @@ test("documented configuration tool matches its schema and append-only write", (
   const docsText = read("docs/agent-tools/course-agent-configuration.md");
   assert.match(tool, /expectedVersion/);
   assert.match(tool, /studentDisclosure/);
-  assert.match(tool, /courseAgentConfigurationInputSchema/);
+  assert.match(tool, /courseAgentCoreInputSchema/);
+  assert.match(tool, /courseAgentDirectiveProposalSchema/);
   assert.match(config, /insert\(courseAgentConfigs\)/);
   assert.doesNotMatch(config, /update\(courseAgentConfigs\)/);
-  for (const field of ["expectedVersion", "studentDisclosure", "changeSummary", "directAnswers", "challengeLevel", "citationMode", "appliesTo"]) {
+  for (const field of ["expectedVersion", "studentDisclosure", "changeSummary", "directAnswers", "challengeLevel", "citationMode", "expectedRevision", "selectors"]) {
     assert.equal(docsText.includes(field), true);
   }
   assert.equal(docsText.includes("studentDailyTurns"), false);

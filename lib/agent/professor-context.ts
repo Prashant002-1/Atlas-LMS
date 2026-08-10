@@ -129,7 +129,7 @@ export async function buildProfessorPack(scope: ProfessorScope): Promise<Profess
   if (assignmentRows.length > 0) push("ai_assignments", assignmentLines.join("\n"));
 
   const pendingRows = await db
-    .select({ kind: changeProposals.kind, summary: changeProposals.summary })
+    .select({ id: changeProposals.id, kind: changeProposals.kind, summary: changeProposals.summary, revision: changeProposals.revision })
     .from(changeProposals)
     .where(
       and(
@@ -143,7 +143,7 @@ export async function buildProfessorPack(scope: ProfessorScope): Promise<Profess
   push(
     "open_drafts",
     pendingRows.length
-      ? ["OPEN DRAFTS", ...pendingRows.map((row) => `- [${row.kind}] ${row.summary}`)].join("\n")
+      ? ["OPEN DRAFTS", ...pendingRows.map((row) => `- [${row.kind} id:${row.id} revision:${row.revision}] ${row.summary}`)].join("\n")
       : ""
   );
 

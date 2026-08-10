@@ -546,7 +546,7 @@ export type PlanningThreadRef = CommandSessionSummary;
 
 export type PlanningDraftRef = {
   proposalId: string;
-  status: "pending" | "approved" | "rejected" | "applied";
+  status: "pending" | "approved" | "rejected" | "applied" | "superseded";
   kind: string;
   summary: string;
   createdAt: string;

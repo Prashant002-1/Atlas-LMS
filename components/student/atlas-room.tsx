@@ -97,12 +97,7 @@ const TOOL_TITLES: Record<string, string> = {
 
 function toolLabel(part: LoosePart): string {
   const type = String(part.type ?? "");
-  const input = (part.input ?? {}) as Record<string, unknown>;
-  if (type === "tool-inspect_record" && typeof input.resource === "string") {
-    return `Checking your ${input.resource.replaceAll("_", " ")}`;
-  }
-  if (type === "tool-search_course" && typeof input.query === "string") return `Searching for “${input.query}”`;
-  return TOOL_TITLES[type] ?? type.replace(/^tool-/, "").replaceAll("_", " ");
+  return TOOL_TITLES[type] ?? "Working";
 }
 
 function isActionResult(part: LoosePart): boolean {

@@ -147,7 +147,7 @@ test("the student runtime rides the durable seam with the ladder in order", () =
   assert.match(context, /FIXED RULES/);
   assert.match(context, /strictest applicable layer/);
   assert.match(context, /compileOrgAgentPolicy/);
-  assert.match(context, /compileCourseAgentConfiguration\(config\.configuration, "study"\)/);
+  assert.match(context, /compileCourseAgentConfiguration\(config\.configuration, "study", config\.directives\)/);
   assert.match(context, /renderMemoriesForReference/);
   assert.match(context, /<untrusted_student_record/);
   assert.match(context, /isNull\(agentSessions\.courseId\)/);

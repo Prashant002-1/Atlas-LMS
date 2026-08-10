@@ -24,6 +24,7 @@ import {
   loadActiveCourseAgentConfig,
   type CourseAgentConfiguration,
 } from "@/lib/agent/course-agent-config";
+import type { CourseAgentDirective } from "@/lib/agent/course-agent-directives";
 import { PageHeader } from "@/components/teach/page-header";
 import { ActionButton, ButtonLink, TextLink } from "@/components/atlas/primitives";
 import { RecordDialog } from "@/components/teach/record-dialog";
@@ -72,7 +73,8 @@ export default async function TeachCourseSetupPage() {
   const usesDefaultScale = parseGradeScale(course.gradeScale) === null;
   const classPolicies = parseClassPolicies(course.classPolicies);
   const configuration = activeConfig.configuration;
-  const activeRules = configuration.rules.filter((rule) => rule.enabled);
+  const guidanceGroups = groupCourseGuidance(activeConfig.directives);
+  const activeGuidance = activeConfig.directives.filter((directive) => directive.enabled);
 
   return (
     <>
@@ -176,36 +178,43 @@ export default async function TeachCourseSetupPage() {
 
         <div className="mt-7">
           <h3 className="text-[0.875rem] font-semibold text-[var(--color-ink)]">
-            Course rules
-            {configuration.rules.length > 0 ? (
-              <span className="ml-2.5 text-[0.75rem] font-normal text-[var(--color-faint)]">{activeRules.length} active</span>
+            Course guidance
+            {activeConfig.directives.length > 0 ? (
+              <span className="ml-2.5 text-[0.75rem] font-normal text-[var(--color-faint)]">{activeGuidance.length} active</span>
             ) : null}
           </h3>
-          {configuration.rules.length > 0 ? (
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[44rem] border-collapse text-left">
-                <thead>
-                  <tr className="text-[0.6875rem] text-[var(--color-faint)]">
-                    <th scope="col" className="px-3 py-2.5 font-medium">Rule</th>
-                    <th scope="col" className="px-3 py-2.5 font-medium">Instruction</th>
-                    <th scope="col" className="px-3 py-2.5 font-medium">Applies to</th>
-                    <th scope="col" className="px-3 py-2.5 font-medium">State</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--color-border)] text-[0.78125rem]">
-                  {configuration.rules.map((rule) => (
-                    <tr key={rule.id}>
-                      <th scope="row" className="px-3 py-3.5 align-top font-medium text-[var(--color-ink)]">{rule.title}</th>
-                      <td className="max-w-xl px-3 py-3.5 align-top leading-5 text-[var(--color-muted)]">{rule.instruction}</td>
-                      <td className="px-3 py-3.5 align-top text-[var(--color-muted)]">{rule.appliesTo.map(surfaceLabel).join(", ")}</td>
-                      <td className={`px-3 py-3.5 align-top ${rule.enabled ? "text-[var(--color-muted)]" : "text-[var(--color-faint)]"}`}>{rule.enabled ? "Active" : "Off"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {guidanceGroups.length > 0 ? (
+            <div className="mt-3 space-y-5">
+              {guidanceGroups.map((group) => (
+                <section key={group.namespace} aria-labelledby={`guidance-${group.namespace}`}>
+                  <h4 id={`guidance-${group.namespace}`} className="px-3 text-[0.71875rem] font-medium text-[var(--color-faint)]">
+                    {namespaceLabel(group.namespace)}
+                    <span className="ml-2 font-normal">{group.directives.filter((directive) => directive.enabled).length} active</span>
+                  </h4>
+                  <div className="mt-1 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+                    {group.directives.map((directive) => (
+                      <details key={directive.key} className="group/guidance px-3 py-3 open:bg-[var(--color-surface-muted)]">
+                        <summary className="flex cursor-pointer list-none items-start justify-between gap-5 marker:content-none">
+                          <span className="min-w-0 text-[0.8125rem] font-medium leading-5 text-[var(--color-ink)]">{directive.title}</span>
+                          <span className="shrink-0 text-right text-[0.6875rem] leading-5 text-[var(--color-faint)]">
+                            {directive.enabled ? directiveScopeLabel(directive) : "Off"}
+                          </span>
+                        </summary>
+                        <div className="mt-2 grid gap-2 pb-1 sm:grid-cols-[minmax(0,1fr)_10rem] sm:gap-6">
+                          <p className="text-[0.78125rem] leading-5 text-[var(--color-muted)]">{directive.instruction}</p>
+                          <dl className="text-[0.6875rem] leading-5 text-[var(--color-faint)]">
+                            <div className="flex justify-between gap-3"><dt>Mode</dt><dd>{titleCase(directive.effect)}</dd></div>
+                            <div className="flex justify-between gap-3"><dt>Revision</dt><dd className="tabular-nums">{directive.revision}</dd></div>
+                          </dl>
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                </section>
+              ))}
             </div>
           ) : (
-            <p className="mt-3 px-3 py-4 text-[0.8125rem] text-[var(--color-muted)]">No additional course rules.</p>
+            <p className="mt-3 px-3 py-4 text-[0.8125rem] text-[var(--color-muted)]">No additional course guidance.</p>
           )}
         </div>
 
@@ -401,8 +410,36 @@ function directAnswerLabel(value: CourseAgentConfiguration["teaching"]["directAn
   return { never: "Never", after_attempt: "After an attempt", when_asked: "When asked" }[value];
 }
 
-function surfaceLabel(value: "study" | "assignment") {
-  return value === "study" ? "Study" : "AI assignments";
+function surfaceLabel(value: string) {
+  if (value === "study") return "Study";
+  if (value === "assignment") return "AI assignments";
+  return namespaceLabel(value);
+}
+
+function groupCourseGuidance(directives: CourseAgentDirective[]) {
+  const groups = new Map<string, CourseAgentDirective[]>();
+  for (const directive of directives) {
+    const current = groups.get(directive.namespace) ?? [];
+    current.push(directive);
+    groups.set(directive.namespace, current);
+  }
+  return [...groups.entries()]
+    .map(([namespace, grouped]) => ({
+      namespace,
+      directives: grouped.sort((a, b) => a.title.localeCompare(b.title)),
+    }))
+    .sort((a, b) => a.namespace.localeCompare(b.namespace));
+}
+
+function namespaceLabel(value: string) {
+  return value.replaceAll(/[._-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function directiveScopeLabel(directive: CourseAgentDirective) {
+  const surfaces = directive.selectors.surfaces.map(surfaceLabel);
+  if (surfaces.length > 0) return surfaces.join(", ");
+  if (directive.selectors.audiences.length > 0) return directive.selectors.audiences.map(namespaceLabel).join(", ");
+  return "All course interactions";
 }
 
 function longDate(date: Date): string {

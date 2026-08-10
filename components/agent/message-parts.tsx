@@ -10,7 +10,6 @@ import type {
 import {
   BracesIcon,
   CheckCircle2Icon,
-  ChevronDownIcon,
   CircleAlertIcon,
   CircleSlash2Icon,
   FileQuestionIcon,
@@ -20,18 +19,10 @@ import { Markdown } from "@/components/agent/markdown";
 import { Artifact, artifactsFromValue, type AtlasArtifact } from "@/components/ai-elements/artifact";
 import { FilePart, type AtlasFile } from "@/components/ai-elements/file";
 import { Reasoning } from "@/components/ai-elements/reasoning";
+import { ThinkingIndicator } from "@/components/ai-elements/agent-status";
 import { Sources, type AtlasSourcePart } from "@/components/ai-elements/sources";
 import { Terminal, type TerminalProps } from "@/components/ai-elements/terminal";
-import {
-  Tool,
-  ToolContent,
-  ToolHeader,
-  ToolInput,
-  ToolOutput,
-  displayJson,
-  fencedCode,
-  type ToolState,
-} from "@/components/ai-elements/tool";
+import type { ToolState } from "@/components/ai-elements/tool";
 
 export type AtlasLoosePart = {
   type?: unknown;
@@ -77,9 +68,9 @@ const TOOL_STATES = new Set<ToolState>([
 /**
  * Exhaustive application-facing UIMessage renderer.
  *
- * Domain surfaces may add rich cards for known data/tool results, but they no
- * longer own a narrow allowlist. Standard AI SDK parts and unknown future
- * parts always have a safe presentation or an explicit internal-data rule.
+ * Domain surfaces may add rich cards for intentional user-facing outputs.
+ * Reasoning text, tool inputs, tool outputs, and unknown payloads are never
+ * inspection surfaces. They resolve to quiet activity or opaque fallbacks.
  */
 export function AtlasMessageParts({
   message,
@@ -122,7 +113,7 @@ export function AtlasMessageParts({
         }
 
         if (type === "reasoning-file" && typeof part.url === "string" && typeof part.mediaType === "string") {
-          return <FilePart key={key} file={{ url: part.url, mediaType: part.mediaType, label: "Reasoning attachment" }} />;
+          return null;
         }
 
         if (isToolPart(part)) {
@@ -182,54 +173,50 @@ function ToolPart({
 }) {
   const state = toolState(part);
   const approval = approvalFrom(part);
-  const error = state === "output-error" ? stringOrUndefined(part.errorText) || outputError(part.output) || "The tool could not finish." : undefined;
-  const denied = state === "output-denied" ? approval?.reason || "This action was not approved." : undefined;
-  return (
-    <Tool className="max-w-[42rem]" defaultOpen={state === "output-error"}>
-      <ToolHeader type={partType(part)} state={state} title={title || defaultToolTitle(part)} />
-      {state === "approval-requested" && approval ? (
-        <div className="border-t border-[var(--color-border)] px-3 py-3">
-          <div className="flex items-start gap-2 text-[0.75rem] leading-5 text-[var(--color-muted)]">
-            <ShieldAlertIcon size={14} className="mt-0.5 shrink-0 text-[var(--color-warn)]" aria-hidden />
-            <p>Atlas needs your approval before it can continue with this action.</p>
-          </div>
-          {onToolApproval ? (
-            <div className="mt-3 flex justify-end gap-2">
-              <button type="button" onClick={() => onToolApproval({ id: approval.id, approved: false })} className="rounded-control border border-[var(--color-border)] px-3 py-1.5 text-[0.71875rem] font-medium text-[var(--color-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]">Deny</button>
-              <button type="button" onClick={() => onToolApproval({ id: approval.id, approved: true })} className="rounded-control bg-[var(--color-accent)] px-3 py-1.5 text-[0.71875rem] font-semibold text-[var(--canvas)] transition hover:bg-[var(--color-accent-strong)]">Approve</button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-      {error || denied ? (
-        <div className="flex items-start gap-2 border-t border-[var(--color-border)] px-3 py-2.5 text-[0.75rem] leading-5 text-[var(--color-danger)]">
-          {denied ? <CircleSlash2Icon size={13} className="mt-0.5 shrink-0" aria-hidden /> : <CircleAlertIcon size={13} className="mt-0.5 shrink-0" aria-hidden />}
-          <span>{error || denied}</span>
-        </div>
-      ) : null}
-      <ToolContent>
-        <ToolInput input={part.input ?? {}} />
-        {part.output !== undefined && !terminalFromToolPart(part, false) ? <ToolOutput output={<ToolValue value={part.output} />} /> : null}
-      </ToolContent>
-    </Tool>
-  );
+  if (state === "input-streaming" || state === "input-available") {
+    return <ThinkingIndicator label={title || defaultToolTitle(part)} />;
+  }
+  if (state === "approval-requested" && approval) {
+    return (
+      <div className="flex w-full max-w-[42rem] flex-wrap items-center gap-2 py-1 text-[0.75rem] leading-5 text-[var(--color-muted)]">
+        <ShieldAlertIcon size={14} className="shrink-0 text-[var(--color-warn)]" aria-hidden />
+        <span>Approval is needed to continue.</span>
+        {onToolApproval ? (
+          <span className="ml-auto flex gap-1.5">
+            <button type="button" onClick={() => onToolApproval({ id: approval.id, approved: false })} className="rounded-control px-2.5 py-1 text-[0.71875rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]">Deny</button>
+            <button type="button" onClick={() => onToolApproval({ id: approval.id, approved: true })} className="rounded-control bg-[var(--color-ink)] px-2.5 py-1 text-[0.71875rem] font-medium text-[var(--color-surface)] transition hover:opacity-85">Approve</button>
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+  if (state === "output-error") {
+    return <SafeToolNotice icon={<CircleAlertIcon size={13} aria-hidden />} label="Atlas could not complete that step." tone="danger" />;
+  }
+  if (state === "output-denied") {
+    return <SafeToolNotice icon={<CircleSlash2Icon size={13} aria-hidden />} label="That step was not approved." tone="muted" />;
+  }
+  return null;
 }
 
-function ToolValue({ value }: { value: unknown }) {
-  if (typeof value === "string") return <Markdown>{value}</Markdown>;
-  return <Markdown>{fencedCode(displayJson(value), "json")}</Markdown>;
+function SafeToolNotice({ icon, label, tone }: { icon: ReactNode; label: string; tone: "danger" | "muted" }) {
+  return (
+    <p className={tone === "danger"
+      ? "flex w-full max-w-[42rem] items-center gap-1.5 py-1 text-[0.75rem] text-[var(--color-danger)]"
+      : "flex w-full max-w-[42rem] items-center gap-1.5 py-1 text-[0.75rem] text-[var(--color-muted)]"}>
+      {icon}
+      <span>{label}</span>
+    </p>
+  );
 }
 
 function DataPart({ part }: { part: AtlasLoosePart }) {
   const label = humanizePartType(partType(part).replace(/^data-/, ""));
   return (
-    <details className="group w-full max-w-[42rem] overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)]">
-      <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 marker:hidden hover:bg-[var(--color-surface-muted)]">
-        <span className="flex min-w-0 items-center gap-2 text-[0.78125rem] font-medium text-[var(--color-muted)]"><BracesIcon size={14} className="text-[var(--color-faint)]" aria-hidden />{label}</span>
-        <ChevronDownIcon size={15} className="text-[var(--color-faint)] transition-transform group-open:rotate-180" aria-hidden />
-      </summary>
-      <div className="border-t border-[var(--color-border)] px-3 py-3"><Markdown>{fencedCode(displayJson(part.data), "json")}</Markdown></div>
-    </details>
+    <div className="flex min-h-10 w-full max-w-[42rem] items-center gap-2 text-[0.75rem] text-[var(--color-muted)]">
+      <BracesIcon size={13} className="shrink-0 text-[var(--color-faint)]" aria-hidden />
+      <span className="truncate">{label}</span>
+    </div>
   );
 }
 
@@ -244,13 +231,10 @@ function CustomPart({ kind }: { kind: string }) {
 
 function UnsupportedPart({ part }: { part: AtlasLoosePart }) {
   return (
-    <details className="group w-full max-w-[42rem] overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)]">
-      <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 marker:hidden hover:bg-[var(--color-surface-muted)]">
-        <span className="flex min-w-0 items-center gap-2 text-[0.75rem] text-[var(--color-muted)]"><FileQuestionIcon size={14} className="shrink-0 text-[var(--color-warn)]" aria-hidden /><span className="truncate">Unsupported output · {humanizePartType(partType(part))}</span></span>
-        <ChevronDownIcon size={15} className="text-[var(--color-faint)] transition-transform group-open:rotate-180" aria-hidden />
-      </summary>
-      <div className="border-t border-[var(--color-border)] px-3 py-3"><Markdown>{fencedCode(displayJson(part), "json")}</Markdown></div>
-    </details>
+    <div className="flex min-h-10 w-full max-w-[42rem] items-center gap-2 text-[0.75rem] text-[var(--color-muted)]">
+      <FileQuestionIcon size={14} className="shrink-0 text-[var(--color-warn)]" aria-hidden />
+      <span className="truncate">Unsupported output · {humanizePartType(partType(part))}</span>
+    </div>
   );
 }
 
@@ -291,10 +275,8 @@ function toolState(part: AtlasLoosePart): ToolState {
 }
 
 function defaultToolTitle(part: AtlasLoosePart) {
-  const raw = partType(part) === "dynamic-tool" && typeof part.toolName === "string"
-    ? part.toolName
-    : partType(part).replace(/^tool-/, "");
-  return humanizePartType(raw || "Tool");
+  void part;
+  return "Working";
 }
 
 function humanizePartType(value: string) {
@@ -308,11 +290,6 @@ function stringOrUndefined(value: unknown) {
 
 function objectValue(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
-}
-
-function outputError(value: unknown) {
-  const output = objectValue(value);
-  return output?.ok === false ? stringOrUndefined(output.error) : undefined;
 }
 
 function approvalFrom(part: AtlasLoosePart): { id: string; reason?: string } | null {

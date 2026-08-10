@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
@@ -25,6 +25,7 @@ import {
 } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageTimestamp } from "@/components/ai-elements/message";
 import { AtlasMessageParts, type AtlasLoosePart } from "@/components/agent/message-parts";
+import { Markdown } from "@/components/agent/markdown";
 import { ChatThreadRow } from "@/components/agent/chat-thread-row";
 import {
   messageHasVisibleOutput,
@@ -55,6 +56,8 @@ import { archiveProfessorAtlasChat, archiveProfessorAtlasChatFromList } from "@/
 import { atlasMessageMetadataNow, type AtlasMessageMetadata } from "@/lib/agent/ui-message";
 import type { ProfessorDocumentAttachment } from "@/lib/agent/professor-runtime";
 import { uploadProfessorChatDocument } from "@/lib/instructor/document-actions";
+import { decideCourseProposalInline, loadCourseProposalDetailsInline } from "@/lib/instructor/actions";
+import type { Block } from "@/lib/agent/blocks";
 import { atlasChatTitleFromIntent, firstUserTextFromParts, isDefaultAtlasChatTitle } from "@/lib/agent/chat-title";
 
 type PlanningChatMessage = UIMessage<AtlasMessageMetadata>;
@@ -70,7 +73,7 @@ export type PlanningThreadRef = {
 
 export type PlanningDraftRef = {
   proposalId: string;
-  status: "pending" | "approved" | "rejected" | "applied";
+  status: "pending" | "approved" | "rejected" | "applied" | "superseded";
   kind: string;
   summary: string;
   createdAt: string;
@@ -95,8 +98,8 @@ export type PlanningRoomProps = {
   initialInput?: string;
 };
 
-const STATUS_TONE = { pending: "accent", approved: "good", rejected: "neutral", applied: "good" } as const;
-const STATUS_LABEL = { pending: "Ready", approved: "Approved", rejected: "Dismissed", applied: "Applied" } as const;
+const STATUS_TONE = { pending: "accent", approved: "good", rejected: "neutral", applied: "good", superseded: "neutral" } as const;
+const STATUS_LABEL = { pending: "Ready", approved: "Approved", rejected: "Dismissed", applied: "Applied", superseded: "Superseded" } as const;
 
 type LoosePart = AtlasLoosePart;
 
@@ -119,12 +122,14 @@ type RubricDraftOutput = {
   criteria: RubricCriterion[];
   replacesVersion: number;
   replacesCriteria: RubricCriterion[];
+  revision?: number;
 };
 
 type CourseDraftOutput = {
   ok: true;
   proposalId: string;
   summary: string;
+  revision?: number;
   records: Array<{ type: string; title: string }>;
 };
 
@@ -138,7 +143,41 @@ type AiAssignmentDraftOutput = {
   criteria: RubricCriterion[];
   usedStandardFrame: boolean;
   note: string | null;
+  revision?: number;
 };
+
+type CourseAgentDraftOutput = {
+  ok: true;
+  proposalId: string;
+  revision: number;
+  name: string;
+  changeSummary: string;
+  studentDisclosure: string;
+  voice: string;
+  approach: string;
+};
+
+type CourseGuidanceDraftOutput = {
+  ok: true;
+  proposalId: string;
+  revision: number;
+  summary: string;
+  directives: Array<{
+    key: string;
+    title: string;
+    instruction: string;
+    effect: string;
+    selectors: { audiences: string[]; surfaces: string[]; assignmentIds: string[]; tags: string[] };
+    enabled: boolean;
+  }>;
+};
+
+type ProposalDetail =
+  | { kind: "rubric"; draft: RubricDraftOutput }
+  | { kind: "ai_assignment"; draft: AiAssignmentDraftOutput }
+  | { kind: "course"; draft: CourseDraftOutput }
+  | { kind: "course_agent"; draft: CourseAgentDraftOutput }
+  | { kind: "course_guidance"; draft: CourseGuidanceDraftOutput };
 
 function outputObject(part: LoosePart): Record<string, unknown> | null {
   return part.output && typeof part.output === "object" ? (part.output as Record<string, unknown>) : null;
@@ -174,6 +213,26 @@ function courseDraftOutputFrom(part: LoosePart): CourseDraftOutput | { ok: false
   return null;
 }
 
+function courseAgentOutputFrom(part: LoosePart): CourseAgentDraftOutput | { ok: false; error: string } | null {
+  const output = outputObject(part);
+  if (!output) return null;
+  if (output.ok === false && typeof output.error === "string") return { ok: false, error: output.error };
+  if (output.ok === true && typeof output.proposalId === "string" && typeof output.changeSummary === "string") {
+    return output as unknown as CourseAgentDraftOutput;
+  }
+  return null;
+}
+
+function courseGuidanceOutputFrom(part: LoosePart): CourseGuidanceDraftOutput | { ok: false; error: string } | null {
+  const output = outputObject(part);
+  if (!output) return null;
+  if (output.ok === false && typeof output.error === "string") return { ok: false, error: output.error };
+  if (output.ok === true && typeof output.proposalId === "string" && Array.isArray(output.directives)) {
+    return output as unknown as CourseGuidanceDraftOutput;
+  }
+  return null;
+}
+
 function threadIdFromMessages(messages: UIMessage[]): string | null {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     for (const part of messages[index].parts as LoosePart[]) {
@@ -195,21 +254,14 @@ const TOOL_TITLES: Record<string, string> = {
   "tool-draft_ai_assignment": "Preparing the AI assignment",
   "tool-draft_rubric": "Preparing the rubric",
   "tool-draft_course": "Preparing course work",
+  "tool-configure_agent": "Preparing the course agent",
+  "tool-inspect_course_guidance": "Checking course guidance",
+  "tool-propose_course_guidance": "Preparing course guidance",
 };
 
 function toolLabel(part: LoosePart): string {
   const type = String(part.type ?? "");
-  const input = (part.input ?? {}) as Record<string, unknown>;
-  if (type === "tool-inspect_lms" && typeof input.resource === "string") return `Checking ${input.resource.replaceAll("_", " ")}`;
-  if (type === "tool-read_gradebook") {
-    if (typeof input.studentQuery === "string") return `Checking ${input.studentQuery}'s grades`;
-    if (typeof input.assignmentId === "string") return "Checking assignment grades";
-    return "Checking the gradebook";
-  }
-  if (type === "tool-search_course" && typeof input.query === "string") return `Searching for “${input.query}”`;
-  if (type === "tool-search_web" && typeof input.query === "string") return `Searching the web for “${input.query}”`;
-  if (type === "tool-mutate_lms" && typeof input.action === "string") return input.action.replaceAll("_", " ");
-  return TOOL_TITLES[type] ?? type.replace(/^tool-/, "").replaceAll("_", " ");
+  return TOOL_TITLES[type] ?? "Working";
 }
 
 function actionSummary(part: LoosePart): string | null {
@@ -226,13 +278,23 @@ export function PlanningRoom(props: PlanningRoomProps) {
   const router = useRouter();
   const initialThreadId = props.threadId;
   const [railOpen, setRailOpen] = useState(false);
-  const [railView, setRailView] = useState<"threads" | "drafts">("threads");
+  const [railView, setRailView] = useState<"threads" | "drafts" | "proposal">("threads");
+  const [proposalDetail, setProposalDetail] = useState<ProposalDetail | null>(null);
+  const [proposalDetailBlocks, setProposalDetailBlocks] = useState<Block[] | null>(null);
+  const [proposalDetailError, setProposalDetailError] = useState<string | null>(null);
+  const [proposalDetailPending, startProposalDetail] = useTransition();
+  const [focusedProposal, setFocusedProposal] = useState<{ proposalId: string; summary: string } | null>(null);
+  const [composerValue, setComposerValue] = useState(() => props.initialInput ?? "");
+  const [proposalStatuses, setProposalStatuses] = useState<Record<string, PlanningDraftRef["status"]>>({});
+  const [proposalError, setProposalError] = useState<string | null>(null);
+  const [proposalDecisionPending, startProposalDecision] = useTransition();
   const [voiceState, setVoiceState] = useState<VoiceTranscriptionState>("idle");
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [selectedDocuments, setSelectedDocuments] = useState<ProfessorDocumentAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [uploadPending, startUploadTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const resumedRunIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -298,19 +360,59 @@ export function PlanningRoom(props: PlanningRoomProps) {
 
   const sendPlanningMessage = (text: string) => {
     const attachments = selectedDocuments;
-    const message = attachments.length > 0
-      ? {
-          metadata: atlasMessageMetadataNow(),
-          parts: [
-            { type: "text" as const, text },
-            { type: "data-document-attachments" as const, data: { attachments } },
-          ],
-        }
-      : { text, metadata: atlasMessageMetadataNow() };
+    const message = {
+      metadata: atlasMessageMetadataNow(),
+      parts: [
+        { type: "text" as const, text },
+        ...(attachments.length > 0
+          ? [{ type: "data-document-attachments" as const, data: { attachments } }]
+          : []),
+        ...(focusedProposal
+          ? [{ type: "data-proposal-context" as const, data: focusedProposal }]
+          : []),
+      ],
+    };
     void sendMessage(message as Parameters<typeof sendMessage>[0]);
     setSelectedDocuments([]);
+    setFocusedProposal(null);
+    setComposerValue("");
     setAttachmentError(null);
   };
+
+  function keepEditing(proposalId: string, summary: string) {
+    setFocusedProposal({ proposalId, summary });
+    setComposerValue("");
+    requestAnimationFrame(() => composerRef.current?.focus());
+  }
+
+  function showProposalDetails(detail: ProposalDetail) {
+    setProposalDetail(detail);
+    setProposalDetailBlocks(null);
+    setProposalDetailError(null);
+    setRailView("proposal");
+    updateRail(true);
+    startProposalDetail(async () => {
+      const result = await loadCourseProposalDetailsInline(detail.draft.proposalId);
+      if (!result.ok) {
+        setProposalDetailError(result.error);
+        return;
+      }
+      setProposalDetailBlocks(result.blocks);
+    });
+  }
+
+  function decideProposal(proposalId: string, decision: "approved" | "rejected") {
+    setProposalError(null);
+    startProposalDecision(async () => {
+      const result = await decideCourseProposalInline({ proposalId, decision });
+      if (!result.ok) {
+        setProposalError(result.error);
+        return;
+      }
+      setProposalStatuses((current) => ({ ...current, [proposalId]: result.status }));
+      router.refresh();
+    });
+  }
 
   function uploadDocument(file: File | undefined) {
     if (!file || selectedDocuments.length >= 5) return;
@@ -378,11 +480,23 @@ export function PlanningRoom(props: PlanningRoomProps) {
           if (output?.ok && !byId.has(output.proposalId)) {
             byId.set(output.proposalId, { proposalId: output.proposalId, status: "pending", kind: "course", summary: output.summary, createdAt: context?.builtAt ?? new Date(0).toISOString() });
           }
+        } else if (type === "tool-configure_agent") {
+          const output = courseAgentOutputFrom(part);
+          if (output?.ok && !byId.has(output.proposalId)) {
+            byId.set(output.proposalId, { proposalId: output.proposalId, status: "pending", kind: "course", summary: output.changeSummary, createdAt: context?.builtAt ?? new Date(0).toISOString() });
+          }
+        } else if (type === "tool-propose_course_guidance") {
+          const output = courseGuidanceOutputFrom(part);
+          if (output?.ok && !byId.has(output.proposalId)) {
+            byId.set(output.proposalId, { proposalId: output.proposalId, status: "pending", kind: "course", summary: output.summary, createdAt: context?.builtAt ?? new Date(0).toISOString() });
+          }
         }
       }
     }
-    return [...byId.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [messages, props.drafts]);
+    return [...byId.values()]
+      .map((draft) => ({ ...draft, status: proposalStatuses[draft.proposalId] ?? draft.status }))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }, [messages, proposalStatuses, props.drafts]);
 
   useEffect(() => {
     if (!learnedThreadId || props.threadId !== "new") return;
@@ -406,8 +520,9 @@ export function PlanningRoom(props: PlanningRoomProps) {
   const statusByProposal = useMemo(() => {
     const map = new Map<string, PlanningDraftRef["status"]>();
     for (const draft of props.drafts) map.set(draft.proposalId, draft.status);
+    for (const [proposalId, proposalStatus] of Object.entries(proposalStatuses)) map.set(proposalId, proposalStatus);
     return map;
-  }, [props.drafts]);
+  }, [proposalStatuses, props.drafts]);
 
   const activeThreadTitle = visibleThreads.find((thread) => thread.id === (learnedThreadId ?? props.threadId))?.title ?? props.threadTitle;
   const storedDraftIds = new Set(props.drafts.map((draft) => draft.proposalId));
@@ -454,9 +569,9 @@ export function PlanningRoom(props: PlanningRoomProps) {
 
           <div className="flex shrink-0 items-center gap-1">
             {pendingReviewCount > 0 ? (
-              <Link href="/teach/review" className="mr-1 hidden rounded-control px-2 py-1 text-[0.75rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] sm:inline-flex">
-                Review {pendingReviewCount}
-              </Link>
+              <button type="button" onClick={() => { setRailView("drafts"); updateRail(true); }} className="mr-1 hidden rounded-control px-2 py-1 text-[0.75rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] sm:inline-flex">
+                Drafts {pendingReviewCount}
+              </button>
             ) : null}
             {activeChatId !== "new" ? (
               <form action={archiveProfessorAtlasChat}>
@@ -508,6 +623,11 @@ export function PlanningRoom(props: PlanningRoomProps) {
                         message={message}
                         streaming={busy && index === messages.length - 1 && message.role === "assistant"}
                         statusByProposal={statusByProposal}
+                        onApply={(proposalId) => decideProposal(proposalId, "approved")}
+                        onDismiss={(proposalId) => decideProposal(proposalId, "rejected")}
+                        onKeepEditing={keepEditing}
+                        onDetails={showProposalDetails}
+                        decisionPending={proposalDecisionPending || busy}
                         onToolApproval={({ id, approved }) => void addToolApprovalResponse({ id, approved })}
                       />
                     </MessageContent>
@@ -530,8 +650,15 @@ export function PlanningRoom(props: PlanningRoomProps) {
             {error ? <p className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{error.message || "Atlas could not finish that turn. Your message is saved."}</p> : null}
             {voiceError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{voiceError}</p> : null}
             {attachmentError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{attachmentError}</p> : null}
+            {proposalError ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{proposalError}</p> : null}
             {steering.error ? <p role="alert" className="mb-2 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{steering.error}</p> : null}
             <SteeringPending notes={steering.notes} />
+            {focusedProposal ? (
+              <div className="mb-2 inline-flex max-w-full items-center gap-2 rounded-control border border-[var(--color-accent-soft)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[0.75rem] text-[var(--color-muted)]">
+                <span className="truncate"><span className="font-medium text-[var(--color-ink)]">Editing:</span> {focusedProposal.summary}</span>
+                <button type="button" onClick={() => setFocusedProposal(null)} aria-label="Stop editing this draft" className="inline-flex size-5 shrink-0 items-center justify-center rounded-full hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"><X size={11} aria-hidden /></button>
+              </div>
+            ) : null}
             {selectedDocuments.length > 0 ? (
               <ul className="mb-2 flex flex-wrap gap-1.5" aria-label="Documents for this message">
                 {selectedDocuments.map((document) => (
@@ -562,10 +689,9 @@ export function PlanningRoom(props: PlanningRoomProps) {
               } else {
                 sendPlanningMessage(text);
               }
-              const form = event.currentTarget;
-              form.reset();
-              const field = form.querySelector("textarea");
-              if (field) field.style.height = "auto";
+              setComposerValue("");
+              event.currentTarget.reset();
+              if (composerRef.current) composerRef.current.style.height = "auto";
             }}>
               <PromptInputButton
                 disabled={busy || uploadPending || selectedDocuments.length >= 5}
@@ -577,7 +703,7 @@ export function PlanningRoom(props: PlanningRoomProps) {
               >
                 <Plus size={16} aria-hidden />
               </PromptInputButton>
-              <PromptInputTextarea defaultValue={props.initialInput} className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-1.5 py-[0.8125rem]" placeholder={busy ? "Redirect Atlas..." : "Ask Atlas..."} autoFocus />
+              <PromptInputTextarea ref={composerRef} value={composerValue} onChange={(event) => setComposerValue(event.currentTarget.value)} className="min-h-[3.125rem] w-auto min-w-0 flex-1 px-1.5 py-[0.8125rem]" placeholder={busy ? "Redirect Atlas..." : focusedProposal ? "Tell Atlas what to change..." : "Ask Atlas..."} autoFocus />
               <PromptInputToolbar className="shrink-0 justify-end gap-0.5 px-1.5 py-1.5">
                 <PromptInputTools>
                   <VoiceTranscriptionButton onError={setVoiceError} onStateChange={setVoiceState} />
@@ -593,13 +719,25 @@ export function PlanningRoom(props: PlanningRoomProps) {
       <aside aria-hidden={!railOpen} inert={!railOpen} className={cn("fixed inset-y-0 right-0 z-40 flex w-[min(22rem,92vw)] flex-col overflow-hidden border-l bg-[var(--color-surface)] shadow-[var(--shadow-floating)] transition-[transform,opacity,width,border-color] duration-[220ms] ease-out lg:static lg:z-auto lg:translate-x-0 lg:shadow-none", railOpen ? "translate-x-0 border-[var(--color-border)] opacity-100 lg:w-[21rem]" : "pointer-events-none translate-x-full border-transparent opacity-0 lg:w-0 lg:translate-x-0")}>
         <div className="flex h-14 w-[min(21rem,92vw)] shrink-0 items-center justify-between border-b border-[var(--color-border)] px-3">
           <div className="flex items-center gap-1">
-            <button type="button" onClick={() => setRailView("threads")} className={cn("rounded-control px-2.5 py-1.5 text-[0.75rem] font-medium transition", railView === "threads" ? "bg-[var(--color-surface-muted)] text-[var(--color-ink)]" : "text-[var(--color-muted)] hover:text-[var(--color-ink)]")}>Chats</button>
-            <button type="button" onClick={() => setRailView("drafts")} className={cn("rounded-control px-2.5 py-1.5 text-[0.75rem] font-medium transition", railView === "drafts" ? "bg-[var(--color-surface-muted)] text-[var(--color-ink)]" : "text-[var(--color-muted)] hover:text-[var(--color-ink)]")}>Drafts{visibleDrafts.length > 0 ? ` ${visibleDrafts.length}` : ""}</button>
+            {railView === "proposal" ? (
+              <button type="button" onClick={() => setRailView("drafts")} className="rounded-control px-2.5 py-1.5 text-[0.75rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]">Back to drafts</button>
+            ) : (
+              <>
+                <button type="button" onClick={() => setRailView("threads")} className={cn("rounded-control px-2.5 py-1.5 text-[0.75rem] font-medium transition", railView === "threads" ? "bg-[var(--color-surface-muted)] text-[var(--color-ink)]" : "text-[var(--color-muted)] hover:text-[var(--color-ink)]")}>Chats</button>
+                <button type="button" onClick={() => setRailView("drafts")} className={cn("rounded-control px-2.5 py-1.5 text-[0.75rem] font-medium transition", railView === "drafts" ? "bg-[var(--color-surface-muted)] text-[var(--color-ink)]" : "text-[var(--color-muted)] hover:text-[var(--color-ink)]")}>Drafts{visibleDrafts.length > 0 ? ` ${visibleDrafts.length}` : ""}</button>
+              </>
+            )}
           </div>
           <button type="button" onClick={() => updateRail(false)} aria-label="Close Atlas sidebar" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"><PanelRightClose size={15} aria-hidden /></button>
         </div>
         <div className="min-h-0 w-[min(21rem,92vw)] flex-1 overflow-y-auto px-3 py-3">
-          {railView === "threads" ? <ThreadsPanel threads={visibleThreads} activeId={learnedThreadId ?? props.threadId} busy={busy} /> : <ThreadDraftsPanel drafts={visibleDrafts} pendingProposals={pendingReviewCount} />}
+          {railView === "threads" ? (
+            <ThreadsPanel threads={visibleThreads} activeId={learnedThreadId ?? props.threadId} busy={busy} />
+          ) : railView === "proposal" && proposalDetail ? (
+            <ProposalDetails detail={proposalDetail} blocks={proposalDetailBlocks} pending={proposalDetailPending} error={proposalDetailError} />
+          ) : (
+            <ThreadDraftsPanel drafts={visibleDrafts} pendingProposals={pendingReviewCount} />
+          )}
         </div>
       </aside>
     </div>
@@ -610,11 +748,21 @@ function PlanningMessageParts({
   message,
   streaming,
   statusByProposal,
+  onApply,
+  onDismiss,
+  onKeepEditing,
+  onDetails,
+  decisionPending,
   onToolApproval,
 }: {
   message: UIMessage;
   streaming: boolean;
   statusByProposal: Map<string, PlanningDraftRef["status"]>;
+  onApply: (proposalId: string) => void;
+  onDismiss: (proposalId: string) => void;
+  onKeepEditing: (proposalId: string, summary: string) => void;
+  onDetails: (detail: ProposalDetail) => void;
+  decisionPending: boolean;
   onToolApproval: (approval: { id: string; approved: boolean }) => void;
 }) {
   const renderDataPart = (part: LoosePart, { index }: { index: number }) => {
@@ -624,6 +772,7 @@ function PlanningMessageParts({
       const attachments = Array.isArray(data?.attachments) ? data.attachments : [];
       return attachments.length > 0 ? <MessageDocumentAttachments key={`documents-${index}`} attachments={attachments} /> : null;
     }
+    if (type === "data-proposal-context") return null;
     /* Show the redirection where it landed, so the change of course is legible. */
     if (type === "data-steering-applied") {
       const data = part.data as { notes?: unknown } | undefined;
@@ -642,17 +791,25 @@ function PlanningMessageParts({
     const type = String(part.type ?? "");
     if (type === "tool-draft_ai_assignment") {
       const output = aiAssignmentOutputFrom(part);
-      return output?.ok ? <AiAssignmentDraftCard key={`draft-${index}`} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} /> : null;
+      return output?.ok ? <AiAssignmentDraftCard key={`draft-${index}`} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} onApply={onApply} onDismiss={onDismiss} onKeepEditing={onKeepEditing} onDetails={onDetails} decisionPending={decisionPending} /> : null;
     }
 
     if (type === "tool-draft_rubric") {
       const output = rubricOutputFrom(part);
-      return output?.ok ? <RubricDraftCard key={`draft-${index}`} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} /> : null;
+      return output?.ok ? <RubricDraftCard key={`draft-${index}`} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} onApply={onApply} onDismiss={onDismiss} onKeepEditing={onKeepEditing} onDetails={onDetails} decisionPending={decisionPending} /> : null;
     }
 
     if (type === "tool-draft_course") {
       const output = courseDraftOutputFrom(part);
-      return output?.ok ? <CourseDraftCard key={`draft-${index}`} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} /> : null;
+      return output?.ok ? <CourseDraftCard key={`draft-${index}`} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} onApply={onApply} onDismiss={onDismiss} onKeepEditing={onKeepEditing} onDetails={onDetails} decisionPending={decisionPending} /> : null;
+    }
+    if (type === "tool-configure_agent") {
+      const output = courseAgentOutputFrom(part);
+      return output?.ok ? <CourseAgentDraftCard key={`draft-${index}`} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} onApply={onApply} onDismiss={onDismiss} onKeepEditing={onKeepEditing} onDetails={onDetails} decisionPending={decisionPending} /> : null;
+    }
+    if (type === "tool-propose_course_guidance") {
+      const output = courseGuidanceOutputFrom(part);
+      return output?.ok ? <CourseGuidanceDraftCard key={`draft-${index}`} draft={output} status={statusByProposal.get(output.proposalId) ?? "pending"} onApply={onApply} onDismiss={onDismiss} onKeepEditing={onKeepEditing} onDetails={onDetails} decisionPending={decisionPending} /> : null;
     }
     return undefined;
   };
@@ -698,58 +855,138 @@ function ActionReceipt({ summary }: { summary: string }) {
   );
 }
 
-function DraftFrame({ eyebrow, status, children }: { eyebrow: string; status: PlanningDraftRef["status"]; children: ReactNode }) {
+type DraftActions = {
+  status: PlanningDraftRef["status"];
+  onApply: (proposalId: string) => void;
+  onDismiss: (proposalId: string) => void;
+  onKeepEditing: (proposalId: string, summary: string) => void;
+  onDetails: (detail: ProposalDetail) => void;
+  decisionPending: boolean;
+};
+
+function DraftFrame({
+  eyebrow,
+  title,
+  summary,
+  facts,
+  proposalId,
+  detail,
+  status,
+  onApply,
+  onDismiss,
+  onKeepEditing,
+  onDetails,
+  decisionPending,
+}: DraftActions & {
+  eyebrow: string;
+  title: string;
+  summary: string;
+  facts: string[];
+  proposalId: string;
+  detail: ProposalDetail;
+}) {
   return (
-    <section className="my-1 w-full max-w-[42rem]">
-      <div className="flex items-center justify-between gap-3 pb-1.5">
-        <p className="atlas-mono flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-[0.08em] text-[var(--color-faint)]"><FileCheck2 size={11} aria-hidden />{eyebrow}</p>
-        <div className="flex items-center gap-2">
+    <section className="my-1 w-full max-w-[42rem] overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] px-3.5 py-2.5">
+        <p className="atlas-mono flex items-center gap-1.5 text-[0.65625rem] uppercase tracking-[0.08em] text-[var(--color-faint)]"><FileCheck2 size={11} aria-hidden />{eyebrow}</p>
+        <div className="shrink-0">
           <StatusBadge tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</StatusBadge>
-          {status === "pending" ? <TextLink href="/teach/review" className="text-[0.71875rem]">Review</TextLink> : null}
         </div>
       </div>
-      {children}
+      <div className="px-3.5 py-3">
+        <h3 className="text-[0.84375rem] font-semibold leading-5 text-[var(--color-ink)]">{title}</h3>
+        <p className="mt-1 line-clamp-2 text-[0.78125rem] leading-5 text-[var(--color-muted)]">{summary}</p>
+        {facts.length > 0 ? <p className="atlas-mono mt-2 text-[0.65625rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">{facts.join(" / ")}</p> : null}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--color-border)] px-3 py-2.5">
+        {status === "pending" ? (
+          <>
+            <button type="button" disabled={decisionPending} onClick={() => onApply(proposalId)} className="rounded-control bg-[var(--color-ink)] px-2.5 py-1.5 text-[0.71875rem] font-medium text-[var(--color-surface)] transition hover:opacity-85 disabled:opacity-50">Apply</button>
+            <button type="button" disabled={decisionPending} onClick={() => onKeepEditing(proposalId, title)} className="rounded-control px-2.5 py-1.5 text-[0.71875rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)] disabled:opacity-50">Keep editing</button>
+            <button type="button" disabled={decisionPending} onClick={() => onDismiss(proposalId)} className="rounded-control px-2.5 py-1.5 text-[0.71875rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-danger)] disabled:opacity-50">Dismiss</button>
+          </>
+        ) : null}
+        <button type="button" onClick={() => onDetails(detail)} className="ml-auto rounded-control px-2.5 py-1.5 text-[0.71875rem] font-medium text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]">Details</button>
+      </div>
     </section>
   );
 }
 
-function RubricDraftCard({ draft, status }: { draft: RubricDraftOutput; status: PlanningDraftRef["status"] }) {
-  return <DraftFrame eyebrow={`Rubric · ${draft.assignmentName}`} status={status}><RubricCard title={draft.title} criteria={draft.criteria} compare={{ version: draft.replacesVersion, criteria: draft.replacesCriteria }} />{draft.note ? <p className="mt-1.5 text-[0.75rem] leading-5 text-[var(--color-muted)]">{draft.note}</p> : null}</DraftFrame>;
+function RubricDraftCard({ draft, ...actions }: { draft: RubricDraftOutput } & DraftActions) {
+  return <DraftFrame {...actions} eyebrow="Rubric draft" title={`${draft.assignmentName}: ${draft.title}`} summary={draft.note || "A revised grading rubric is ready."} facts={[`${draft.criteria.length} criteria`, `replaces v${draft.replacesVersion}`, ...(draft.revision ? [`draft v${draft.revision}`] : [])]} proposalId={draft.proposalId} detail={{ kind: "rubric", draft }} />;
 }
 
-function AiAssignmentDraftCard({ draft, status }: { draft: AiAssignmentDraftOutput; status: PlanningDraftRef["status"] }) {
-  return (
-    <DraftFrame eyebrow={`AI assignment · ${draft.assignmentName}`} status={status}>
-      <div className="overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)]">
-        <div className="bg-[var(--color-surface-muted)] px-3.5 py-2.5">
-          <p className="text-[0.8125rem] leading-5 text-[var(--color-ink)]">{draft.instructions}</p>
-          <p className="atlas-mono mt-1.5 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">{draft.durationMinutes} min</p>
-        </div>
-        <RubricCard title={draft.usedStandardFrame ? "Rubric · standard frame" : "Rubric"} criteria={draft.criteria} className="rounded-none border-0" />
-      </div>
-      {draft.note ? <p className="mt-1.5 text-[0.75rem] leading-5 text-[var(--color-muted)]">{draft.note}</p> : null}
-    </DraftFrame>
-  );
+function AiAssignmentDraftCard({ draft, ...actions }: { draft: AiAssignmentDraftOutput } & DraftActions) {
+  return <DraftFrame {...actions} eyebrow="AI assignment draft" title={draft.assignmentName} summary={draft.instructions} facts={[`${draft.durationMinutes} min`, `${draft.criteria.length} rubric criteria`, ...(draft.revision ? [`draft v${draft.revision}`] : [])]} proposalId={draft.proposalId} detail={{ kind: "ai_assignment", draft }} />;
 }
 
-function CourseDraftCard({ draft, status }: { draft: CourseDraftOutput; status: PlanningDraftRef["status"] }) {
-  return (
-    <DraftFrame eyebrow="Course draft" status={status}>
-      <div className="overflow-hidden rounded-panel border border-[var(--color-border)] bg-[var(--color-surface)]">
-        <p className="bg-[var(--color-surface-muted)] px-3.5 py-2.5 text-[0.8125rem] font-medium text-[var(--color-ink)]">{draft.summary}</p>
-        <ul className="space-y-1">
-          {draft.records.map((record, index) => <li key={index} className="flex items-baseline justify-between gap-3 px-3.5 py-2 text-[0.78125rem]"><span className="min-w-0 text-[var(--color-ink)]">{record.title}</span><span className="atlas-mono shrink-0 text-[0.65625rem] uppercase tracking-[0.07em] text-[var(--color-faint)]">{record.type.replaceAll("_", " ")}</span></li>)}
-        </ul>
-      </div>
-    </DraftFrame>
-  );
+function CourseDraftCard({ draft, ...actions }: { draft: CourseDraftOutput } & DraftActions) {
+  return <DraftFrame {...actions} eyebrow="Course draft" title={draft.summary} summary={draft.records.slice(0, 3).map((record) => record.title).join(" · ")} facts={[`${draft.records.length} ${draft.records.length === 1 ? "record" : "records"}`, ...(draft.revision ? [`draft v${draft.revision}`] : [])]} proposalId={draft.proposalId} detail={{ kind: "course", draft }} />;
+}
+
+function CourseAgentDraftCard({ draft, ...actions }: { draft: CourseAgentDraftOutput } & DraftActions) {
+  return <DraftFrame {...actions} eyebrow="Course agent draft" title={draft.changeSummary} summary={`${draft.name} will be ${draft.voice.toLocaleLowerCase("en-US")}. ${draft.approach}`} facts={[`draft v${draft.revision}`]} proposalId={draft.proposalId} detail={{ kind: "course_agent", draft }} />;
+}
+
+function CourseGuidanceDraftCard({ draft, ...actions }: { draft: CourseGuidanceDraftOutput } & DraftActions) {
+  return <DraftFrame {...actions} eyebrow="Course guidance draft" title={draft.summary} summary={draft.directives.slice(0, 2).map((directive) => directive.title).join(" · ")} facts={[`${draft.directives.length} ${draft.directives.length === 1 ? "rule" : "rules"}`, `draft v${draft.revision}`]} proposalId={draft.proposalId} detail={{ kind: "course_guidance", draft }} />;
+}
+
+function ProposalDetails({ detail, blocks, pending, error }: { detail: ProposalDetail; blocks: Block[] | null; pending: boolean; error: string | null }) {
+  if (pending) return <p className="px-1 py-6 text-[0.78125rem] text-[var(--color-muted)]">Loading draft details...</p>;
+  if (error) return <p role="alert" className="px-1 py-6 text-[0.78125rem] leading-5 text-[var(--color-danger)]">{error}</p>;
+  if (blocks) {
+    return <div className="divide-y divide-[var(--color-border)]">{blocks.map((block, index) => <ProposalBlockDetails key={`${block.type}-${index}`} block={block} />)}</div>;
+  }
+  if (detail.kind === "rubric") {
+    return <div className="space-y-3"><DetailHeading title={detail.draft.title} description={detail.draft.assignmentName} /><RubricCard criteria={detail.draft.criteria} compare={{ version: detail.draft.replacesVersion, criteria: detail.draft.replacesCriteria }} />{detail.draft.note ? <p className="text-[0.75rem] leading-5 text-[var(--color-muted)]">{detail.draft.note}</p> : null}</div>;
+  }
+  if (detail.kind === "ai_assignment") {
+    return <div className="space-y-4"><DetailHeading title={detail.draft.assignmentName} description={`${detail.draft.durationMinutes} minute AI assignment`} /><p className="text-[0.8125rem] leading-6 text-[var(--color-muted)]">{detail.draft.instructions}</p><RubricCard title={detail.draft.usedStandardFrame ? "Rubric · standard frame" : "Rubric"} criteria={detail.draft.criteria} /></div>;
+  }
+  if (detail.kind === "course") {
+    return <div><DetailHeading title={detail.draft.summary} description={`${detail.draft.records.length} proposed records`} /><ul className="mt-4 divide-y divide-[var(--color-border)]">{detail.draft.records.map((record, index) => <li key={`${record.type}-${index}`} className="py-3"><p className="text-[0.8125rem] font-medium text-[var(--color-ink)]">{record.title}</p><p className="mt-1 text-[0.6875rem] uppercase tracking-[0.06em] text-[var(--color-faint)]">{record.type.replaceAll("_", " ")}</p></li>)}</ul></div>;
+  }
+  if (detail.kind === "course_agent") {
+    return <div><DetailHeading title={detail.draft.changeSummary} description={detail.draft.name} /><dl className="mt-4 space-y-4"><DetailFact label="Voice" value={detail.draft.voice} /><DetailFact label="Teaching approach" value={detail.draft.approach} /><DetailFact label="What students see" value={detail.draft.studentDisclosure} /></dl></div>;
+  }
+  return <div><DetailHeading title={detail.draft.summary} description={`${detail.draft.directives.length} standing guidance changes`} /><ul className="mt-4 divide-y divide-[var(--color-border)]">{detail.draft.directives.map((directive) => <li key={directive.key} className="py-4"><div className="flex items-baseline justify-between gap-2"><p className="text-[0.8125rem] font-medium text-[var(--color-ink)]">{directive.title}</p><span className="text-[0.65625rem] uppercase text-[var(--color-faint)]">{directive.effect}</span></div><p className="mt-1 text-[0.6875rem] text-[var(--color-faint)]">{directive.key}</p><p className="mt-2 text-[0.78125rem] leading-5 text-[var(--color-muted)]">{directive.instruction}</p></li>)}</ul></div>;
+}
+
+function ProposalBlockDetails({ block }: { block: Block }) {
+  if (block.type === "course_agent_configuration") {
+    return <section className="py-4"><DetailHeading title={block.changeSummary} description={`Course agent version ${block.expectedVersion + 1}`} /><dl className="mt-4 space-y-4"><DetailFact label="Name and role" value={`${block.configuration.identity.name}. ${block.configuration.identity.role}`} /><DetailFact label="Voice" value={block.configuration.identity.voice} /><DetailFact label="Teaching approach" value={block.configuration.teaching.approach} /><DetailFact label="Direct answers" value={block.configuration.teaching.directAnswers.replaceAll("_", " ")} /><DetailFact label="Supports" value={block.configuration.boundaries.supports.join(" · ") || "None"} /><DetailFact label="Avoids" value={block.configuration.boundaries.avoids.join(" · ") || "None"} /><DetailFact label="Escalates when" value={block.configuration.boundaries.escalatesWhen.join(" · ") || "None"} /><DetailFact label="What students see" value={block.studentDisclosure} /></dl></section>;
+  }
+  if (block.type === "course_guidance") {
+    const scope = [...block.selectors.audiences, ...block.selectors.surfaces, ...block.selectors.tags].join(" · ") || "All applicable course contexts";
+    return <section className="py-4"><DetailHeading title={block.title} description={`${block.key} · revision ${block.expectedRevision + 1}`} /><p className="mt-3 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{block.instruction}</p><dl className="mt-4 space-y-3"><DetailFact label="Effect" value={block.effect} /><DetailFact label="Scope" value={scope} /><DetailFact label="State" value={block.enabled ? "Active" : "Off"} /></dl></section>;
+  }
+  if (block.type === "ai_assignment") {
+    return <section className="py-4"><DetailHeading title={block.title} description={`${block.durationMinutes} minute AI assignment`} /><p className="mt-3 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{block.instructions}</p><RubricCard title="Rubric" criteria={block.criteria} className="mt-4" /></section>;
+  }
+  if (block.type === "session_rubric") return <section className="py-4"><DetailHeading title={block.title} description={`${block.criteria.length} rubric criteria`} /><RubricCard criteria={block.criteria} className="mt-4" /></section>;
+  if (block.type === "rubric") return <section className="py-4"><DetailHeading title={block.title} description={`${block.criteria.length} rubric criteria`} /><div className="mt-3 space-y-3">{block.criteria.map((criterion) => <div key={criterion.name}><p className="text-[0.78125rem] font-medium text-[var(--color-ink)]">{criterion.name} · {Math.round(criterion.weight * 100)}%</p><p className="mt-1 text-[0.75rem] leading-5 text-[var(--color-muted)]">{criterion.levels.map((level) => `${level.label}: ${level.description}`).join(" · ")}</p></div>)}</div></section>;
+  if (block.type === "practice_set") return <section className="py-4"><DetailHeading title={block.title} description={`${block.questions.length} practice questions`} /><p className="mt-3 text-[0.78125rem] leading-5 text-[var(--color-muted)]">{block.base}</p><ol className="mt-3 list-decimal space-y-3 pl-5 text-[0.78125rem] leading-5 text-[var(--color-ink)]">{block.questions.map((question, index) => <li key={index}>{question.prompt}<p className="mt-1 text-[0.75rem] text-[var(--color-muted)]">Answer: {question.answer}</p></li>)}</ol></section>;
+  if (block.type === "objective") return <section className="py-4"><DetailHeading title={`${block.code}: ${block.description}`} description={`${block.bloomLevel} · ${Math.round(block.assessmentWeight * 100)}% assessment weight`} /></section>;
+
+  const title = block.type === "module" || block.type === "assignment" ? block.name : block.type === "explanation" ? block.headline : block.type === "answer" ? "Draft response" : block.title;
+  const body = block.type === "announcement" ? block.messageMd : block.type === "page" ? block.bodyMd : block.type === "module" ? block.summaryMd : block.type === "assignment" ? block.descriptionMd : block.bodyMd;
+  return <section className="py-4"><DetailHeading title={title} description={block.type.replaceAll("_", " ")} /><Markdown className="mt-3 text-[0.78125rem] leading-6">{body}</Markdown></section>;
+}
+
+function DetailHeading({ title, description }: { title: string; description: string }) {
+  return <header><h2 className="text-[1rem] font-semibold leading-6 text-[var(--color-ink)]">{title}</h2><p className="mt-1 text-[0.75rem] text-[var(--color-muted)]">{description}</p></header>;
+}
+
+function DetailFact({ label, value }: { label: string; value: string }) {
+  return <div><dt className="text-[0.6875rem] text-[var(--color-faint)]">{label}</dt><dd className="mt-1 text-[0.78125rem] leading-5 text-[var(--color-muted)]">{value}</dd></div>;
 }
 
 function ThreadDraftsPanel({ drafts, pendingProposals }: { drafts: PlanningDraftRef[]; pendingProposals: number }) {
   if (drafts.length === 0) return <div className="px-2 py-8 text-center"><FileCheck2 size={18} className="mx-auto text-[var(--color-faint)]" aria-hidden /><p className="mt-2 text-[0.75rem] text-[var(--color-muted)]">No drafts in this chat.</p></div>;
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between px-2"><p className="text-[0.6875rem] text-[var(--color-faint)]">This chat</p>{pendingProposals > 0 ? <TextLink href="/teach/review" className="text-[0.6875rem]">Open Review</TextLink> : null}</div>
+      <div className="mb-2 flex items-center justify-between px-2"><p className="text-[0.6875rem] text-[var(--color-faint)]">This chat</p>{pendingProposals > 0 ? <TextLink href="/teach/review" className="text-[0.6875rem]">All course drafts</TextLink> : null}</div>
       <ul className="space-y-1">
         {drafts.map((draft) => <li key={draft.proposalId} className="flex items-start justify-between gap-3 px-2 py-3"><div className="min-w-0"><p className="text-[0.78125rem] leading-5 text-[var(--color-ink)]">{draft.summary}</p><p className="mt-0.5 text-[0.65625rem] text-[var(--color-faint)]">{new Date(draft.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p></div><StatusBadge tone={STATUS_TONE[draft.status]}>{STATUS_LABEL[draft.status]}</StatusBadge></li>)}
       </ul>

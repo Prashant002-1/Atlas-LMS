@@ -414,7 +414,7 @@ export async function buildStudentAtlasPack(scope: StudentAtlasScope): Promise<S
 
 /** Compact study-scoped course rules for the instruction ladder. */
 function compileCourseRules(course: EnrolledCourseRef, config: ResolvedCourseAgentConfig): string {
-  return [`${course.code} (${config.configuration.identity.name}):`, compileCourseAgentConfiguration(config.configuration, "study")]
+  return [`${course.code} (${config.configuration.identity.name}):`, compileCourseAgentConfiguration(config.configuration, "study", config.directives)]
     .join("\n")
     .split("\n")
     .map((line, index) => (index === 0 ? line : `  ${line}`))

@@ -137,6 +137,7 @@ export async function runSessionTurn(args: {
       const createdAt = new Date().toISOString();
       writer.merge(toUIMessageStream({
         stream: result.stream,
+        sendReasoning: false,
         messageMetadata: () => ({ createdAt }),
       }));
     },

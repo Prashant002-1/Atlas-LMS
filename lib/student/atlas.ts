@@ -19,6 +19,7 @@ import {
   loadActiveCourseAgentConfig,
   type ResolvedCourseAgentConfig,
 } from "@/lib/agent/course-agent-config";
+import { selectCourseAgentDirectives } from "@/lib/agent/course-agent-directives";
 import { loadStudentTopicRecords } from "@/lib/agent/side-notes";
 import { agentProfiles } from "@/lib/agent/profiles";
 import { listArchivedStudentChats, type ArchivedAtlasChat } from "@/lib/agent/chat-archive";
@@ -314,9 +315,8 @@ function courseRuleFacts(
     directAnswers: configuration.teaching.directAnswers,
     citations: configuration.teaching.citationMode,
     disclosure: config.studentDisclosure,
-    studyRules: configuration.rules
-      .filter((rule) => rule.enabled && rule.appliesTo.includes("study"))
-      .map((rule) => ({ title: rule.title, instruction: rule.instruction })),
+    studyRules: selectCourseAgentDirectives(config.directives, { audience: "student", surface: "study" })
+      .map((directive) => ({ title: directive.title, instruction: directive.instruction })),
   };
 }
 

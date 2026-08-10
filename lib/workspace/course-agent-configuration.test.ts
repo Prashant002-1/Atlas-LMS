@@ -5,6 +5,7 @@ import path from "node:path";
 import { z } from "zod";
 import {
   compileCourseAgentConfiguration,
+  courseAgentCoreInputSchema,
   courseAgentConfigurationInputSchema,
   courseAgentConfigurationSchema,
 } from "@/lib/agent/course-agent-config";
@@ -99,13 +100,14 @@ test("stored configurations gain a default server policy that professor replacem
 });
 
 test("complete-replacement configuration stays exact for Kimi-compatible tool schemas", () => {
-  const schema = z.toJSONSchema(courseAgentConfigurationInputSchema) as {
+  const schema = z.toJSONSchema(courseAgentCoreInputSchema) as {
     required?: string[];
     properties?: Record<string, unknown>;
   };
   assert.equal(schema.required?.includes("externalSearch"), false);
   assert.equal(Object.hasOwn(schema.properties ?? {}, "externalSearch"), false);
   assert.equal(Object.hasOwn(schema.properties ?? {}, "limits"), false);
+  assert.equal(Object.hasOwn(schema.properties ?? {}, "rules"), false);
 
   const serialized = JSON.stringify(schema);
   for (const keyword of ["anyOf", "oneOf", "allOf"]) {
@@ -127,9 +129,12 @@ test("Atlas owns append-only course agent configuration", () => {
   assert.match(config, /externalSearch: currentConfiguration\.externalSearch/);
   assert.doesNotMatch(config, /currentConfiguration\.limits/);
   assert.doesNotMatch(config, /courseAiPolicies/);
-  assert.match(tool, /configure_agent/);
+  assert.match(tool, /courseAgentConfigurationTool/);
   assert.match(tool, /complete next version/);
+  assert.match(tool, /proposalBlocks/);
+  assert.doesNotMatch(tool, /writeCourseAgentConfig/);
   assert.match(runtime, /configure_agent: courseAgentConfigurationTool/);
+  assert.match(runtime, /courseGuidanceTools/);
 });
 
 test("student sessions compile shared state below fixed rules", () => {
@@ -151,7 +156,7 @@ test("the course agent is transparent in Course setup and conversation edited", 
   const page = read("app/teach/course/page.tsx");
   assert.match(page, /Course agent/);
   assert.match(page, /Change with Atlas/);
-  assert.match(page, /Course rules/);
+  assert.match(page, /Course guidance/);
   assert.match(page, /Version history/);
   assert.match(page, /loadActiveCourseAgentConfig/);
   assert.match(page, /listCourseAgentConfigHistory/);
@@ -220,6 +225,7 @@ test("the new schema and bounded upload path are deployment visible", () => {
   assert.match(read("package.json"), /"@firecrawl\/anydoc": "0\.1\.7"/);
   assert.match(read("drizzle/0018_document_originals.sql"), /document_originals/);
   assert.match(read("drizzle/0019_remove_material_ingestion_job.sql"), /DROP COLUMN IF EXISTS "ingestion_job_id"/);
+  assert.match(read("drizzle/0021_course_guidance_and_proposal_revisions.sql"), /course_agent_directives/);
   assert.doesNotMatch(read(".env.example"), /ATLAS_MATERIAL_INGEST/);
   assert.doesNotMatch(read("docker-compose.yml"), /ATLAS_MATERIAL_INGEST/);
   assert.match(read("Dockerfile"), /FROM node:24-alpine/);

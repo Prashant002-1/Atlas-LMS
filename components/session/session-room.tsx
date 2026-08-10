@@ -527,7 +527,7 @@ function MessageParts({ message, streaming, onToolApproval }: { message: UIMessa
     if (!isArtifactToolPartType(part.type) || part.state !== "output-available") return undefined;
     return <p className="flex items-center gap-1.5 text-[0.75rem] font-medium text-[var(--color-accent-strong)]"><CheckCircle2 size={13} aria-hidden />Submission draft updated</p>;
   };
-  const toolTitle = (part: AtlasLoosePart) => isArtifactToolPartType(part.type) ? "Updating submission draft" : String(part.type ?? "Tool").replace(/^tool-/, "").replaceAll("_", " ");
+  const toolTitle = (part: AtlasLoosePart) => isArtifactToolPartType(part.type) ? "Updating submission draft" : "Working";
 
   return <AtlasMessageParts message={message} streaming={streaming} toolTitle={toolTitle} renderDataPart={renderDataPart} renderToolResult={renderToolResult} onToolApproval={onToolApproval} />;
 }

@@ -38,9 +38,13 @@ The conversation no longer renders an always-present run trace. AI Elements are 
 - Completed reads disappear into the answer.
 - Direct writes produce one small changed-record receipt.
 - Draft artifacts remain visible because they are the work product.
-- Tool errors remain expandable with parameters so a teacher can understand a failure that needs attention.
+- Tool activity is a plain, non-expandable process line. Tool names, inputs,
+  outputs, record payloads, and provider reasoning are not chat surfaces.
+- Tool errors use a generic inline failure state without parameters or returned
+  data. Server logs and durable traces remain the diagnostic surface.
 
-No hidden chain-of-thought is exposed.
+The UI stream disables reasoning parts. Historical reasoning parts are also
+suppressed during hydration, so hidden chain-of-thought is never exposed.
 
 ## Consequences
 

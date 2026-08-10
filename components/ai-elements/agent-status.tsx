@@ -15,14 +15,19 @@ export function messageHasVisibleOutput(message: UIMessage | undefined): boolean
     const type = String(part.type ?? "");
     if (type === "text") return typeof part.text === "string" && part.text.trim().length > 0;
     if (type === "step-start" || type === "data-atlas-ref" || type === "data-planning-ref" || type === "data-run-context") return false;
-    return type === "reasoning"
-      || type === "file"
-      || type === "reasoning-file"
+    if (type === "reasoning") return true;
+    if (type === "reasoning-file") return false;
+    if (type === "dynamic-tool" || type.startsWith("tool-")) {
+      return part.state === "input-streaming"
+        || part.state === "input-available"
+        || part.state === "approval-requested"
+        || part.state === "output-error"
+        || part.state === "output-denied";
+    }
+    return type === "file"
       || type === "source-url"
       || type === "source-document"
       || type === "custom"
-      || type === "dynamic-tool"
-      || type.startsWith("tool-")
       || type.startsWith("data-");
   });
 }

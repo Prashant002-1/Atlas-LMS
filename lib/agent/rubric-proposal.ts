@@ -58,6 +58,7 @@ export const rubricDraftCriterionSchema = z.object({
 
 export const rubricDraftSchema = z.object({
   assignmentId: z.string().uuid().describe("The AI assignment this rubric grades, from the context pack."),
+  revisesProposalId: z.string().uuid().optional().describe("The open rubric proposal id when revising a draft in chat."),
   title: z.string().min(3).max(200).describe("What the rubric is for, in the professor's words."),
   note: z.string().max(400).optional().describe("One line on what changed or why, shown with the draft."),
   criteria: z.array(rubricDraftCriterionSchema).min(2).max(8),

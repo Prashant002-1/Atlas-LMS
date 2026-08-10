@@ -17,6 +17,8 @@ import {
 } from "@/lib/db/schema";
 import { parseStoredBlock, type Block } from "@/lib/agent/blocks";
 import { rubricCriteriaSchema } from "@/lib/agent/session-parts";
+import { appendCourseAgentConfigRevision } from "@/lib/agent/course-agent-config";
+import { appendCourseAgentDirectiveRevision } from "@/lib/agent/course-agent-directives";
 
 /**
  * Apply, the one door between a draft and the live course.
@@ -90,10 +92,38 @@ async function weekToDate(tx: Tx, courseId: string, week: number | undefined): P
 
 async function applyBlock(
   tx: Tx,
-  args: { orgId: string; courseId: string; authorId: string; planningSessionId: string | null },
+  args: { orgId: string; courseId: string; authorId: string; planningSessionId: string | null; proposalId: string },
   block: Block
 ): Promise<{ itemType: "module" | "assignment" | "page" | "quiz"; itemId: string; title: string } | null> {
   const { orgId, courseId } = args;
+
+  if (block.type === "course_agent_configuration") {
+    if (!args.planningSessionId) throw new Error("Course-agent configuration requires its source Atlas chat.");
+    await appendCourseAgentConfigRevision(tx, {
+      orgId,
+      courseId,
+      instructorId: args.authorId,
+      sourceSessionId: args.planningSessionId,
+      expectedVersion: block.expectedVersion,
+      configuration: block.configuration,
+      studentDisclosure: block.studentDisclosure,
+      changeSummary: block.changeSummary,
+    });
+    return null;
+  }
+
+  if (block.type === "course_guidance") {
+    if (!args.planningSessionId) throw new Error("Course guidance requires its source Atlas chat.");
+    await appendCourseAgentDirectiveRevision(tx, {
+      orgId,
+      courseId,
+      instructorId: args.authorId,
+      sourceSessionId: args.planningSessionId,
+      sourceProposalId: args.proposalId,
+      directive: block,
+    });
+    return null;
+  }
 
   if (block.type === "objective") {
     const existing = await tx
@@ -388,7 +418,7 @@ export async function applyProposal(args: {
     for (const { row, block } of ordered) {
       const created = await applyBlock(
         tx,
-        { orgId: args.orgId, courseId: args.courseId, authorId: args.userId, planningSessionId: proposal.sessionId },
+        { orgId: args.orgId, courseId: args.courseId, authorId: args.userId, planningSessionId: proposal.sessionId, proposalId: args.proposalId },
         block
       );
       await tx

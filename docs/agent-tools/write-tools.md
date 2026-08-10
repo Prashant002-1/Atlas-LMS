@@ -82,6 +82,9 @@ See [Review and deletion actions](write-review-delete-actions.md).
 
 ## UI result handling
 
-A successful direct action result is rendered as one compact action receipt using `summary`. Completed read calls remain hidden. A failed action renders the tool error and input parameters.
+A successful direct action result is rendered as one compact action receipt
+using `summary`. Completed read calls remain hidden. Active work uses a quiet
+shimmering label. Tool names, parameters, raw results, and error payloads are
+not rendered in chat; a failed action receives a generic inline failure state.
 
-Proof: `actionSummary`, `ActionReceipt`, and `ToolError` in [`components/planning/atlas-room.tsx`](../../components/planning/atlas-room.tsx).
+Proof: `actionSummary` and `ActionReceipt` in [`components/planning/atlas-room.tsx`](../../components/planning/atlas-room.tsx), with the shared privacy boundary in [`components/agent/message-parts.tsx`](../../components/agent/message-parts.tsx).

@@ -149,6 +149,7 @@ export async function runStudentAtlasTurn(args: {
       const createdAt = new Date().toISOString();
       writer.merge(toUIMessageStream({
         stream: result.stream,
+        sendReasoning: false,
         messageMetadata: () => ({ createdAt }),
       }));
     },

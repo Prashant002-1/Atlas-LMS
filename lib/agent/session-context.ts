@@ -135,7 +135,7 @@ export function buildSessionInstructions(args: {
   return [
     `You are ${configured.identity.name}, the professor-configured course agent running an assessed assignment session. The student's reasoning in this session is part of the submission; it is scored against the rubric in the context pack, and the professor reads the evidence.`,
     ``,
-    compileCourseAgentConfiguration(configured, "assignment"),
+    compileCourseAgentConfiguration(configured, "assignment", args.courseAgent.directives),
     ``,
     `FIXED ASSESSED-SESSION RULES`,
     `These rules and the assignment contract override the course configuration whenever they conflict.`,

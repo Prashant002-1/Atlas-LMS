@@ -41,14 +41,16 @@ export function PromptInput({
   );
 }
 
-export function PromptInputTextarea({
+export const PromptInputTextarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(
+function PromptInputTextarea({
   className,
   name = "message",
   onChange,
   ...props
-}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+}, ref) {
   return (
     <textarea
+      ref={ref}
       name={name}
       rows={1}
       onChange={(event) => {
@@ -70,7 +72,7 @@ export function PromptInputTextarea({
       {...props}
     />
   );
-}
+});
 
 export function PromptInputToolbar({ className, children }: { className?: string; children: ReactNode }) {
   return <div className={cn("flex items-center justify-between gap-2 px-2 pb-2", className)}>{children}</div>;

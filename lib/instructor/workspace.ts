@@ -150,7 +150,7 @@ export type InstructorProposal = {
   title: string;
   kind: string;
   summary: string;
-  status: "pending" | "approved" | "rejected" | "applied";
+  status: "pending" | "approved" | "rejected" | "applied" | "superseded";
   createdAt?: Date | null;
   decidedAt?: Date | null;
   /** Typed blocks the agent drafted onto this proposal, in order. */

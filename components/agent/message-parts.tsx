@@ -19,7 +19,6 @@ import { Markdown } from "@/components/agent/markdown";
 import { Artifact, artifactsFromValue, type AtlasArtifact } from "@/components/ai-elements/artifact";
 import { FilePart, type AtlasFile } from "@/components/ai-elements/file";
 import { Reasoning } from "@/components/ai-elements/reasoning";
-import { ThinkingIndicator } from "@/components/ai-elements/agent-status";
 import { Sources, type AtlasSourcePart } from "@/components/ai-elements/sources";
 import { Terminal, type TerminalProps } from "@/components/ai-elements/terminal";
 import type { ToolState } from "@/components/ai-elements/tool";
@@ -48,7 +47,6 @@ type PartRenderContext = { index: number; streaming: boolean };
 export type AtlasMessagePartsProps = {
   message: UIMessage;
   streaming?: boolean;
-  toolTitle?: (part: AtlasLoosePart) => string;
   renderDataPart?: (part: AtlasLoosePart, context: PartRenderContext) => ReactNode | undefined;
   renderToolResult?: (part: AtlasLoosePart, context: PartRenderContext) => ReactNode | undefined;
   onToolApproval?: (approval: { id: string; approved: boolean }) => void;
@@ -75,7 +73,6 @@ const TOOL_STATES = new Set<ToolState>([
 export function AtlasMessageParts({
   message,
   streaming = false,
-  toolTitle,
   renderDataPart,
   renderToolResult,
   onToolApproval,
@@ -123,7 +120,7 @@ export function AtlasMessageParts({
           const custom = renderToolResult?.(part, context);
           return (
             <div key={key} className="contents">
-              <ToolPart part={part} title={toolTitle?.(part)} onToolApproval={onToolApproval} />
+              <ToolPart part={part} onToolApproval={onToolApproval} />
               {terminal ? <Terminal {...terminal} /> : null}
               {files.map((file, fileIndex) => <FilePart key={`${key}-file-${fileIndex}-${file.url}`} file={file} />)}
               {artifacts.map((artifact, artifactIndex) => <Artifact key={artifact.id || `${key}-artifact-${artifactIndex}`} artifact={artifact} />)}
@@ -164,17 +161,15 @@ export function AtlasMessageParts({
 
 function ToolPart({
   part,
-  title,
   onToolApproval,
 }: {
   part: AtlasLoosePart;
-  title?: string;
   onToolApproval?: AtlasMessagePartsProps["onToolApproval"];
 }) {
   const state = toolState(part);
   const approval = approvalFrom(part);
   if (state === "input-streaming" || state === "input-available") {
-    return <ThinkingIndicator label={title || defaultToolTitle(part)} />;
+    return null;
   }
   if (state === "approval-requested" && approval) {
     return (
@@ -272,11 +267,6 @@ function toolState(part: AtlasLoosePart): ToolState {
   if (output?.ok === false) return "output-error";
   const state = typeof part.state === "string" ? part.state as ToolState : "input-streaming";
   return TOOL_STATES.has(state) ? state : "input-streaming";
-}
-
-function defaultToolTitle(part: AtlasLoosePart) {
-  void part;
-  return "Working";
 }
 
 function humanizePartType(value: string) {

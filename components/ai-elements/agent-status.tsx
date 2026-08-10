@@ -5,7 +5,7 @@ import type { UIMessage } from "ai";
 import { cn } from "@/lib/utils";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 
-type LoosePart = { type?: unknown; text?: unknown } & Record<string, unknown>;
+type LoosePart = { type?: unknown; text?: unknown; state?: unknown } & Record<string, unknown>;
 
 export type PromptCheckpoint = { id: string; label: string };
 
@@ -14,13 +14,15 @@ export function messageHasVisibleOutput(message: UIMessage | undefined): boolean
   return (message.parts as LoosePart[]).some((part) => {
     const type = String(part.type ?? "");
     if (type === "text") return typeof part.text === "string" && part.text.trim().length > 0;
-    if (type === "step-start" || type === "data-atlas-ref" || type === "data-planning-ref" || type === "data-run-context") return false;
-    if (type === "reasoning") return true;
-    if (type === "reasoning-file") return false;
+    if (type === "step-start"
+      || type === "reasoning"
+      || type === "reasoning-file"
+      || type === "data-atlas-ref"
+      || type === "data-planning-ref"
+      || type === "data-proposal-context"
+      || type === "data-run-context") return false;
     if (type === "dynamic-tool" || type.startsWith("tool-")) {
-      return part.state === "input-streaming"
-        || part.state === "input-available"
-        || part.state === "approval-requested"
+      return part.state === "approval-requested"
         || part.state === "output-error"
         || part.state === "output-denied";
     }
@@ -32,10 +34,29 @@ export function messageHasVisibleOutput(message: UIMessage | undefined): boolean
   });
 }
 
+/** The latest process label belongs in the scroll-neutral activity lane. */
+export function messageActivityLabel(
+  message: UIMessage | undefined,
+  toolLabel: (part: LoosePart) => string
+): string | null {
+  if (!message || message.role !== "assistant") return null;
+  const parts = message.parts as LoosePart[];
+  for (let index = parts.length - 1; index >= 0; index -= 1) {
+    const part = parts[index];
+    const type = String(part.type ?? "");
+    if ((type === "dynamic-tool" || type.startsWith("tool-"))
+      && (part.state === "input-streaming" || part.state === "input-available")) {
+      return toolLabel(part);
+    }
+    if (type === "reasoning" && part.state === "streaming") return "Thinking";
+  }
+  return null;
+}
+
 export function ThinkingIndicator({ label }: { label: string }) {
   const activity = sentenceCaseActivity(label);
   return (
-    <div className="flex min-h-10 items-center py-1" role="status" aria-live="polite">
+    <div data-atlas-transient-activity className="flex min-h-10 items-center py-1" role="status" aria-live="polite">
       <Shimmer as="span" duration={1.6} spread={1.5} className="text-[0.78125rem] font-medium">{activity}</Shimmer>
     </div>
   );

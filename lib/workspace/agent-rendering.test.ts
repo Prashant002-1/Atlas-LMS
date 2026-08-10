@@ -38,13 +38,13 @@ test("reasoning and tool payloads are not chat inspection surfaces", () => {
   const renderer = read("components/agent/message-parts.tsx");
   const reasoning = read("components/ai-elements/reasoning.tsx");
 
-  assert.match(renderer, /ThinkingIndicator/);
   assert.match(renderer, /Approval is needed to continue/);
   assert.doesNotMatch(renderer, /<Tool(Input|Output|Content|Header)?\b/);
   assert.doesNotMatch(renderer, /displayJson|fencedCode|ToolValue/);
+  assert.doesNotMatch(renderer, /ThinkingIndicator/);
   assert.doesNotMatch(renderer, /<details|<summary/);
-  assert.doesNotMatch(reasoning, /Markdown|BrainIcon|ChevronDownIcon|aria-expanded|<section|<button/);
-  assert.match(reasoning, /ThinkingIndicator label="Thinking"/);
+  assert.doesNotMatch(reasoning, /Markdown|ThinkingIndicator|BrainIcon|ChevronDownIcon|aria-expanded|<section|<button/);
+  assert.match(reasoning, /return null/);
 
   for (const runtimePath of [
     "lib/agent/professor-runtime.ts",
@@ -60,6 +60,32 @@ test("reasoning and tool payloads are not chat inspection surfaces", () => {
   ]) {
     const room = read(roomPath);
     assert.doesNotMatch(room, /input\.(resource|query|studentQuery|assignmentId|action)/);
+  }
+});
+
+test("transient agent activity does not resize the scrolling transcript", () => {
+  const conversation = read("components/ai-elements/conversation.tsx");
+  const status = read("components/ai-elements/agent-status.tsx");
+  const renderer = read("components/agent/message-parts.tsx");
+  const reasoning = read("components/ai-elements/reasoning.tsx");
+
+  assert.match(conversation, /ConversationActivity/);
+  assert.match(conversation, /data-atlas-conversation-activity/);
+  assert.match(conversation, /outside ConversationContent/);
+  assert.match(status, /messageActivityLabel/);
+  assert.match(status, /data-atlas-transient-activity/);
+  assert.doesNotMatch(renderer, /ThinkingIndicator/);
+  assert.doesNotMatch(reasoning, /ThinkingIndicator/);
+
+  for (const roomPath of [
+    "components/planning/atlas-room.tsx",
+    "components/student/atlas-room.tsx",
+    "components/session/session-room.tsx",
+  ]) {
+    const room = read(roomPath);
+    assert.match(room, /messageActivityLabel/);
+    assert.match(room, /<\/Conversation>\s*<ConversationActivity/);
+    assert.match(room, /message\.role === "assistant" && !messageHasVisibleOutput\(message\) && "hidden"/);
   }
 });
 

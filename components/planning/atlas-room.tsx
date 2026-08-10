@@ -20,6 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   Conversation,
+  ConversationActivity,
   ConversationContent,
   ConversationEmptyState,
 } from "@/components/ai-elements/conversation";
@@ -28,6 +29,7 @@ import { AtlasMessageParts, type AtlasLoosePart } from "@/components/agent/messa
 import { Markdown } from "@/components/agent/markdown";
 import { ChatThreadRow } from "@/components/agent/chat-thread-row";
 import {
+  messageActivityLabel,
   messageHasVisibleOutput,
   PromptCheckpointRail,
   promptAnchorId,
@@ -530,7 +532,9 @@ export function PlanningRoom(props: PlanningRoomProps) {
   const busy = status === "submitted" || status === "streaming";
   const activeChatId = learnedThreadId ?? props.threadId;
   const lastMessage = messages[messages.length - 1];
-  const awaitingReply = busy && !messageHasVisibleOutput(lastMessage);
+  const activityLabel = busy
+    ? messageActivityLabel(lastMessage, toolLabel) ?? (!messageHasVisibleOutput(lastMessage) ? "Thinking" : null)
+    : null;
   const firstWork = props.work[0] ?? null;
 
   return (
@@ -590,9 +594,9 @@ export function PlanningRoom(props: PlanningRoomProps) {
           </div>
         </header>
 
-        <div className="relative min-h-0 flex-1">
-          <Conversation className="h-full bg-[var(--color-bg)]">
-            <ConversationContent className="mx-auto w-full max-w-[50rem] flex-1 gap-7 px-4 pb-10 pt-8 md:px-8">
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <Conversation className="min-h-0 flex-1 bg-[var(--color-bg)]">
+            <ConversationContent className="mx-auto w-full max-w-[50rem] flex-1 gap-7 px-4 pb-2 pt-8 md:px-8">
               {messages.length === 0 ? (
                 <ConversationEmptyState className="min-h-[26rem] items-start justify-center px-0 text-left">
                   <div className="w-full max-w-[40rem] space-y-6">
@@ -615,7 +619,10 @@ export function PlanningRoom(props: PlanningRoomProps) {
                   <Message
                     key={message.id}
                     id={message.role === "user" ? promptAnchorId(message.id) : undefined}
-                    className={message.role === "user" ? "scroll-mt-24" : undefined}
+                    className={cn(
+                      message.role === "user" && "scroll-mt-24",
+                      busy && index === messages.length - 1 && message.role === "assistant" && !messageHasVisibleOutput(message) && "hidden"
+                    )}
                     from={message.role === "user" ? "user" : "assistant"}
                   >
                     <MessageContent>
@@ -639,9 +646,11 @@ export function PlanningRoom(props: PlanningRoomProps) {
                   </Message>
                 ))
               )}
-              {awaitingReply ? <ThinkingIndicator label="Thinking" /> : null}
             </ConversationContent>
           </Conversation>
+          <ConversationActivity className="mx-auto w-full max-w-[50rem] px-4 md:px-8">
+            {activityLabel ? <ThinkingIndicator label={activityLabel} /> : null}
+          </ConversationActivity>
           {promptCheckpoints.length > 0 ? <PromptCheckpointRail checkpoints={promptCheckpoints} /> : null}
         </div>
 
@@ -818,7 +827,6 @@ function PlanningMessageParts({
     <AtlasMessageParts
       message={message}
       streaming={streaming}
-      toolTitle={toolLabel}
       renderDataPart={renderDataPart}
       renderToolResult={renderToolResult}
       onToolApproval={onToolApproval}

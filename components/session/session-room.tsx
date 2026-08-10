@@ -21,12 +21,14 @@ import { submitSession } from "@/lib/student/actions";
 import type { StudentGradingProgress, StudentJourneyReportView } from "@/lib/student/session-view";
 import {
   Conversation,
+  ConversationActivity,
   ConversationContent,
   ConversationEmptyState,
 } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageTimestamp } from "@/components/ai-elements/message";
 import { AtlasMessageParts, type AtlasLoosePart } from "@/components/agent/message-parts";
 import {
+  messageActivityLabel,
   messageHasVisibleOutput,
   PromptCheckpointRail,
   promptAnchorId,
@@ -278,7 +280,9 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
   }, [props.initialSideNotes, inlineNoteIds]);
 
   const lastMessage = messages[messages.length - 1];
-  const awaitingReply = busy && !messageHasVisibleOutput(lastMessage);
+  const activityLabel = busy
+    ? messageActivityLabel(lastMessage, sessionToolLabel) ?? (!messageHasVisibleOutput(lastMessage) ? `${props.agentName} is responding` : null)
+    : null;
   const promptCheckpoints = useMemo(
     () => messages
       .filter((message) => message.role === "user")
@@ -345,9 +349,9 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
 
         <div className="flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 flex-col">
-            <div className="relative flex min-h-0 flex-1">
-              <Conversation className="h-full bg-[var(--color-bg)]">
-                <ConversationContent className="mx-auto w-full max-w-[48rem] flex-1 gap-7 px-4 pb-10 pt-8 md:px-8">
+            <div className="relative flex min-h-0 flex-1 flex-col">
+              <Conversation className="min-h-0 flex-1 bg-[var(--color-bg)]">
+                <ConversationContent className="mx-auto w-full max-w-[48rem] flex-1 gap-7 px-4 pb-2 pt-8 md:px-8">
                 {messages.length === 0 ? (
                   <ConversationEmptyState className="min-h-[25rem] items-start justify-center px-0 text-left">
                     <div className="w-full max-w-[40rem] space-y-6">
@@ -369,7 +373,13 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                   </ConversationEmptyState>
                 ) : (
                   messages.map((message, index) => (
-                    <div key={message.id} className="flex flex-col gap-3">
+                    <div
+                      key={message.id}
+                      className={cn(
+                        "flex flex-col gap-3",
+                        busy && index === messages.length - 1 && message.role === "assistant" && !messageHasVisibleOutput(message) && "hidden"
+                      )}
+                    >
                       <Message
                         id={message.role === "user" ? promptAnchorId(message.id) : undefined}
                         className={message.role === "user" ? "scroll-mt-24" : undefined}
@@ -392,9 +402,11 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                     </div>
                   ))
                 )}
-                  {awaitingReply ? <ThinkingIndicator label={`${props.agentName} is responding`} /> : null}
                 </ConversationContent>
               </Conversation>
+              <ConversationActivity className="mx-auto w-full max-w-[48rem] px-4 md:px-8">
+                {activityLabel ? <ThinkingIndicator label={activityLabel} /> : null}
+              </ConversationActivity>
               {promptCheckpoints.length > 0 ? <PromptCheckpointRail checkpoints={promptCheckpoints} /> : null}
             </div>
 
@@ -527,9 +539,11 @@ function MessageParts({ message, streaming, onToolApproval }: { message: UIMessa
     if (!isArtifactToolPartType(part.type) || part.state !== "output-available") return undefined;
     return <p className="flex items-center gap-1.5 text-[0.75rem] font-medium text-[var(--color-accent-strong)]"><CheckCircle2 size={13} aria-hidden />Submission draft updated</p>;
   };
-  const toolTitle = (part: AtlasLoosePart) => isArtifactToolPartType(part.type) ? "Updating submission draft" : "Working";
+  return <AtlasMessageParts message={message} streaming={streaming} renderDataPart={renderDataPart} renderToolResult={renderToolResult} onToolApproval={onToolApproval} />;
+}
 
-  return <AtlasMessageParts message={message} streaming={streaming} toolTitle={toolTitle} renderDataPart={renderDataPart} renderToolResult={renderToolResult} onToolApproval={onToolApproval} />;
+function sessionToolLabel(part: AtlasLoosePart) {
+  return isArtifactToolPartType(part.type) ? "Updating submission draft" : "Working";
 }
 
 function turnIndexOf(messageId: string): number {

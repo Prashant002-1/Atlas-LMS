@@ -73,6 +73,12 @@ export const managedMigrations: ManagedMigration[] = [
     destructive: false,
     reason: "records the durable Workflow run that initiated code execution",
   },
+  {
+    id: "0024_code_execution_workspace_lease",
+    file: "drizzle/0024_code_execution_workspace_lease.sql",
+    destructive: false,
+    reason: "serializes code execution within each chat workspace",
+  },
 ];
 
 export type MigrationSource = ManagedMigration & {

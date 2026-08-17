@@ -10,6 +10,25 @@ class FakeRuntime implements CodeExecutionRuntime {
   starts = 0;
   executions = 0;
   stops = 0;
+  activeExecutions = 0;
+  maxActiveExecutions = 0;
+  readonly slowExecutionStarted: Promise<void>;
+  private readonly slowExecutionReleased: Promise<void>;
+  private resolveSlowExecutionStarted!: () => void;
+  private resolveSlowExecutionReleased!: () => void;
+
+  constructor() {
+    this.slowExecutionStarted = new Promise((resolve) => {
+      this.resolveSlowExecutionStarted = resolve;
+    });
+    this.slowExecutionReleased = new Promise((resolve) => {
+      this.resolveSlowExecutionReleased = resolve;
+    });
+  }
+
+  releaseSlowExecution() {
+    this.resolveSlowExecutionReleased();
+  }
 
   async startSession(args: { timeoutSeconds: number }) {
     this.starts += 1;
@@ -18,24 +37,37 @@ class FakeRuntime implements CodeExecutionRuntime {
 
   async execute(args: { input: { code: string }; abortSignal?: AbortSignal }) {
     this.executions += 1;
-    if (args.input.code === "__provider_failure__") throw new Error("simulated provider failure");
-    if (args.input.code === "__wait__") {
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(resolve, 10_000);
-        args.abortSignal?.addEventListener("abort", () => {
-          clearTimeout(timeout);
-          reject(args.abortSignal?.reason);
-        }, { once: true });
-      });
+    this.activeExecutions += 1;
+    this.maxActiveExecutions = Math.max(this.maxActiveExecutions, this.activeExecutions);
+    try {
+      if (args.input.code === "__provider_failure__") throw new Error("simulated provider failure");
+      if (args.input.code === "__serialized__") {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      if (args.input.code === "__slow_success__") {
+        this.resolveSlowExecutionStarted();
+        await this.slowExecutionReleased;
+      }
+      if (args.input.code === "__wait__") {
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(resolve, 10_000);
+          args.abortSignal?.addEventListener("abort", () => {
+            clearTimeout(timeout);
+            reject(args.abortSignal?.reason);
+          }, { once: true });
+        });
+      }
+      return {
+        stdout: "sum=16\n",
+        stderr: "",
+        exitCode: 0,
+        durationMs: 12,
+        isError: false,
+        files: [{ path: "outputs/summary.csv", mediaType: "text/csv", bytes: new TextEncoder().encode("count,sum\n3,16\n") }],
+      };
+    } finally {
+      this.activeExecutions -= 1;
     }
-    return {
-      stdout: "sum=16\n",
-      stderr: "",
-      exitCode: 0,
-      durationMs: 12,
-      isError: false,
-      files: [{ path: "outputs/summary.csv", mediaType: "text/csv", bytes: new TextEncoder().encode("count,sum\n3,16\n") }],
-    };
   }
 
   async getSession() {
@@ -110,6 +142,71 @@ async function main() {
     assert.equal(runtime.starts, 1);
     assert.equal(runtime.executions, 1);
 
+    const concurrentInputs = {
+      language: "python" as const,
+      code: "__serialized__",
+      inputFiles: [],
+      outputFiles: ["outputs/summary.csv"],
+      clearContext: true,
+    };
+    const [concurrentFirst, concurrentSecond] = await Promise.all([
+      executeCodeForSession({
+        session: session.session,
+        toolCallId: `local-concurrent-a-${Date.now()}`,
+        input: concurrentInputs,
+        runtime,
+      }),
+      executeCodeForSession({
+        session: session.session,
+        toolCallId: `local-concurrent-b-${Date.now()}`,
+        input: concurrentInputs,
+        runtime,
+      }),
+    ]);
+    assert.equal(concurrentFirst.status, "succeeded");
+    assert.equal(concurrentSecond.status, "succeeded");
+    assert.equal(runtime.starts, 1);
+    assert.equal(runtime.executions, 3);
+    assert.equal(runtime.maxActiveExecutions, 1);
+
+    const longRunning = executeCodeForSession({
+      session: session.session,
+      toolCallId: `local-long-running-${Date.now()}`,
+      input: {
+        language: "python",
+        code: "__slow_success__",
+        inputFiles: [],
+        outputFiles: [],
+        clearContext: true,
+      },
+      runtime,
+    });
+    await runtime.slowExecutionStarted;
+    process.env.ATLAS_CODE_EXECUTION_TIMEOUT_MS = "1000";
+    try {
+      const waiting = await executeCodeForSession({
+        session: session.session,
+        toolCallId: `local-waiting-timeout-${Date.now()}`,
+        input: {
+          language: "python",
+          code: "print('never entered')",
+          inputFiles: [],
+          outputFiles: [],
+          clearContext: true,
+        },
+        runtime,
+      });
+      assert.equal(waiting.status, "timed_out");
+      assert.equal(runtime.executions, 4);
+      assert.equal(runtime.stops, 0);
+    } finally {
+      if (priorTimeout === undefined) delete process.env.ATLAS_CODE_EXECUTION_TIMEOUT_MS;
+      else process.env.ATLAS_CODE_EXECUTION_TIMEOUT_MS = priorTimeout;
+      runtime.releaseSlowExecution();
+    }
+    assert.equal((await longRunning).status, "succeeded");
+    assert.equal(runtime.maxActiveExecutions, 1);
+
     const failed = await executeCodeForSession({
       session: session.session,
       toolCallId: `local-failure-${Date.now()}`,
@@ -139,12 +236,12 @@ async function main() {
       runtime,
     });
     assert.equal(timedOut.status, "timed_out");
-    assert.equal(runtime.executions, 3);
+    assert.equal(runtime.executions, 6);
     assert.equal(runtime.stops, 1);
 
     await stopCodeExecutionWorkspace({ orgId: session.session.orgId, sessionId: session.session.id, runtime });
     assert.equal(runtime.stops, 1);
-    console.log("Local code-execution persistence, ownership, idempotency, artifact, provider-failure, timeout, and cleanup paths passed.");
+    console.log("Local code-execution persistence, ownership, idempotency, serialization, wait isolation, artifact, provider-failure, timeout, and cleanup paths passed.");
   } finally {
     if (priorTimeout === undefined) delete process.env.ATLAS_CODE_EXECUTION_TIMEOUT_MS;
     else process.env.ATLAS_CODE_EXECUTION_TIMEOUT_MS = priorTimeout;

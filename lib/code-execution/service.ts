@@ -90,20 +90,35 @@ export async function executeCodeForSession(args: {
   const signal = args.abortSignal
     ? AbortSignal.any([args.abortSignal, timeoutController.signal])
     : timeoutController.signal;
+  let ownsWorkspaceLease = false;
+  let leasedProviderSessionId: string | null = null;
 
   try {
     let result: RuntimeExecutionResult | null = null;
     for (let attempt = 1; attempt <= 2; attempt += 1) {
       workspace = await readyWorkspace(args.session, workspace, runtime, signal);
+      workspace = await claimWorkspaceExecution(args.session, workspace, runtime, signal);
+      ownsWorkspaceLease = true;
+      leasedProviderSessionId = workspace.providerSessionId;
       try {
         result = await runtime.execute({ sessionId: workspace.providerSessionId!, input, abortSignal: signal });
+        await releaseWorkspaceExecution(args.session, workspace);
+        ownsWorkspaceLease = false;
+        leasedProviderSessionId = null;
         break;
       } catch (error) {
         if (attempt === 1 && isExpiredAgentCoreSessionError(error)) {
-          await markWorkspaceTerminated(args.session, workspace.id);
+          await markWorkspaceTerminated(args.session, workspace.id, leasedProviderSessionId);
+          ownsWorkspaceLease = false;
+          leasedProviderSessionId = null;
           workspace = await ensureWorkspace(args.session);
           await db.update(codeExecutions).set({ attempt: 2, workspaceId: workspace.id, updatedAt: new Date() }).where(eq(codeExecutions.id, created.id));
           continue;
+        }
+        if (!signal.aborted) {
+          await releaseWorkspaceExecution(args.session, workspace);
+          ownsWorkspaceLease = false;
+          leasedProviderSessionId = null;
         }
         throw error;
       }
@@ -137,7 +152,6 @@ export async function executeCodeForSession(args: {
           bytes: Buffer.from(file.bytes),
         }))).onConflictDoNothing({ target: [codeExecutionArtifacts.executionId, codeExecutionArtifacts.path] });
       }
-      await tx.update(codeExecutionWorkspaces).set({ lastUsedAt: finishedAt, updatedAt: finishedAt }).where(eq(codeExecutionWorkspaces.id, workspace.id));
     });
   } catch (error) {
     const callerCanceled = args.abortSignal?.aborted === true;
@@ -145,16 +159,18 @@ export async function executeCodeForSession(args: {
     const status = callerCanceled ? "canceled" : timedOut ? "timed_out" : "failed";
     const message = safeErrorMessage(error);
     const finishedAt = new Date();
-    if ((callerCanceled || timedOut) && workspace.providerSessionId) {
+    if ((callerCanceled || timedOut) && ownsWorkspaceLease && leasedProviderSessionId) {
       try {
         await runtime.stopSession({
-          sessionId: workspace.providerSessionId,
+          sessionId: leasedProviderSessionId,
           abortSignal: AbortSignal.timeout(10_000),
         });
       } catch (cleanupError) {
         console.error("code execution workspace cleanup failed after cancellation", cleanupError);
       } finally {
-        await markWorkspaceTerminated(args.session, workspace.id);
+        await markWorkspaceTerminated(args.session, workspace.id, leasedProviderSessionId);
+        ownsWorkspaceLease = false;
+        leasedProviderSessionId = null;
       }
     }
     await db.update(codeExecutions).set({
@@ -227,42 +243,76 @@ async function readyWorkspace(
   abortSignal: AbortSignal
 ): Promise<Workspace> {
   let workspace = initial;
-  const usable = workspace.status === "ready"
-    && workspace.providerSessionId
-    && workspace.expiresAt
-    && workspace.expiresAt.getTime() > Date.now() + 5_000;
-  if (usable) return workspace;
+  const waitDeadline = Date.now() + Math.min(executionTimeoutMs(), 30_000);
 
-  const now = new Date();
-  const [claimed] = await db.update(codeExecutionWorkspaces).set({ status: "starting", updatedAt: now }).where(and(
-    eq(codeExecutionWorkspaces.id, workspace.id),
-    eq(codeExecutionWorkspaces.orgId, session.orgId),
-    eq(codeExecutionWorkspaces.userId, session.userId),
-    or(
-      ne(codeExecutionWorkspaces.status, "starting"),
-      lt(codeExecutionWorkspaces.updatedAt, new Date(Date.now() - 30_000))
-    ),
-    or(isNull(codeExecutionWorkspaces.expiresAt), lt(codeExecutionWorkspaces.expiresAt, new Date(Date.now() + 5_000)), ne(codeExecutionWorkspaces.status, "ready"))
-  )).returning();
+  while (true) {
+    if (hasUsableReadySession(workspace) || workspace.status === "busy") return workspace;
 
-  if (!claimed) {
-    for (let count = 0; count < 20; count += 1) {
-      await delay(250, abortSignal);
-      workspace = await ensureWorkspace(session);
-      if (workspace.status === "ready" && workspace.providerSessionId && workspace.expiresAt && workspace.expiresAt > new Date()) return workspace;
-      if (workspace.status === "failed") break;
+    const claimTime = new Date();
+    const minimumExpiry = new Date(Date.now() + executionTimeoutMs() + 5_000);
+    const [claimed] = await db.update(codeExecutionWorkspaces).set({
+      status: "starting",
+      updatedAt: claimTime,
+    }).where(and(
+      eq(codeExecutionWorkspaces.id, workspace.id),
+      eq(codeExecutionWorkspaces.orgId, session.orgId),
+      eq(codeExecutionWorkspaces.userId, session.userId),
+      eq(codeExecutionWorkspaces.agentSessionId, session.id),
+      ne(codeExecutionWorkspaces.status, "busy"),
+      or(
+        and(
+          ne(codeExecutionWorkspaces.status, "starting"),
+          or(
+            ne(codeExecutionWorkspaces.status, "ready"),
+            isNull(codeExecutionWorkspaces.providerSessionId),
+            isNull(codeExecutionWorkspaces.expiresAt),
+            lt(codeExecutionWorkspaces.expiresAt, minimumExpiry)
+          )
+        ),
+        and(
+          eq(codeExecutionWorkspaces.status, "starting"),
+          lt(codeExecutionWorkspaces.updatedAt, new Date(Date.now() - 30_000))
+        )
+      )
+    )).returning();
+
+    if (claimed) return startWorkspaceSession(session, claimed, runtime, abortSignal);
+    if (Date.now() >= waitDeadline) {
+      throw new Error("Another code execution is still starting this chat's sandbox. Try again.");
     }
-    throw new Error("Another code execution is still starting this chat's sandbox. Try again.");
+    await delay(250, abortSignal);
+    workspace = await ensureWorkspace(session);
   }
+}
 
+async function startWorkspaceSession(
+  session: AgentSession,
+  workspace: Workspace,
+  runtime: CodeExecutionRuntime,
+  abortSignal: AbortSignal
+): Promise<Workspace> {
+  const claimTime = workspace.updatedAt;
+  let startedSessionId: string | null = null;
   try {
+    if (workspace.providerSessionId) {
+      try {
+        await runtime.stopSession({
+          sessionId: workspace.providerSessionId,
+          abortSignal: AbortSignal.timeout(10_000),
+        });
+      } catch (error) {
+        if (!isExpiredAgentCoreSessionError(error)) throw error;
+      }
+    }
+
     const timeoutSeconds = sessionTimeoutSeconds();
     const started = await runtime.startSession({
       name: `atlas-${workspace.id}`,
-      clientToken: createHash("sha256").update(`${workspace.id}:${Date.now()}`).digest("hex"),
+      clientToken: createHash("sha256").update(`${workspace.id}:${claimTime.getTime()}`).digest("hex"),
       timeoutSeconds,
       abortSignal,
     });
+    startedSessionId = started.sessionId;
     const [updated] = await db.update(codeExecutionWorkspaces).set({
       providerSessionId: started.sessionId,
       status: "ready",
@@ -272,29 +322,175 @@ async function readyWorkspace(
     }).where(and(
       eq(codeExecutionWorkspaces.id, workspace.id),
       eq(codeExecutionWorkspaces.orgId, session.orgId),
-      eq(codeExecutionWorkspaces.userId, session.userId)
+      eq(codeExecutionWorkspaces.userId, session.userId),
+      eq(codeExecutionWorkspaces.agentSessionId, session.id),
+      eq(codeExecutionWorkspaces.status, "starting"),
+      eq(codeExecutionWorkspaces.updatedAt, claimTime)
     )).returning();
-    if (!updated) throw new Error("Atlas lost ownership of the code execution workspace.");
+    if (!updated) {
+      await runtime.stopSession({
+        sessionId: started.sessionId,
+        abortSignal: AbortSignal.timeout(10_000),
+      });
+      startedSessionId = null;
+      throw new Error("Atlas lost ownership of the code execution workspace.");
+    }
     return updated;
   } catch (error) {
-    await db.update(codeExecutionWorkspaces).set({ status: "failed", updatedAt: new Date() }).where(eq(codeExecutionWorkspaces.id, workspace.id));
+    if (startedSessionId) {
+      try {
+        await runtime.stopSession({
+          sessionId: startedSessionId,
+          abortSignal: AbortSignal.timeout(10_000),
+        });
+      } catch (cleanupError) {
+        console.error("code execution workspace cleanup failed after startup", cleanupError);
+      }
+    }
+    await db.update(codeExecutionWorkspaces).set({ status: "failed", updatedAt: new Date() }).where(and(
+      eq(codeExecutionWorkspaces.id, workspace.id),
+      eq(codeExecutionWorkspaces.orgId, session.orgId),
+      eq(codeExecutionWorkspaces.userId, session.userId),
+      eq(codeExecutionWorkspaces.agentSessionId, session.id),
+      eq(codeExecutionWorkspaces.status, "starting"),
+      eq(codeExecutionWorkspaces.updatedAt, claimTime)
+    ));
     throw error;
   }
 }
 
-async function markWorkspaceTerminated(session: AgentSession, workspaceId: string) {
+async function claimWorkspaceExecution(
+  session: AgentSession,
+  initial: Workspace,
+  runtime: CodeExecutionRuntime,
+  abortSignal: AbortSignal
+): Promise<Workspace> {
+  let workspace = initial;
+
+  while (true) {
+    if (workspace.status === "ready") {
+      if (!hasUsableReadySession(workspace)) {
+        workspace = await readyWorkspace(session, workspace, runtime, abortSignal);
+        continue;
+      }
+      const [claimed] = await db.update(codeExecutionWorkspaces).set({
+        status: "busy",
+        updatedAt: new Date(),
+      }).where(and(
+        eq(codeExecutionWorkspaces.id, workspace.id),
+        eq(codeExecutionWorkspaces.orgId, session.orgId),
+        eq(codeExecutionWorkspaces.userId, session.userId),
+        eq(codeExecutionWorkspaces.agentSessionId, session.id),
+        eq(codeExecutionWorkspaces.status, "ready"),
+        eq(codeExecutionWorkspaces.providerSessionId, workspace.providerSessionId!),
+        eq(codeExecutionWorkspaces.updatedAt, workspace.updatedAt)
+      )).returning();
+      if (claimed) return claimed;
+    } else if (workspace.status === "busy") {
+      const expired = !workspace.providerSessionId
+        || !workspace.expiresAt
+        || workspace.expiresAt.getTime() <= Date.now();
+      const stale = workspace.updatedAt.getTime() <= Date.now() - executionTimeoutMs() - 15_000;
+      if (expired || stale) {
+        const recoveryTime = new Date();
+        const [recovery] = await db.update(codeExecutionWorkspaces).set({
+          status: "starting",
+          updatedAt: recoveryTime,
+        }).where(and(
+          eq(codeExecutionWorkspaces.id, workspace.id),
+          eq(codeExecutionWorkspaces.orgId, session.orgId),
+          eq(codeExecutionWorkspaces.userId, session.userId),
+          eq(codeExecutionWorkspaces.agentSessionId, session.id),
+          eq(codeExecutionWorkspaces.status, "busy"),
+          eq(codeExecutionWorkspaces.updatedAt, workspace.updatedAt)
+        )).returning();
+        if (recovery) {
+          if (recovery.providerSessionId) {
+            try {
+              await runtime.stopSession({
+                sessionId: recovery.providerSessionId,
+                abortSignal: AbortSignal.timeout(10_000),
+              });
+            } catch (error) {
+              if (!isExpiredAgentCoreSessionError(error)) {
+                await db.update(codeExecutionWorkspaces).set({ status: "failed", updatedAt: new Date() }).where(and(
+                  eq(codeExecutionWorkspaces.id, recovery.id),
+                  eq(codeExecutionWorkspaces.orgId, session.orgId),
+                  eq(codeExecutionWorkspaces.userId, session.userId),
+                  eq(codeExecutionWorkspaces.agentSessionId, session.id),
+                  eq(codeExecutionWorkspaces.status, "starting"),
+                  eq(codeExecutionWorkspaces.updatedAt, recoveryTime)
+                ));
+                throw error;
+              }
+            }
+          }
+          await markWorkspaceTerminated(session, recovery.id, recovery.providerSessionId, recoveryTime);
+          workspace = await ensureWorkspace(session);
+          workspace = await readyWorkspace(session, workspace, runtime, abortSignal);
+          continue;
+        }
+      }
+    } else {
+      workspace = await readyWorkspace(session, workspace, runtime, abortSignal);
+      continue;
+    }
+
+    await delay(250, abortSignal);
+    workspace = await ensureWorkspace(session);
+  }
+}
+
+async function releaseWorkspaceExecution(session: AgentSession, workspace: Workspace) {
+  if (!workspace.providerSessionId) return;
+  const now = new Date();
+  await db.update(codeExecutionWorkspaces).set({
+    status: "ready",
+    lastUsedAt: now,
+    updatedAt: now,
+  }).where(and(
+    eq(codeExecutionWorkspaces.id, workspace.id),
+    eq(codeExecutionWorkspaces.orgId, session.orgId),
+    eq(codeExecutionWorkspaces.userId, session.userId),
+    eq(codeExecutionWorkspaces.agentSessionId, session.id),
+    eq(codeExecutionWorkspaces.status, "busy"),
+    eq(codeExecutionWorkspaces.providerSessionId, workspace.providerSessionId),
+    eq(codeExecutionWorkspaces.updatedAt, workspace.updatedAt)
+  ));
+}
+
+function hasUsableReadySession(workspace: Workspace) {
+  return workspace.status === "ready"
+    && Boolean(workspace.providerSessionId)
+    && Boolean(workspace.expiresAt)
+    && workspace.expiresAt!.getTime() > Date.now() + executionTimeoutMs() + 5_000;
+}
+
+async function markWorkspaceTerminated(
+  session: AgentSession,
+  workspaceId: string,
+  expectedProviderSessionId?: string | null,
+  expectedUpdatedAt?: Date
+) {
+  const predicates = [
+    eq(codeExecutionWorkspaces.id, workspaceId),
+    eq(codeExecutionWorkspaces.orgId, session.orgId),
+    eq(codeExecutionWorkspaces.userId, session.userId),
+    eq(codeExecutionWorkspaces.agentSessionId, session.id),
+  ];
+  if (expectedProviderSessionId) {
+    predicates.push(eq(codeExecutionWorkspaces.providerSessionId, expectedProviderSessionId));
+  }
+  if (expectedUpdatedAt) {
+    predicates.push(eq(codeExecutionWorkspaces.updatedAt, expectedUpdatedAt));
+  }
   await db.update(codeExecutionWorkspaces).set({
     status: "terminated",
     providerSessionId: null,
     expiresAt: null,
     terminatedAt: new Date(),
     updatedAt: new Date(),
-  }).where(and(
-    eq(codeExecutionWorkspaces.id, workspaceId),
-    eq(codeExecutionWorkspaces.orgId, session.orgId),
-    eq(codeExecutionWorkspaces.userId, session.userId),
-    eq(codeExecutionWorkspaces.agentSessionId, session.id)
-  ));
+  }).where(and(...predicates));
 }
 
 async function loadExecutionByIdempotency(session: AgentSession, key: string) {
@@ -356,7 +552,10 @@ function executionOutput(execution: Execution, artifacts: Awaited<ReturnType<typ
 
 function sessionTimeoutSeconds() {
   const configured = Number(process.env.ATLAS_CODE_EXECUTION_SESSION_TIMEOUT_SECONDS ?? DEFAULT_SESSION_TIMEOUT_SECONDS);
-  return Number.isInteger(configured) && configured >= 60 && configured <= 28_800
+  return Number.isInteger(configured)
+    && configured >= 60
+    && configured <= 28_800
+    && configured * 1_000 > executionTimeoutMs() + 5_000
     ? configured
     : DEFAULT_SESSION_TIMEOUT_SECONDS;
 }
@@ -379,10 +578,14 @@ function delay(ms: number, abortSignal: AbortSignal) {
       reject(abortSignal.reason);
       return;
     }
-    const timeout = setTimeout(resolve, ms);
-    abortSignal.addEventListener("abort", () => {
+    const onAbort = () => {
       clearTimeout(timeout);
       reject(abortSignal.reason);
-    }, { once: true });
+    };
+    const timeout = setTimeout(() => {
+      abortSignal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    abortSignal.addEventListener("abort", onAbort, { once: true });
   });
 }

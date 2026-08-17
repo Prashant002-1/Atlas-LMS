@@ -27,7 +27,7 @@ export const codeExecutionWorkspaces = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    check("code_execution_workspaces_status_check", sql`${table.status} IN ('new', 'starting', 'ready', 'failed', 'terminated')`),
+    check("code_execution_workspaces_status_check", sql`${table.status} IN ('new', 'starting', 'ready', 'busy', 'failed', 'terminated')`),
     uniqueIndex("code_execution_workspaces_session_idx").on(table.agentSessionId),
     index("code_execution_workspaces_owner_idx").on(table.orgId, table.userId, table.agentSessionId),
     index("code_execution_workspaces_expiry_idx").on(table.status, table.expiresAt),

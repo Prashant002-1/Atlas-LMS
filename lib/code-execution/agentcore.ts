@@ -79,7 +79,7 @@ export class AgentCoreCodeExecutionRuntime implements CodeExecutionRuntime {
     abortSignal?: AbortSignal;
   }): Promise<RuntimeExecutionResult> {
     if (args.input.inputFiles.length > 0) {
-      await this.invoke({
+      const staged = await this.invoke({
         sessionId: args.sessionId,
         name: "writeFiles",
         arguments: {
@@ -87,6 +87,7 @@ export class AgentCoreCodeExecutionRuntime implements CodeExecutionRuntime {
         },
         abortSignal: args.abortSignal,
       });
+      if (staged.isError) throw new Error(resultErrorMessage(staged, "AgentCore could not stage the input files."));
     }
 
     const execution = await this.invoke({
@@ -126,7 +127,7 @@ export class AgentCoreCodeExecutionRuntime implements CodeExecutionRuntime {
       arguments: { paths },
       abortSignal,
     });
-    if (result.isError) throw new Error(result.stderr || "AgentCore could not read the declared output files.");
+    if (result.isError) throw new Error(resultErrorMessage(result, "AgentCore could not read the declared output files."));
 
     const files: RuntimeFile[] = [];
     let totalBytes = 0;
@@ -196,6 +197,19 @@ export async function collectAgentCoreStream(stream: AsyncIterable<CodeInterpret
   return { content, stdout, stderr, exitCode, durationMs, isError };
 }
 
+function resultErrorMessage(
+  result: Awaited<ReturnType<typeof collectAgentCoreStream>>,
+  fallback: string
+) {
+  if (result.stderr.trim()) return result.stderr.trim();
+  const text = result.content
+    .filter((block) => block.type === "text" && typeof block.text === "string")
+    .map((block) => block.text)
+    .join("\n")
+    .trim();
+  return text || fallback;
+}
+
 function streamEventError(event: CodeInterpreterStreamOutput): Error {
   const entry = Object.entries(event).find(([key]) => key.endsWith("Exception") || key.endsWith("exception"));
   const value = entry?.[1] as { message?: unknown } | undefined;
@@ -225,5 +239,5 @@ export function isExpiredAgentCoreSessionError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
   const name = "name" in error && typeof error.name === "string" ? error.name : "";
   const message = "message" in error && typeof error.message === "string" ? error.message : "";
-  return name.includes("ResourceNotFound") || /session.*(?:expired|terminated|not found|does not exist)/i.test(message);
+  return name.toLowerCase().includes("resourcenotfound") || /session.*(?:expired|terminated|not found|does not exist)/i.test(message);
 }

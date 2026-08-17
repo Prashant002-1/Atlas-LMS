@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { UIMessage } from "ai";
 import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
+import type { ExecuteCodeInput, ExecuteCodeOutput } from "@/lib/code-execution/contracts";
 
 /**
  * Session stream contract, the typed parts a live assignment session may carry.
@@ -222,6 +223,10 @@ export type SessionTools = {
   update_artifact: {
     input: StructuredArtifact;
     output: { ok: boolean; revision: number };
+  };
+  execute_code: {
+    input: ExecuteCodeInput;
+    output: ExecuteCodeOutput;
   };
 };
 

@@ -61,6 +61,18 @@ export const managedMigrations: ManagedMigration[] = [
     destructive: false,
     reason: "adds addressable course guidance and versioned proposal chains",
   },
+  {
+    id: "0022_code_execution",
+    file: "drizzle/0022_code_execution.sql",
+    destructive: false,
+    reason: "adds durable AgentCore workspaces, executions, and output artifacts",
+  },
+  {
+    id: "0023_code_execution_workflow_provenance",
+    file: "drizzle/0023_code_execution_workflow_provenance.sql",
+    destructive: false,
+    reason: "records the durable Workflow run that initiated code execution",
+  },
 ];
 
 export type MigrationSource = ManagedMigration & {
@@ -88,6 +100,10 @@ type ContractRow = {
   courseAgentDirectives: boolean;
   proposalRevisions: boolean;
   proposalSupersededStatus: boolean;
+  codeExecutionWorkspaces: boolean;
+  codeExecutions: boolean;
+  codeExecutionArtifacts: boolean;
+  codeExecutionWorkflowRunId: boolean;
   ingestionJobRemoved: boolean;
   retiredProviderTableRemoved: boolean;
   retiredProviderTypeRemoved: boolean;
@@ -150,6 +166,16 @@ export async function inspectReleaseDatabase(pool: Pool): Promise<ReleaseInspect
       ) AS "loginAliasPasswordHash",
       to_regclass('public.document_originals') IS NOT NULL AS "documentOriginals",
       to_regclass('public.course_agent_directives') IS NOT NULL AS "courseAgentDirectives",
+      to_regclass('public.code_execution_workspaces') IS NOT NULL AS "codeExecutionWorkspaces",
+      to_regclass('public.code_executions') IS NOT NULL AS "codeExecutions",
+      to_regclass('public.code_execution_artifacts') IS NOT NULL AS "codeExecutionArtifacts",
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'code_executions'
+          AND column_name = 'workflow_run_id'
+      ) AS "codeExecutionWorkflowRunId",
       EXISTS (
         SELECT 1
         FROM information_schema.columns
@@ -211,6 +237,12 @@ export async function inspectReleaseDatabase(pool: Pool): Promise<ReleaseInspect
   if (!contract.documentOriginals) issues.push("Document originals table is missing (migration 0018).");
   if (!contract.courseAgentDirectives) {
     issues.push("Course agent directives are missing (migration 0021).");
+  }
+  if (!contract.codeExecutionWorkspaces || !contract.codeExecutions || !contract.codeExecutionArtifacts) {
+    issues.push("Code execution tables are missing (migration 0022).");
+  }
+  if (!contract.codeExecutionWorkflowRunId) {
+    issues.push("Code execution Workflow provenance is missing (migration 0023).");
   }
   if (!contract.proposalRevisions || !contract.proposalSupersededStatus) {
     issues.push("Proposal revision fields or status are missing (migration 0021).");

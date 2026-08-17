@@ -15,12 +15,12 @@ import {
 
 const root = process.cwd();
 
-test("voice transcription defaults to Gemini 3.6 Flash without changing the chat model", () => {
+test("voice transcription defaults to Gemini 3.7 Flash without changing the chat model", () => {
   const previous = process.env.ATLAS_TRANSCRIPTION_MODEL;
   delete process.env.ATLAS_TRANSCRIPTION_MODEL;
   try {
-    assert.equal(DEFAULT_TRANSCRIPTION_MODEL, "gemini-3.6-flash");
-    assert.equal(transcriptionModelId(), "gemini-3.6-flash");
+    assert.equal(DEFAULT_TRANSCRIPTION_MODEL, "gemini-3.7-flash");
+    assert.equal(transcriptionModelId(), "gemini-3.7-flash");
     process.env.ATLAS_TRANSCRIPTION_MODEL = "gemini-audio-test";
     assert.equal(transcriptionModelId(), "gemini-audio-test");
   } finally {

@@ -79,6 +79,12 @@ export const managedMigrations: ManagedMigration[] = [
     destructive: false,
     reason: "serializes code execution within each chat workspace",
   },
+  {
+    id: "0025_code_execution_lease_owner",
+    file: "drizzle/0025_code_execution_lease_owner.sql",
+    destructive: false,
+    reason: "binds each busy workspace to its execution and completes replay provenance",
+  },
 ];
 
 export type MigrationSource = ManagedMigration & {
@@ -110,6 +116,7 @@ type ContractRow = {
   codeExecutions: boolean;
   codeExecutionArtifacts: boolean;
   codeExecutionWorkflowRunId: boolean;
+  codeExecutionReplayLease: boolean;
   ingestionJobRemoved: boolean;
   retiredProviderTableRemoved: boolean;
   retiredProviderTypeRemoved: boolean;
@@ -186,6 +193,20 @@ export async function inspectReleaseDatabase(pool: Pool): Promise<ReleaseInspect
         SELECT 1
         FROM information_schema.columns
         WHERE table_schema = 'public'
+          AND table_name = 'code_execution_workspaces'
+          AND column_name = 'active_execution_id'
+      ) AND EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'code_executions'
+          AND column_name = 'clear_context'
+          AND is_nullable = 'NO'
+      ) AS "codeExecutionReplayLease",
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
           AND table_name = 'change_proposals'
           AND column_name = 'revision'
           AND is_nullable = 'NO'
@@ -249,6 +270,9 @@ export async function inspectReleaseDatabase(pool: Pool): Promise<ReleaseInspect
   }
   if (!contract.codeExecutionWorkflowRunId) {
     issues.push("Code execution Workflow provenance is missing (migration 0023).");
+  }
+  if (!contract.codeExecutionReplayLease) {
+    issues.push("Code execution replay lease ownership is missing (migration 0025).");
   }
   if (!contract.proposalRevisions || !contract.proposalSupersededStatus) {
     issues.push("Proposal revision fields or status are missing (migration 0021).");

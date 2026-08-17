@@ -55,11 +55,16 @@ export class AgentCoreCodeExecutionRuntime implements CodeExecutionRuntime {
   }
 
   async getSession(args: { sessionId: string; abortSignal?: AbortSignal }) {
-    const response = await this.client.send(new GetCodeInterpreterSessionCommand({
-      codeInterpreterIdentifier: this.interpreterId,
-      sessionId: args.sessionId,
-    }), { abortSignal: args.abortSignal });
-    return { status: response.status === "READY" ? "ready" as const : "terminated" as const };
+    try {
+      const response = await this.client.send(new GetCodeInterpreterSessionCommand({
+        codeInterpreterIdentifier: this.interpreterId,
+        sessionId: args.sessionId,
+      }), { abortSignal: args.abortSignal });
+      return { status: response.status === "READY" ? "ready" as const : "terminated" as const };
+    } catch (error) {
+      if (isExpiredAgentCoreSessionError(error)) return { status: "terminated" as const };
+      throw error;
+    }
   }
 
   async stopSession(args: { sessionId: string; abortSignal?: AbortSignal }) {

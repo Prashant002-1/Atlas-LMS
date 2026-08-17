@@ -24,6 +24,10 @@ Deployment and operations:
   verification, rollback, recovery, and teardown source of truth.
 - [`adr/0018-gcp-demo-hosting-and-compute-boundary.md`](adr/0018-gcp-demo-hosting-and-compute-boundary.md),
   the hosting decision and future isolated code-execution boundary.
+- [`adr/0020-agentcore-code-execution.md`](adr/0020-agentcore-code-execution.md),
+  the implemented assessed-session execution boundary.
+- [`deployment/aws-agentcore-code-execution.md`](deployment/aws-agentcore-code-execution.md),
+  the single-account AWS setup, quota, IAM, and smoke-test runbook.
 
 Historical/context notes:
 

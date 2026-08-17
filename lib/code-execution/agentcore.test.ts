@@ -7,7 +7,11 @@ import {
   StopCodeInterpreterSessionCommand,
   type CodeInterpreterStreamOutput,
 } from "@aws-sdk/client-bedrock-agentcore";
-import { AgentCoreCodeExecutionRuntime, collectAgentCoreStream } from "./agentcore";
+import {
+  AgentCoreCodeExecutionRuntime,
+  collectAgentCoreStream,
+  isExpiredAgentCoreSessionError,
+} from "./agentcore";
 
 function eventStream(events: CodeInterpreterStreamOutput[]) {
   return (async function* () {
@@ -36,6 +40,42 @@ test("AgentCore stream exceptions fail closed", async () => {
     } }])),
     /session expired/
   );
+});
+
+test("expired AgentCore session detection accepts SDK exception-name casing", () => {
+  const error = new Error("gone");
+  error.name = "resourceNotFoundException";
+  assert.equal(isExpiredAgentCoreSessionError(error), true);
+});
+
+test("runtime fails when AgentCore rejects input-file staging", async () => {
+  const calls: string[] = [];
+  const fakeClient = {
+    async send(command: unknown) {
+      if (command instanceof InvokeCodeInterpreterCommand) {
+        calls.push(String(command.input.name));
+        return {
+          stream: eventStream([{ result: {
+            content: [{ type: "text", text: "input path rejected" }],
+            isError: true,
+          } }]),
+        };
+      }
+      throw new Error("Unexpected command");
+    },
+  };
+  const runtime = new AgentCoreCodeExecutionRuntime({ client: fakeClient as never });
+  await assert.rejects(runtime.execute({
+    sessionId: "session-1",
+    input: {
+      language: "python",
+      code: "print('unreachable')",
+      inputFiles: [{ path: "inputs/value.txt", content: "3" }],
+      outputFiles: [],
+      clearContext: false,
+    },
+  }), /input path rejected/);
+  assert.deepEqual(calls, ["writeFiles"]);
 });
 
 test("runtime stages inputs, executes code, and retrieves only declared files", async () => {

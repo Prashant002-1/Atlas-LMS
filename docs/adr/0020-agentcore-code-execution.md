@@ -16,6 +16,7 @@ Atlas uses AWS Bedrock AgentCore Code Interpreter through the managed `aws.codei
 - Scope: assessed student sessions (`surface=cue`, assignment anchor) only.
 - Excluded today: professor planning and personal student Atlas.
 - Workspace: one lazy AgentCore session per Atlas chat, 900-second TTL.
+- Concurrency: one execution at a time per chat workspace; a durable lease prevents parallel tool calls from racing the shared filesystem.
 - Languages: Python, JavaScript, and TypeScript.
 - Inputs: at most five explicitly supplied UTF-8 files, 100 KB each and 250 KB total.
 - Outputs: only paths declared before execution, at most ten files, 5 MB each and 15 MB total.

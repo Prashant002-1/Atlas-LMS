@@ -16,13 +16,13 @@ Atlas uses AWS Bedrock AgentCore Code Interpreter through the managed `aws.codei
 - Scope: assessed student sessions (`surface=cue`, assignment anchor) only.
 - Excluded today: professor planning and personal student Atlas.
 - Workspace: one lazy AgentCore session per Atlas chat, 900-second TTL.
-- Concurrency: one execution at a time per chat workspace; a durable lease prevents parallel tool calls from racing the shared filesystem.
+- Concurrency: one execution at a time per chat workspace; a durable execution-owned lease prevents parallel tool calls from racing the shared filesystem.
 - Languages: Python, JavaScript, and TypeScript.
 - Inputs: at most five explicitly supplied UTF-8 files, 100 KB each and 250 KB total.
 - Outputs: only paths declared before execution, at most ten files, 5 MB each and 15 MB total.
 - Execution: 60-second Atlas timeout, with AgentCore's service timeout as an outer boundary.
 - Persistence: workspace metadata, code, hashes, status, Workflow run provenance, terminal output, and declared artifacts are tenant/user/session-scoped in PostgreSQL.
-- Replay: the AI SDK `toolCallId` is the durable idempotency key. A workflow replay returns the existing record instead of re-running code.
+- Replay: the AI SDK `toolCallId` is the durable idempotency key. A concurrent workflow replay waits for the existing terminal result instead of returning premature state or re-running code; an abandoned stale owner is timed out and its exact workspace is terminated.
 - Cleanup: explicit stop after assessed-session submission; AgentCore TTL is the backstop.
 - Rendering: durable Atlas artifact URLs repeat authorization and return `private, no-store`, `nosniff`, and sandbox CSP headers.
 

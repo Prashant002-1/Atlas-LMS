@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, customType, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, customType, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { agentSessions, organizations, users } from "./schema";
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
@@ -19,6 +19,7 @@ export const codeExecutionWorkspaces = pgTable(
     provider: text("provider").notNull().default("aws-agentcore"),
     providerResourceId: text("provider_resource_id").notNull(),
     providerSessionId: text("provider_session_id"),
+    activeExecutionId: uuid("active_execution_id"),
     status: text("status").notNull().default("new"),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
@@ -31,6 +32,7 @@ export const codeExecutionWorkspaces = pgTable(
     uniqueIndex("code_execution_workspaces_session_idx").on(table.agentSessionId),
     index("code_execution_workspaces_owner_idx").on(table.orgId, table.userId, table.agentSessionId),
     index("code_execution_workspaces_expiry_idx").on(table.status, table.expiresAt),
+    index("code_execution_workspaces_active_execution_idx").on(table.activeExecutionId),
   ]
 );
 
@@ -50,6 +52,7 @@ export const codeExecutions = pgTable(
     codeSha256: text("code_sha256").notNull(),
     inputFiles: jsonb("input_files").notNull().default([]),
     outputFiles: jsonb("output_files").notNull().default([]),
+    clearContext: boolean("clear_context").notNull().default(false),
     status: text("status").notNull().default("queued"),
     attempt: integer("attempt").notNull().default(1),
     stdout: text("stdout").notNull().default(""),

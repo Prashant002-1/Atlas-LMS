@@ -48,6 +48,19 @@ test("expired AgentCore session detection accepts SDK exception-name casing", ()
   assert.equal(isExpiredAgentCoreSessionError(error), true);
 });
 
+test("runtime treats a missing stopped session as terminated", async () => {
+  const fakeClient = {
+    async send(command: unknown) {
+      assert(command instanceof GetCodeInterpreterSessionCommand);
+      const error = new Error("session does not exist");
+      error.name = "ResourceNotFoundException";
+      throw error;
+    },
+  };
+  const runtime = new AgentCoreCodeExecutionRuntime({ client: fakeClient as never });
+  assert.deepEqual(await runtime.getSession({ sessionId: "gone" }), { status: "terminated" });
+});
+
 test("runtime fails when AgentCore rejects input-file staging", async () => {
   const calls: string[] = [];
   const fakeClient = {

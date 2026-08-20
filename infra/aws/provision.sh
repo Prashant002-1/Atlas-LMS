@@ -7,7 +7,8 @@ repo_root="$(cd "$script_dir/../.." && pwd)"
 aws_profile="${AWS_PROFILE:-atlas-sso-admin}"
 aws_region="${AWS_REGION:-us-east-1}"
 stack_name="${ATLAS_AWS_STACK:-atlas-prod}"
-alert_email="${ATLAS_ALERT_EMAIL:-aws-admin@atlas-lms.com}"
+alert_email="${ATLAS_ALERT_EMAIL:-shahp002@outlook.com}"
+budget_alert_email="${ATLAS_BUDGET_ALERT_EMAIL:-aws-admin@atlas-lms.com}"
 monthly_budget="${ATLAS_MONTHLY_BUDGET_USD:-110}"
 app_instance_type="${ATLAS_APP_INSTANCE_TYPE:-t4g.medium}"
 database_instance_class="${ATLAS_DATABASE_INSTANCE_CLASS:-db.t4g.small}"
@@ -32,6 +33,7 @@ aws cloudformation deploy \
   --parameter-overrides \
     "EnvironmentName=$stack_name" \
     "AlertEmail=$alert_email" \
+    "BudgetAlertEmail=$budget_alert_email" \
     "MonthlyBudgetUsd=$monthly_budget" \
     "AppInstanceType=$app_instance_type" \
     "DatabaseInstanceClass=$database_instance_class"

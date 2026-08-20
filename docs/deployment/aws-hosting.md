@@ -22,8 +22,9 @@ verified.
 | ECR | `118645514521.dkr.ecr.us-east-1.amazonaws.com/atlas-prod/atlas` |
 | Migration archive | `atlas-prod-migrationbucket-btgroucmwjj6` |
 | Public hostname | `demo.atlas-lms.com` |
-| Current DNS before cutover | `35.202.247.237` (GCP), TTL 14,400 seconds |
-| Alert recipient | `aws-admin@atlas-lms.com` |
+| Current DNS before cutover | `35.202.247.237` (GCP), TTL 300 seconds since 2026-08-20 05:38 UTC |
+| SNS infrastructure-alert recipient | `shahp002@outlook.com` |
+| Budget-alert recipient | `aws-admin@atlas-lms.com` |
 | AgentCore state | disabled by incident switch until [#54](https://github.com/Prashant002-1/Atlas-LMS/issues/54) is verified live |
 | Dedicated member-account follow-up | [#53](https://github.com/Prashant002-1/Atlas-LMS/issues/53) |
 
@@ -74,7 +75,8 @@ aws sso login --profile atlas-sso-admin
 AWS_PROFILE=atlas-sso-admin \
 AWS_REGION=us-east-1 \
 ATLAS_AWS_STACK=atlas-prod \
-ATLAS_ALERT_EMAIL=aws-admin@atlas-lms.com \
+ATLAS_ALERT_EMAIL=shahp002@outlook.com \
+ATLAS_BUDGET_ALERT_EMAIL=aws-admin@atlas-lms.com \
 ATLAS_MONTHLY_BUDGET_USD=110 \
 infra/aws/provision.sh
 ```
@@ -244,7 +246,7 @@ Then perform the full release proof from the merged source:
    normal evaluation windows;
 8. verify an RDS automated backup appears after the configured backup window;
 9. send a controlled SNS test message and confirm receipt at
-   `aws-admin@atlas-lms.com`;
+   `shahp002@outlook.com`;
 10. inspect the AWS gross-cost budget and its four notification thresholds.
 
 Code-execution UI and database records may exist, but live execution must show

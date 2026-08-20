@@ -14,7 +14,7 @@ runs on the host or through its Docker socket.
 ## Order
 
 1. Run `infra/aws/provision.sh` through the `atlas-sso-admin` profile.
-2. Confirm the SNS subscription sent to `aws-admin@atlas-lms.com`, then run
+2. Confirm the SNS subscription sent to `shahp002@outlook.com`, then run
    `infra/aws/verify.sh`.
 3. Merge the infrastructure commit into `main` and run `npm run verify`.
 4. Run `infra/aws/build-push.sh` from clean, synchronized `main`.

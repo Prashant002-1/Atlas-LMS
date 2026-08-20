@@ -66,7 +66,8 @@ alarm count, or network architecture changes.
 ## Budget and alerts
 
 CloudFormation creates `atlas-prod-monthly-gross-cost` at $110/month. Its
-notifications go to the stack SNS topic at:
+notifications go directly to `aws-admin@atlas-lms.com`, separately from the
+SNS infrastructure-alarm topic, at:
 
 - 50% actual ($55)
 - 80% actual ($88)

@@ -91,6 +91,15 @@ export function ConversationContent({ className, children }: { className?: strin
   );
 }
 
+/**
+ * A fixed-height lane for transient agent activity. It deliberately sits
+ * outside ConversationContent so thinking and tool-status changes do not
+ * resize the transcript or trigger its ResizeObserver bottom-following.
+ */
+export function ConversationActivity({ className, children }: { className?: string; children?: ReactNode }) {
+  return <div data-atlas-conversation-activity className={cn("h-10 shrink-0", className)}>{children}</div>;
+}
+
 export function ConversationEmptyState({
   className,
   title = "No messages yet",

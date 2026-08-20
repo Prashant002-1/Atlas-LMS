@@ -21,6 +21,7 @@ type ProfessorTurnArgs = {
   sessionId: string;
   userText: string;
   runClaimId: string;
+  focusedProposalId?: string;
 };
 
 type StudentTurnArgs = {
@@ -84,6 +85,7 @@ async function streamProfessorTurnStep(args: ProfessorTurnArgs, runId: string) {
        * reach the response it was typed against, never a later one.
        */
       runId,
+      focusedProposalId: args.focusedProposalId,
     }));
   } finally {
     await db

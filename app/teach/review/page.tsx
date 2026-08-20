@@ -20,7 +20,7 @@ export default async function TeachReviewPage({ searchParams }: { searchParams: 
   }
 
   const open = workspace.proposals.filter((proposal) => proposal.status === "pending");
-  const decided = workspace.proposals.filter((proposal) => proposal.status === "applied" || proposal.status === "rejected");
+  const decided = workspace.proposals.filter((proposal) => proposal.status !== "pending" && proposal.status !== "approved");
   const selected = params.proposal
     ? workspace.proposals.find((proposal) => proposal.id === params.proposal)
     : undefined;

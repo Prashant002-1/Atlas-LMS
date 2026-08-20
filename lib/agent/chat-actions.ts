@@ -18,6 +18,11 @@ function chatIdFrom(formData: FormData): string {
   return chatIdSchema.parse(String(formData.get("chatId") ?? ""));
 }
 
+function activeChatIdFrom(formData: FormData): string | null {
+  const value = String(formData.get("activeChatId") ?? "");
+  return chatIdSchema.safeParse(value).data ?? null;
+}
+
 export async function archiveProfessorAtlasChat(formData: FormData) {
   const session = await auth();
   const user = session?.user;
@@ -39,6 +44,18 @@ export async function restoreProfessorAtlasChat(formData: FormData) {
   revalidatePath("/teach/settings");
 }
 
+export async function archiveProfessorAtlasChatFromList(formData: FormData) {
+  const session = await auth();
+  const user = session?.user;
+  if (!user?.id || !user.orgId || !isInstructorLike(user.role)) throw new Error("Atlas chat unavailable.");
+  const chatId = chatIdFrom(formData);
+  const archived = await archiveProfessorChat({ orgId: user.orgId, userId: user.id, chatId });
+  if (!archived) throw new Error("This chat could not be archived while Atlas is working.");
+  revalidatePath("/teach/atlas");
+  revalidatePath("/teach/settings");
+  if (activeChatIdFrom(formData) === chatId) redirect("/teach/atlas?thread=new");
+}
+
 export async function archiveStudentAtlasChat(formData: FormData) {
   const session = await auth();
   const user = session?.user;
@@ -58,4 +75,16 @@ export async function restoreStudentAtlasChat(formData: FormData) {
   if (!restored) throw new Error("Archived chat unavailable.");
   revalidatePath("/student/atlas");
   revalidatePath("/student/atlas/profile");
+}
+
+export async function archiveStudentAtlasChatFromList(formData: FormData) {
+  const session = await auth();
+  const user = session?.user;
+  if (!user?.id || !user.orgId || user.role !== "student") throw new Error("Atlas chat unavailable.");
+  const chatId = chatIdFrom(formData);
+  const archived = await archiveStudentChat({ orgId: user.orgId, studentId: user.id, chatId });
+  if (!archived) throw new Error("This chat could not be archived while Atlas is working.");
+  revalidatePath("/student/atlas");
+  revalidatePath("/student/atlas/profile");
+  if (activeChatIdFrom(formData) === chatId) redirect("/student/atlas?thread=new");
 }

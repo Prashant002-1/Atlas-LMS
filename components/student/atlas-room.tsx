@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
 import { type UIMessage } from "ai";
 import { WorkflowChatTransport } from "@ai-sdk/workflow";
@@ -9,12 +10,15 @@ import { Archive, CheckCircle2, FileText, History, PanelRightClose, PanelRightOp
 import { cn } from "@/lib/utils";
 import {
   Conversation,
+  ConversationActivity,
   ConversationContent,
   ConversationEmptyState,
 } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageTimestamp } from "@/components/ai-elements/message";
-import { Response } from "@/components/ai-elements/response";
+import { AtlasMessageParts, type AtlasLoosePart } from "@/components/agent/message-parts";
+import { ChatThreadRow } from "@/components/agent/chat-thread-row";
 import {
+  messageActivityLabel,
   messageHasVisibleOutput,
   PromptCheckpointRail,
   promptAnchorId,
@@ -36,11 +40,11 @@ import {
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { SteeringPending } from "@/components/ai-elements/steering";
 import { useSteering } from "@/components/ai-elements/use-steering";
-import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput, type ToolState } from "@/components/ai-elements/tool";
 import { AtlasMark } from "@/components/atlas/primitives";
-import { archiveStudentAtlasChat } from "@/lib/agent/chat-actions";
+import { archiveStudentAtlasChat, archiveStudentAtlasChatFromList } from "@/lib/agent/chat-actions";
 import { atlasMessageMetadataNow, type AtlasMessageMetadata } from "@/lib/agent/ui-message";
 import { uploadStudentAtlasDocument } from "@/lib/student/document-actions";
+import { atlasChatTitleFromIntent, firstUserTextFromParts, isDefaultAtlasChatTitle } from "@/lib/agent/chat-title";
 
 type StudentAtlasChatMessage = UIMessage<AtlasMessageMetadata>;
 
@@ -61,7 +65,7 @@ export type StudentAtlasRoomProps = {
   firstCourse: { id: string; code: string } | null;
 };
 
-type LoosePart = { type?: unknown; state?: unknown; input?: unknown; output?: unknown; data?: unknown; text?: unknown } & Record<string, unknown>;
+type LoosePart = AtlasLoosePart;
 
 type StudentDocumentAttachment = {
   attachmentId: string;
@@ -86,14 +90,6 @@ function threadIdFromMessages(messages: UIMessage[]): string | null {
   return null;
 }
 
-function toolState(part: LoosePart): ToolState {
-  const output = outputObject(part);
-  if (output?.ok === false) return "output-error";
-  if (output || part.state === "output-available") return "output-available";
-  if (part.state === "input-available") return "input-available";
-  return "input-streaming";
-}
-
 const TOOL_TITLES: Record<string, string> = {
   "tool-inspect_record": "Checking your record",
   "tool-search_course": "Searching the course",
@@ -103,17 +99,7 @@ const TOOL_TITLES: Record<string, string> = {
 
 function toolLabel(part: LoosePart): string {
   const type = String(part.type ?? "");
-  const input = (part.input ?? {}) as Record<string, unknown>;
-  if (type === "tool-inspect_record" && typeof input.resource === "string") {
-    return `Checking your ${input.resource.replaceAll("_", " ")}`;
-  }
-  if (type === "tool-search_course" && typeof input.query === "string") return `Searching for “${input.query}”`;
-  return TOOL_TITLES[type] ?? type.replace(/^tool-/, "").replaceAll("_", " ");
-}
-
-function errorText(part: LoosePart): string | undefined {
-  const output = outputObject(part);
-  return output?.ok === false && typeof output.error === "string" ? output.error : undefined;
+  return TOOL_TITLES[type] ?? "Working";
 }
 
 function isActionResult(part: LoosePart): boolean {
@@ -127,6 +113,7 @@ function actionSummary(part: LoosePart): string | null {
 }
 
 export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
+  const router = useRouter();
   const [railOpen, setRailOpen] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceTranscriptionState>("idle");
   const [voiceError, setVoiceError] = useState<string | null>(null);
@@ -179,7 +166,7 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
     else window.localStorage.removeItem(runStorageKey);
   }, [props.activeRunId, runStorageKey]);
 
-  const { messages, sendMessage, resumeStream, status, error } = useChat<StudentAtlasChatMessage>({
+  const { messages, sendMessage, resumeStream, addToolApprovalResponse, status, error } = useChat<StudentAtlasChatMessage>({
     id: `student-atlas-${props.threadId}`,
     messages: props.initialMessages,
     transport,
@@ -188,6 +175,7 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
       if (isAbort || isDisconnect) return;
       /* Anything the run never reached is sent as the next turn instead. */
       settleSteeringRef.current();
+      router.refresh();
     },
   });
 
@@ -249,13 +237,16 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
     [activeSessionId, messages]
   );
   const visibleThreads = useMemo(() => {
-    if (!learnedThreadId || props.threads.some((thread) => thread.id === learnedThreadId)) return props.threads;
+    if (!learnedThreadId) return props.threads;
     const firstUserMessage = messages.find((message) => message.role === "user");
-    const firstText = (firstUserMessage?.parts as LoosePart[] | undefined)?.find(
-      (part) => part.type === "text" && typeof part.text === "string"
-    )?.text;
-    const compact = typeof firstText === "string" ? firstText.replace(/\s+/g, " ").trim() : "New chat";
-    const title = compact.length > 64 ? `${compact.slice(0, 61)}...` : compact || "New chat";
+    const firstText = firstUserTextFromParts(firstUserMessage?.parts) ?? "";
+    const title = atlasChatTitleFromIntent(firstText, "New chat");
+    const existing = props.threads.find((thread) => thread.id === learnedThreadId);
+    if (existing) {
+      return isDefaultAtlasChatTitle(existing.title) && firstText
+        ? props.threads.map((thread) => thread.id === learnedThreadId ? { ...thread, title } : thread)
+        : props.threads;
+    }
     return [
       { id: learnedThreadId, title, userTurnCount: 1, updatedAt: new Date().toISOString() },
       ...props.threads,
@@ -286,7 +277,9 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
   const busy = status === "submitted" || status === "streaming";
   const activeChatId = learnedThreadId ?? props.threadId;
   const lastMessage = messages[messages.length - 1];
-  const awaitingReply = busy && !messageHasVisibleOutput(lastMessage);
+  const activityLabel = busy
+    ? messageActivityLabel(lastMessage, toolLabel) ?? (!messageHasVisibleOutput(lastMessage) ? "Thinking" : null)
+    : null;
   const firstName = props.studentName.split(/\s+/)[0] || "there";
 
   return (
@@ -338,9 +331,9 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
           </div>
         </header>
 
-        <div className="relative min-h-0 flex-1">
-          <Conversation className="h-full bg-[var(--color-bg)]">
-            <ConversationContent className="mx-auto w-full max-w-[50rem] flex-1 gap-7 px-4 pb-10 pt-8 md:px-8">
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <Conversation className="min-h-0 flex-1 bg-[var(--color-bg)]">
+            <ConversationContent className="mx-auto w-full max-w-[50rem] flex-1 gap-7 px-4 pb-2 pt-8 md:px-8">
               {messages.length === 0 ? (
                 <ConversationEmptyState className="min-h-[26rem] items-start justify-center px-0 text-left">
                   <div className="w-full max-w-[40rem] space-y-6">
@@ -366,11 +359,18 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
                   <Message
                     key={message.id}
                     id={message.role === "user" ? promptAnchorId(message.id) : undefined}
-                    className={message.role === "user" ? "scroll-mt-24" : undefined}
+                    className={cn(
+                      message.role === "user" && "scroll-mt-24",
+                      busy && index === messages.length - 1 && message.role === "assistant" && !messageHasVisibleOutput(message) && "hidden"
+                    )}
                     from={message.role === "user" ? "user" : "assistant"}
                   >
                     <MessageContent>
-                      <StudentMessageParts message={message} streaming={busy && index === messages.length - 1 && message.role === "assistant"} />
+                      <StudentMessageParts
+                        message={message}
+                        streaming={busy && index === messages.length - 1 && message.role === "assistant"}
+                        onToolApproval={({ id, approved }) => void addToolApprovalResponse({ id, approved })}
+                      />
                     </MessageContent>
                     {/* No clock on an answer still being written. */}
                     <MessageTimestamp
@@ -380,9 +380,11 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
                   </Message>
                 ))
               )}
-              {awaitingReply ? <ThinkingIndicator label="Thinking" /> : null}
             </ConversationContent>
           </Conversation>
+          <ConversationActivity className="mx-auto w-full max-w-[50rem] px-4 md:px-8">
+            {activityLabel ? <ThinkingIndicator label={activityLabel} /> : null}
+          </ConversationActivity>
           {promptCheckpoints.length > 0 ? <PromptCheckpointRail checkpoints={promptCheckpoints} /> : null}
         </div>
 
@@ -454,53 +456,49 @@ export function StudentAtlasRoom(props: StudentAtlasRoomProps) {
           <button type="button" onClick={() => updateRail(false)} aria-label="Close chats" className="inline-flex size-8 items-center justify-center rounded-control text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink)]"><PanelRightClose size={15} aria-hidden /></button>
         </div>
         <div className="min-h-0 w-[min(21rem,92vw)] flex-1 overflow-y-auto px-3 py-3">
-          <ThreadsPanel threads={visibleThreads} activeId={learnedThreadId ?? props.threadId} />
+          <ThreadsPanel threads={visibleThreads} activeId={learnedThreadId ?? props.threadId} busy={busy} />
         </div>
       </aside>
     </div>
   );
 }
 
-function StudentMessageParts({ message, streaming }: { message: UIMessage; streaming: boolean }) {
-  const parts = (message.parts ?? []) as LoosePart[];
-  const rendered: ReactNode[] = [];
-  const toolParts = parts.filter((part) => String(part.type ?? "").startsWith("tool-"));
-
-  parts.forEach((part, index) => {
+function StudentMessageParts({
+  message,
+  streaming,
+  onToolApproval,
+}: {
+  message: UIMessage;
+  streaming: boolean;
+  onToolApproval: (approval: { id: string; approved: boolean }) => void;
+}) {
+  const renderDataPart = (part: LoosePart, { index }: { index: number }) => {
     const type = String(part.type ?? "");
     if (type === "data-document-attachments") {
       const data = part.data as { attachments?: StudentDocumentAttachment[] } | undefined;
       const attachments = Array.isArray(data?.attachments) ? data.attachments : [];
-      if (attachments.length > 0) rendered.push(<MessageDocumentAttachments key={`documents-${index}`} attachments={attachments} />);
-      return;
+      return attachments.length > 0 ? <MessageDocumentAttachments key={`documents-${index}`} attachments={attachments} /> : null;
     }
-    if (type.startsWith("data-")) return;
+    return undefined;
+  };
 
-    if (type === "text" && typeof part.text === "string") {
-      rendered.push(<Response key={index} streaming={streaming && index === parts.length - 1}>{part.text}</Response>);
-      return;
-    }
-
-    if (!type.startsWith("tool-")) return;
-    const state = toolState(part);
-    if (state === "output-error") {
-      rendered.push(<StudentToolError key={`error-${index}`} part={part} />);
-      return;
-    }
-
-    if (isActionResult(part) && state === "output-available") {
+  const renderToolResult = (part: LoosePart, { index }: { index: number }) => {
+    if (isActionResult(part) && part.state === "output-available") {
       const summary = actionSummary(part);
-      if (summary) rendered.push(<ActionReceipt key={`action-${index}`} summary={summary} />);
-      return;
+      return summary ? <ActionReceipt key={`action-${index}`} summary={summary} /> : null;
     }
-  });
+    return undefined;
+  };
 
-  if (streaming) {
-    const activeTool = [...toolParts].reverse().find((part) => toolState(part) === "input-streaming" || toolState(part) === "input-available");
-    if (activeTool) rendered.push(<ThinkingIndicator key="working" label={toolLabel(activeTool)} />);
-  }
-
-  return <>{rendered}</>;
+  return (
+    <AtlasMessageParts
+      message={message}
+      streaming={streaming}
+      renderDataPart={renderDataPart}
+      renderToolResult={renderToolResult}
+      onToolApproval={onToolApproval}
+    />
+  );
 }
 
 function MessageDocumentAttachments({ attachments }: { attachments: StudentDocumentAttachment[] }) {
@@ -532,19 +530,7 @@ function ActionReceipt({ summary }: { summary: string }) {
   );
 }
 
-function StudentToolError({ part }: { part: LoosePart }) {
-  return (
-    <Tool defaultOpen className="max-w-[42rem] border-[color-mix(in_oklch,var(--color-danger)_35%,var(--color-border))]">
-      <ToolHeader type={String(part.type ?? "tool")} state="output-error" title={toolLabel(part)} />
-      <ToolContent>
-        <ToolInput input={part.input ?? {}} />
-        <ToolOutput errorText={errorText(part)} />
-      </ToolContent>
-    </Tool>
-  );
-}
-
-function ThreadsPanel({ threads, activeId }: { threads: StudentThreadRef[]; activeId: string }) {
+function ThreadsPanel({ threads, activeId, busy }: { threads: StudentThreadRef[]; activeId: string; busy: boolean }) {
   if (threads.length === 0) {
     return (
       <div className="px-2 py-8 text-center">
@@ -558,11 +544,16 @@ function ThreadsPanel({ threads, activeId }: { threads: StudentThreadRef[]; acti
       {threads.map((thread) => {
         const active = thread.id === activeId;
         return (
-          <li key={thread.id}>
-            <Link href={`/student/atlas?thread=${thread.id}`} aria-current={active ? "page" : undefined} className={cn("block rounded-row px-2.5 py-2.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent-strong)]", active ? "bg-[var(--color-surface-muted)]" : "hover:bg-[var(--color-surface-muted)]")}>
-              <span className={cn("block truncate text-[0.78125rem]", active ? "font-medium text-[var(--color-ink)]" : "text-[var(--color-muted)]")}>{thread.title}</span>
-            </Link>
-          </li>
+          <ChatThreadRow
+            key={thread.id}
+            id={thread.id}
+            title={thread.title}
+            href={`/student/atlas?thread=${thread.id}`}
+            active={active}
+            archiveAction={archiveStudentAtlasChatFromList}
+            activeChatId={activeId}
+            archiveDisabled={active && busy}
+          />
         );
       })}
     </ul>

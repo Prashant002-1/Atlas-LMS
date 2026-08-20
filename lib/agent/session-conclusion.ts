@@ -14,6 +14,7 @@ import {
   studentDisplayName,
   submitSessionRecord,
 } from "@/lib/agent/session-store";
+import { stopCodeExecutionWorkspace } from "@/lib/code-execution/service";
 
 const FALLBACK_CONCLUSION =
   "Time is up, so this session is now closed. Your transcript and current work have been saved automatically for a draft rubric review. You will be able to read the evidence and reasoning behind that draft, and you can ask your instructor to review anything that needs another look.";
@@ -105,6 +106,13 @@ export async function concludeExpiredSession(args: { orgId: string; sessionId: s
 
     const studentName = await studentDisplayName(args.orgId, session.userId);
     ({ submission } = await submitSessionRecord({ session, bundle, studentName }));
+  }
+
+  try {
+    await stopCodeExecutionWorkspace({ orgId: args.orgId, sessionId: session.id });
+  } catch (error) {
+    // Submission is already durable. The AgentCore TTL remains the cleanup backstop.
+    console.error("code execution workspace cleanup failed after session submission", error);
   }
 
   return { submissionId: submission.id };

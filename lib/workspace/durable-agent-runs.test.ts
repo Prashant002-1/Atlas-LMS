@@ -86,9 +86,11 @@ test("student and instructor agent surfaces share quiet progress and steering", 
 
   assert.match(status, /<Shimmer/);
   assert.match(status, /PromptCheckpointRail/);
-  assert.equal(planning.match(/label="Thinking"/g)?.length, 1);
+  assert.equal(planning.match(/<ThinkingIndicator/g)?.length, 1);
   for (const room of [planning, student]) {
     assert.match(room, /ThinkingIndicator/);
+    assert.match(room, /ConversationActivity/);
+    assert.match(room, /messageActivityLabel/);
     assert.match(room, /useSteering/);
     assert.match(room, /SteeringPending/);
     assert.match(room, /allowSubmitWhileBusy/);

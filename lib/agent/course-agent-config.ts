@@ -7,6 +7,14 @@ import {
   DEFAULT_WEB_SEARCH_POLICY,
   webSearchPolicySchema,
 } from "@/lib/agent/web-search";
+import {
+  compileCourseAgentDirectives,
+  loadActiveCourseAgentDirectives,
+  renderCourseAgentDirectiveIndex,
+  type CourseAgentDirective,
+} from "@/lib/agent/course-agent-directives";
+import { courseAgentCoreInputSchema } from "@/lib/agent/course-agent-contracts";
+export { courseAgentCoreInputSchema } from "@/lib/agent/course-agent-contracts";
 
 /**
  * Course agent configuration is professor-controlled policy data, not a raw
@@ -22,27 +30,10 @@ export const courseAgentRuleSchema = z.object({
   enabled: z.boolean().default(true),
 });
 
-export const courseAgentConfigurationSchema = z.object({
+export const courseAgentConfigurationSchema = courseAgentCoreInputSchema.extend({
   schemaVersion: z.literal(1),
-  identity: z.object({
-    name: z.string().trim().min(2).max(80),
-    role: z.string().trim().min(3).max(160),
-    voice: z.string().trim().min(3).max(400),
-  }),
-  teaching: z.object({
-    approach: z.string().trim().min(5).max(600),
-    socraticByDefault: z.boolean(),
-    directAnswers: z.enum(["never", "after_attempt", "when_asked"]),
-    challengeLevel: z.enum(["supportive", "adaptive", "rigorous"]),
-    citationMode: z.enum(["required", "when_useful"]),
-  }),
   /** Server-owned policy. It is not part of professor-facing configuration. */
   externalSearch: webSearchPolicySchema.default(DEFAULT_WEB_SEARCH_POLICY),
-  boundaries: z.object({
-    supports: z.array(z.string().trim().min(3).max(220)).max(12),
-    avoids: z.array(z.string().trim().min(3).max(220)).max(12),
-    escalatesWhen: z.array(z.string().trim().min(3).max(220)).max(12),
-  }),
   rules: z
     .array(courseAgentRuleSchema)
     .max(24)
@@ -61,6 +52,7 @@ export type ResolvedCourseAgentConfig = {
   version: number;
   source: "versioned" | "default";
   configuration: CourseAgentConfiguration;
+  directives: CourseAgentDirective[];
   studentDisclosure: string;
   changeSummary: string;
   sourceSessionId: string | null;
@@ -103,6 +95,22 @@ function configurationStrings(configuration: CourseAgentConfiguration): string[]
 function assertConfigurationTextIsSafe(configuration: CourseAgentConfiguration) {
   if (configurationStrings(configuration).some((value) => unsafeConfigurationText.some((pattern) => pattern.test(value)))) {
     throw new Error("The proposed configuration contains instruction-control language. Rewrite it as a direct teaching rule.");
+  }
+}
+
+export function assertCourseAgentCoreInputIsSafe(input: z.infer<typeof courseAgentCoreInputSchema>): void {
+  const configuration = courseAgentCoreInputSchema.parse(input);
+  const text = [
+    configuration.identity.name,
+    configuration.identity.role,
+    configuration.identity.voice,
+    configuration.teaching.approach,
+    ...configuration.boundaries.supports,
+    ...configuration.boundaries.avoids,
+    ...configuration.boundaries.escalatesWhen,
+  ];
+  if (text.some((value) => unsafeConfigurationText.some((pattern) => pattern.test(value)))) {
+    throw new Error("The proposed configuration contains instruction-control language. Rewrite it as direct teaching behavior.");
   }
 }
 
@@ -180,11 +188,13 @@ export async function loadActiveCourseAgentConfig(orgId: string, courseId: strin
     throw new Error("The active course agent configuration is invalid. No fallback configuration was used.");
   }
   if (row && stored) {
+    const directives = await loadActiveCourseAgentDirectives(orgId, courseId);
     return {
       id: row.id,
       version: row.version,
       source: "versioned",
       configuration: stored,
+      directives,
       studentDisclosure: row.studentDisclosure,
       changeSummary: row.changeSummary,
       sourceSessionId: row.sourceSessionId,
@@ -196,12 +206,14 @@ export async function loadActiveCourseAgentConfig(orgId: string, courseId: strin
   }
 
   const configuration = defaultConfiguration();
+  const directives = await loadActiveCourseAgentDirectives(orgId, courseId);
 
   return {
     id: null,
     version: 0,
     source: "default",
     configuration,
+    directives,
     studentDisclosure: defaultDisclosure(configuration.identity.name, configuration.teaching.approach),
     changeSummary: "Default course configuration",
     sourceSessionId: null,
@@ -239,98 +251,118 @@ export async function listCourseAgentConfigHistory(
     .limit(Math.max(1, Math.min(limit, 20)));
 }
 
+type CourseAgentConfigTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export async function appendCourseAgentConfigRevision(tx: CourseAgentConfigTx, args: {
+  orgId: string;
+  courseId: string;
+  instructorId: string;
+  sourceSessionId: string;
+  expectedVersion: number;
+  configuration: z.infer<typeof courseAgentCoreInputSchema>;
+  studentDisclosure: string;
+  changeSummary: string;
+}) {
+  const configurationInput = courseAgentCoreInputSchema.parse(args.configuration);
+  const studentDisclosure = z.string().trim().min(20).max(600).parse(args.studentDisclosure);
+  const changeSummary = z.string().trim().min(3).max(240).parse(args.changeSummary);
+
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`atlas:course-agent:${args.orgId}:${args.courseId}`}, 0))`
+  );
+
+  const [sourceSession] = await tx
+    .select({ id: agentSessions.id })
+    .from(agentSessions)
+    .where(
+      and(
+        eq(agentSessions.id, args.sourceSessionId),
+        eq(agentSessions.orgId, args.orgId),
+        eq(agentSessions.courseId, args.courseId),
+        eq(agentSessions.userId, args.instructorId),
+        eq(agentSessions.surface, "command"),
+        eq(agentSessions.anchorType, "course")
+      )
+    )
+    .limit(1);
+  if (!sourceSession) {
+    throw new Error("The source Atlas chat is not available in this course.");
+  }
+
+  const [current] = await tx
+    .select({ version: courseAgentConfigs.version, configuration: courseAgentConfigs.configuration })
+    .from(courseAgentConfigs)
+    .where(and(eq(courseAgentConfigs.orgId, args.orgId), eq(courseAgentConfigs.courseId, args.courseId)))
+    .orderBy(desc(courseAgentConfigs.version))
+    .limit(1);
+  const currentVersion = current?.version ?? 0;
+  if (currentVersion !== args.expectedVersion) {
+    throw new Error(`The course agent changed from version ${args.expectedVersion} to ${currentVersion}. Read the current configuration and try again.`);
+  }
+
+  const currentConfiguration = current ? parseStoredConfiguration(current.configuration) : defaultConfiguration();
+  if (!currentConfiguration) {
+    throw new Error("The active course agent configuration is invalid. No fallback configuration was used.");
+  }
+  const configuration = courseAgentConfigurationSchema.parse({
+    schemaVersion: 1,
+    ...configurationInput,
+    externalSearch: currentConfiguration.externalSearch,
+    rules: currentConfiguration.rules,
+  });
+  assertConfigurationTextIsSafe(configuration);
+
+  const [created] = await tx
+    .insert(courseAgentConfigs)
+    .values({
+      orgId: args.orgId,
+      courseId: args.courseId,
+      version: currentVersion + 1,
+      schemaVersion: 1,
+      configuration,
+      studentDisclosure,
+      changeSummary,
+      sourceSessionId: args.sourceSessionId,
+      createdById: args.instructorId,
+    })
+    .returning({
+      id: courseAgentConfigs.id,
+      version: courseAgentConfigs.version,
+      createdAt: courseAgentConfigs.createdAt,
+    });
+
+  return {
+    ...created,
+    configuration,
+    studentDisclosure,
+    changeSummary,
+  };
+}
+
 export async function writeCourseAgentConfig(args: {
   orgId: string;
   courseId: string;
   instructorId: string;
   sourceSessionId: string;
   expectedVersion: number;
-  configuration: z.infer<typeof courseAgentConfigurationInputSchema>;
+  configuration: z.infer<typeof courseAgentCoreInputSchema>;
   studentDisclosure: string;
   changeSummary: string;
 }) {
-  const configurationInput = courseAgentConfigurationInputSchema.parse(args.configuration);
-  const studentDisclosure = z.string().trim().min(20).max(600).parse(args.studentDisclosure);
-  const changeSummary = z.string().trim().min(3).max(240).parse(args.changeSummary);
-
-  return db.transaction(async (tx) => {
-    await tx.execute(
-      sql`select pg_advisory_xact_lock(hashtextextended(${`atlas:course-agent:${args.orgId}:${args.courseId}`}, 0))`
-    );
-
-    const [sourceSession] = await tx
-      .select({ id: agentSessions.id })
-      .from(agentSessions)
-      .where(
-        and(
-          eq(agentSessions.id, args.sourceSessionId),
-          eq(agentSessions.orgId, args.orgId),
-          eq(agentSessions.courseId, args.courseId),
-          eq(agentSessions.userId, args.instructorId),
-          eq(agentSessions.surface, "command"),
-          eq(agentSessions.anchorType, "course")
-        )
-      )
-      .limit(1);
-    if (!sourceSession) {
-      throw new Error("The source Atlas chat is not available in this course.");
-    }
-
-    const [current] = await tx
-      .select({ version: courseAgentConfigs.version, configuration: courseAgentConfigs.configuration })
-      .from(courseAgentConfigs)
-      .where(and(eq(courseAgentConfigs.orgId, args.orgId), eq(courseAgentConfigs.courseId, args.courseId)))
-      .orderBy(desc(courseAgentConfigs.version))
-      .limit(1);
-    const currentVersion = current?.version ?? 0;
-    if (currentVersion !== args.expectedVersion) {
-      throw new Error(`The course agent changed from version ${args.expectedVersion} to ${currentVersion}. Read the current configuration and try again.`);
-    }
-
-    const currentConfiguration = current ? parseStoredConfiguration(current.configuration) : defaultConfiguration();
-    if (!currentConfiguration) {
-      throw new Error("The active course agent configuration is invalid. No fallback configuration was used.");
-    }
-    const configuration = courseAgentConfigurationSchema.parse({
-      schemaVersion: 1,
-      ...configurationInput,
-      externalSearch: currentConfiguration.externalSearch,
-    });
-    assertConfigurationTextIsSafe(configuration);
-
-    const [created] = await tx
-      .insert(courseAgentConfigs)
-      .values({
-        orgId: args.orgId,
-        courseId: args.courseId,
-        version: currentVersion + 1,
-        schemaVersion: 1,
-        configuration,
-        studentDisclosure,
-        changeSummary,
-        sourceSessionId: args.sourceSessionId,
-        createdById: args.instructorId,
-      })
-      .returning({
-        id: courseAgentConfigs.id,
-        version: courseAgentConfigs.version,
-        createdAt: courseAgentConfigs.createdAt,
-      });
-
-    return {
-      ...created,
-      configuration,
-      studentDisclosure,
-      changeSummary,
-    };
-  });
+  return db.transaction((tx) => appendCourseAgentConfigRevision(tx, args));
 }
 
 export function compileCourseAgentConfiguration(
   configuration: CourseAgentConfiguration,
-  surface: "study" | "assignment"
+  surface: "study" | "assignment",
+  directives?: CourseAgentDirective[]
 ): string {
-  const activeRules = configuration.rules.filter((rule) => rule.enabled && rule.appliesTo.includes(surface));
+  const activeRules = directives
+    ? []
+    : configuration.rules.filter((rule) => rule.enabled && rule.appliesTo.includes(surface));
+  const compiledDirectives = directives
+    ? compileCourseAgentDirectives(directives, { audience: "student", surface })
+    : "";
   const directAnswer = {
     never: "Do not give direct answers. Guide the student to produce each important step.",
     after_attempt: "A direct explanation is allowed only after a genuine student attempt, unless the assignment contract is stricter.",
@@ -359,6 +391,7 @@ export function compileCourseAgentConfiguration(
     activeRules.length
       ? `Course rules for this surface:\n${activeRules.map((rule) => `- ${rule.title}: ${rule.instruction}`).join("\n")}`
       : "",
+    compiledDirectives,
   ]
     .filter(Boolean)
     .join("\n");
@@ -379,11 +412,7 @@ export function renderCourseAgentConfigForReference(config: ResolvedCourseAgentC
     `Supports: ${configuration.boundaries.supports.join(" | ") || "none"}`,
     `Avoids: ${configuration.boundaries.avoids.join(" | ") || "none"}`,
     `Escalates when: ${configuration.boundaries.escalatesWhen.join(" | ") || "none"}`,
-    `Rules:`,
-    ...configuration.rules.map(
-      (rule) =>
-        `- [${rule.enabled ? "on" : "off"}] ${rule.title} [${rule.appliesTo.join(",")}]: ${rule.instruction}`
-    ),
+    renderCourseAgentDirectiveIndex(config.directives),
     `Student disclosure: ${config.studentDisclosure}`,
     `Last change: ${config.changeSummary}`,
   ].join("\n");

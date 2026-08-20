@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
@@ -16,6 +16,7 @@ import {
   learningObjectives,
   moduleItems,
   modules,
+  proposalBlocks,
   submissions,
 } from "@/lib/db/schema";
 import { isInstructorLike } from "@/lib/auth/session";
@@ -23,6 +24,7 @@ import { assertSupportedDocument, createUploadedDocument } from "@/lib/course/do
 import { MAX_COURSE_MATERIAL_BYTES } from "@/lib/course/materials";
 import { findEditableCourse } from "@/lib/instructor/workspace";
 import { applyProposal, dismissProposal } from "@/lib/agent/apply";
+import { parseStoredBlock, type Block } from "@/lib/agent/blocks";
 import { createCommandSession, titleCommandSessionFromIntent } from "@/lib/agent/session";
 import {
   classPoliciesSchema,
@@ -671,28 +673,17 @@ export async function reviewCourseProposal(formData: FormData) {
     throw new Error("Invalid proposal review request.");
   }
 
-  // The proposal must belong to this course and still be open.
-  const [proposal] = await db
-    .select({ id: changeProposals.id })
-    .from(changeProposals)
-    .where(
-      and(
-        eq(changeProposals.id, proposalId),
-        eq(changeProposals.orgId, user.orgId),
-        eq(changeProposals.courseId, course.id),
-        eq(changeProposals.status, "pending")
-      )
-    )
-    .limit(1);
-  if (!proposal) {
-    throw new Error("Draft unavailable.");
-  }
-
   let redirectTo = "/teach/review";
   const requestedReturnTo = String(formData.get("returnTo") ?? "");
   const returnTo = requestedReturnTo === "/teach/review" || requestedReturnTo.startsWith("/teach/review?") ? requestedReturnTo : null;
-  if (decision === "approved") {
-    const applied = await applyProposal({ orgId: user.orgId, courseId: course.id, userId: user.id, proposalId });
+  const decided = await decideScopedCourseProposal({
+    actor: { id: user.id, orgId: user.orgId },
+    courseId: course.id,
+    proposalId,
+    decision,
+  });
+  if (decided.status === "applied") {
+    const applied = decided.applied;
     const first = applied[0];
     redirectTo =
       first?.itemType === "module"
@@ -700,14 +691,107 @@ export async function reviewCourseProposal(formData: FormData) {
         : first?.itemType === "assignment"
           ? `/teach/assignments/${first.itemId}`
           : "/teach/review";
-  } else {
-    await dismissProposal({ orgId: user.orgId, proposalId });
   }
 
   revalidatePath("/teach");
   revalidatePath("/teach/review");
   revalidatePath("/student");
   redirect(returnTo ?? redirectTo);
+}
+
+async function decideScopedCourseProposal(args: {
+  actor: { id: string; orgId: string };
+  courseId: string;
+  proposalId: string;
+  decision: "approved" | "rejected";
+}) {
+  const [proposal] = await db
+    .select({ id: changeProposals.id, summary: changeProposals.summary })
+    .from(changeProposals)
+    .where(
+      and(
+        eq(changeProposals.id, args.proposalId),
+        eq(changeProposals.orgId, args.actor.orgId),
+        eq(changeProposals.courseId, args.courseId),
+        eq(changeProposals.status, "pending")
+      )
+    )
+    .limit(1);
+  if (!proposal) throw new Error("Draft unavailable.");
+
+  if (args.decision === "approved") {
+    const applied = await applyProposal({
+      orgId: args.actor.orgId,
+      courseId: args.courseId,
+      userId: args.actor.id,
+      proposalId: args.proposalId,
+    });
+    return { status: "applied" as const, summary: proposal.summary, applied };
+  }
+  await dismissProposal({ orgId: args.actor.orgId, proposalId: args.proposalId });
+  return { status: "rejected" as const, summary: proposal.summary, applied: [] };
+}
+
+/** Decide a draft without leaving the Atlas chat. */
+export async function decideCourseProposalInline(input: {
+  proposalId: string;
+  decision: "approved" | "rejected";
+}): Promise<
+  | { ok: true; status: "applied" | "rejected"; summary: string }
+  | { ok: false; error: string }
+> {
+  try {
+    const user = await requireInstructorActor();
+    const course = await findEditableCourse({ id: user.id, orgId: user.orgId, role: user.role });
+    if (!course) return { ok: false, error: "No editable course found for this instructor." };
+    if (!input.proposalId || (input.decision !== "approved" && input.decision !== "rejected")) {
+      return { ok: false, error: "Invalid draft decision." };
+    }
+    const result = await decideScopedCourseProposal({
+      actor: { id: user.id, orgId: user.orgId },
+      courseId: course.id,
+      proposalId: input.proposalId,
+      decision: input.decision,
+    });
+    revalidatePath("/teach");
+    revalidatePath("/teach/atlas");
+    revalidatePath("/teach/review");
+    revalidatePath("/teach/course");
+    revalidatePath("/teach/syllabus");
+    revalidatePath("/student");
+    return { ok: true, status: result.status, summary: result.summary };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    return { ok: false, error: message === "Draft unavailable." ? message : "Atlas could not decide that draft." };
+  }
+}
+
+/** Load the complete typed draft into Atlas's details rail. */
+export async function loadCourseProposalDetailsInline(proposalId: string): Promise<
+  | { ok: true; blocks: Block[] }
+  | { ok: false; error: string }
+> {
+  try {
+    const user = await requireInstructorActor();
+    const course = await findEditableCourse({ id: user.id, orgId: user.orgId, role: user.role });
+    if (!course || !proposalId) return { ok: false, error: "Draft unavailable." };
+    const [proposal] = await db
+      .select({ id: changeProposals.id })
+      .from(changeProposals)
+      .where(and(eq(changeProposals.id, proposalId), eq(changeProposals.orgId, user.orgId), eq(changeProposals.courseId, course.id)))
+      .limit(1);
+    if (!proposal) return { ok: false, error: "Draft unavailable." };
+    const rows = await db
+      .select({ blockType: proposalBlocks.blockType, data: proposalBlocks.data })
+      .from(proposalBlocks)
+      .where(and(eq(proposalBlocks.orgId, user.orgId), eq(proposalBlocks.proposalId, proposalId)))
+      .orderBy(asc(proposalBlocks.position));
+    const blocks = rows.map((row) => parseStoredBlock(row.blockType, row.data));
+    if (blocks.some((block) => !block)) return { ok: false, error: "This draft contains an unreadable record." };
+    return { ok: true, blocks: blocks as Block[] };
+  } catch {
+    return { ok: false, error: "Atlas could not load that draft." };
+  }
 }
 
 /**

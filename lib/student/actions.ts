@@ -16,6 +16,7 @@ import {
   submitSessionRecord,
 } from "@/lib/agent/session-store";
 import { sessionGradingWorkflow } from "@/workflows/agent-session";
+import { stopCodeExecutionWorkspace } from "@/lib/code-execution/service";
 
 export async function submitAssignment(formData: FormData) {
   const user = await requireStudentActor();
@@ -87,6 +88,13 @@ export async function submitSession(formData: FormData) {
 
   const studentName = await studentDisplayName(user.orgId, user.id);
   const { submission } = await submitSessionRecord({ session, bundle, studentName });
+
+  try {
+    await stopCodeExecutionWorkspace({ orgId: user.orgId, sessionId: session.id });
+  } catch (error) {
+    // The submission is already durable and the AgentCore TTL remains the cleanup backstop.
+    console.error("code execution workspace cleanup failed after manual submission", error);
+  }
 
   // Submission is the request boundary. Grading is durable work scheduled
   // after the frozen record exists, so a provider failure cannot strand the

@@ -33,6 +33,7 @@ topic_arn="$(output AlertTopicArn)"
 bucket="$(output MigrationBucket)"
 repository_uri="$(output ImageRepositoryUri)"
 repository_name="${repository_uri#*/}"
+alert_email="$(jq -r '.Parameters[] | select(.ParameterKey == "AlertEmail") | .ParameterValue' <<<"$stack_json")"
 
 instance_json="$(
   aws ec2 describe-instances \
@@ -106,11 +107,12 @@ bucket_versioning="$(aws s3api get-bucket-versioning --profile "$aws_profile" --
 alarm_count="$(aws cloudwatch describe-alarms --profile "$aws_profile" --region "$aws_region" --alarm-name-prefix "$stack_name-" --query 'length(MetricAlarms)' --output text)"
 (( alarm_count >= 6 )) || fail "fewer than six CloudWatch alarms exist."
 
-subscription_json="$(aws sns list-subscriptions-by-topic --profile "$aws_profile" --region "$aws_region" --topic-arn "$topic_arn" --query 'Subscriptions[?Protocol==`email`] | [0]' --output json)"
+subscriptions_json="$(aws sns list-subscriptions-by-topic --profile "$aws_profile" --region "$aws_region" --topic-arn "$topic_arn" --query 'Subscriptions[?Protocol==`email`]' --output json)"
+subscription_json="$(jq -c --arg endpoint "$alert_email" '[.[] | select(.Endpoint == $endpoint)] | first' <<<"$subscriptions_json")"
 [[ "$subscription_json" != "null" ]] || fail "SNS email subscription is absent."
 subscription_arn="$(jq -er '.SubscriptionArn' <<<"$subscription_json")"
 if [[ "$require_confirmed_alerts" == "true" && "$subscription_arn" == "PendingConfirmation" ]]; then
-  fail "SNS email subscription is still pending confirmation."
+  fail "SNS email subscription for $alert_email is still pending confirmation."
 fi
 
 aws budgets describe-budget \

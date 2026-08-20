@@ -232,7 +232,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      Description: YC and SPC smoke-test credentials; not loaded by the application.
+      Description: Optional AWS-only cutover smoke credentials; never populated from GCP or loaded by the application.
       Name: !Sub ${EnvironmentName}/demo-smoke
       SecretString: "{}"
       Tags:

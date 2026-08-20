@@ -133,8 +133,6 @@ gcloud compute ssh "$gcp_instance" \
   --command='sudo cat /etc/atlas/atlas.env' > "$work_dir/runtime.source.env"
 gcloud secrets versions access latest --project="$gcp_project" --secret=atlas-db-password > "$work_dir/app-password"
 gcloud secrets versions access latest --project="$gcp_project" --secret=atlas-workflow-db-password > "$work_dir/workflow-password"
-gcloud secrets versions access latest --project="$gcp_project" --secret=atlas-yc-password > "$work_dir/yc-password"
-gcloud secrets versions access latest --project="$gcp_project" --secret=atlas-spc-password > "$work_dir/spc-password"
 
 app_password="$(tr -d '\r\n' < "$work_dir/app-password")"
 workflow_password="$(tr -d '\r\n' < "$work_dir/workflow-password")"
@@ -157,10 +155,7 @@ jq -n \
   --arg atlasAppPassword "$app_password" \
   --arg atlasWorkflowPassword "$workflow_password" \
   '{atlasAppPassword:$atlasAppPassword,atlasWorkflowPassword:$atlasWorkflowPassword}' > "$work_dir/database-users.json"
-jq -n \
-  --rawfile ycPassword "$work_dir/yc-password" \
-  --rawfile spcPassword "$work_dir/spc-password" \
-  '{ycPassword:($ycPassword|gsub("[\\r\\n]+$";"")),spcPassword:($spcPassword|gsub("[\\r\\n]+$";""))}' > "$work_dir/demo-smoke.json"
+printf '{}\n' > "$work_dir/demo-smoke.json"
 
 (
   cd "$work_dir"
@@ -221,7 +216,7 @@ jq . <<<"$restore_invocation"
 [[ "$(jq -r '.Status' <<<"$restore_invocation")" == "Success" ]] || { echo "RDS restore failed." >&2; exit 1; }
 
 repository_host="${release_image%%/*}"
-release_command="set -euo pipefail; runtime=\$(mktemp /etc/atlas/release.XXXXXX); trap 'rm -f \"\$runtime\"' EXIT; test -s /etc/atlas/rds-global-bundle.pem; aws secretsmanager get-secret-value --region '$aws_region' --secret-id '$runtime_secret_arn' --query SecretString --output text > \"\$runtime\"; chmod 0600 \"\$runtime\"; aws ecr get-login-password --region '$aws_region' | docker login --username AWS --password-stdin '$repository_host' >/dev/null; docker pull '$release_image' >/dev/null; docker run --rm --network host --env-file \"\$runtime\" --volume /etc/atlas/rds-global-bundle.pem:/etc/ssl/certs/aws-rds-global-bundle.pem:ro '$release_image' npm run db:upgrade -- --allow-remote; docker run --rm --network host --env-file \"\$runtime\" --volume /etc/atlas/rds-global-bundle.pem:/etc/ssl/certs/aws-rds-global-bundle.pem:ro '$release_image' npm run db:check"
+release_command="set -euo pipefail; runtime=\$(mktemp /etc/atlas/release.XXXXXX); trap 'rm -f \"\$runtime\"' EXIT; test -s /etc/atlas/rds-global-bundle.pem; aws secretsmanager get-secret-value --region '$aws_region' --secret-id '$runtime_secret_arn' --query SecretString --output text > \"\$runtime\"; chmod 0600 \"\$runtime\"; aws ecr get-login-password --region '$aws_region' | docker login --username AWS --password-stdin '$repository_host' >/dev/null; docker pull '$release_image' >/dev/null; docker run --rm --network host --env-file \"\$runtime\" --volume /etc/atlas/rds-global-bundle.pem:/etc/ssl/certs/aws-rds-global-bundle.pem:ro '$release_image' npm run db:upgrade -- --allow-remote; docker run --rm --network host --env-file \"\$runtime\" --volume /etc/atlas/rds-global-bundle.pem:/etc/ssl/certs/aws-rds-global-bundle.pem:ro '$release_image' npm run demo:revoke-disposable-access; docker run --rm --network host --env-file \"\$runtime\" --volume /etc/atlas/rds-global-bundle.pem:/etc/ssl/certs/aws-rds-global-bundle.pem:ro '$release_image' npm run db:check"
 release_parameters="$(jq -cn --arg command "$release_command" '{commands:[$command]}')"
 release_command_id="$(aws ssm send-command --profile "$aws_profile" --region "$aws_region" --instance-ids "$instance_id" --document-name AWS-RunShellScript --comment "Apply Atlas release migrations $migration_id" --parameters "$release_parameters" --query 'Command.CommandId' --output text)"
 aws ssm wait command-executed --profile "$aws_profile" --region "$aws_region" --command-id "$release_command_id" --instance-id "$instance_id" || true

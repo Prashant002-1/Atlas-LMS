@@ -32,6 +32,7 @@
     "workflow:bootstrap": "node --env-file-if-exists=.env.local node_modules/@workflow/world-postgres/bin/setup.js",
     "demo:provision-yc": "tsx scripts/provision-yc-access.ts",
     "demo:provision-spc": "tsx scripts/provision-spc-access.ts",
+    "demo:revoke-disposable-access": "tsx scripts/revoke-disposable-demo-access.ts",
     "postinstall": "npm run fonts"
   },
   "dependencies": {

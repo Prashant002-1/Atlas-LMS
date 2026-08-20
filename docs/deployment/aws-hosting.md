@@ -173,8 +173,8 @@ The script performs these operations in order:
    `atlas_workflow` through the existing private Cloud SQL proxy;
 5. copies the dumps through IAP, creates SHA-256 checksums and a provenance
    manifest, and uploads them to the retained encrypted, versioned S3 bucket;
-6. transfers the runtime, database-user, YC, and SPC values into the three AWS
-   secrets without printing them;
+6. transfers only the runtime and database-user values into AWS Secrets
+   Manager without printing them; GCP YC/SPC demo passwords are not copied;
 7. writes AWS RDS URLs and explicitly sets
    `ATLAS_CODE_EXECUTION_ENABLED=false` while AgentCore is unavailable;
 8. grants the EC2 role temporary read access to only that migration prefix and
@@ -231,10 +231,11 @@ curl -fsS https://demo.atlas-lms.com/api/health
 
 Then perform the full release proof from the merged source:
 
-1. run `npm run smoke` with the YC instructor and student credentials from the
-   AWS `atlas-prod/demo-smoke` secret;
-2. run `npm run smoke:workflow` and verify a real durable Workflow run;
-3. verify YC and SPC instructor/student aliases see their existing records;
+1. generate an AWS-only one-time password, run `npm run demo:provision-yc`, and
+   run `npm run smoke` with the YC instructor and student emails;
+2. run `npm run smoke:workflow` and verify a real durable Workflow run, then
+   immediately run `npm run demo:revoke-disposable-access`;
+3. verify the old GCP YC passwords and SPC aliases no longer authenticate;
 4. verify document originals, submission attachments, course guidance, and
    agent session history survived the restore;
 5. verify `npm run db:check` reports the release contract current;

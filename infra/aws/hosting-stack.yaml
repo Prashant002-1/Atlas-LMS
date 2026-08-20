@@ -425,6 +425,14 @@ Resources:
           chmod 0755 /opt/atlas
           chmod 0700 /etc/atlas
 
+          rds_ca_tmp=$(mktemp /etc/atlas/rds-global-bundle.XXXXXX)
+          curl --proto '=https' --tlsv1.2 -fsS \
+            https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem \
+            --output "$rds_ca_tmp"
+          test -s "$rds_ca_tmp"
+          chmod 0644 "$rds_ca_tmp"
+          mv "$rds_ca_tmp" /etc/atlas/rds-global-bundle.pem
+
           printf '%s\n' '${AWS::Region}' > /etc/atlas/region
           printf '%s\n' '${RuntimeSecret}' > /etc/atlas/runtime-secret-arn
 
@@ -470,6 +478,7 @@ Resources:
           aws ecr get-login-password --region "$region" |
             docker login --username AWS --password-stdin "$registry_host" >/dev/null
           docker pull "$image_ref"
+          test -s /etc/atlas/rds-global-bundle.pem
 
           docker rm -f atlas-previous >/dev/null 2>&1 || true
           if docker inspect atlas >/dev/null 2>&1; then
@@ -482,6 +491,7 @@ Resources:
             --network host \
             --env-file /etc/atlas/atlas.env \
             --env HOSTNAME=0.0.0.0 \
+            --volume /etc/atlas/rds-global-bundle.pem:/etc/ssl/certs/aws-rds-global-bundle.pem:ro \
             --restart unless-stopped \
             --log-driver awslogs \
             --log-opt awslogs-region="$region" \

@@ -42,6 +42,12 @@ the Atlas standalone Next.js container on the host network. RDS PostgreSQL has
 no public address and accepts port 5432 only from the application security
 group.
 
+RDS connections use `sslmode=verify-full` with AWS's global RDS CA bundle.
+Host bootstrap downloads the public bundle from the AWS trust store, and both
+the application and one-off release containers receive it through a read-only
+mount at `/etc/ssl/certs/aws-rds-global-bundle.pem`. Do not replace this with a
+no-verify connection string.
+
 The host has no SSH ingress or key pair. Operators use short-lived IAM Identity
 Center credentials and Systems Manager. IMDSv2 is required. EC2 and RDS storage
 are encrypted. RDS has deletion protection, seven days of automated backups,

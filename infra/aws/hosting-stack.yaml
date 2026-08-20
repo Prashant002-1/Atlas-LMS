@@ -1,0 +1,771 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Atlas LMS production hosting, database, observability, backups, and cost controls.
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: atlas-prod
+    AllowedPattern: "[a-z0-9-]+"
+  DomainName:
+    Type: String
+    Default: demo.example.edu
+  AlertEmail:
+    Type: String
+    Default: ops@example.edu
+  MonthlyBudgetUsd:
+    Type: Number
+    Default: 110
+    MinValue: 10
+  AppInstanceType:
+    Type: String
+    Default: t4g.medium
+    AllowedValues:
+      - t4g.small
+      - t4g.medium
+  DatabaseInstanceClass:
+    Type: String
+    Default: db.t4g.small
+  DatabaseAllocatedStorage:
+    Type: Number
+    Default: 20
+    MinValue: 20
+    MaxValue: 100
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.40.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-vpc
+        - Key: atlas:environment
+          Value: production
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-igw
+
+  VpcGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref Vpc
+
+  AppSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      CidrBlock: 10.40.0.0/24
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-app
+        - Key: atlas:tier
+          Value: public-app
+
+  DatabaseSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      CidrBlock: 10.40.10.0/24
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-db-a
+        - Key: atlas:tier
+          Value: private-database
+
+  DatabaseSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      CidrBlock: 10.40.11.0/24
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-db-b
+        - Key: atlas:tier
+          Value: private-database
+
+  AppRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-app-routes
+
+  AppDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VpcGatewayAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref AppRouteTable
+
+  AppRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref AppRouteTable
+      SubnetId: !Ref AppSubnet
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Public HTTPS ingress for Atlas; administration uses SSM only.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: ACME and HTTPS redirect
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: Atlas HTTPS
+        - IpProtocol: udp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTP/3
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-app-sg
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: PostgreSQL from the Atlas application host only.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref AppSecurityGroup
+          Description: Atlas application and SSM migration tunnel
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-database-sg
+
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private subnets for Atlas PostgreSQL.
+      SubnetIds:
+        - !Ref DatabaseSubnetA
+        - !Ref DatabaseSubnetB
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-database-subnets
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      AllocatedStorage: !Ref DatabaseAllocatedStorage
+      AutoMinorVersionUpgrade: true
+      BackupRetentionPeriod: 7
+      CopyTagsToSnapshot: true
+      DBInstanceClass: !Ref DatabaseInstanceClass
+      DBInstanceIdentifier: !Sub ${EnvironmentName}-postgres
+      DBName: atlas
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      DeletionProtection: true
+      EnablePerformanceInsights: false
+      Engine: postgres
+      EngineVersion: "16.14"
+      ManageMasterUserPassword: true
+      MasterUsername: atlas_admin
+      MultiAZ: false
+      PubliclyAccessible: false
+      StorageEncrypted: true
+      StorageType: gp3
+      VPCSecurityGroups:
+        - !Ref DatabaseSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-postgres
+        - Key: atlas:environment
+          Value: production
+
+  RuntimeSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Description: Root-owned dotenv payload loaded by the Atlas application host.
+      Name: !Sub ${EnvironmentName}/runtime
+      SecretString: "# populated by the migration operator\n"
+      Tags:
+        - Key: atlas:environment
+          Value: production
+
+  DatabaseUserSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Description: Migration-only application and Workflow database user credentials.
+      Name: !Sub ${EnvironmentName}/database-users
+      SecretString: "{}"
+      Tags:
+        - Key: atlas:environment
+          Value: production
+
+  DemoSmokeSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Description: YC and SPC smoke-test credentials; not loaded by the application.
+      Name: !Sub ${EnvironmentName}/demo-smoke
+      SecretString: "{}"
+      Tags:
+        - Key: atlas:environment
+          Value: production
+
+  MigrationBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: AbortIncompleteUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: atlas:purpose
+          Value: migration-and-recovery
+
+  ImageRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      EmptyOnDelete: false
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Retain the twenty newest Atlas images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 20
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+      RepositoryName: !Sub ${EnvironmentName}/atlas
+      Tags:
+        - Key: atlas:environment
+          Value: production
+
+  AppLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub /atlas/${EnvironmentName}/app
+      RetentionInDays: 30
+
+  CaddyLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub /atlas/${EnvironmentName}/caddy
+      RetentionInDays: 30
+
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: Atlas production alerts
+      Subscription:
+        - Endpoint: !Ref AlertEmail
+          Protocol: email
+      Tags:
+        - Key: atlas:environment
+          Value: production
+
+  AppRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: AtlasRuntime
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: PullAtlasImage
+                Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                Resource: "*"
+              - Sid: ReadRuntimeSecret
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref RuntimeSecret
+              - Sid: WriteContainerLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:DescribeLogStreams
+                  - logs:PutLogEvents
+                Resource:
+                  - !GetAtt AppLogGroup.Arn
+                  - !Sub ${AppLogGroup.Arn}:*
+                  - !GetAtt CaddyLogGroup.Arn
+                  - !Sub ${CaddyLogGroup.Arn}:*
+              - Sid: ManagedCodeInterpreter
+                Effect: Allow
+                Action:
+                  - bedrock-agentcore:StartCodeInterpreterSession
+                  - bedrock-agentcore:InvokeCodeInterpreter
+                  - bedrock-agentcore:GetCodeInterpreterSession
+                  - bedrock-agentcore:StopCodeInterpreterSession
+                Resource: "*"
+
+  AppInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref AppRole
+
+  AppInstance:
+    Type: AWS::EC2::Instance
+    DependsOn:
+      - AppLogGroup
+      - CaddyLogGroup
+      - VpcGatewayAttachment
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            DeleteOnTermination: true
+            Encrypted: true
+            VolumeSize: 20
+            VolumeType: gp3
+      IamInstanceProfile: !Ref AppInstanceProfile
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref AppInstanceType
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: required
+        InstanceMetadataTags: enabled
+      Monitoring: false
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: false
+          DeleteOnTermination: true
+          DeviceIndex: "0"
+          GroupSet:
+            - !Ref AppSecurityGroup
+          SubnetId: !Ref AppSubnet
+      PropagateTagsToVolumeOnCreation: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-app
+        - Key: atlas:environment
+          Value: production
+      UserData:
+        Fn::Base64: !Sub |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          dnf install -y docker jq
+          systemctl enable --now docker
+          mkdir -p /opt/atlas /etc/atlas
+          chmod 0755 /opt/atlas
+          chmod 0700 /etc/atlas
+
+          printf '%s\n' '${AWS::Region}' > /etc/atlas/region
+          printf '%s\n' '${RuntimeSecret}' > /etc/atlas/runtime-secret-arn
+
+          cat > /opt/atlas/Caddyfile <<'CADDY'
+          ${DomainName} {
+            encode zstd gzip
+
+            @workflow path /.well-known/workflow/*
+            respond @workflow 404
+
+            reverse_proxy 127.0.0.1:3000
+
+            header {
+              Strict-Transport-Security "max-age=31536000; includeSubDomains"
+              X-Content-Type-Options "nosniff"
+              X-Frame-Options "DENY"
+              Referrer-Policy "strict-origin-when-cross-origin"
+            }
+          }
+          CADDY
+          chmod 0644 /opt/atlas/Caddyfile
+
+          cat > /usr/local/bin/atlas-deploy <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          region=$(cat /etc/atlas/region)
+          runtime_secret=$(cat /etc/atlas/runtime-secret-arn)
+          image_ref=$(cat /etc/atlas/image)
+          registry_host=$(printf '%s' "$image_ref" | cut -d/ -f1)
+          runtime_tmp=$(mktemp /etc/atlas/runtime.XXXXXX)
+          trap 'rm -f "$runtime_tmp"' EXIT
+
+          aws secretsmanager get-secret-value \
+            --region "$region" \
+            --secret-id "$runtime_secret" \
+            --query SecretString \
+            --output text > "$runtime_tmp"
+          test -s "$runtime_tmp"
+          chmod 0600 "$runtime_tmp"
+          mv "$runtime_tmp" /etc/atlas/atlas.env
+
+          aws ecr get-login-password --region "$region" |
+            docker login --username AWS --password-stdin "$registry_host" >/dev/null
+          docker pull "$image_ref"
+
+          docker rm -f atlas-previous >/dev/null 2>&1 || true
+          if docker inspect atlas >/dev/null 2>&1; then
+            docker stop atlas >/dev/null
+            docker rename atlas atlas-previous
+          fi
+
+          if ! docker run -d \
+            --name atlas \
+            --network host \
+            --env-file /etc/atlas/atlas.env \
+            --env HOSTNAME=0.0.0.0 \
+            --restart unless-stopped \
+            --log-driver awslogs \
+            --log-opt awslogs-region="$region" \
+            --log-opt awslogs-group=${AppLogGroup} \
+            --log-opt awslogs-create-group=false \
+            "$image_ref" >/dev/null; then
+            if docker inspect atlas-previous >/dev/null 2>&1; then
+              docker rename atlas-previous atlas
+              docker start atlas >/dev/null
+            fi
+            exit 1
+          fi
+
+          healthy=false
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/api/health >/dev/null; then
+              healthy=true
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "$healthy" != true ]; then
+            docker rm -f atlas >/dev/null 2>&1 || true
+            if docker inspect atlas-previous >/dev/null 2>&1; then
+              docker rename atlas-previous atlas
+              docker start atlas >/dev/null
+            fi
+            exit 1
+          fi
+
+          docker rm -f atlas-previous >/dev/null 2>&1 || true
+
+          docker volume create atlas-caddy-data >/dev/null
+          docker volume create atlas-caddy-config >/dev/null
+          docker pull caddy:2.10.2-alpine >/dev/null
+          docker rm -f atlas-caddy >/dev/null 2>&1 || true
+          docker run -d \
+            --name atlas-caddy \
+            --network host \
+            --restart unless-stopped \
+            --volume /opt/atlas/Caddyfile:/etc/caddy/Caddyfile:ro \
+            --volume atlas-caddy-data:/data \
+            --volume atlas-caddy-config:/config \
+            --log-driver awslogs \
+            --log-opt awslogs-region="$region" \
+            --log-opt awslogs-group=${CaddyLogGroup} \
+            --log-opt awslogs-create-group=false \
+            caddy:2.10.2-alpine >/dev/null
+
+          docker image prune -f >/dev/null
+          SCRIPT
+          chmod 0755 /usr/local/bin/atlas-deploy
+
+          touch /opt/atlas/host-ready
+
+  AppElasticIp:
+    Type: AWS::EC2::EIP
+    DependsOn: VpcGatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-ip
+
+  AppElasticIpAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt AppElasticIp.AllocationId
+      InstanceId: !Ref AppInstance
+
+  PublicHealthCheck:
+    Type: AWS::Route53::HealthCheck
+    Properties:
+      HealthCheckConfig:
+        EnableSNI: true
+        FailureThreshold: 3
+        FullyQualifiedDomainName: !Ref DomainName
+        Port: 443
+        RequestInterval: 30
+        ResourcePath: /api/health
+        Type: HTTPS
+      HealthCheckTags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-public-health
+
+  AppStatusAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlertTopic
+      AlarmDescription: Atlas EC2 status check failed.
+      AlarmName: !Sub ${EnvironmentName}-ec2-status
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref AppInstance
+      EvaluationPeriods: 2
+      MetricName: StatusCheckFailed
+      Namespace: AWS/EC2
+      Period: 60
+      Statistic: Maximum
+      Threshold: 1
+      TreatMissingData: breaching
+
+  AppCpuAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlertTopic
+      AlarmDescription: Atlas application host CPU is high for fifteen minutes.
+      AlarmName: !Sub ${EnvironmentName}-ec2-cpu
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref AppInstance
+      EvaluationPeriods: 3
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Period: 300
+      Statistic: Average
+      Threshold: 80
+      TreatMissingData: missing
+
+  DatabaseCpuAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlertTopic
+      AlarmDescription: Atlas PostgreSQL CPU is high for fifteen minutes.
+      AlarmName: !Sub ${EnvironmentName}-rds-cpu
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref Database
+      EvaluationPeriods: 3
+      MetricName: CPUUtilization
+      Namespace: AWS/RDS
+      Period: 300
+      Statistic: Average
+      Threshold: 80
+      TreatMissingData: missing
+
+  DatabaseStorageAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlertTopic
+      AlarmDescription: Atlas PostgreSQL has less than five GiB free storage.
+      AlarmName: !Sub ${EnvironmentName}-rds-storage
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref Database
+      EvaluationPeriods: 2
+      MetricName: FreeStorageSpace
+      Namespace: AWS/RDS
+      Period: 300
+      Statistic: Minimum
+      Threshold: 5368709120
+      TreatMissingData: missing
+
+  DatabaseMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlertTopic
+      AlarmDescription: Atlas PostgreSQL has less than 256 MiB freeable memory.
+      AlarmName: !Sub ${EnvironmentName}-rds-memory
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref Database
+      EvaluationPeriods: 3
+      MetricName: FreeableMemory
+      Namespace: AWS/RDS
+      Period: 300
+      Statistic: Average
+      Threshold: 268435456
+      TreatMissingData: missing
+
+  PublicHealthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlertTopic
+      AlarmDescription: The public Atlas HTTPS health route is unavailable.
+      AlarmName: !Sub ${EnvironmentName}-public-health
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: HealthCheckId
+          Value: !Ref PublicHealthCheck
+      EvaluationPeriods: 2
+      MetricName: HealthCheckStatus
+      Namespace: AWS/Route53
+      Period: 60
+      Statistic: Minimum
+      Threshold: 1
+      TreatMissingData: breaching
+
+  MonthlyCostBudget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetLimit:
+          Amount: !Ref MonthlyBudgetUsd
+          Unit: USD
+        BudgetName: !Sub ${EnvironmentName}-monthly-gross-cost
+        BudgetType: COST
+        CostTypes:
+          IncludeCredit: false
+          IncludeDiscount: true
+          IncludeOtherSubscription: true
+          IncludeRecurring: true
+          IncludeRefund: false
+          IncludeSubscription: true
+          IncludeSupport: true
+          IncludeTax: true
+          IncludeUpfront: true
+          UseAmortized: false
+          UseBlended: false
+        TimeUnit: MONTHLY
+      NotificationsWithSubscribers:
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: ACTUAL
+            Threshold: 50
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - Address: !Ref AlertEmail
+              SubscriptionType: EMAIL
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: ACTUAL
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - Address: !Ref AlertEmail
+              SubscriptionType: EMAIL
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: ACTUAL
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - Address: !Ref AlertEmail
+              SubscriptionType: EMAIL
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: FORECASTED
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - Address: !Ref AlertEmail
+              SubscriptionType: EMAIL
+
+Outputs:
+  AppElasticIp:
+    Value: !Ref AppElasticIp
+  AppInstanceId:
+    Value: !Ref AppInstance
+  AppLogGroup:
+    Value: !Ref AppLogGroup
+  CaddyLogGroup:
+    Value: !Ref CaddyLogGroup
+  DatabaseEndpoint:
+    Value: !GetAtt Database.Endpoint.Address
+  DatabaseIdentifier:
+    Value: !Ref Database
+  DatabaseMasterSecretArn:
+    Value: !GetAtt Database.MasterUserSecret.SecretArn
+  DatabaseUserSecretArn:
+    Value: !Ref DatabaseUserSecret
+  DemoSmokeSecretArn:
+    Value: !Ref DemoSmokeSecret
+  ImageRepositoryUri:
+    Value: !GetAtt ImageRepository.RepositoryUri
+  MigrationBucket:
+    Value: !Ref MigrationBucket
+  RuntimeSecretArn:
+    Value: !Ref RuntimeSecret
+  AlertTopicArn:
+    Value: !Ref AlertTopic
+  PublicHealthCheckId:
+    Value: !Ref PublicHealthCheck
+  VpcId:
+    Value: !Ref Vpc

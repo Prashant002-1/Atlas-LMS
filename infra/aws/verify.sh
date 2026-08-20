@@ -127,7 +127,7 @@ command_id="$(
     --instance-ids "$instance_id" \
     --document-name AWS-RunShellScript \
     --comment "Verify Atlas host readiness" \
-    --parameters 'commands=["test -f /opt/atlas/host-ready","systemctl is-active docker","test -x /usr/local/bin/atlas-deploy","test -f /opt/atlas/Caddyfile"]' \
+    --parameters 'commands=["test -f /opt/atlas/host-ready","systemctl is-active docker","test -x /usr/local/bin/atlas-deploy","test -f /opt/atlas/Caddyfile","test -s /etc/atlas/rds-global-bundle.pem"]' \
     --query 'Command.CommandId' \
     --output text
 )"

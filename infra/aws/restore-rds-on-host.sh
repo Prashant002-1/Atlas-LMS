@@ -16,6 +16,14 @@ database_users_secret_arn="$6"
 work_dir="$(mktemp -d /var/tmp/atlas-rds-restore.XXXXXX)"
 trap 'rm -rf "$work_dir"' EXIT
 chmod 0700 "$work_dir"
+rds_ca_host=/etc/atlas/rds-global-bundle.pem
+rds_ca_container=/etc/ssl/certs/aws-rds-global-bundle.pem
+test -s "$rds_ca_host"
+rds_tls_args=(
+  --volume "$rds_ca_host:$rds_ca_container:ro"
+  --env PGSSLMODE=verify-full
+  --env "PGSSLROOTCERT=$rds_ca_container"
+)
 
 for file in atlas.dump atlas_workflow.dump SHA256SUMS; do
   aws s3 cp \
@@ -47,6 +55,7 @@ master_password="$(jq -er '.password' "$work_dir/master.json")"
 app_password="$(jq -er '.atlasAppPassword' "$work_dir/users.json")"
 workflow_password="$(jq -er '.atlasWorkflowPassword' "$work_dir/users.json")"
 
+[[ "$master_user" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || { echo "Database master username has an unsafe format." >&2; exit 1; }
 [[ "$app_password" =~ ^[A-Za-z0-9._~-]{32,}$ ]] || { echo "Application database password has an unsafe format." >&2; exit 1; }
 [[ "$workflow_password" =~ ^[A-Za-z0-9._~-]{32,}$ ]] || { echo "Workflow database password has an unsafe format." >&2; exit 1; }
 
@@ -76,14 +85,18 @@ END
 \$\$;
 ALTER ROLE atlas_app LOGIN PASSWORD '$app_password';
 ALTER ROLE atlas_workflow LOGIN PASSWORD '$workflow_password';
-ALTER DATABASE atlas OWNER TO atlas_app;
-SELECT 'CREATE DATABASE atlas_workflow OWNER atlas_workflow'
-WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'atlas_workflow')\gexec
-ALTER DATABASE atlas_workflow OWNER TO atlas_workflow;
+SELECT format('ALTER DATABASE %I OWNER TO %I', datname, '$master_user')
+FROM pg_database
+WHERE datname IN ('atlas', 'atlas_workflow')\gexec
+DROP DATABASE IF EXISTS atlas WITH (FORCE);
+CREATE DATABASE atlas OWNER atlas_app;
+DROP DATABASE IF EXISTS atlas_workflow WITH (FORCE);
+CREATE DATABASE atlas_workflow OWNER atlas_workflow;
 SQL
 chmod 0600 "$work_dir/bootstrap.sql"
 
 docker run --rm --network host \
+  "${rds_tls_args[@]}" \
   --volume "$work_dir:/work:ro" \
   --env PGPASSFILE=/work/master.pgpass \
   postgres:16-alpine \
@@ -91,6 +104,7 @@ docker run --rm --network host \
     --set ON_ERROR_STOP=1 --file /work/bootstrap.sql
 
 docker run --rm --network host \
+  "${rds_tls_args[@]}" \
   --volume "$work_dir:/work:ro" \
   --env PGPASSFILE=/work/master.pgpass \
   postgres:16-alpine \
@@ -103,6 +117,7 @@ docker run --rm --network host \
   sh -euc "pg_restore --list /work/atlas.dump | grep -v ' EXTENSION - vector ' | grep -v ' COMMENT - EXTENSION vector ' > /work/atlas.list"
 
 docker run --rm --network host \
+  "${rds_tls_args[@]}" \
   --volume "$work_dir:/work:ro" \
   --env PGPASSFILE=/work/app.pgpass \
   postgres:16-alpine \
@@ -110,6 +125,7 @@ docker run --rm --network host \
     --clean --if-exists --no-owner --no-acl --exit-on-error --use-list /work/atlas.list /work/atlas.dump
 
 docker run --rm --network host \
+  "${rds_tls_args[@]}" \
   --volume "$work_dir:/work:ro" \
   --env PGPASSFILE=/work/workflow.pgpass \
   postgres:16-alpine \
@@ -117,6 +133,7 @@ docker run --rm --network host \
     --clean --if-exists --no-owner --no-acl --exit-on-error /work/atlas_workflow.dump
 
 docker run --rm --network host \
+  "${rds_tls_args[@]}" \
   --volume "$work_dir:/work:ro" \
   --env PGPASSFILE=/work/app.pgpass \
   postgres:16-alpine \
@@ -125,6 +142,7 @@ docker run --rm --network host \
     --command "SELECT current_database() AS database, count(*) AS public_tables FROM pg_tables WHERE schemaname = 'public'"
 
 docker run --rm --network host \
+  "${rds_tls_args[@]}" \
   --volume "$work_dir:/work:ro" \
   --env PGPASSFILE=/work/workflow.pgpass \
   postgres:16-alpine \

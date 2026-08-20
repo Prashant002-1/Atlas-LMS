@@ -145,8 +145,8 @@ awk '
   !/^(DATABASE_URL|WORKFLOW_POSTGRES_URL|AUTH_URL|ATLAS_PUBLIC_APP_URL|AWS_REGION|AWS_DEFAULT_REGION|ATLAS_CODE_EXECUTION_ENABLED)=/
 ' "$work_dir/runtime.source.env" > "$work_dir/runtime.aws.env"
 cat >> "$work_dir/runtime.aws.env" <<EOF
-DATABASE_URL=postgres://atlas_app:$app_password@$database_endpoint:5432/atlas?sslmode=require
-WORKFLOW_POSTGRES_URL=postgres://atlas_workflow:$workflow_password@$database_endpoint:5432/atlas_workflow?sslmode=require
+DATABASE_URL=postgres://atlas_app:$app_password@$database_endpoint:5432/atlas?sslmode=verify-full&sslrootcert=/etc/ssl/certs/aws-rds-global-bundle.pem
+WORKFLOW_POSTGRES_URL=postgres://atlas_workflow:$workflow_password@$database_endpoint:5432/atlas_workflow?sslmode=verify-full&sslrootcert=/etc/ssl/certs/aws-rds-global-bundle.pem
 AUTH_URL=https://demo.atlas-lms.com
 ATLAS_PUBLIC_APP_URL=https://demo.atlas-lms.com
 AWS_REGION=$aws_region
@@ -221,7 +221,7 @@ jq . <<<"$restore_invocation"
 [[ "$(jq -r '.Status' <<<"$restore_invocation")" == "Success" ]] || { echo "RDS restore failed." >&2; exit 1; }
 
 repository_host="${release_image%%/*}"
-release_command="set -euo pipefail; runtime=\$(mktemp /etc/atlas/release.XXXXXX); trap 'rm -f \"\$runtime\"' EXIT; aws secretsmanager get-secret-value --region '$aws_region' --secret-id '$runtime_secret_arn' --query SecretString --output text > \"\$runtime\"; chmod 0600 \"\$runtime\"; aws ecr get-login-password --region '$aws_region' | docker login --username AWS --password-stdin '$repository_host' >/dev/null; docker pull '$release_image' >/dev/null; docker run --rm --network host --env-file \"\$runtime\" '$release_image' npm run db:upgrade -- --allow-remote; docker run --rm --network host --env-file \"\$runtime\" '$release_image' npm run db:check"
+release_command="set -euo pipefail; runtime=\$(mktemp /etc/atlas/release.XXXXXX); trap 'rm -f \"\$runtime\"' EXIT; test -s /etc/atlas/rds-global-bundle.pem; aws secretsmanager get-secret-value --region '$aws_region' --secret-id '$runtime_secret_arn' --query SecretString --output text > \"\$runtime\"; chmod 0600 \"\$runtime\"; aws ecr get-login-password --region '$aws_region' | docker login --username AWS --password-stdin '$repository_host' >/dev/null; docker pull '$release_image' >/dev/null; docker run --rm --network host --env-file \"\$runtime\" --volume /etc/atlas/rds-global-bundle.pem:/etc/ssl/certs/aws-rds-global-bundle.pem:ro '$release_image' npm run db:upgrade -- --allow-remote; docker run --rm --network host --env-file \"\$runtime\" --volume /etc/atlas/rds-global-bundle.pem:/etc/ssl/certs/aws-rds-global-bundle.pem:ro '$release_image' npm run db:check"
 release_parameters="$(jq -cn --arg command "$release_command" '{commands:[$command]}')"
 release_command_id="$(aws ssm send-command --profile "$aws_profile" --region "$aws_region" --instance-ids "$instance_id" --document-name AWS-RunShellScript --comment "Apply Atlas release migrations $migration_id" --parameters "$release_parameters" --query 'Command.CommandId' --output text)"
 aws ssm wait command-executed --profile "$aws_profile" --region "$aws_region" --command-id "$release_command_id" --instance-id "$instance_id" || true

@@ -48,11 +48,11 @@ Proof: [`app/api/atlas/planning/route.ts`](../../app/api/atlas/planning/route.ts
 4. Rebuild the current course context, active course agent configuration, professor memory, and ready chat-document context.
 5. Load fixed reviewed `.atlas` agent and guardrail files.
 6. Place current course data, course agent configuration, memory, bounded document content, and compacted history in a lower-authority reference message immediately before the current request.
-7. Run the 29-tool base registry, plus `search_web` when policy and server credentials admit it, with a 16-step ceiling.
+7. Run the 31-tool base registry, plus `search_web` when policy and server credentials admit it, with a 16-step ceiling.
 8. Persist the complete assistant response and tool parts.
 9. Compact only after the assistant turn completes.
 
-The active course agent configuration is fresh on every professor turn. `configure_agent` uses the version carried by that reference and rejects a stale write.
+The active course agent configuration and guidance index are fresh on every professor turn. Configuration and guidance tools use the current revision carried by that reference and reject stale drafts.
 
 Proof: [`lib/agent/professor-runtime.ts`](../../lib/agent/professor-runtime.ts), [`lib/agent/professor-context.ts`](../../lib/agent/professor-context.ts), and [`lib/agent/course-agent-config.ts`](../../lib/agent/course-agent-config.ts).
 

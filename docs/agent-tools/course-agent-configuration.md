@@ -1,110 +1,78 @@
-# Course agent configuration
+# Course agent configuration and guidance
 
-`configure_agent` is the only teacher-facing write path for shared course agent identity and teaching behavior.
+Atlas separates the course agent's cohesive teaching posture from addressable standing guidance. Both teacher-facing write paths create a proposal. Student behavior changes only when the professor applies that proposal.
 
-## When to use it
+## `configure_agent`
 
-Use this tool when the professor asks Atlas to change:
+Use `configure_agent` for the shared name, role, voice, teaching approach, Socratic default, direct-answer policy, challenge level, citation behavior, boundaries, escalation conditions, and student-facing disclosure.
 
-- agent name, role, or voice;
-- teaching approach;
-- Socratic default;
-- direct-answer policy;
-- challenge level;
-- citation behavior;
-- supported or avoided behavior;
-- escalation conditions;
-- a persistent study or AI-assignment rule;
-- the student-facing disclosure.
-
-## Request
+Request:
 
 ```ts
 {
   expectedVersion: number;
-  changeSummary: string; // 3 to 240 characters
-  studentDisclosure: string; // 20 to 600 characters
+  changeSummary: string;
+  studentDisclosure: string;
+  revisesProposalId?: string;
   configuration: {
-    identity: {
-      name: string; // 2 to 80 characters
-      role: string; // 3 to 160 characters
-      voice: string; // 3 to 400 characters
-    };
+    identity: { name: string; role: string; voice: string };
     teaching: {
-      approach: string; // 5 to 600 characters
+      approach: string;
       socraticByDefault: boolean;
       directAnswers: "never" | "after_attempt" | "when_asked";
       challengeLevel: "supportive" | "adaptive" | "rigorous";
       citationMode: "required" | "when_useful";
     };
     boundaries: {
-      supports: string[]; // at most 12
-      avoids: string[]; // at most 12
-      escalatesWhen: string[]; // at most 12
+      supports: string[];
+      avoids: string[];
+      escalatesWhen: string[];
     };
-    rules: Array<{
-      id: string; // stable kebab-case id
-      title: string;
-      instruction: string;
-      appliesTo: Array<"study" | "assignment">;
-      enabled: boolean;
-    }>; // at most 24
   };
 }
 ```
 
-The request is a complete replacement. The model must copy every current value the professor did not ask to change from the fresh `agent_configuration` section of the professor context pack. Rate limits are server-owned and are not part of this tool or any course-actor surface.
+The model copies every current value the professor did not ask to change. The tool validates the expected version and stores a `course_agent_configuration` proposal block. Apply performs the append-only `course_agent_configs` write under the existing advisory lock and verifies the source Atlas chat. Prior configuration rows are never updated or deleted.
 
-## Execution
+Success returns the proposal id, proposal revision, name, change summary, disclosure, voice, and approach. It does not claim the configuration is live.
 
-1. The Zod schema validates the complete configuration.
-2. A lexical check rejects instruction-control language that tries to replace privileged prompts, disable authorization, or bypass guardrails.
-3. A transaction takes an advisory lock for the organization and course.
-4. The source Atlas chat is verified against organization, course, instructor, command surface, and course anchor.
-5. The current highest version is compared with `expectedVersion`.
-6. A mismatch aborts the write and tells Atlas to read the current state.
-7. A successful write inserts one append-only `course_agent_configs` row at current version plus one.
+## `inspect_course_guidance`
 
-The tool never updates or deletes an existing configuration row.
+Use this bounded read before editing standing guidance. It accepts exact keys, namespace, text query, tags, disabled-state inclusion, and a limit. It returns the current revision, instruction, effect, selectors, structured value, and enabled state for each matching key.
 
-Proof: `writeCourseAgentConfig` in [`lib/agent/course-agent-config.ts`](../../lib/agent/course-agent-config.ts) and `courseAgentConfigurationTool` in [`lib/agent/course-agent-tool.ts`](../../lib/agent/course-agent-tool.ts).
+This tool supports authoring and recall. Student enforcement does not depend on the model calling it.
 
-## Return
+## `propose_course_guidance`
 
-Success:
+Use this tool for one atomic set of standing guidance changes. Each directive contains:
 
 ```ts
 {
-  ok: true;
-  action: "configure_agent";
-  summary: string;
-  record: {
-    id: string;
-    version: number;
-    name: string;
-    voice: string;
-    rules: number;
-    studentDisclosure: string;
-    changeSummary: string;
+  key: string; // stable namespaced key
+  expectedRevision: number;
+  title: string;
+  instruction: string;
+  effect: "guide" | "require" | "prohibit" | "escalate";
+  valueJson?: string;
+  valueSchema?: string;
+  selectors: {
+    audiences: string[];
+    surfaces: string[];
+    assignmentIds: string[];
+    tags: string[];
   };
+  enabled: boolean;
 }
 ```
 
-Failure:
+Keys and selector values are bounded open strings. The storage contract does not add a closed list of teaching or assessment categories. Applying appends one immutable `course_agent_directives` revision per key in the proposal transaction. A disabled revision is a tombstone.
 
-```ts
-{
-  ok: false;
-  error: string;
-}
-```
+## Revisions and in-chat decisions
+
+Passing `revisesProposalId` creates an explicit next proposal revision and marks the prior open proposal Superseded in the same transaction. The chat renders compact Apply, Keep editing, Dismiss, and Details controls. Review remains the cross-chat inbox and history.
 
 ## Runtime propagation
 
-The active row is the highest version for the course. Professor context includes it as lower-authority reference data. Student assessed sessions load it on every turn and compile it below fixed assessed-session rules and the assignment contract.
+The application loads the latest configuration version and latest directive revision for each key on every relevant turn. It selects directives by audience, surface, optional assignment id, and tags before generation, then compiles them below fixed application rules. Configuration and guidance cannot add tools, widen data scope, expose credentials, or weaken grading and transcript constraints. External-source access remains server-owned policy.
 
-The configuration may shape teaching behavior. It cannot add tools, widen organization or course scope, expose credentials, or weaken grading and transcript constraints. External-source access is server-owned policy and is excluded from this model-visible complete-replacement contract, its reference block, and all course-actor settings.
-
-The student session page shows the configured name, version, and student disclosure. It does not show raw prompts or hidden reasoning.
-
-Proof: [`lib/agent/professor-context.ts`](../../lib/agent/professor-context.ts), [`lib/agent/session-runtime.ts`](../../lib/agent/session-runtime.ts), [`lib/agent/session-context.ts`](../../lib/agent/session-context.ts), and [`app/student/session/[assignmentId]/page.tsx`](../../app/student/session/[assignmentId]/page.tsx).
+Proof: [`lib/agent/course-agent-tool.ts`](../../lib/agent/course-agent-tool.ts), [`lib/agent/course-agent-config.ts`](../../lib/agent/course-agent-config.ts), [`lib/agent/course-agent-directives.ts`](../../lib/agent/course-agent-directives.ts), [`lib/agent/apply.ts`](../../lib/agent/apply.ts), and [`components/planning/atlas-room.tsx`](../../components/planning/atlas-room.tsx).

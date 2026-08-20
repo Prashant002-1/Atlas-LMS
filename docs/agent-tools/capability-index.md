@@ -25,13 +25,15 @@ This index answers "can Atlas do X?" for the live professor and personal student
 | Recompute stored class results | Yes | `refresh_class_results` |
 | Apply or dismiss a pending draft | Yes | `apply_draft`, `dismiss_draft` |
 | Delete a supported course record | Yes | `delete_record` with exact current title confirmation |
-| Configure the shared course agent's name, voice, teaching behavior, boundaries, disclosure, and rules | Yes | `configure_agent`; append-only versioned write |
+| Configure the shared course agent's name, voice, teaching behavior, boundaries, and disclosure | Yes, through an in-chat draft | `configure_agent`, then Apply |
+| Add or revise standing course guidance | Yes, through an in-chat draft | `inspect_course_guidance`, `propose_course_guidance`, then Apply |
 | Draft a new AI assignment | Yes, through Review | `draft_ai_assignment`, then `apply_draft` |
 | Draft a rubric revision | Yes, through Review | `draft_rubric`, then `apply_draft` |
 | Draft coordinated course records | Yes, through Review | `draft_course`, then `apply_draft` |
 | Load a reviewed workflow | Yes | `load_skill` for one of six allowlisted skill ids |
 | Attach documents to a professor conversation | Yes | authenticated UI intake reuses Materials storage; the user turn persists scoped attachment ids and only ready readable content reaches model context |
 | Attach private documents to a student's personal Atlas | Yes | the file and processing record belong to the student with no course id; exact organization, student, and personal-session checks protect viewing and context |
+| Execute Python, JavaScript, or TypeScript during an assessed AI assignment | Yes, when the school's AWS capacity is available | `execute_code` uses one disposable AgentCore workspace per assessed chat and preserves only bounded terminal output and declared files |
 
 Teacher Materials can also upload or link course material through its separate scoped server actions. That intake is not a model-visible tool.
 
@@ -42,7 +44,7 @@ Teacher Materials can also upload or link course material through its separate s
 | Choose another organization or course inside a tool call | No | scope is closed over from the authenticated route |
 | Read another organization or unselected course | No | executors repeat organization and current-course predicates |
 | Use arbitrary SQL | No | no SQL-string input or SQL execution tool exists |
-| Use shell, filesystem mutation, browser control, arbitrary HTTP, email, or general code execution | No | `search_web` accepts only a query and calls one fixed server-owned search endpoint |
+| Use an arbitrary host shell, browser control, arbitrary HTTP, email, or code execution outside an assessed assignment sandbox | No | `execute_code` is isolated, typed, bounded, and scoped only to assessed sessions; `search_web` accepts only a query and calls one fixed server-owned search endpoint |
 | Expose platform credentials, model settings, or endpoints | No | model resolution happens before tools and platform details are absent from course-actor settings |
 | Expand authority through course agent configuration | No | configuration changes teaching behavior only; fixed tools and scopes remain authoritative |
 | Replace fixed assignment or grading rules through course configuration | No | assessed-session rules and assignment contracts compile before course configuration |
@@ -63,6 +65,7 @@ Teacher Materials can also upload or link course material through its separate s
 - The active course agent configuration is loaded into each professor turn and each student assessed-session turn.
 - Course configuration is append-only, attributed, versioned, and guarded by expected-version concurrency.
 - Student session course material includes only ready, course-visible content. Instructor context may describe processing and instructor-only materials.
+- Assessed-session code runs outside Atlas in AgentCore. The sandbox receives no Atlas credentials or implicit file access, and only declared output files return to durable Atlas storage.
 - `set_grade` recalculates the selected student's current standing from graded, non-missing rows with positive points possible.
 - `grade_session` stores a draft report. Only `finalize_session_grade` writes that report score into the classic gradebook.
 

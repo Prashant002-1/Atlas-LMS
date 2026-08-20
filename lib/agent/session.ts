@@ -7,6 +7,7 @@ import { agentProfiles } from "@/lib/agent/profiles";
 import { estimateTokens } from "@/lib/agent/context";
 import { compactionInputThresholdTokens, compactionSummaryTokenBudget } from "@/lib/ai/provider";
 import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
+import { atlasChatTitleFromIntent, displayAtlasChatTitle, firstUserTextFromParts, isDefaultAtlasChatTitle } from "@/lib/agent/chat-title";
 
 /**
  * Sessions, persistent, anchored, compacted.
@@ -59,12 +60,6 @@ function commandSessionFilter(scope: CommandSessionScope) {
     sql`${agentSessions.anchorId} IS NULL`,
     isNull(agentSessions.archivedAt)
   );
-}
-
-function titleFromIntent(intent: string): string {
-  const compact = intent.replace(/\s+/g, " ").trim();
-  if (!compact) return "Atlas chat";
-  return compact.length > 64 ? `${compact.slice(0, 61)}...` : compact;
 }
 
 function sessionTitle(session: Pick<AgentSession, "title">): string {
@@ -141,9 +136,9 @@ export async function resumeLatestCommandSession(scope: CommandSessionScope): Pr
 }
 
 export async function titleCommandSessionFromIntent(session: AgentSession, intent: string): Promise<void> {
-  if (session.title?.trim() && session.title !== "Course command session" && session.title !== "Atlas chat") return;
+  if (!isDefaultAtlasChatTitle(session.title)) return;
   if (session.totalTurns > 0) return;
-  const title = titleFromIntent(intent);
+  const title = atlasChatTitleFromIntent(intent);
   await db.update(agentSessions).set({ title, updatedAt: new Date() }).where(eq(agentSessions.id, session.id));
   session.title = title;
 }
@@ -163,15 +158,21 @@ export async function listCommandSessions(scope: CommandSessionScope): Promise<C
 
   const ids = rows.map((row) => row.id);
   const userTurns = new Map<string, number>();
+  const firstUserText = new Map<string, string>();
   const drafts = new Map<string, { draftCount: number; decidedCount: number }>();
 
   if (ids.length > 0) {
     const turnRows = await db
-      .select({ sessionId: agentTurns.sessionId })
+      .select({ sessionId: agentTurns.sessionId, parts: agentTurns.parts })
       .from(agentTurns)
-      .where(and(eq(agentTurns.orgId, scope.orgId), eq(agentTurns.role, "user"), inArray(agentTurns.sessionId, ids)));
+      .where(and(eq(agentTurns.orgId, scope.orgId), eq(agentTurns.role, "user"), inArray(agentTurns.sessionId, ids)))
+      .orderBy(asc(agentTurns.turnIndex));
     for (const row of turnRows) {
       userTurns.set(row.sessionId, (userTurns.get(row.sessionId) ?? 0) + 1);
+      if (!firstUserText.has(row.sessionId)) {
+        const text = firstUserTextFromParts(row.parts);
+        if (text) firstUserText.set(row.sessionId, text);
+      }
     }
 
     const proposalRows = await db
@@ -191,7 +192,7 @@ export async function listCommandSessions(scope: CommandSessionScope): Promise<C
     const counts = drafts.get(row.id) ?? { draftCount: 0, decidedCount: 0 };
     return {
       id: row.id,
-      title: sessionTitle(row),
+      title: displayAtlasChatTitle(firstUserText.get(row.id), sessionTitle(row)),
       userTurnCount: userTurns.get(row.id) ?? 0,
       draftCount: counts.draftCount,
       decidedCount: counts.decidedCount,

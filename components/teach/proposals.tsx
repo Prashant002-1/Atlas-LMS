@@ -243,10 +243,57 @@ function ProposalBlockPreview({ block, hideHeading }: { block: Block; hideHeadin
       </RecordSection>
     );
   }
+  if (block.type === "course_agent_configuration") {
+    return (
+      <RecordSection
+        label="Course agent"
+        title={block.configuration.identity.name}
+        meta={`Version ${block.expectedVersion + 1}`}
+        hideHeading={hideHeading}
+      >
+        <p className="mt-4 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{block.changeSummary}</p>
+        <dl className="mt-5 grid gap-4 text-[0.78125rem] sm:grid-cols-2">
+          <Fact label="Voice" value={block.configuration.identity.voice} />
+          <Fact label="Approach" value={block.configuration.teaching.approach} />
+          <Fact label="Direct answers" value={titleCase(block.configuration.teaching.directAnswers.replaceAll("_", " "))} />
+          <Fact label="Challenge" value={titleCase(block.configuration.teaching.challengeLevel)} />
+        </dl>
+        <p className="mt-5 text-[0.75rem] leading-5 text-[var(--color-muted)]">
+          <span className="font-medium text-[var(--color-ink)]">Student disclosure:</span> {block.studentDisclosure}
+        </p>
+      </RecordSection>
+    );
+  }
+  if (block.type === "course_guidance") {
+    const scope = [
+      ...block.selectors.audiences.map((value) => `Audience: ${value}`),
+      ...block.selectors.surfaces.map((value) => `Surface: ${value}`),
+      ...block.selectors.tags.map((value) => `Tag: ${value}`),
+    ];
+    return (
+      <RecordSection
+        label="Course guidance"
+        title={block.title}
+        meta={`Revision ${block.expectedRevision + 1}`}
+        hideHeading={hideHeading}
+      >
+        <p className="mt-4 text-[0.8125rem] leading-6 text-[var(--color-muted)]">{block.instruction}</p>
+        <dl className="mt-5 grid gap-4 text-[0.78125rem] sm:grid-cols-2">
+          <Fact label="Key" value={block.key} />
+          <Fact label="Effect" value={titleCase(block.effect)} />
+          <Fact label="State" value={block.enabled ? "Active" : "Off"} />
+          <Fact label="Scope" value={scope.length > 0 ? scope.join(" / ") : "All course agent contexts"} />
+        </dl>
+      </RecordSection>
+    );
+  }
   if (block.type === "explanation") {
     return <RecordSection label="Explanation" title={block.headline} hideHeading={hideHeading}><Markdown className="mt-4 text-[0.84375rem] leading-7">{block.bodyMd}</Markdown></RecordSection>;
   }
-  return <RecordSection label="Answer" title="Draft response" hideHeading={hideHeading}><Markdown className="mt-4 text-[0.84375rem] leading-7">{block.bodyMd}</Markdown></RecordSection>;
+  if (block.type === "answer") {
+    return <RecordSection label="Answer" title="Draft response" hideHeading={hideHeading}><Markdown className="mt-4 text-[0.84375rem] leading-7">{block.bodyMd}</Markdown></RecordSection>;
+  }
+  return null;
 }
 
 function RecordSection({
@@ -283,6 +330,7 @@ function RecordSection({
 function blockTitle(block: Block): string {
   if (block.type === "module" || block.type === "assignment") return block.name;
   if (block.type === "objective") return `${block.code}: ${block.description}`;
+  if (block.type === "course_agent_configuration") return block.configuration.identity.name;
   if (block.type === "explanation") return block.headline;
   if (block.type === "answer") return "Draft response";
   return block.title;
@@ -313,6 +361,7 @@ function Fact({ label, value, row = false }: { label: string; value: string; row
 }
 
 function decisionLabel(status: InstructorProposal["status"]): string {
+  if (status === "superseded") return "Superseded";
   if (status === "rejected") return "Dismissed";
   if (status === "applied") return "Applied";
   if (status === "approved") return "Approved";

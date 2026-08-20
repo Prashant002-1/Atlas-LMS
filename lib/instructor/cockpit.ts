@@ -546,7 +546,7 @@ export type PlanningThreadRef = CommandSessionSummary;
 
 export type PlanningDraftRef = {
   proposalId: string;
-  status: "pending" | "approved" | "rejected" | "applied";
+  status: "pending" | "approved" | "rejected" | "applied" | "superseded";
   kind: string;
   summary: string;
   createdAt: string;
@@ -600,7 +600,7 @@ export async function loadPlanningRoom(
       return { problem: { title: "Chat unavailable", detail: "This planning chat is not yours in the course in view." } };
     }
     const turnRows = await loadFullSessionTurns(orgId, thread.id);
-    active = { id: thread.id, title: thread.title ?? "Atlas chat", messages: turnsToUIMessages(turnRows), activeRunId: publicWorkflowRunId(thread.activeRunId) };
+    active = { id: thread.id, title: threads.find((candidate) => candidate.id === thread.id)?.title ?? thread.title ?? "Atlas chat", messages: turnsToUIMessages(turnRows), activeRunId: publicWorkflowRunId(thread.activeRunId) };
   } else if (!requestedThreadId && threads.length > 0) {
     const newest = threads[0];
     const turnRows = await loadFullSessionTurns(orgId, newest.id);

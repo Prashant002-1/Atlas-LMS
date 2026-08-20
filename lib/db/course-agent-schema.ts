@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   check,
+  boolean,
   customType,
   foreignKey,
   index,
@@ -16,6 +17,7 @@ import {
 import {
   agentSessions,
   assignments,
+  changeProposals,
   courses,
   files,
   organizations,
@@ -82,6 +84,53 @@ export const courseAgentConfigs = pgTable(
   (table) => [
     uniqueIndex("course_agent_configs_course_version_idx").on(table.courseId, table.version),
     index("course_agent_configs_active_idx").on(table.orgId, table.courseId, table.version),
+  ]
+);
+
+/**
+ * One immutable revision of one stable course-guidance key. The latest row per
+ * key is effective; disabled rows are tombstones. Selectors remain structured
+ * JSON so later Atlas surfaces can bind guidance without adding category enums.
+ */
+export const courseAgentDirectives = pgTable(
+  "course_agent_directives",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    namespace: text("namespace").notNull(),
+    revision: integer("revision").notNull(),
+    title: text("title").notNull(),
+    instruction: text("instruction").notNull(),
+    effect: text("effect").notNull(),
+    value: jsonb("value"),
+    valueSchema: text("value_schema"),
+    selectors: jsonb("selectors").notNull().default({}),
+    enabled: boolean("enabled").notNull().default(true),
+    supersedesId: uuid("supersedes_id"),
+    sourceProposalId: uuid("source_proposal_id").references(() => changeProposals.id, { onDelete: "set null" }),
+    sourceSessionId: uuid("source_session_id").references(() => agentSessions.id, { onDelete: "set null" }),
+    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    check("course_agent_directives_revision_check", sql`${table.revision} > 0`),
+    check("course_agent_directives_namespace_check", sql`${table.namespace} ~ '^[a-z][a-z0-9_-]*$'`),
+    check("course_agent_directives_key_check", sql`${table.key} ~ '^[a-z][a-z0-9_-]*([.][a-z0-9][a-z0-9_-]*)+$'`),
+    check("course_agent_directives_effect_check", sql`${table.effect} IN ('guide', 'require', 'prohibit', 'escalate')`),
+    foreignKey({
+      columns: [table.supersedesId],
+      foreignColumns: [table.id],
+      name: "course_agent_directives_supersedes_fk",
+    }).onDelete("set null"),
+    uniqueIndex("course_agent_directives_course_key_revision_idx").on(table.courseId, table.key, table.revision),
+    index("course_agent_directives_active_idx").on(table.orgId, table.courseId, table.key, table.revision),
+    index("course_agent_directives_namespace_idx").on(table.orgId, table.courseId, table.namespace, table.revision),
   ]
 );
 
@@ -213,6 +262,7 @@ export const documentAttachments = pgTable(
 );
 
 export type CourseAgentConfigRow = typeof courseAgentConfigs.$inferSelect;
+export type CourseAgentDirectiveRow = typeof courseAgentDirectives.$inferSelect;
 export type CourseMaterialRecord = typeof courseMaterialRecords.$inferSelect;
 export type DocumentAttachment = typeof documentAttachments.$inferSelect;
 export type DocumentOriginal = typeof documentOriginals.$inferSelect;

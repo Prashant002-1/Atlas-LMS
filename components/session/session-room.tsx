@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -21,12 +21,14 @@ import { submitSession } from "@/lib/student/actions";
 import type { StudentGradingProgress, StudentJourneyReportView } from "@/lib/student/session-view";
 import {
   Conversation,
+  ConversationActivity,
   ConversationContent,
   ConversationEmptyState,
 } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageTimestamp } from "@/components/ai-elements/message";
-import { Response } from "@/components/ai-elements/response";
+import { AtlasMessageParts, type AtlasLoosePart } from "@/components/agent/message-parts";
 import {
+  messageActivityLabel,
   messageHasVisibleOutput,
   PromptCheckpointRail,
   promptAnchorId,
@@ -151,7 +153,7 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
     else window.localStorage.removeItem(runStorageKey);
   }, [props.activeRunId, runStorageKey]);
 
-  const { messages, sendMessage, resumeStream, status, error } = useChat<AssignmentChatMessage>({
+  const { messages, sendMessage, resumeStream, addToolApprovalResponse, status, error } = useChat<AssignmentChatMessage>({
     id: `session-${props.assignmentId}${props.chatIdSuffix ?? ""}`,
     messages: props.initialMessages,
     transport,
@@ -278,7 +280,9 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
   }, [props.initialSideNotes, inlineNoteIds]);
 
   const lastMessage = messages[messages.length - 1];
-  const awaitingReply = busy && !messageHasVisibleOutput(lastMessage);
+  const activityLabel = busy
+    ? messageActivityLabel(lastMessage, sessionToolLabel) ?? (!messageHasVisibleOutput(lastMessage) ? `${props.agentName} is responding` : null)
+    : null;
   const promptCheckpoints = useMemo(
     () => messages
       .filter((message) => message.role === "user")
@@ -345,9 +349,9 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
 
         <div className="flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 flex-col">
-            <div className="relative flex min-h-0 flex-1">
-              <Conversation className="h-full bg-[var(--color-bg)]">
-                <ConversationContent className="mx-auto w-full max-w-[48rem] flex-1 gap-7 px-4 pb-10 pt-8 md:px-8">
+            <div className="relative flex min-h-0 flex-1 flex-col">
+              <Conversation className="min-h-0 flex-1 bg-[var(--color-bg)]">
+                <ConversationContent className="mx-auto w-full max-w-[48rem] flex-1 gap-7 px-4 pb-2 pt-8 md:px-8">
                 {messages.length === 0 ? (
                   <ConversationEmptyState className="min-h-[25rem] items-start justify-center px-0 text-left">
                     <div className="w-full max-w-[40rem] space-y-6">
@@ -369,14 +373,24 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                   </ConversationEmptyState>
                 ) : (
                   messages.map((message, index) => (
-                    <div key={message.id} className="flex flex-col gap-3">
+                    <div
+                      key={message.id}
+                      className={cn(
+                        "flex flex-col gap-3",
+                        busy && index === messages.length - 1 && message.role === "assistant" && !messageHasVisibleOutput(message) && "hidden"
+                      )}
+                    >
                       <Message
                         id={message.role === "user" ? promptAnchorId(message.id) : undefined}
                         className={message.role === "user" ? "scroll-mt-24" : undefined}
                         from={message.role === "user" ? "user" : "assistant"}
                       >
                         <MessageContent>
-                          <MessageParts message={message} streaming={busy && index === messages.length - 1 && message.role === "assistant"} />
+                          <MessageParts
+                            message={message}
+                            streaming={busy && index === messages.length - 1 && message.role === "assistant"}
+                            onToolApproval={({ id, approved }) => void addToolApprovalResponse({ id, approved })}
+                          />
                         </MessageContent>
                         {/* No clock on an answer still being written. */}
                         <MessageTimestamp
@@ -388,9 +402,11 @@ function SessionRoomInner(props: SessionRoomProps & { onStartFresh?: () => void;
                     </div>
                   ))
                 )}
-                  {awaitingReply ? <ThinkingIndicator label={`${props.agentName} is responding`} /> : null}
                 </ConversationContent>
               </Conversation>
+              <ConversationActivity className="mx-auto w-full max-w-[48rem] px-4 md:px-8">
+                {activityLabel ? <ThinkingIndicator label={activityLabel} /> : null}
+              </ConversationActivity>
               {promptCheckpoints.length > 0 ? <PromptCheckpointRail checkpoints={promptCheckpoints} /> : null}
             </div>
 
@@ -513,27 +529,21 @@ function GradingStatusLine({ grading }: { grading: StudentGradingProgress }) {
   );
 }
 
-function MessageParts({ message, streaming }: { message: UIMessage; streaming: boolean }) {
-  const parts = message.parts ?? [];
-  const rendered: ReactNode[] = [];
+function MessageParts({ message, streaming, onToolApproval }: { message: UIMessage; streaming: boolean; onToolApproval: (approval: { id: string; approved: boolean }) => void }) {
+  const renderDataPart = (part: AtlasLoosePart) => {
+    if (part.type !== "data-side-note") return undefined;
+    const notes = sideNotesFromParts([part]);
+    return notes.length > 0 ? <>{notes.map((note) => <SideNoteCardView key={note.id} note={note} />)}</> : null;
+  };
+  const renderToolResult = (part: AtlasLoosePart) => {
+    if (!isArtifactToolPartType(part.type) || part.state !== "output-available") return undefined;
+    return <p className="flex items-center gap-1.5 text-[0.75rem] font-medium text-[var(--color-accent-strong)]"><CheckCircle2 size={13} aria-hidden />Submission draft updated</p>;
+  };
+  return <AtlasMessageParts message={message} streaming={streaming} renderDataPart={renderDataPart} renderToolResult={renderToolResult} onToolApproval={onToolApproval} />;
+}
 
-  parts.forEach((part, index) => {
-    const type = String(part.type ?? "");
-    if (type === "text" && "text" in part && typeof part.text === "string") {
-      rendered.push(<Response key={index} streaming={streaming && index === parts.length - 1}>{part.text}</Response>);
-      return;
-    }
-    if (isArtifactToolPartType(type)) {
-      rendered.push(<p key={index} className="flex items-center gap-1.5 text-[0.75rem] font-medium text-[var(--color-accent-strong)]"><CheckCircle2 size={13} aria-hidden />Submission draft updated</p>);
-      return;
-    }
-    if (type === "data-side-note") {
-      const notes = sideNotesFromParts([part]);
-      for (const note of notes) rendered.push(<SideNoteCardView key={`${index}-${note.id}`} note={note} />);
-    }
-  });
-
-  return <>{rendered}</>;
+function sessionToolLabel(part: AtlasLoosePart) {
+  return isArtifactToolPartType(part.type) ? "Updating submission draft" : "Working";
 }
 
 function turnIndexOf(messageId: string): number {

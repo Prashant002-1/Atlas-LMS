@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { rubricCriteriaSchema } from "@/lib/agent/session-parts";
+import { courseAgentCoreInputSchema, courseAgentDirectiveProposalSchema } from "@/lib/agent/course-agent-contracts";
 
 /**
  * The block registry, Atlas's generative-UI contract.
@@ -129,6 +130,20 @@ export const aiAssignmentBlockSchema = z.object({
   criteria: rubricCriteriaSchema,
 });
 
+/* ── course-agent configuration and guidance blocks ─────────── */
+
+export const courseAgentConfigurationBlockSchema = z.object({
+  type: z.literal("course_agent_configuration"),
+  expectedVersion: z.number().int().min(0),
+  changeSummary: z.string().trim().min(3).max(240),
+  studentDisclosure: z.string().trim().min(20).max(600),
+  configuration: courseAgentCoreInputSchema,
+});
+
+export const courseGuidanceBlockSchema = courseAgentDirectiveProposalSchema.extend({
+  type: z.literal("course_guidance"),
+});
+
 /* ── student-facing response blocks (cue surface) ────────────── */
 
 export const explanationBlockSchema = z.object({
@@ -177,6 +192,8 @@ export const proposalBlockSchemas = {
   rubric: rubricBlockSchema,
   session_rubric: sessionRubricBlockSchema,
   ai_assignment: aiAssignmentBlockSchema,
+  course_agent_configuration: courseAgentConfigurationBlockSchema,
+  course_guidance: courseGuidanceBlockSchema,
 } as const;
 
 export const blockSchema = z.discriminatedUnion("type", [
@@ -189,6 +206,8 @@ export const blockSchema = z.discriminatedUnion("type", [
   rubricBlockSchema,
   sessionRubricBlockSchema,
   aiAssignmentBlockSchema,
+  courseAgentConfigurationBlockSchema,
+  courseGuidanceBlockSchema,
   explanationBlockSchema,
   answerBlockSchema,
 ]);
@@ -204,6 +223,8 @@ export type PracticeSetBlock = z.infer<typeof practiceSetBlockSchema>;
 export type RubricBlock = z.infer<typeof rubricBlockSchema>;
 export type SessionRubricBlock = z.infer<typeof sessionRubricBlockSchema>;
 export type AiAssignmentBlock = z.infer<typeof aiAssignmentBlockSchema>;
+export type CourseAgentConfigurationBlock = z.infer<typeof courseAgentConfigurationBlockSchema>;
+export type CourseGuidanceBlock = z.infer<typeof courseGuidanceBlockSchema>;
 export type ExplanationBlock = z.infer<typeof explanationBlockSchema>;
 export type AnswerBlock = z.infer<typeof answerBlockSchema>;
 

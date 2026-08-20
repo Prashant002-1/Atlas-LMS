@@ -39,7 +39,9 @@ export default async function TeachSyllabusPage() {
 
   const { course, instructors, weeks, work, publishedPoints, gradeBands, classPolicies, agent } = syllabus;
   const configuration = agent.configuration;
-  const activeRules = configuration.rules.filter((rule) => rule.enabled);
+  const activeGuidance = agent.directives.filter(
+    (directive) => directive.enabled && (directive.selectors.audiences.length === 0 || directive.selectors.audiences.includes("student"))
+  );
 
   return (
     <>
@@ -235,12 +237,12 @@ export default async function TeachSyllabusPage() {
           <BandFact label="Citations" value={configuration.teaching.citationMode === "required" ? "Required" : "When useful"} />
           <BandFact label="Challenge" value={titleCase(configuration.teaching.challengeLevel)} />
         </dl>
-        {activeRules.length > 0 ? (
+        {activeGuidance.length > 0 ? (
           <ul className="mt-5 divide-y divide-[var(--color-border)]">
-            {activeRules.map((rule) => (
-              <li key={rule.id} className="grid gap-x-6 gap-y-1 px-3 py-3 sm:grid-cols-[minmax(0,0.32fr)_minmax(0,1fr)] text-[0.78125rem]">
-                <span className="font-medium text-[var(--color-ink)]">{rule.title}</span>
-                <span className="leading-5 text-[var(--color-muted)]">{rule.instruction}</span>
+            {activeGuidance.map((directive) => (
+              <li key={directive.key} className="grid gap-x-6 gap-y-1 px-3 py-3 sm:grid-cols-[minmax(0,0.32fr)_minmax(0,1fr)] text-[0.78125rem]">
+                <span className="font-medium text-[var(--color-ink)]">{directive.title}</span>
+                <span className="leading-5 text-[var(--color-muted)]">{directive.instruction}</span>
               </li>
             ))}
           </ul>

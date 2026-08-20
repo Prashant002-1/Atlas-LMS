@@ -19,7 +19,7 @@ import {
   type ProfessorScope,
 } from "@/lib/agent/professor-context";
 import { professorOperatorTools } from "@/lib/agent/lms-operator";
-import { courseAgentConfigurationTool } from "@/lib/agent/course-agent-tool";
+import { courseAgentConfigurationTool, courseGuidanceTools } from "@/lib/agent/course-agent-tool";
 import { personalMemoryTool } from "@/lib/agent/memories";
 import type { AtlasMessageMetadata } from "@/lib/agent/ui-message";
 import { loadReadyThreadDocumentContext } from "@/lib/course/documents";
@@ -44,6 +44,7 @@ export type ProfessorDocumentAttachment = {
 export type ProfessorDataParts = {
   "planning-ref": { sessionId: string };
   "document-attachments": { attachments: ProfessorDocumentAttachment[] };
+  "proposal-context": { proposalId: string; summary: string };
   /** Where a mid-run redirection actually reached the model. */
   "steering-applied": { notes: string[]; stepNumber: number };
   "run-context": {
@@ -56,13 +57,6 @@ export type ProfessorDataParts = {
 };
 
 export type ProfessorUIMessage = UIMessage<AtlasMessageMetadata, ProfessorDataParts>;
-
-function stripDataParts(messages: UIMessage[]): UIMessage[] {
-  return messages.map((message) => ({
-    ...message,
-    parts: message.parts.filter((part) => !String(part.type).startsWith("data-")),
-  }));
-}
 
 export async function runProfessorTurn(args: {
   session: AgentSession;
@@ -77,6 +71,7 @@ export async function runProfessorTurn(args: {
    * one.
    */
   runId?: string;
+  focusedProposalId?: string;
 }): Promise<Response> {
   const { session, scope } = args;
 
@@ -107,8 +102,22 @@ export async function runProfessorTurn(args: {
   const instructions = buildProfessorInstructions({ harness });
 
   const storedTurns = await loadActiveTurns(session);
-  const history = stripDataParts(turnsToUIMessages(storedTurns));
-  const conversationMessages = await convertToModelMessages(history);
+  const rawHistory = turnsToUIMessages(storedTurns) as ProfessorUIMessage[];
+  const history = rawHistory.map((message, index) => index === rawHistory.length - 1
+    ? message
+    : { ...message, parts: message.parts.filter((part) => part.type !== "data-proposal-context") });
+  const conversationMessages = await convertToModelMessages(history, {
+    convertDataPart: (part) => {
+      if (part.type !== "data-proposal-context") return undefined;
+      const data = part.data as ProfessorDataParts["proposal-context"];
+      if (!data || data.proposalId !== args.focusedProposalId) return undefined;
+      const summary = data.summary.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+      return {
+        type: "text" as const,
+        text: `\n<focused_proposal id="${data.proposalId}">${summary}</focused_proposal>\nRevise this open draft. Pass its id as revisesProposalId to the matching draft tool.`,
+      };
+    },
+  });
   const currentMessage = conversationMessages.at(-1);
   const priorMessages = conversationMessages.slice(0, -1);
   const referenceMessage = {
@@ -121,6 +130,7 @@ export async function runProfessorTurn(args: {
   const tools = {
     ...professorOperatorTools({ scope, sessionId: session.id, model: args.model }),
     configure_agent: courseAgentConfigurationTool({ scope, sessionId: session.id }),
+    ...courseGuidanceTools({ scope, sessionId: session.id }),
     remember: personalMemoryTool({
       scope: { orgId: scope.orgId, userId: scope.instructorId, profile: "professor" },
       sessionId: session.id,
@@ -180,6 +190,7 @@ export async function runProfessorTurn(args: {
       const createdAt = new Date().toISOString();
       writer.merge(toUIMessageStream({
         stream: result.stream,
+        sendReasoning: false,
         messageMetadata: () => ({ createdAt }),
       }));
     },

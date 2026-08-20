@@ -4,7 +4,7 @@ import { start } from "workflow/api";
 import { auth } from "@/lib/auth";
 import { isInstructorLike } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { agentSessions, agentTurns } from "@/lib/db/schema";
+import { agentSessions, agentTurns, changeProposals } from "@/lib/db/schema";
 import { guardProfessorInput } from "@/lib/agent/atlas-harness";
 import { resolvePlatformModel } from "@/lib/ai/platform-model";
 import { persistSessionTurn } from "@/lib/agent/session-store";
@@ -59,6 +59,17 @@ function documentFileIdsFromIncoming(message: IncomingMessage | null | undefined
   );
   if (fileIds.some((fileId) => typeof fileId !== "string" || !UUID_PATTERN.test(fileId))) return null;
   return [...new Set(fileIds as string[])];
+}
+
+function focusedProposalIdFromIncoming(message: IncomingMessage | null | undefined): string | null | undefined {
+  if (!Array.isArray(message?.parts)) return undefined;
+  const parts = message.parts.filter((part) => part?.type === "data-proposal-context");
+  if (parts.length === 0) return undefined;
+  if (parts.length > 1) return null;
+  const data = parts[0].data;
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const proposalId = (data as { proposalId?: unknown }).proposalId;
+  return typeof proposalId === "string" && UUID_PATTERN.test(proposalId) ? proposalId : null;
 }
 
 async function withinTurnBudget(args: { orgId: string; userId: string; courseId: string }): Promise<boolean> {
@@ -118,6 +129,8 @@ export async function POST(request: Request) {
   if (!userText) return NextResponse.json({ error: "Ask Atlas something." }, { status: 400 });
   const documentFileIds = documentFileIdsFromIncoming(body.message);
   if (!documentFileIds) return NextResponse.json({ error: "One or more document attachments are malformed." }, { status: 400 });
+  const focusedProposalId = focusedProposalIdFromIncoming(body.message);
+  if (focusedProposalId === null) return NextResponse.json({ error: "That draft context is malformed." }, { status: 400 });
   if (userText.length > MAX_TURN_CHARACTERS) {
     return NextResponse.json({ error: `Keep a turn under ${MAX_TURN_CHARACTERS} characters.` }, { status: 400 });
   }
@@ -158,6 +171,24 @@ export async function POST(request: Request) {
       : await loadCommandSession(threadScope, requestedId);
   if (!thread) {
     return NextResponse.json({ error: "That chat is not yours in this course." }, { status: 404 });
+  }
+  const [focusedProposal] = focusedProposalId
+    ? await db
+        .select({ id: changeProposals.id, summary: changeProposals.summary })
+        .from(changeProposals)
+        .where(
+          and(
+            eq(changeProposals.id, focusedProposalId),
+            eq(changeProposals.orgId, user.orgId),
+            eq(changeProposals.courseId, scope.course.id),
+            eq(changeProposals.sessionId, thread.id),
+            eq(changeProposals.status, "pending")
+          )
+        )
+        .limit(1)
+    : [];
+  if (focusedProposalId && !focusedProposal) {
+    return NextResponse.json({ error: "That draft is no longer open in this chat." }, { status: 409 });
   }
   if (thread.totalTurns >= MAX_CHAT_TURNS) {
     return NextResponse.json({ error: "This chat is full. Start a new one." }, { status: 409 });
@@ -202,6 +233,12 @@ export async function POST(request: Request) {
             },
           }]
         : []),
+      ...(focusedProposal
+        ? [{
+            type: "data-proposal-context" as const,
+            data: { proposalId: focusedProposal.id, summary: focusedProposal.summary.slice(0, 300) },
+          }]
+        : []),
     ]);
 
     run = await start(professorTurnWorkflow, [{
@@ -211,6 +248,7 @@ export async function POST(request: Request) {
       sessionId: thread.id,
       userText,
       runClaimId,
+      focusedProposalId: focusedProposal?.id,
     }]);
     if (!(await activateAgentRun(thread.id, runClaimId, run.runId))) {
       await run.cancel();

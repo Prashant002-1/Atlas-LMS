@@ -1,8 +1,18 @@
 "use client";
 
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { CheckCircleIcon, ChevronDownIcon, CircleIcon, ClockIcon, WrenchIcon, XCircleIcon } from "lucide-react";
+import {
+  CheckCircleIcon,
+  ChevronDownIcon,
+  CircleIcon,
+  ClockIcon,
+  ShieldCheckIcon,
+  ShieldXIcon,
+  WrenchIcon,
+  XCircleIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Markdown } from "@/components/agent/markdown";
 
 /**
  * Tool (AI SDK Elements). A collapsible surface for a single agent tool call:
@@ -10,7 +20,14 @@ import { cn } from "@/lib/utils";
  * Faithful to the registry API (Tool / ToolHeader / ToolContent / ToolInput /
  * ToolOutput) on Atlas tokens, with a self-contained collapsible.
  */
-export type ToolState = "input-streaming" | "input-available" | "output-available" | "output-error";
+export type ToolState =
+  | "input-streaming"
+  | "input-available"
+  | "approval-requested"
+  | "approval-responded"
+  | "output-available"
+  | "output-error"
+  | "output-denied";
 
 const ToolContext = createContext<{ open: boolean; setOpen: (v: boolean) => void } | null>(null);
 
@@ -26,15 +43,21 @@ export function Tool({ className, defaultOpen = false, children }: { className?:
 }
 
 const statusLabels: Record<ToolState, string> = {
-  "input-streaming": "Pending",
+  "input-streaming": "Preparing",
   "input-available": "Running",
-  "output-available": "Completed",
+  "approval-requested": "Approval needed",
+  "approval-responded": "Decision sent",
+  "output-available": "Done",
   "output-error": "Error",
+  "output-denied": "Denied",
 };
 
 function StatusIcon({ state }: { state: ToolState }) {
   if (state === "output-available") return <CheckCircleIcon className="size-3.5 text-[var(--color-good)]" />;
   if (state === "output-error") return <XCircleIcon className="size-3.5 text-[var(--color-danger)]" />;
+  if (state === "output-denied") return <ShieldXIcon className="size-3.5 text-[var(--color-warn)]" />;
+  if (state === "approval-requested") return <ClockIcon className="size-3.5 text-[var(--color-warn)]" />;
+  if (state === "approval-responded") return <ShieldCheckIcon className="size-3.5 text-[var(--color-accent-strong)]" />;
   if (state === "input-available") return <ClockIcon className="size-3.5 animate-pulse text-[var(--color-accent-strong)]" />;
   return <CircleIcon className="size-3.5 text-[var(--color-faint)]" />;
 }
@@ -56,7 +79,8 @@ export function ToolHeader({
     <button
       type="button"
       onClick={() => ctx?.setOpen(!ctx.open)}
-      className={cn("flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition hover:bg-[var(--color-surface-muted)]", className)}
+      aria-expanded={ctx?.open ?? false}
+      className={cn("flex min-h-10 w-full items-center justify-between gap-3 px-3 py-2 text-left transition hover:bg-[var(--color-surface-muted)]", className)}
     >
       <span className="flex min-w-0 items-center gap-2">
         <WrenchIcon className="size-3.5 shrink-0 text-[var(--color-faint)]" aria-hidden />
@@ -78,18 +102,17 @@ export function ToolContent({ className, children }: { className?: string; child
 }
 
 export function ToolInput({ input, className }: { input: unknown; className?: string }) {
+  const json = displayJson(input);
   return (
     <div className={cn("space-y-1.5", className)}>
       <h4 className="atlas-mono text-[0.625rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">Parameters</h4>
-      <pre className="overflow-x-auto rounded-panel border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-2.5 text-[0.71875rem] leading-5 text-[var(--color-muted)]">
-        <code>{JSON.stringify(input, null, 2)}</code>
-      </pre>
+      <Markdown className="text-[0.75rem]">{fencedCode(json, "json")}</Markdown>
     </div>
   );
 }
 
 export function ToolOutput({ output, errorText, className }: { output?: ReactNode; errorText?: string; className?: string }) {
-  if (!output && !errorText) return null;
+  if (output == null && !errorText) return null;
   return (
     <div className={cn("space-y-1.5", className)}>
       <h4 className="atlas-mono text-[0.625rem] uppercase tracking-[0.08em] text-[var(--color-faint)]">{errorText ? "Error" : "Result"}</h4>
@@ -105,4 +128,31 @@ export function ToolOutput({ output, errorText, className }: { output?: ReactNod
       </div>
     </div>
   );
+}
+
+const HIDDEN_KEY = /(^|[-_])(api[-_]?key|authorization|cookie|password|secret|token)($|[-_])/i;
+
+export function displayJson(value: unknown): string {
+  const seen = new WeakSet<object>();
+  const json = JSON.stringify(
+    value,
+    (key, entry) => {
+      if (key === "providerMetadata" || HIDDEN_KEY.test(key)) return "[hidden]";
+      if (typeof entry === "bigint") return entry.toString();
+      if (entry && typeof entry === "object") {
+        if (seen.has(entry)) return "[circular]";
+        seen.add(entry);
+      }
+      return entry;
+    },
+    2
+  );
+  const text = json ?? String(value ?? "");
+  return text.length > 24_000 ? `${text.slice(0, 24_000)}\n… output truncated` : text;
+}
+
+export function fencedCode(value: string, language: string): string {
+  const longestRun = Math.max(2, ...Array.from(value.matchAll(/`+/g), (match) => match[0].length));
+  const fence = "`".repeat(longestRun + 1);
+  return `${fence}${language}\n${value}\n${fence}`;
 }

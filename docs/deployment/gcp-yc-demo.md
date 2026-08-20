@@ -832,11 +832,12 @@ durable application and Workflow state.
 
 - Document ingestion is not configured. The bounded worker is tracked in
   [issue #49](https://github.com/Prashant002-1/Atlas-LMS/issues/49).
-- General code execution is not implemented. The isolated platform capability
-  is tracked in [issue #48](https://github.com/Prashant002-1/Atlas-LMS/issues/48).
-- Code execution must be a separate disposable sandbox service. Never mount
-  the Docker socket into Atlas and never pass Atlas/provider/database secrets
-  into user code.
+- Assessed-session code execution is implemented through disposable AWS
+  AgentCore sessions, but the current AWS account still needs nonzero applied
+  concurrent-session quota `L-CAF6F552` before the live smoke test can pass.
+- Code execution remains outside this VM. Never mount the Docker socket into
+  Atlas and never pass Atlas/provider/database secrets into user code. See
+  [`aws-agentcore-code-execution.md`](aws-agentcore-code-execution.md).
 - The VM and Cloud SQL instance are zonal. There is no multi-zone failover.
 - The uptime alert has no external notification channel.
 - The default Compute Engine service account retains a broad Editor grant from

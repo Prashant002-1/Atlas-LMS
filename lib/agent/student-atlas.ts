@@ -22,6 +22,7 @@ import {
 import { compileOrgAgentPolicy, type ResolvedOrgAgentPolicy } from "@/lib/agent/org-policy";
 import { listActiveMemories, renderMemoriesForReference } from "@/lib/agent/memories";
 import { ATLAS_CHAT_STYLE_RULE } from "@/lib/agent/response-style";
+import { atlasChatTitleFromIntent, displayAtlasChatTitle, firstUserTextFromParts, isDefaultAtlasChatTitle } from "@/lib/agent/chat-title";
 
 /**
  * The student profile's session store and deterministic context snapshot
@@ -88,10 +89,9 @@ export async function resumeLatestStudentAtlasSession(scope: StudentAtlasScope):
 }
 
 export async function titleStudentAtlasSessionFromIntent(session: AgentSession, intent: string): Promise<void> {
-  if (session.title?.trim() && session.title !== "Atlas thread" && session.title !== DEFAULT_CHAT_TITLE) return;
+  if (!isDefaultAtlasChatTitle(session.title)) return;
   if (session.totalTurns > 0) return;
-  const compact = intent.replace(/\s+/g, " ").trim();
-  const title = !compact ? DEFAULT_CHAT_TITLE : compact.length > 64 ? `${compact.slice(0, 61)}...` : compact;
+  const title = atlasChatTitleFromIntent(intent, DEFAULT_CHAT_TITLE);
   await db.update(agentSessions).set({ title, updatedAt: new Date() }).where(eq(agentSessions.id, session.id));
   session.title = title;
 }
@@ -117,19 +117,25 @@ export async function listStudentAtlasThreads(scope: StudentAtlasScope): Promise
 
   const ids = rows.map((row) => row.id);
   const userTurns = new Map<string, number>();
+  const firstUserText = new Map<string, string>();
   if (ids.length > 0) {
     const turnRows = await db
-      .select({ sessionId: agentTurns.sessionId })
+      .select({ sessionId: agentTurns.sessionId, parts: agentTurns.parts })
       .from(agentTurns)
-      .where(and(eq(agentTurns.orgId, scope.orgId), eq(agentTurns.role, "user"), inArray(agentTurns.sessionId, ids)));
+      .where(and(eq(agentTurns.orgId, scope.orgId), eq(agentTurns.role, "user"), inArray(agentTurns.sessionId, ids)))
+      .orderBy(asc(agentTurns.turnIndex));
     for (const row of turnRows) {
       userTurns.set(row.sessionId, (userTurns.get(row.sessionId) ?? 0) + 1);
+      if (!firstUserText.has(row.sessionId)) {
+        const text = firstUserTextFromParts(row.parts);
+        if (text) firstUserText.set(row.sessionId, text);
+      }
     }
   }
 
   return rows.map((row) => ({
     id: row.id,
-    title: row.title?.trim() || DEFAULT_CHAT_TITLE,
+    title: displayAtlasChatTitle(firstUserText.get(row.id), row.title?.trim() || DEFAULT_CHAT_TITLE),
     userTurnCount: userTurns.get(row.id) ?? 0,
     updatedAt: row.updatedAt.toISOString(),
   }));
@@ -408,7 +414,7 @@ export async function buildStudentAtlasPack(scope: StudentAtlasScope): Promise<S
 
 /** Compact study-scoped course rules for the instruction ladder. */
 function compileCourseRules(course: EnrolledCourseRef, config: ResolvedCourseAgentConfig): string {
-  return [`${course.code} (${config.configuration.identity.name}):`, compileCourseAgentConfiguration(config.configuration, "study")]
+  return [`${course.code} (${config.configuration.identity.name}):`, compileCourseAgentConfiguration(config.configuration, "study", config.directives)]
     .join("\n")
     .split("\n")
     .map((line, index) => (index === 0 ? line : `  ${line}`))

@@ -19,6 +19,7 @@ import {
   loadActiveCourseAgentConfig,
   type ResolvedCourseAgentConfig,
 } from "@/lib/agent/course-agent-config";
+import { selectCourseAgentDirectives } from "@/lib/agent/course-agent-directives";
 import { loadStudentTopicRecords } from "@/lib/agent/side-notes";
 import { agentProfiles } from "@/lib/agent/profiles";
 import { listArchivedStudentChats, type ArchivedAtlasChat } from "@/lib/agent/chat-archive";
@@ -110,7 +111,7 @@ export async function loadStudentAtlasRoom(
     const turnRows = await loadFullSessionTurns(scope.orgId, thread.id);
     active = {
       id: thread.id,
-      title: thread.title ?? "Atlas chat",
+      title: threads.find((candidate) => candidate.id === thread.id)?.title ?? thread.title ?? "Atlas chat",
       messages: turnsToUIMessages(turnRows),
       activeRunId: publicWorkflowRunId(thread.activeRunId),
     };
@@ -120,7 +121,7 @@ export async function loadStudentAtlasRoom(
       const turnRows = await loadFullSessionTurns(scope.orgId, newest.id);
       active = {
         id: newest.id,
-        title: newest.title ?? "Atlas chat",
+        title: threads.find((candidate) => candidate.id === newest.id)?.title ?? newest.title ?? "Atlas chat",
         messages: turnsToUIMessages(turnRows),
         activeRunId: publicWorkflowRunId(newest.activeRunId),
       };
@@ -314,9 +315,8 @@ function courseRuleFacts(
     directAnswers: configuration.teaching.directAnswers,
     citations: configuration.teaching.citationMode,
     disclosure: config.studentDisclosure,
-    studyRules: configuration.rules
-      .filter((rule) => rule.enabled && rule.appliesTo.includes("study"))
-      .map((rule) => ({ title: rule.title, instruction: rule.instruction })),
+    studyRules: selectCourseAgentDirectives(config.directives, { audience: "student", surface: "study" })
+      .map((directive) => ({ title: directive.title, instruction: directive.instruction })),
   };
 }
 

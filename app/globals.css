@@ -1,4 +1,9 @@
 @import "tailwindcss";
+@source "../node_modules/streamdown/dist/*.js";
+@source "../node_modules/@streamdown/code/dist/*.js";
+@source "../node_modules/@streamdown/math/dist/*.js";
+@source "../node_modules/@streamdown/mermaid/dist/*.js";
+@source "../node_modules/@streamdown/cjk/dist/*.js";
 
 /*
  * Motion vocabulary: one easing curve, short durations. Overriding the
@@ -302,6 +307,7 @@ select {
   line-height: 1.65;
   color: var(--color-ink);
   overflow-wrap: anywhere;
+  min-width: 0;
 }
 .atlas-prose > :first-child { margin-top: 0; }
 .atlas-prose > :last-child { margin-bottom: 0; }
@@ -346,7 +352,7 @@ select {
   border-radius: 4px;
   padding: 0.08em 0.36em;
 }
-.atlas-prose pre {
+.atlas-prose pre:not([data-atlas-terminal]) {
   margin: 0.7em 0;
   padding: 0.8em 0.95em;
   background: var(--color-surface-muted);
@@ -369,19 +375,139 @@ select {
 }
 .atlas-prose hr { margin: 1.1em 0; border: 0; border-top: 1px solid var(--color-border); }
 .atlas-prose table {
-  width: auto;
-  margin: 0.7em 0;
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
   border-collapse: collapse;
   font-size: 0.8125rem;
+  overflow-wrap: normal;
 }
 .atlas-prose th,
 .atlas-prose td {
   border: 1px solid var(--color-border);
-  padding: 0.4em 0.65em;
+  min-width: 7.5rem;
+  max-width: 28rem;
+  padding: 0.55rem 0.75rem;
   text-align: left;
+  vertical-align: top;
+  word-break: normal;
 }
-.atlas-prose th { background: var(--color-surface-muted); font-weight: 600; }
+.atlas-prose th {
+  min-width: max-content;
+  background: var(--color-surface-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.atlas-prose td { overflow-wrap: anywhere; }
 .atlas-prose img { max-width: 100%; border-radius: 6px; }
+
+/* Streamdown supplies behavior; these rules keep its controls on Atlas tokens. */
+.atlas-prose [data-streamdown="table-wrapper"] {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin: 0.85rem 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+.atlas-prose [data-streamdown="table-wrapper"] > div:has(> table) {
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+.atlas-prose [data-streamdown="table-wrapper"] button,
+.atlas-prose [data-streamdown="code-block"] button,
+.atlas-prose [data-streamdown="mermaid-block"] button {
+  color: var(--color-muted);
+}
+.atlas-prose [data-streamdown="table-wrapper"] button:hover,
+.atlas-prose [data-streamdown="code-block"] button:hover,
+.atlas-prose [data-streamdown="mermaid-block"] button:hover {
+  color: var(--color-ink);
+}
+.atlas-prose [data-streamdown="code-block"],
+.atlas-prose [data-streamdown="mermaid-block"] {
+  width: 100%;
+  max-width: 100%;
+  margin: 0.85rem 0;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  padding: 0;
+}
+.atlas-prose [data-streamdown="code-block-header"],
+.atlas-prose [data-streamdown="mermaid-block"] > div:first-child {
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-faint);
+  background: var(--color-surface-muted);
+}
+.atlas-prose [data-streamdown="code-block-actions"],
+.atlas-prose [data-streamdown="mermaid-block-actions"] {
+  right: 0.45rem;
+  border-color: var(--color-border);
+  background: color-mix(in oklch, var(--color-surface-muted) 92%, transparent);
+}
+.atlas-prose [data-streamdown="code-block-body"] {
+  max-height: 34rem;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  background: oklch(0.155 0.004 205);
+  padding: 0.85rem 0;
+}
+[data-theme="light"] .atlas-prose [data-streamdown="code-block-body"] {
+  background: oklch(0.97 0.003 205);
+}
+.atlas-prose [data-streamdown="code-block-body"] pre {
+  min-width: max-content;
+  margin: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0.9rem;
+}
+.atlas-prose [data-streamdown="code-block-body"] code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 0.75rem;
+  line-height: 1.65;
+}
+:root:not([data-theme="light"]) .atlas-prose [data-streamdown="code-block-body"] span {
+  color: var(--shiki-dark, var(--sdm-c, inherit));
+  background-color: var(--shiki-dark-bg, var(--sdm-tbg, transparent));
+}
+.atlas-prose [data-streamdown="inline-code"] {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  color: var(--color-ink);
+}
+.atlas-prose [data-streamdown="mermaid-block"] > div:last-child {
+  border: 0;
+  border-radius: 0;
+  background: var(--color-surface);
+}
+.atlas-prose .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.35rem 0;
+}
+
+@keyframes atlas-thread-title-pan {
+  0%, 10% { transform: translateX(0); }
+  82%, 100% { transform: translateX(calc(-1 * var(--atlas-title-travel))); }
+}
+.group\/thread:hover .atlas-thread-title[data-overflow="true"],
+.group\/thread:focus-within .atlas-thread-title[data-overflow="true"] {
+  animation: atlas-thread-title-pan var(--atlas-title-duration) var(--ease-atlas-in-out) 250ms both;
+}
 
 /* Live-status shimmer for streaming markers (shadcn chat). Static under reduced motion. */
 @keyframes atlas-shimmer {

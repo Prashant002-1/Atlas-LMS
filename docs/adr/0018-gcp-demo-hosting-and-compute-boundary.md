@@ -73,10 +73,10 @@ deployment must not replace root, `www`, or Google Workspace records.
 
 ### 6. Keep code execution outside Atlas
 
-General code execution will be a separate service with:
+General code execution is now a separate AWS AgentCore service with:
 
 - disposable sandbox instances;
-- its own service account and network policy;
+- AWS-managed isolation and sandbox network policy;
 - strict CPU, memory, time, filesystem, and output limits;
 - no provider, database, authentication, or host credentials;
 - an explicit job protocol between Atlas and the sandbox;
@@ -84,8 +84,8 @@ General code execution will be a separate service with:
 - audit logs and per-actor quotas.
 
 Atlas must never mount the Docker socket or execute user code inside the web or
-Workflow process. The future implementation is tracked in
-[issue #48](https://github.com/Prashant002-1/Atlas-LMS/issues/48).
+Workflow process. The implementation and operational boundary are recorded in
+[ADR-0020](0020-agentcore-code-execution.md).
 
 ## Alternatives considered
 
@@ -149,4 +149,3 @@ in the [Google Cloud YC demo runbook](../deployment/gcp-yc-demo.md).
 The implementation entered `main` through
 [PR #50](https://github.com/Prashant002-1/Atlas-LMS/pull/50) at merge commit
 [`bd5b052`](https://github.com/Prashant002-1/Atlas-LMS/commit/bd5b0527ba7ecef03d2755794d180d5a16df38e8).
-

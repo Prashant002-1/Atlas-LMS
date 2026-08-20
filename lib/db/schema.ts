@@ -22,6 +22,7 @@ import {
   jsonb,
   primaryKey,
   check,
+  foreignKey,
   uniqueIndex,
   index,
   vector,
@@ -76,6 +77,7 @@ export const proposalStatusEnum = pgEnum("proposal_status", [
   "approved",
   "rejected",
   "applied",
+  "superseded",
 ]);
 export const agentSurfaceEnum = pgEnum("agent_surface", ["command", "cue", "personal"]);
 export const agentTurnRoleEnum = pgEnum("agent_turn_role", ["user", "assistant", "tool"]);
@@ -757,8 +759,8 @@ export const agentTurns = pgTable(
 /**
  * Proposal blocks, the generative-UI contract, persisted. The agent emits typed
  * blocks (validated against the registry in lib/agent/blocks.ts); each block is a
- * row the professor can apply or dismiss independently. Reopening a proposal
- * re-renders blocks from these rows, no re-generation.
+ * row in one atomic proposal decision. Reopening a proposal re-renders blocks
+ * from these rows, no re-generation.
  */
 export const proposalBlocks = pgTable(
   "proposal_blocks",
@@ -797,12 +799,22 @@ export const changeProposals = pgTable(
     status: proposalStatusEnum("status").notNull().default("pending"),
     summary: text("summary").notNull(),
     diff: jsonb("diff").notNull(), // structured description of what would change
+    revision: integer("revision").notNull().default(1),
+    supersedesProposalId: uuid("supersedes_proposal_id"),
     // The agent session whose run produced this proposal (provenance).
     sessionId: uuid("session_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
   },
-  (t) => [index("proposals_course_idx").on(t.courseId, t.status)]
+  (t) => [
+    foreignKey({
+      columns: [t.supersedesProposalId],
+      foreignColumns: [t.id],
+      name: "change_proposals_supersedes_fk",
+    }).onDelete("set null"),
+    index("proposals_course_idx").on(t.courseId, t.status),
+    uniqueIndex("change_proposals_supersedes_idx").on(t.supersedesProposalId),
+  ]
 );
 
 /* ────────────────── 5. v0 session primitives ────────────────── */

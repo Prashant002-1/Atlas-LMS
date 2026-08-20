@@ -21,7 +21,7 @@ Proof: [`lib/agent/lms-operator.ts`](../../lib/agent/lms-operator.ts), [`lib/age
 | model resolution | server environment configuration only | none |
 | create or load professor chat | `agent_sessions` | may insert `agent_sessions`; may update title |
 | persist turns | `agent_sessions` | inserts `agent_turns`; updates counters and timestamps |
-| build professor context | course academic tables, `files`, `course_material_records`, `course_agent_configs`, AI assignment contracts, rubrics, drafts | none |
+| build professor context | course academic tables, `files`, `course_material_records`, `course_agent_configs`, `course_agent_directives`, AI assignment contracts, rubrics, drafts | none |
 | compaction | active `agent_turns`, `agent_sessions` | updates session summary and cursor |
 
 Platform credentials are never returned to model-visible tools or teacher Settings.
@@ -35,7 +35,9 @@ Platform credentials are never returned to model-visible tools or teacher Settin
 | `search_course` | selected course content tables and active roster | none |
 | 20 direct action tools | action-specific scoped rows | one typed action across content, grades, sessions, drafts, or deletion |
 | `load_skill` | reviewed `.atlas` files | none |
-| `configure_agent` | `agent_sessions`, current `course_agent_configs` version | inserts one `course_agent_configs` row |
+| `configure_agent` | current `course_agent_configs` version | inserts `change_proposals`, `proposal_blocks` |
+| `inspect_course_guidance` | latest `course_agent_directives` revisions | none |
+| `propose_course_guidance` | latest directive revisions | inserts `change_proposals`, `proposal_blocks` |
 | `draft_ai_assignment` | assignment and pending-draft rows | inserts `change_proposals`, `proposal_blocks` |
 | `draft_rubric` | assignment, session contract, rubric, and pending-draft rows | inserts `change_proposals`, `proposal_blocks` |
 | `draft_course` | validated in-memory draft | inserts `change_proposals`, `proposal_blocks` |
@@ -44,15 +46,16 @@ The exact 20 direct action tools are documented in [Write tools](write-tools.md)
 
 ## Course agent configuration
 
-`configure_agent` writes append-only policy state:
+Course agent write tools create proposals. Applying them writes append-only policy state:
 
 | Step | Reads | Writes |
 | --- | --- | --- |
-| source verification | `agent_sessions` | none |
-| concurrency check | latest `course_agent_configs.version` | transaction advisory lock only |
-| successful change | none after validation | one new `course_agent_configs` row |
+| draft configuration | latest `course_agent_configs.version` | one proposal and typed configuration block |
+| draft guidance | latest revision for each directive key | one proposal and one typed block per key |
+| apply configuration | `agent_sessions`, latest configuration version | one new `course_agent_configs` row |
+| apply guidance | latest directive revision per key | one new `course_agent_directives` row per block |
 
-It never updates or deletes a prior version. The stored configuration cannot grant database authority.
+It never updates or deletes a prior configuration or directive revision. The stored policy cannot grant database authority.
 
 Proof: [`lib/agent/course-agent-tool.ts`](../../lib/agent/course-agent-tool.ts) and [`lib/agent/course-agent-config.ts`](../../lib/agent/course-agent-config.ts).
 

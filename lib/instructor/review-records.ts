@@ -24,6 +24,8 @@ export type ReviewRecordKind =
   | "rubric"
   | "objective"
   | "course"
+  | "course_agent"
+  | "course_guidance"
   | "response";
 
 const BLOCK_KIND: Record<Block["type"], ReviewRecordKind> = {
@@ -36,6 +38,8 @@ const BLOCK_KIND: Record<Block["type"], ReviewRecordKind> = {
   rubric: "rubric",
   session_rubric: "rubric",
   objective: "objective",
+  course_agent_configuration: "course_agent",
+  course_guidance: "course_guidance",
   explanation: "response",
   answer: "response",
 };
@@ -50,6 +54,8 @@ const KIND_LABEL: Record<ReviewRecordKind, string> = {
   rubric: "Rubric",
   objective: "Learning objective",
   course: "Course change",
+  course_agent: "Course agent",
+  course_guidance: "Course guidance",
   response: "Response",
 };
 
@@ -67,6 +73,8 @@ const KIND_PLURAL: Record<ReviewRecordKind, string> = {
   rubric: "Rubrics",
   objective: "Learning objectives",
   course: "Course changes",
+  course_agent: "Course agent changes",
+  course_guidance: "Course guidance changes",
   response: "Responses",
 };
 
@@ -140,7 +148,9 @@ export function recordDestination(args: {
   if (kind === "page" || kind === "practice_set") {
     return recordId ? { label: recordKindLabel(kind), href: `/teach/records/${recordId}` } : null;
   }
-  if (kind === "objective") return { label: "Course setup", href: "/teach/course" };
+  if (kind === "objective" || kind === "course_agent" || kind === "course_guidance") {
+    return { label: "Course setup", href: "/teach/course" };
+  }
   if (kind === "course") return { label: "Course setup", href: "/teach/course" };
   return null;
 }

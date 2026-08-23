@@ -9,17 +9,15 @@ dumps, and smoke-test passwords must never enter Git or terminal output.
 
 As of 2026-08-23, production data, application hosting, DNS, and TLS are live on
 the `atlas-prod` CloudFormation stack in AWS account `118645514521`, region
-`us-east-1`. The GCP Atlas application is stopped and must remain stopped. The
-old GCP VM is `TERMINATED` and the Cloud SQL instance is `STOPPED` with
-`activationPolicy=NEVER`. The project, disks, backup, and database source are
-retained only for the post-cutover soak and must not be deleted without separate
-approval and the retirement gate below.
+`us-east-1`. The dedicated GCP project `atlas-yc2026fall` has lifecycle state
+`DELETE_REQUESTED`; do not undelete it. The final inventory and database dumps
+are retained in the encrypted AWS migration archive.
 
 | Item | Current reference |
 | --- | --- |
 | CloudFormation stack | `atlas-prod`, `CREATE_COMPLETE` then verified `UPDATE_COMPLETE` |
 | VPC | `vpc-09a77bcb73b015cd9`, `10.40.0.0/16` |
-| Application host | `i-05f98d8543f98a03f`, `t4g.medium`, Amazon Linux 2023 arm64 |
+| Application host | `i-05f98d8543f98a03f`, `t4g.small`, Amazon Linux 2023 arm64 |
 | AWS static address | `32.198.196.196` |
 | RDS | `atlas-prod-postgres`, PostgreSQL 16.14, `db.t4g.small` |
 | ECR | `118645514521.dkr.ecr.us-east-1.amazonaws.com/atlas-prod/atlas` |
@@ -31,7 +29,8 @@ approval and the retirement gate below.
 | Release image | `atlas-prod/atlas:f7a8a7c72224-release` |
 | Final Cloud SQL backup | `1787510387141` |
 | Final migration prefix | `migrations/20260823T183944Z/` |
-| Retained GCP source | VM `TERMINATED`; Cloud SQL `STOPPED`, activation policy `NEVER` |
+| Retired GCP source | Project `atlas-yc2026fall`, `DELETE_REQUESTED` on 2026-08-23 |
+| Pre-deletion RDS snapshot | `atlas-prod-pre-gcp-delete-20260823t192725z`, encrypted and available |
 | SNS infrastructure-alert recipient | `shahp002@outlook.com` |
 | Budget-alert recipient | `aws-admin@atlas-lms.com` |
 | AgentCore state | disabled by incident switch until [#54](https://github.com/Prashant002-1/Atlas-LMS/issues/54) is verified live |
@@ -55,17 +54,19 @@ The production application was deployed from the immutable digest recorded
 above. On 2026-08-23, authoritative DNS and the public resolvers at 1.1.1.1 and
 8.8.8.8 resolved `demo.atlas-lms.com` to `32.198.196.196`. Let's Encrypt issued
 the production certificate, public `/api/health` returned `ok=true` and
-`db=up`, every Route 53 checker returned HTTP 200 from the AWS address, and all
-six CloudWatch alarms reached `OK`.
+`db=up`, and every Route 53 checker returned HTTP 200 from the AWS address. The
+continuous Route 53 check was removed after cutover because Atlas expects no
+traffic; public health remains a deployment gate.
 
 The post-cutover product smoke passed every signed-out, instructor, student,
 document, and authentication check. The durable workflow smoke completed as
 run `wrun_01M0R0P58C6ERYK5SJQ91CH5TN` with a non-empty response stream. The
 one-time YC passwords and SPC aliases were revoked by the cleanup trap after
 the smoke run. The RDS instance has seven-day retention, deletion protection,
-and point-in-time recovery current through 2026-08-23 19:10 UTC. A new
-post-cutover automated snapshot still needs to appear after the next
-`06:21-06:51` UTC backup window before GCP retirement is eligible.
+and point-in-time recovery current through 2026-08-23 19:10 UTC. Before GCP
+deletion, the retirement gate also created encrypted manual RDS snapshot
+`atlas-prod-pre-gcp-delete-20260823t192725z` and uploaded
+`gcp-final-inventory.tar.gz` to the migration prefix.
 
 ## Architecture and security boundary
 
@@ -136,7 +137,7 @@ infra/aws/verify.sh
 The strict gate checks CloudFormation, EC2 state and encryption, IMDSv2, SSM,
 private encrypted RDS and backup retention, absence of SSH ingress, the exact
 database security-group source, immutable scanned ECR, S3 encryption and
-versioning, six CloudWatch alarms, the SNS email confirmation, the gross-cost
+versioning, five CloudWatch alarms, the SNS email confirmation, the gross-cost
 budget, and host bootstrap files.
 
 CloudFormation drift detection reports one known EC2 difference:
@@ -277,8 +278,8 @@ Then perform the full release proof from the merged source:
    agent session history survived the restore;
 5. verify `npm run db:check` reports the release contract current;
 6. verify `/atlas/atlas-prod/app` and `/atlas/atlas-prod/caddy` receive logs;
-7. verify all six alarms and the Route 53 health check reach `OK` after their
-   normal evaluation windows;
+7. verify all five infrastructure alarms reach `OK`, then verify public HTTPS
+   health directly;
 8. verify an RDS automated backup appears after the configured backup window;
 9. send a controlled SNS test message and confirm receipt at
    `shahp002@outlook.com`;
@@ -290,21 +291,17 @@ claim AgentCore proof until issue #54 is closed with a real session.
 
 ## Rollback rules
 
-Before the migration script succeeds, it automatically restarts GCP on error.
-After the final restore but before DNS changes, the GCP database is still the
-frozen source and can be restarted only if no writes have reached AWS.
+The migration-time GCP rollback path ended when the dedicated project entered
+`DELETE_REQUESTED`. Production rollback now stays inside AWS: restore the last
+known-good immutable application image for code regressions, or restore RDS
+from an automated backup or the pre-deletion manual snapshot for database
+recovery. Keep RDS authoritative and do not undelete the retired GCP project.
 
-After DNS changes and any write reaches AWS, never restart GCP as a writable
-peer. That would create split-brain data. A post-write rollback requires a new
-freeze, an AWS RDS dump restored into Cloud SQL, product verification, and then
-a DNS reversal. Prefer fixing or rolling back the immutable AWS image while
-keeping RDS authoritative.
+## Retired GCP source
 
-## Retire GCP
-
-Keep GCP stopped during an AWS soak that includes product smokes, logs, alert
-delivery, and at least one successful RDS backup. The final deletion script
-requires the verified migration prefix and exact destructive confirmation:
+The final deletion command completed on 2026-08-23 after creating the encrypted
+manual RDS snapshot and uploading the final GCP inventory. Google reports the
+project as `DELETE_REQUESTED`. Do not undelete it. The executed command was:
 
 ```bash
 export ATLAS_MIGRATION_PREFIX='migrations/YYYYMMDDTHHMMSSZ'
@@ -312,9 +309,9 @@ export ATLAS_CONFIRM_DELETE_GCP_PROJECT='delete-atlas-yc2026fall-after-aws-cutov
 infra/aws/destroy-gcp.sh
 ```
 
-The script refuses deletion unless DNS resolves exclusively to AWS, public
+The script refused deletion unless DNS resolved exclusively to AWS, public
 health passes, the four core archive objects exist, RDS and SSM are healthy,
 and the temporary migration policy is absent. It creates a final manual RDS
 snapshot, archives a non-secret GCP inventory beside the dumps, then requests
-deletion of the dedicated `atlas-yc2026fall` project. Project deletion is the
-last action and remains subject to Google's restoration window.
+deletion of the dedicated `atlas-yc2026fall` project. Google retains a recovery
+window internally, but Atlas should treat this project as permanently retired.

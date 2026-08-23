@@ -9,8 +9,8 @@ aws_region="${AWS_REGION:-us-east-1}"
 stack_name="${ATLAS_AWS_STACK:-atlas-prod}"
 alert_email="${ATLAS_ALERT_EMAIL:-shahp002@outlook.com}"
 budget_alert_email="${ATLAS_BUDGET_ALERT_EMAIL:-aws-admin@atlas-lms.com}"
-monthly_budget="${ATLAS_MONTHLY_BUDGET_USD:-110}"
-app_instance_type="${ATLAS_APP_INSTANCE_TYPE:-t4g.medium}"
+monthly_budget="${ATLAS_MONTHLY_BUDGET_USD:-70}"
+app_instance_type="${ATLAS_APP_INSTANCE_TYPE:-t4g.small}"
 database_instance_class="${ATLAS_DATABASE_INSTANCE_CLASS:-db.t4g.small}"
 
 aws sts get-caller-identity \

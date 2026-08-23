@@ -10,8 +10,10 @@ dumps, and smoke-test passwords must never enter Git or terminal output.
 As of 2026-08-23, production data, application hosting, DNS, and TLS are live on
 the `atlas-prod` CloudFormation stack in AWS account `118645514521`, region
 `us-east-1`. The GCP Atlas application is stopped and must remain stopped. The
-GCP project and Cloud SQL source are retained only for the post-cutover soak and
-must not be deleted without separate approval and the retirement gate below.
+old GCP VM is `TERMINATED` and the Cloud SQL instance is `STOPPED` with
+`activationPolicy=NEVER`. The project, disks, backup, and database source are
+retained only for the post-cutover soak and must not be deleted without separate
+approval and the retirement gate below.
 
 | Item | Current reference |
 | --- | --- |
@@ -29,6 +31,7 @@ must not be deleted without separate approval and the retirement gate below.
 | Release image | `atlas-prod/atlas:f7a8a7c72224-release` |
 | Final Cloud SQL backup | `1787510387141` |
 | Final migration prefix | `migrations/20260823T183944Z/` |
+| Retained GCP source | VM `TERMINATED`; Cloud SQL `STOPPED`, activation policy `NEVER` |
 | SNS infrastructure-alert recipient | `shahp002@outlook.com` |
 | Budget-alert recipient | `aws-admin@atlas-lms.com` |
 | AgentCore state | disabled by incident switch until [#54](https://github.com/Prashant002-1/Atlas-LMS/issues/54) is verified live |

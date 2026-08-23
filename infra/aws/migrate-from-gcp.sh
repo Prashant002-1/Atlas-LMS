@@ -207,6 +207,17 @@ aws iam put-role-policy \
   --policy-name "$temporary_policy" \
   --policy-document "file://$work_dir/temporary-policy.json"
 
+# IAM inline-policy changes are eventually consistent. Confirm the instance
+# role can read the exact migration archive before starting the destructive
+# RDS restore instead of allowing an immediate S3 HeadObject request to race
+# policy propagation.
+policy_probe_command="set -euo pipefail; for attempt in \$(seq 1 12); do if aws s3api head-object --region '$aws_region' --bucket '$bucket' --key '$prefix/restore-rds-on-host.sh' >/dev/null 2>&1; then exit 0; fi; sleep 5; done; echo 'Timed out waiting for the final migration archive permission.' >&2; exit 1"
+policy_probe_parameters="$(jq -cn --arg command "$policy_probe_command" '{commands:[$command]}')"
+policy_probe_id="$(aws ssm send-command --profile "$aws_profile" --region "$aws_region" --instance-ids "$instance_id" --document-name AWS-RunShellScript --comment "Verify Atlas migration archive access $migration_id" --parameters "$policy_probe_parameters" --query 'Command.CommandId' --output text)"
+aws ssm wait command-executed --profile "$aws_profile" --region "$aws_region" --command-id "$policy_probe_id" --instance-id "$instance_id" || true
+policy_probe_status="$(aws ssm get-command-invocation --profile "$aws_profile" --region "$aws_region" --command-id "$policy_probe_id" --instance-id "$instance_id" --query Status --output text)"
+[[ "$policy_probe_status" == "Success" ]] || { echo "Migration archive permission did not propagate to the EC2 role." >&2; exit 1; }
+
 restore_command="set -euo pipefail; restore=/var/tmp/atlas-restore-rds.sh; aws s3 cp --region '$aws_region' 's3://$bucket/$prefix/restore-rds-on-host.sh' \"\$restore\" --only-show-errors; chmod 0700 \"\$restore\"; sudo \"\$restore\" '$bucket' '$prefix' '$aws_region' '$database_endpoint' '$master_secret_arn' '$database_users_secret_arn'; rm -f \"\$restore\""
 restore_parameters="$(jq -cn --arg command "$restore_command" '{commands:[$command]}')"
 command_id="$(aws ssm send-command --profile "$aws_profile" --region "$aws_region" --instance-ids "$instance_id" --document-name AWS-RunShellScript --comment "Restore Atlas GCP backup $migration_id to RDS" --parameters "$restore_parameters" --query 'Command.CommandId' --output text)"

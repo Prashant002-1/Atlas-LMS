@@ -8,7 +8,7 @@ cost with credits and refunds excluded.
 ## Expected steady-state cost
 
 The calculation uses 730 hours per month and the live AWS Price List API rates
-checked on 2026-08-20.
+checked on 2026-08-23.
 
 | Resource | Assumption | Estimated monthly cost |
 | --- | --- | ---: |

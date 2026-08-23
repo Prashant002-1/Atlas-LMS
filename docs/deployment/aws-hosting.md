@@ -30,7 +30,7 @@ are retained in the encrypted AWS migration archive.
 | Final Cloud SQL backup | `1787510387141` |
 | Final migration prefix | `migrations/20260823T183944Z/` |
 | Retired GCP source | Project `atlas-yc2026fall`, `DELETE_REQUESTED` on 2026-08-23 |
-| Pre-deletion RDS snapshot | `atlas-prod-pre-gcp-delete-20260823t192725z`, encrypted and available |
+| Deletion safeguard snapshot | `atlas-prod-pre-gcp-delete-20260823t192725z`, created for the gate then deleted the same day |
 | SNS infrastructure-alert recipient | `shahp002@outlook.com` |
 | Budget-alert recipient | `aws-admin@atlas-lms.com` |
 | AgentCore state | disabled by incident switch until [#54](https://github.com/Prashant002-1/Atlas-LMS/issues/54) is verified live |
@@ -66,7 +66,9 @@ the smoke run. The RDS instance has seven-day retention, deletion protection,
 and point-in-time recovery current through 2026-08-23 19:10 UTC. Before GCP
 deletion, the retirement gate also created encrypted manual RDS snapshot
 `atlas-prod-pre-gcp-delete-20260823t192725z` and uploaded
-`gcp-final-inventory.tar.gz` to the migration prefix.
+`gcp-final-inventory.tar.gz` to the migration prefix. The manual snapshot was
+deleted after the project deletion request because the dataset is disposable;
+normal RDS automated backups remain enabled.
 
 ## Architecture and security boundary
 
@@ -301,7 +303,11 @@ recovery. Keep RDS authoritative and do not undelete the retired GCP project.
 
 The final deletion command completed on 2026-08-23 after creating the encrypted
 manual RDS snapshot and uploading the final GCP inventory. Google reports the
-project as `DELETE_REQUESTED`. Do not undelete it. The executed command was:
+project as `DELETE_REQUESTED` with billing disabled. The remaining stopped
+Cloud SQL instance was explicitly deleted and its deletion operation completed;
+the SQL instance list is now empty. Compute, Artifact Registry, and Secret
+Manager no longer accept normal project access. Do not undelete the project.
+The executed command was:
 
 ```bash
 export ATLAS_MIGRATION_PREFIX='migrations/YYYYMMDDTHHMMSSZ'
@@ -315,3 +321,5 @@ and the temporary migration policy is absent. It creates a final manual RDS
 snapshot, archives a non-secret GCP inventory beside the dumps, then requests
 deletion of the dedicated `atlas-yc2026fall` project. Google retains a recovery
 window internally, but Atlas should treat this project as permanently retired.
+The temporary manual snapshot was deleted after this gate completed, so it does
+not add ongoing snapshot storage cost.

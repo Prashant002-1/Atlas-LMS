@@ -7,10 +7,11 @@ dumps, and smoke-test passwords must never enter Git or terminal output.
 
 ## Current migration state
 
-As of 2026-08-20, the `atlas-prod` CloudFormation stack is provisioned in AWS
-account `118645514521`, region `us-east-1`. Production DNS and data still remain
-on GCP until the checked-in release is merged, built, restored, deployed, and
-verified.
+As of 2026-08-23, production data, application hosting, DNS, and TLS are live on
+the `atlas-prod` CloudFormation stack in AWS account `118645514521`, region
+`us-east-1`. The GCP Atlas application is stopped and must remain stopped. The
+GCP project and Cloud SQL source are retained only for the post-cutover soak and
+must not be deleted without separate approval and the retirement gate below.
 
 | Item | Current reference |
 | --- | --- |
@@ -22,7 +23,12 @@ verified.
 | ECR | `118645514521.dkr.ecr.us-east-1.amazonaws.com/atlas-prod/atlas` |
 | Migration archive | `atlas-prod-migrationbucket-btgroucmwjj6` |
 | Public hostname | `demo.atlas-lms.com` |
-| Current DNS before cutover | `35.202.247.237` (GCP), TTL 300 seconds since 2026-08-20 05:38 UTC |
+| Current DNS | `32.198.196.196` (AWS), TTL 300 seconds |
+| Production source commit | `f7a8a7c72224635aa2239dff734e0944f829337f` |
+| Production application image | `atlas-prod/atlas@sha256:55eddf1c43289e5934852434ab0556612d501f87b6a85214255101ad3d29be72` |
+| Release image | `atlas-prod/atlas:f7a8a7c72224-release` |
+| Final Cloud SQL backup | `1787510387141` |
+| Final migration prefix | `migrations/20260823T183944Z/` |
 | SNS infrastructure-alert recipient | `shahp002@outlook.com` |
 | Budget-alert recipient | `aws-admin@atlas-lms.com` |
 | AgentCore state | disabled by incident switch until [#54](https://github.com/Prashant002-1/Atlas-LMS/issues/54) is verified live |
@@ -33,6 +39,30 @@ The current AWS management account is acceptable for this migration, but the
 workload should move to its own member account after AWS permits another
 account. That scope is tracked in issue #53 and should not be described as a
 property of every resource.
+
+### Completed cutover evidence
+
+The final migration archive is
+`s3://atlas-prod-migrationbucket-btgroucmwjj6/migrations/20260823T183944Z/`.
+Its checksums passed and it contains both PostgreSQL dumps, the manifest, the
+restore script, and `SHA256SUMS`. The restore applied database migrations 0021
+through 0025 and `npm run db:check` passed from the matching release image.
+
+The production application was deployed from the immutable digest recorded
+above. On 2026-08-23, authoritative DNS and the public resolvers at 1.1.1.1 and
+8.8.8.8 resolved `demo.atlas-lms.com` to `32.198.196.196`. Let's Encrypt issued
+the production certificate, public `/api/health` returned `ok=true` and
+`db=up`, every Route 53 checker returned HTTP 200 from the AWS address, and all
+six CloudWatch alarms reached `OK`.
+
+The post-cutover product smoke passed every signed-out, instructor, student,
+document, and authentication check. The durable workflow smoke completed as
+run `wrun_01M0R0P58C6ERYK5SJQ91CH5TN` with a non-empty response stream. The
+one-time YC passwords and SPC aliases were revoked by the cleanup trap after
+the smoke run. The RDS instance has seven-day retention, deletion protection,
+and point-in-time recovery current through 2026-08-23 19:10 UTC. A new
+post-cutover automated snapshot still needs to appear after the next
+`06:21-06:51` UTC backup window before GCP retirement is eligible.
 
 ## Architecture and security boundary
 
@@ -139,9 +169,11 @@ the same commit.
 
 ## DNS preparation
 
-The current Squarespace A record has a 14,400-second TTL. Change only its TTL
+The Squarespace A record was lowered from a 14,400-second TTL to 300 seconds
+before the 2026-08-23 cutover. For any later address change, lower only its TTL
 to 300 seconds and wait at least the old TTL, four hours, before the final
-migration. Do not change the address yet. Confirm from more than one resolver:
+migration. Do not change the address during that preparation step. Confirm from
+more than one resolver:
 
 ```bash
 dig demo.atlas-lms.com A +noall +answer

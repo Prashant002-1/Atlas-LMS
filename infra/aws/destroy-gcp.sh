@@ -58,7 +58,8 @@ if aws iam get-role-policy \
 fi
 
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
-snapshot_id="$stack_name-pre-gcp-delete-${timestamp,,}"
+snapshot_timestamp="$(printf '%s' "$timestamp" | tr '[:upper:]' '[:lower:]')"
+snapshot_id="$stack_name-pre-gcp-delete-$snapshot_timestamp"
 aws rds create-db-snapshot \
   --profile "$aws_profile" \
   --region "$aws_region" \

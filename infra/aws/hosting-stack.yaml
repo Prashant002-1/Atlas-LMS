@@ -17,11 +17,11 @@ Parameters:
     Default: ops@example.edu
   MonthlyBudgetUsd:
     Type: Number
-    Default: 110
+    Default: 70
     MinValue: 10
   AppInstanceType:
     Type: String
-    Default: t4g.medium
+    Default: t4g.small
     AllowedValues:
       - t4g.small
       - t4g.medium
@@ -566,21 +566,6 @@ Resources:
       AllocationId: !GetAtt AppElasticIp.AllocationId
       InstanceId: !Ref AppInstance
 
-  PublicHealthCheck:
-    Type: AWS::Route53::HealthCheck
-    Properties:
-      HealthCheckConfig:
-        EnableSNI: true
-        FailureThreshold: 3
-        FullyQualifiedDomainName: !Ref DomainName
-        Port: 443
-        RequestInterval: 30
-        ResourcePath: /api/health
-        Type: HTTPS
-      HealthCheckTags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName}-public-health
-
   AppStatusAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -676,25 +661,6 @@ Resources:
       Threshold: 268435456
       TreatMissingData: missing
 
-  PublicHealthAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmActions:
-        - !Ref AlertTopic
-      AlarmDescription: The public Atlas HTTPS health route is unavailable.
-      AlarmName: !Sub ${EnvironmentName}-public-health
-      ComparisonOperator: LessThanThreshold
-      Dimensions:
-        - Name: HealthCheckId
-          Value: !Ref PublicHealthCheck
-      EvaluationPeriods: 2
-      MetricName: HealthCheckStatus
-      Namespace: AWS/Route53
-      Period: 60
-      Statistic: Minimum
-      Threshold: 1
-      TreatMissingData: breaching
-
   MonthlyCostBudget:
     Type: AWS::Budgets::Budget
     Properties:
@@ -778,7 +744,5 @@ Outputs:
     Value: !Ref RuntimeSecret
   AlertTopicArn:
     Value: !Ref AlertTopic
-  PublicHealthCheckId:
-    Value: !Ref PublicHealthCheck
   VpcId:
     Value: !Ref Vpc

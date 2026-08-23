@@ -105,7 +105,7 @@ bucket_versioning="$(aws s3api get-bucket-versioning --profile "$aws_profile" --
 [[ "$bucket_versioning" == "Enabled" ]] || fail "migration bucket versioning is disabled."
 
 alarm_count="$(aws cloudwatch describe-alarms --profile "$aws_profile" --region "$aws_region" --alarm-name-prefix "$stack_name-" --query 'length(MetricAlarms)' --output text)"
-(( alarm_count >= 6 )) || fail "fewer than six CloudWatch alarms exist."
+(( alarm_count >= 5 )) || fail "fewer than five CloudWatch alarms exist."
 
 subscriptions_json="$(aws sns list-subscriptions-by-topic --profile "$aws_profile" --region "$aws_region" --topic-arn "$topic_arn" --query 'Subscriptions[?Protocol==`email`]' --output json)"
 subscription_json="$(jq -c --arg endpoint "$alert_email" '[.[] | select(.Endpoint == $endpoint)] | first' <<<"$subscriptions_json")"

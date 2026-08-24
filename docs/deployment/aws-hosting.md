@@ -7,7 +7,7 @@ dumps, and smoke-test passwords must never enter Git or terminal output.
 
 ## Current migration state
 
-As of 2026-08-23, production data, application hosting, DNS, and TLS are live on
+As of 2026-08-24, production data, application hosting, DNS, and TLS are live on
 the `atlas-prod` CloudFormation stack in AWS account `118645514521`, region
 `us-east-1`. The dedicated GCP project `atlas-yc2026fall` has lifecycle state
 `DELETE_REQUESTED`; do not undelete it. The final inventory and database dumps
@@ -24,9 +24,9 @@ are retained in the encrypted AWS migration archive.
 | Migration archive | `atlas-prod-migrationbucket-btgroucmwjj6` |
 | Public hostname | `demo.atlas-lms.com` |
 | Current DNS | `32.198.196.196` (AWS), TTL 300 seconds |
-| Production source commit | `f7a8a7c72224635aa2239dff734e0944f829337f` |
-| Production application image | `atlas-prod/atlas@sha256:55eddf1c43289e5934852434ab0556612d501f87b6a85214255101ad3d29be72` |
-| Release image | `atlas-prod/atlas:f7a8a7c72224-release` |
+| Production source commit | `cbfedf8739ad1298929562b9724af350f9f387fc` |
+| Production application image | `atlas-prod/atlas@sha256:5f1ded7891824b92eecf0d3d5af12e481cbffa475edb2ce0ed0b1f06ae87e625` |
+| Release image | `atlas-prod/atlas:cbfedf8739ad-release` |
 | Final Cloud SQL backup | `1787510387141` |
 | Final migration prefix | `migrations/20260823T183944Z/` |
 | Retired GCP source | Project `atlas-yc2026fall`, `DELETE_REQUESTED` on 2026-08-23 |
@@ -69,6 +69,17 @@ deletion, the retirement gate also created encrypted manual RDS snapshot
 `gcp-final-inventory.tar.gz` to the migration prefix. The manual snapshot was
 deleted after the project deletion request because the dataset is disposable;
 normal RDS automated backups remain enabled.
+
+The dependency security release on 2026-08-24 was built from commit
+`cbfedf8739ad1298929562b9724af350f9f387fc` after GitHub Actions run
+[#32692725909](https://github.com/Prashant002-1/Atlas-LMS/actions/runs/32692725909)
+passed the required `Verify` gate. The host reports the immutable application
+digest shown above. Its ARM64 image scan completed with no findings. The
+matching release image reported no pending database migrations and a current
+database contract, passed every public signed-out, instructor, student,
+document, and authentication smoke check, and completed durable Workflow run
+`wrun_01M0S4258841H9940W67KDQSBE` with a non-empty response. The cleanup step
+then revoked the temporary YC passwords and SPC aliases.
 
 ## Architecture and security boundary
 

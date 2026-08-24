@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: atlas
+          POSTGRES_PASSWORD: atlas
+          POSTGRES_USER: atlas
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U atlas -d atlas"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      ATLAS_CODE_EXECUTION_ENABLED: "false"
+      AUTH_SECRET: ci-only-atlas-auth-secret-not-for-production
+      AUTH_URL: http://localhost:3000
+      DATABASE_URL: postgres://atlas:atlas@127.0.0.1:5432/atlas
+      NEXT_TELEMETRY_DISABLED: "1"
+      WORKFLOW_POSTGRES_URL: postgres://atlas:atlas@127.0.0.1:5432/atlas_workflow
+      WORKFLOW_TARGET_WORLD: "@workflow/world-postgres"
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install the committed dependency tree
+        run: npm ci
+
+      - name: Reject production dependency advisories
+        run: npm audit --omit=dev --audit-level=moderate
+
+      - name: Prepare disposable PostgreSQL databases
+        env:
+          PGPASSWORD: atlas
+        run: |
+          psql --host 127.0.0.1 --username atlas --dbname postgres --set ON_ERROR_STOP=1 \
+            --command 'CREATE DATABASE atlas_workflow'
+          psql --host 127.0.0.1 --username atlas --dbname atlas --set ON_ERROR_STOP=1 \
+            --command 'CREATE EXTENSION IF NOT EXISTS vector'
+
+      - name: Validate application and Workflow schema setup
+        run: |
+          npm run db:push -- --force
+          npm run db:upgrade -- --allow-destructive
+          npm run db:check
+          npm run workflow:bootstrap
+
+      - name: Verify Atlas
+        run: npm run verify
+
+      - name: Build the production container
+        run: docker build --target runner --tag "atlas-ci:${GITHUB_SHA}" .

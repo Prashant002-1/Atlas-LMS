@@ -1,0 +1,48 @@
+# Dependency maintenance
+
+Atlas treats the committed lockfile as the dependency source of truth. Pull
+requests and changes to `main` install it with `npm ci`, run the repository
+verification gate, validate the database release path against disposable
+PostgreSQL and pgvector databases, and build the production container.
+
+## Automated proposals
+
+Dependabot checks npm and GitHub Actions every Monday. Compatible AI SDK,
+Workflow, Next.js, and styling updates are grouped only with packages that
+share a verification story. Major releases stay separate. Dependency pull
+requests are never auto-merged and run the same CI gate as application work.
+
+GitHub dependency alerts and Dependabot security updates must remain enabled
+for the repository. Workflow actions are pinned to immutable commit SHAs, with
+Dependabot responsible for proposing reviewed pin updates.
+
+## Audit policy
+
+CI runs this production-tree gate:
+
+```bash
+npm audit --omit=dev --audit-level=moderate
+```
+
+Any moderate, high, or critical production finding blocks the change. Fix it
+with a compatible direct or transitive update when one exists. Use a narrowly
+scoped package override only when the owning package has not yet released a
+patched dependency, and remove the override after upstream catches up. Never
+run `npm audit fix --force`.
+
+The full development-tree report is reviewed during dependency changes and by
+Dependabot, but a development-only advisory may be accepted when it is not
+reachable from the production image and no safe upstream fix exists. Record
+the package chain, exposure, upstream status, and recheck condition here.
+
+## Current development-only exception
+
+As of 2026-08-23, the full audit reports four moderate entries in the chain
+`drizzle-kit -> @esbuild-kit/esm-loader -> @esbuild-kit/core-utils -> esbuild`.
+The advisory concerns the esbuild development server. Atlas does not expose
+that server, and none of these packages are installed by the production
+container's `npm ci --omit=dev` stage. `drizzle-kit` 0.31.10 is the current
+release in Atlas's dependency track, while npm incorrectly proposes the older
+0.18.1 release as the available fix. Recheck this exception on every
+`drizzle-kit` update or new advisory. Remove it once the current package line
+ships a patched esbuild dependency.

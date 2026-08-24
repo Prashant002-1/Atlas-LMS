@@ -19,15 +19,21 @@ Supporting docs:
 
 Deployment and operations:
 
-- [`deployment/gcp-yc-demo.md`](deployment/gcp-yc-demo.md), the live Google
-  Cloud YC demo inventory, rebuild runbook, secret handling, deployment,
-  verification, rollback, recovery, and teardown source of truth.
+- [`deployment/aws-hosting.md`](deployment/aws-hosting.md), the live AWS
+  production inventory, release runbook, verification, rollback, recovery,
+  monitoring, and cost-control source of truth.
+- [`deployment/aws-cost-estimate.md`](deployment/aws-cost-estimate.md), the
+  expected AWS cost floor and optional-service costs.
+- [`deployment/dependency-maintenance.md`](deployment/dependency-maintenance.md),
+  protected CI, Dependabot grouping, audit policy, and documented exceptions.
 - [`adr/0018-gcp-demo-hosting-and-compute-boundary.md`](adr/0018-gcp-demo-hosting-and-compute-boundary.md),
-  the hosting decision and future isolated code-execution boundary.
+  the historical GCP hosting decision and isolated code-execution boundary.
 - [`adr/0020-agentcore-code-execution.md`](adr/0020-agentcore-code-execution.md),
   the implemented assessed-session execution boundary.
 - [`deployment/aws-agentcore-code-execution.md`](deployment/aws-agentcore-code-execution.md),
   the single-account AWS setup, quota, IAM, and smoke-test runbook.
+- [`deployment/gcp-yc-demo.md`](deployment/gcp-yc-demo.md), the retired GCP
+  demo inventory and migration history. It is no longer the live runbook.
 
 Historical/context notes:
 

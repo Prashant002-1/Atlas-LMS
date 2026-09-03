@@ -24,9 +24,9 @@ are retained in the encrypted AWS migration archive.
 | Migration archive | `atlas-prod-migrationbucket-btgroucmwjj6` |
 | Public hostname | `demo.atlas-lms.com` |
 | Current DNS | `32.198.196.196` (AWS), TTL 300 seconds |
-| Production source commit | `cbfedf8739ad1298929562b9724af350f9f387fc` |
-| Production application image | `atlas-prod/atlas@sha256:5f1ded7891824b92eecf0d3d5af12e481cbffa475edb2ce0ed0b1f06ae87e625` |
-| Release image | `atlas-prod/atlas:cbfedf8739ad-release` |
+| Production source commit | `0be55830ace23171666bfe0868b7516264c223bd` |
+| Production application image | `atlas-prod/atlas@sha256:28167f4ecc66f0ba1609f077a7e852655bc0545f799b4593fec6e6c6f1992b4f` |
+| Release image | `atlas-prod/atlas:0be55830ace2-release` |
 | Final Cloud SQL backup | `1787510387141` |
 | Final migration prefix | `migrations/20260823T183944Z/` |
 | Retired GCP source | Project `atlas-yc2026fall`, `DELETE_REQUESTED` on 2026-08-23 |
@@ -80,6 +80,22 @@ database contract, passed every public signed-out, instructor, student,
 document, and authentication smoke check, and completed durable Workflow run
 `wrun_01M0S4258841H9940W67KDQSBE` with a non-empty response. The cleanup step
 then revoked the temporary YC passwords and SPC aliases.
+
+The dashboard visual release on 2026-09-03 was built from commit
+`0be55830ace23171666bfe0868b7516264c223bd` after GitHub Actions runs
+[#33797237630](https://github.com/Prashant002-1/Atlas-LMS/actions/runs/33797237630)
+and
+[#33799286852](https://github.com/Prashant002-1/Atlas-LMS/actions/runs/33799286852)
+passed the required `Verify` gate. The host reports the immutable application
+digest shown above. Its ARM64 image scan completed with no findings, and the
+matching release image reported a current database contract. The production
+smoke passed every signed-out, instructor, student, document, and
+authentication check. Durable Workflow run
+`wrun_01M1MEGJW8RZYJC2MAEQKJ9FD8` returned a non-empty response stream. The
+cleanup step then revoked the temporary YC passwords and SPC aliases, cleared
+the AWS-only smoke secret, and removed the temporary host permission. All five
+infrastructure alarms were `OK`, both application log groups were current, and
+public health returned `ok=true` and `db=up`.
 
 ## Architecture and security boundary
 

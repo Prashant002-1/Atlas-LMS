@@ -17,3 +17,4 @@ ADR-0001 through ADR-0007 were referenced before ADR files were committed; they 
 | [0018](0018-gcp-demo-hosting-and-compute-boundary.md) | Accepted | Google Cloud Demo Hosting and Compute Boundary |
 | [0019](0019-course-guidance-and-inline-proposals.md) | Accepted | Addressable Course Guidance and Inline Proposal Decisions |
 | [0020](0020-agentcore-code-execution.md) | Accepted | AgentCore Code Execution for Assessed Sessions |
+| [0021](0021-standalone-ai-assignments-product-boundary.md) | Accepted | Standalone AI Assignments Product Boundary |

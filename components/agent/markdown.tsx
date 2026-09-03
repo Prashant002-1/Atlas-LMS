@@ -63,8 +63,7 @@ const lazyMermaid: DiagramPlugin = {
       },
       async render(id, source) {
         const { createMermaidPlugin } = await import("@streamdown/mermaid");
-        const theme = document.documentElement.getAttribute("data-theme") === "light" ? "default" : "dark";
-        return createMermaidPlugin({ config: { ...config, theme } }).getMermaid().render(id, source);
+        return createMermaidPlugin({ config: { ...config, theme: "default" } }).getMermaid().render(id, source);
       },
     };
   },

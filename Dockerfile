@@ -1,7 +1,7 @@
 # Atlas LMS production image, Next.js standalone.
 FROM node:24-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache libc6-compat
+RUN apk upgrade --no-cache && apk add --no-cache libc6-compat
 
 FROM base AS deps
 COPY package.json package-lock.json* ./

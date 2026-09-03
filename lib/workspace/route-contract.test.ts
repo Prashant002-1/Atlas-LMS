@@ -372,12 +372,14 @@ test("persisted proposal blocks render as full records without the removed regis
 test("the app is pages behind one sidebar, not a monolith", () => {
   assertSourceIncludes("components/atlas/app-shell.tsx", "Collapse sidebar");
   // The sidebar ends in one identity row. Its menu owns profile settings,
-  // theme, and the single sign-out action, without adding another nav section.
+  // and the single sign-out action, without adding another nav section.
   assertSourceIncludes("components/atlas/app-shell.tsx", 'aria-label="Account"');
   assertSourceIncludes("components/atlas/app-shell.tsx", "Account settings");
   assertSourceIncludes("components/atlas/app-shell.tsx", "accountHref");
   assertSourceIncludes("components/atlas/app-shell.tsx", "signOutOfAtlas");
-  assertSourceIncludes("components/atlas/app-shell.tsx", "ThemeToggle");
+  assertSourceExcludes("components/atlas/app-shell.tsx", "ThemeToggle");
+  assertSourceIncludes("app/layout.tsx", 'data-theme="light"');
+  assertSourceExcludes("app/layout.tsx", "atlas-theme");
   assertSourceIncludes("lib/auth/actions.ts", "updateAccountProfile");
   assertSourceIncludes("app/teach/layout.tsx", 'accountHref="/teach/account"');
   assertSourceIncludes("app/student/layout.tsx", 'accountHref="/student/account"');
@@ -400,6 +402,29 @@ test("the app is pages behind one sidebar, not a monolith", () => {
   assertSourceExcludes("components/teach/course-switch.tsx", "setTermScope");
   assertSourceIncludes("lib/workspace/scope-actions.ts", "termSlugForCourse");
   assertSourceIncludes("app/teach/page.tsx", "CourseSwitch");
+});
+
+test("the teacher overview keeps its records while adopting the Atlas surface roles", () => {
+  const overview = readSource("app/teach/page.tsx");
+  const shell = readSource("components/atlas/app-shell.tsx");
+  const styles = readSource("app/globals.css");
+
+  assert.match(overview, /New announcement/);
+  assert.doesNotMatch(overview, /New assignment/);
+  assert.doesNotMatch(overview, /New module/);
+  assert.match(overview, /atlas-overview-rail/);
+  assert.match(overview, /atlas-ai-assignment-row/);
+  assert.match(overview, /min-h-screen/);
+  assert.match(overview, /minmax\(16rem,17rem\)/);
+  assert.match(overview, /xl:grid-cols/);
+  assert.match(shell, /atlas-shell-sidebar/);
+  assert.match(shell, /pathname === "\/teach"/);
+  assert.match(shell, /max-width: 1023px/);
+  assert.match(styles, /\.atlas-overview-rail[\s\S]*min-height: 100dvh/);
+  assert.match(styles, /\.atlas-overview-rail[\s\S]*align-self: stretch/);
+  assert.match(styles, /--atlas-navigation:/);
+  assert.match(styles, /--atlas-rail:/);
+  assert.match(styles, /--atlas-ai-wash:/);
 });
 
 test("issue 26: the shell holds the sharp radius scale by construction", () => {
@@ -444,15 +469,15 @@ test("issue 26: the shell holds the sharp radius scale by construction", () => {
 
 test("issue 26: workspaces present records and direct controls, not a task queue", () => {
   // The professor overview stays lean: assignments, upcoming dates, a short
-  // deterministic Atlas briefing, announcements, and direct creation.
+  // deterministic Atlas briefing, announcements, and one announcement action.
   assertSourceIncludes("app/teach/page.tsx", ">Assignments<");
   assertSourceIncludes("app/teach/page.tsx", ">Upcoming<");
   assertSourceIncludes("app/teach/page.tsx", ">Atlas briefing<");
   assertSourceIncludes("app/teach/page.tsx", ">Announcements<");
   assertSourceExcludes("app/teach/page.tsx", '"Recent changes"');
   assertSourceExcludes("lib/instructor/workspace.ts", "recentChanges");
-  assertSourceIncludes("app/teach/page.tsx", "/teach/assignments?new=1");
-  assertSourceIncludes("app/teach/page.tsx", "/teach/weeks?new=1");
+  assertSourceExcludes("app/teach/page.tsx", "/teach/assignments?new=1");
+  assertSourceExcludes("app/teach/page.tsx", "/teach/weeks?new=1");
   assertSourceIncludes("app/teach/page.tsx", "/teach/announcements?new=1");
   for (const banned of ["Needs action", "Needs review", "To do", "course health", "Next up"]) {
     for (const file of sourceFiles([path.join(root, "app"), path.join(root, "components")])) {

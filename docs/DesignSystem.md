@@ -4,7 +4,8 @@ The tokens in `app/globals.css` are the source of truth. This note describes the
 
 ## Foundation
 
-- Palette: a near-monochrome neutral scale carries the UI and one Atlas emerald signals brand, primary action, focus, and active streaming. Dark is the default theme; light ships behind `[data-theme="light"]`. Amber and red are reserved for real signals, never decoration.
+- Palette: a calm near-white workspace carries course records, a deep hunter-green sidebar holds navigation, and a pine rail identifies Atlas briefing and course-assistant content. One Atlas emerald signals brand, primary action, focus, and active streaming. Pale green is reserved for AI-assignment emphasis inside record lists. Amber and red are reserved for real signals, never decoration.
+- Theme: Atlas currently ships one supported light workspace theme. The dark navigation and pine Atlas rail are fixed semantic surfaces, not a user-selectable dark mode. A complete dark-mode treatment is deferred to [issue #72](https://github.com/Prashant002-1/Atlas-LMS/issues/72).
 - Type: Geist Sans for interface and reading. Geist Mono is reserved for codes, figures, and timestamps, never navigation sections, prose labels, or status copy. Both faces are vendored in `assets/fonts`, decoded by the postinstall step, loaded in `app/layout.tsx`, and exposed as `--font-serif`, `--font-sans`, `--font-mono`.
 - Scale: the root type size is 110% and every text and component size is rem-based, so the whole interface renders full without browser zoom. Hairline borders, radii, and icon glyphs stay in px so edges and marks remain crisp.
 - Shape: one sharp radius scale, fixed. Controls 4px, rows and badges 6px, panels 8px, declared as theme tokens so the semantic utilities `rounded-control`, `rounded-row`, and `rounded-panel` are the only radii components use. `rounded-full` is reserved for true circles such as avatars and dots. Fine borders over shadows.
@@ -23,6 +24,8 @@ Course names and codes in student navigation do not carry a book icon. The text 
 ## Surfaces
 
 The product does not paint decorative or implied-data backgrounds. Records carry the screen; identity stays in the mark, type, and a restrained accent.
+
+On the teacher overview, the Atlas briefing rail is a full-height background region flush with the right edge. It is not a bordered panel, fixed element, or independently scrolling surface.
 
 Containment is not the default hierarchy. Start with type, spacing, alignment, and hairline rules. Add a bordered panel only when an element is an independent interactive surface. Do not turn every section, metric, student, criterion, or status into a card.
 

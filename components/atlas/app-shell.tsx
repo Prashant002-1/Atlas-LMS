@@ -29,7 +29,6 @@ import {
 import { signOutOfAtlas } from "@/lib/auth/actions";
 import { MotionPage } from "@/components/atlas/motion";
 import { AtlasIcon, AtlasMark } from "@/components/atlas/primitives";
-import { ThemeToggle } from "@/components/atlas/theme-switch";
 import { UserAvatar } from "@/components/atlas/user-avatar";
 
 type NavIconComponent = ComponentType<{
@@ -100,22 +99,69 @@ export function AppShell({
   accountHref: string;
 }) {
   const pathname = usePathname();
+  const isTeacherOverview = pathname === "/teach";
   const [stored, setStored] = useState<boolean | null>(null);
+  const [compactViewport, setCompactViewport] = useState(false);
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      setStored(window.localStorage.getItem("atlas-sidebar") === "collapsed");
-    });
-    return () => cancelAnimationFrame(frame);
+    const query = window.matchMedia("(max-width: 1023px)");
+    const syncViewport = () => {
+      setCompactViewport(query.matches);
+      if (query.matches) {
+        setStored(true);
+        return;
+      }
+
+      try {
+        setStored(window.localStorage.getItem("atlas-sidebar") === "collapsed");
+      } catch {
+        setStored(false);
+      }
+    };
+
+    const frame = requestAnimationFrame(syncViewport);
+    query.addEventListener("change", syncViewport);
+    return () => {
+      cancelAnimationFrame(frame);
+      query.removeEventListener("change", syncViewport);
+    };
   }, []);
 
   const ready = stored !== null;
   const shellCollapsed = stored ?? false;
+  const mobileExpanded = ready && compactViewport && !shellCollapsed;
+
+  useEffect(() => {
+    if (!compactViewport) return;
+    const frame = requestAnimationFrame(() => setStored(true));
+    return () => cancelAnimationFrame(frame);
+  }, [pathname, compactViewport]);
+
+  useEffect(() => {
+    if (!mobileExpanded) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setStored(true);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileExpanded]);
 
   function toggle() {
     setStored((value) => {
       const next = !(value ?? false);
-      window.localStorage.setItem("atlas-sidebar", next ? "collapsed" : "open");
+      if (!compactViewport) {
+        try {
+          window.localStorage.setItem("atlas-sidebar", next ? "collapsed" : "open");
+        } catch {
+          // The sidebar still works for this session when storage is unavailable.
+        }
+      }
       return next;
     });
   }
@@ -123,14 +169,32 @@ export function AppShell({
   const isActive = (item: { href: string; exact?: boolean }) =>
     item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
+  const sidebarWidth = !ready
+    ? "w-[3.75rem] lg:w-[15.5rem]"
+    : compactViewport || shellCollapsed
+      ? "w-[3.75rem]"
+      : "w-[15.5rem]";
+
   return (
-    <div className="atlas-app-bg flex min-h-screen text-[var(--color-ink)]">
+    <div className="atlas-app-bg atlas-app-shell flex min-h-screen text-[var(--color-ink)]">
+      {mobileExpanded ? (
+        <button
+          type="button"
+          aria-label="Close sidebar"
+          className="fixed inset-0 z-30 bg-black/35 lg:hidden"
+          onClick={toggle}
+        />
+      ) : null}
       <aside
-        className={`sticky top-0 z-20 h-screen shrink-0 ${
+        className={`sticky top-0 h-screen shrink-0 ${mobileExpanded ? "z-40" : "z-20"} ${
           ready ? "transition-[width] duration-[220ms] ease-out" : ""
-        } ${shellCollapsed ? "w-[3.75rem]" : "w-[15.5rem]"}`}
+        } ${sidebarWidth}`}
       >
-        <div className="flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-surface-sidebar)]">
+        <div
+          className={`atlas-shell-sidebar flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-surface-sidebar)] ${
+            mobileExpanded ? "fixed inset-y-0 left-0 w-[15.5rem] shadow-[var(--shadow-floating)]" : ""
+          }`}
+        >
           {shellCollapsed ? (
             <button
               type="button"
@@ -252,7 +316,13 @@ export function AppShell({
       </aside>
 
       <main className="min-w-0 flex-1">
-        <div className="mx-auto max-w-[66.25rem] px-6 py-7 md:px-9">
+        <div
+          className={
+            isTeacherOverview
+              ? "min-h-screen"
+              : "mx-auto max-w-[66.25rem] px-6 py-7 md:px-9"
+          }
+        >
           <MotionPage>{children}</MotionPage>
         </div>
       </main>
@@ -302,7 +372,6 @@ function AccountMenu({
               <UserRound size={15} strokeWidth={2} aria-hidden className="shrink-0" />
               Account settings
             </Link>
-            <ThemeToggle variant="menu" />
             <form action={signOutOfAtlas}>
               <button type="submit" role="menuitem" className={menuRow}>
                 Sign out

@@ -30,19 +30,10 @@ export const metadata: Metadata = {
   },
 };
 
-/*
- * Apply the saved theme before first paint so there is no flash. The default
- * is the dark theme (no attribute); a stored choice sets data-theme on the
- * document root, which the token sheet keys light/dark off.
- */
-const themeInit =
-  "(function(){try{var t=localStorage.getItem('atlas-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();";
-
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" data-theme="light" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="antialiased">
-        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         {/* Honour prefers-reduced-motion for every motion component below. */}
         <MotionConfig reducedMotion="user">{children}</MotionConfig>
       </body>

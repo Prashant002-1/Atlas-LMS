@@ -13,6 +13,8 @@ Supporting docs:
 
 - [`Brand.md`](Brand.md), brand direction.
 - [`DesignSystem.md`](DesignSystem.md), UI token and surface guidance.
+- [`prototypes/launch-dashboard-reference.md`](prototypes/launch-dashboard-reference.md),
+  the captured launch-site palette and surface reference for the dashboard.
 - [`adr/README.md`](adr/README.md), architecture decision records.
 - [`course-materials/ingestion-contract.md`](course-materials/ingestion-contract.md),
   document parsing, private originals, opaque uploads, and link intake.

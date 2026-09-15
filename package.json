@@ -41,7 +41,7 @@
     "@ai-sdk/openai": "^4.0.20",
     "@ai-sdk/openai-compatible": "^3.0.14",
     "@ai-sdk/react": "^4.0.40",
-    "@ai-sdk/workflow": "^1.0.70",
+    "@ai-sdk/workflow": "^2.0.30",
     "@auth/drizzle-adapter": "^1.11.3",
     "@aws-sdk/client-bedrock-agentcore": "^3.1111.0",
     "@firecrawl/anydoc": "0.1.7",

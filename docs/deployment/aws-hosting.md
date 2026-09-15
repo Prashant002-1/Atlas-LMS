@@ -24,9 +24,9 @@ are retained in the encrypted AWS migration archive.
 | Migration archive | `atlas-prod-migrationbucket-btgroucmwjj6` |
 | Public hostname | `demo.atlas-lms.com` |
 | Current DNS | `32.198.196.196` (AWS), TTL 300 seconds |
-| Production source commit | `0be55830ace23171666bfe0868b7516264c223bd` |
-| Production application image | `atlas-prod/atlas@sha256:28167f4ecc66f0ba1609f077a7e852655bc0545f799b4593fec6e6c6f1992b4f` |
-| Release image | `atlas-prod/atlas:0be55830ace2-release` |
+| Production source commit | `01febbb59b5e5dc1286f14333a19f3c716ac05cb` |
+| Production application image | `atlas-prod/atlas@sha256:0e0cdf8985bd85ca6df2aa4663a0075421dadf1d8e01d83bfaa8ee38daa38be1` |
+| Release image | `atlas-prod/atlas:01febbb59b5e-release` |
 | Final Cloud SQL backup | `1787510387141` |
 | Final migration prefix | `migrations/20260823T183944Z/` |
 | Retired GCP source | Project `atlas-yc2026fall`, `DELETE_REQUESTED` on 2026-08-23 |
@@ -96,6 +96,28 @@ cleanup step then revoked the temporary YC passwords and SPC aliases, cleared
 the AWS-only smoke secret, and removed the temporary host permission. All five
 infrastructure alarms were `OK`, both application log groups were current, and
 public health returned `ok=true` and `db=up`.
+
+The dependency security release on 2026-09-15 was built from commit
+`01febbb59b5e5dc1286f14333a19f3c716ac05cb` after refreshing and merging
+[PR #61](https://github.com/Prashant002-1/Atlas-LMS/pull/61). Local
+`npm run verify` passed, and the PR and merged-main required CI gates passed:
+[runs #34987754612](https://github.com/Prashant002-1/Atlas-LMS/actions/runs/34987754612)
+and [#34988695506](https://github.com/Prashant002-1/Atlas-LMS/actions/runs/34988695506).
+The production dependency audit reports zero vulnerabilities. GitHub closed
+all runtime dependency alerts; the development-only esbuild advisory remains
+open through Drizzle's legacy tooling dependency.
+
+The running host reports Next.js `16.3.4`, Sharp `0.35.4`, and the application
+digest shown above. The Linux/arm64 manifest
+`sha256:cb95b40d34a90a891ac9dc955b6092be3b1317d7a6542f341288c451165fc238`
+completed ECR scanning with zero findings. The matching release image reported
+a current database contract; no migration was needed. All 25 production smoke
+checks passed, including instructor and student access, document originals,
+and authentication. Durable Workflow run
+`wrun_01M2JVEWRS0ZT7GCRGZ2RR4C7X` returned 198,079 response bytes. The cleanup
+step revoked temporary YC passwords and SPC aliases. Public HTTPS health
+returned `ok=true` and `db=up`, all five alarms remained `OK`, and
+`ATLAS_CODE_EXECUTION_ENABLED=false` was verified in the running container.
 
 ## Architecture and security boundary
 

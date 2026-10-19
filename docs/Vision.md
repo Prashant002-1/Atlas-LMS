@@ -67,9 +67,9 @@ The interface may show a status, a due date, a submission count, a published sta
 
 The course record remains the substrate. The agent is only trustworthy because it operates on the actual record of the course: objectives, materials, assessments, and their alignment - which is what lets rubrics be drafted from intent rather than invented. Reviewable, propose-then-approve changes remain the only door between draft and live. Standard LMS workflows (modules, content, grading, reporting) are packaged inside, but they are the ground the product stands on, not the product.
 
-**Wedge, unchanged:** one professor, one course. Nobody rips out Canvas on day one. Bottom-up adoption starts with one assignment that could not exist anywhere else.
+**Starting point, unchanged:** one professor, one course. Nobody rips out Canvas on day one. Adoption starts with one assignment that could not exist anywhere else.
 
-## Moat
+## Why it compounds
 
 1. **The learning record.** The interaction and journey evidence that accrues when student AI use happens inside the course boundary. The outside AI vendors cannot see it; the admin-side LMS never captures it.
 2. **Teacher authorship as trust.** Policy objects, rubric authorship, propose-then-approve. Faculty endorse AI only under their control, grounded in their materials, with visibility. That is Atlas's doctrine, not a feature toggle.

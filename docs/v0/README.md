@@ -2,7 +2,7 @@
 
 **Status:** v0 build notes. Phases 0-4 are complete and merged; Phase 5 covered live validation and polish. The product thesis is `docs/Vision.md`; the system overview is `docs/architecture.md`.
 
-v0 = the demo, built as a real product: one course wide, full-stack deep, running the loop **configure -> session -> evidence -> class insight** on the five primitives (course record, session, rubric, policy/config, journey/evidence). Seeded data is fine; faked behavior is not. Everything on camera runs.
+v0 = the demo, built as a real product: one course wide, full-stack deep, running the loop **configure -> session -> evidence -> class insight** on the five primitives (course record, session, rubric, policy/config, journey/evidence). Seeded data is fine; faked behavior is not. Everything shown in the demo runs for real.
 
 | File | What it answers |
 |---|---|

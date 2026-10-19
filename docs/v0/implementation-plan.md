@@ -1,13 +1,13 @@
 # v0 Implementation Plan
 
-**Status:** Phases 0-4 are complete and merged. Phase 5 is demo readiness: live validation, on-camera polish, and recording. The professor-facing agent-chat layer is deliberately deferred to a separately planned architecture phase.
+**Status:** Phases 0-4 are complete and merged. Phase 5 is demo readiness: live validation and polish. The professor-facing agent-chat layer is deliberately deferred to a separately planned architecture phase.
 
 **Runtime decision:** AI SDK 7 is the runtime foundation. Eve is removed, not completed. `WorkflowAgent` was evaluated at the Phase 2 door and deferred with reasons; the session engine runs plain AI SDK 7 streams with Postgres turn persistence behind one seam module. See ADR-0010.
 
 ## How this plan works
 
 - **Phases, not tickets.** Each phase has an intent, deliverables, and a definition of done.
-- **Camera-first.** The demo script is the acceptance test. If it is not on camera and not required to make on-camera things real, it is out of scope by default.
+- **Demo-first.** The end-to-end demo loop is the acceptance test. If it is not part of that loop and not required to make the loop real, it is out of scope by default.
 - **Vertical slices.** Every phase ends with something runnable or inspectable. No phase ends in "wiring done, nothing visible."
 - **Decisions at the door.** Open choices are pinned to the phase that needs them, not decided speculatively.
 - **Cut lines are pre-agreed.** Pressure produces scope cuts, not quality cuts.
@@ -142,14 +142,14 @@ Follow-up validation, owned by Phase 5:
 Build:
 
 - Use the active demo world as the source of truth unless the scenario changes.
-- Keep only on-camera polish in scope.
+- Keep only polish that serves the demo loop in scope.
 - Run the live grading calibration over the 28 seeded transcripts before presenting output as a grade.
 - Walk the full seeded loop with platform model credentials: revise a rubric, inspect and finalize a draft journey, refresh class insight, then propose and apply the practice set.
 - Record against the real seeded data and the same live product path used for interviews.
 
 Definition of done:
 
-- The demo video and live product run the same loop.
+- The recorded walkthrough and the live product run the same loop.
 
 ## Deferred architecture: professor agent chat
 
@@ -183,4 +183,4 @@ Never cut: side-note cards, artifact panel state, quote verification, and approv
 
 - Main stays green.
 - Update the doc that owns a decision in the same commit as the decision.
-- No off-camera features and no speculative generality.
+- No features outside the loop and no speculative generality.

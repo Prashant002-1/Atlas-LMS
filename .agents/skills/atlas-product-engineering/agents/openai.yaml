@@ -1,4 +1,0 @@
-interface:
-  display_name: "Atlas Product Engineering"
-  short_description: "Apply Atlas-specific product engineering judgment"
-  default_prompt: "Use $atlas-product-engineering to handle this Atlas-LMS task with the project-specific product, design, and execution doctrine."

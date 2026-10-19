@@ -2,7 +2,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText, uploadFile, type FilePart } from "ai";
 import { envApiKeyFor } from "@/lib/ai/provider";
 
-export const DEFAULT_TRANSCRIPTION_MODEL = "gemini-3.7-flash";
+export const DEFAULT_TRANSCRIPTION_MODEL = "gemini-3.5-transcribe";
 const MAX_INLINE_AUDIO_BYTES = 12 * 1024 * 1024;
 
 const TRANSCRIPTION_INSTRUCTIONS = `You are a speech-to-text endpoint.

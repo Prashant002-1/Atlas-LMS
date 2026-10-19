@@ -8,13 +8,11 @@ Parameters:
     AllowedPattern: "[a-z0-9-]+"
   DomainName:
     Type: String
-    Default: demo.example.edu
+    Default: atlas.example.edu
   AlertEmail:
     Type: String
-    Default: ops@example.edu
   BudgetAlertEmail:
     Type: String
-    Default: ops@example.edu
   MonthlyBudgetUsd:
     Type: Number
     Default: 70

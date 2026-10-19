@@ -4,7 +4,7 @@ Status: Accepted
 
 ## Context
 
-Atlas needs a smooth YC demo that preserves its existing full-stack behavior:
+Atlas needed a stable public demo environment that preserved its existing full-stack behavior:
 
 - one long-lived Next.js process;
 - durable Workflow execution and resumption;
@@ -13,13 +13,13 @@ Atlas needs a smooth YC demo that preserves its existing full-stack behavior:
 - server-owned model, embedding, and search credentials;
 - predictable latency without request-lifetime or scale-to-zero behavior.
 
-The public launch page already uses Vercel at `example.edu`. Moving or
-rewriting that site was not part of the demo. Atlas also expects future general
-code execution, but running untrusted code inside the application process or by
-mounting the host Docker socket would collapse the product and infrastructure
-security boundaries.
+The static launch page is hosted separately on Vercel. Moving or rewriting that
+site was not part of the demo. Atlas also expects future general code execution,
+but running untrusted code inside the application process or by mounting the
+host Docker socket would collapse the product and infrastructure security
+boundaries.
 
-The YC environment is temporary, credit-funded, and optimized for predictable
+The demo environment was temporary, credit-funded, and optimized for predictable
 demo behavior rather than the lowest possible idle cost or permanent
 high-availability operations.
 
@@ -27,7 +27,7 @@ high-availability operations.
 
 ### 1. Use a dedicated Google Cloud project
 
-The demo runs in `atlas-demo-project`, separate from the existing Vercel launch
+The demo runs in a dedicated Google Cloud project, separate from the launch
 site and unrelated infrastructure. Project-level billing, IAM, Secret Manager,
 Artifact Registry, Compute Engine, Cloud SQL, logging, and monitoring stay in
 one disposable boundary.
@@ -55,21 +55,21 @@ application container, proxy container, and Caddy container remain replaceable.
 
 ### 4. Keep platform credentials server-owned
 
-Anthropic, Gemini, Exa, authentication, database, and YC provisioning values
+Anthropic, Gemini, Exa, authentication, database, and demo provisioning values
 live in Secret Manager. Deployment materializes only the values required by
 the running app into a root-owned `0600` environment file on the VM. Secrets
 are injected at container start, not built into the image or stored in Git.
 
-The two YC demo identities are the only database users with password hashes.
+The two demo identities are the only database users with password hashes.
 The provisioning password is not retained in the running container
 environment. Instructors and students cannot configure or retrieve provider
 credentials.
 
 ### 5. Preserve the public-domain split
 
-`example.edu` and `www.example.edu` remain on Vercel. Squarespace DNS adds
-only `demo.example.edu` as an A record to the VM's static address. The demo
-deployment must not replace root, `www`, or Google Workspace records.
+The apex and `www` records stay on Vercel. DNS adds only one `demo` A record
+pointing at the VM's static address. The demo deployment must not replace root,
+`www`, or mail records.
 
 ### 6. Keep code execution outside Atlas
 
@@ -118,7 +118,7 @@ unreliable.
 
 ### Positive
 
-- YC reviewers receive a stable, warm, full-stack demo.
+- Reviewers receive a stable, warm, full-stack demo.
 - Existing Next.js, Workflow, PostgreSQL, seed, and authentication behavior is
   preserved.
 - Cloud SQL is private and durable.
@@ -140,12 +140,9 @@ unreliable.
 - Document ingestion remains external and is tracked in
   [issue #49](https://github.com/Prashant002-1/Atlas-LMS/issues/49).
 
-## Operational reference
+## Status note
 
-The complete resource inventory, rebuild commands, secret rotation, database
-bootstrap, monitoring, verification, rollback, recovery, and teardown steps are
-in the [Google Cloud YC demo runbook](../deployment/gcp-yc-demo.md).
-
-The implementation entered `main` through
-[PR #50](https://github.com/Prashant002-1/Atlas-LMS/pull/50) at merge commit
-[`bd5b052`](https://github.com/Prashant002-1/Atlas-LMS/commit/bd5b0527ba7ecef03d2755794d180d5a16df38e8).
+This environment was later migrated to AWS and then retired. The Google Cloud
+runbook and host scripts were removed with it. The reproducible AWS hosting
+template remains in [`infra/aws`](../../infra/aws/README.md), and the code
+execution boundary lives on in [ADR-0020](0020-agentcore-code-execution.md).

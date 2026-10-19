@@ -1,0 +1,41 @@
+name: Bug report
+description: Something in Atlas does not behave as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. For a security problem, please use the Security tab instead of this form.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you do, and what did Atlas do instead of what you expected?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Sign in as the seeded instructor
+        2. Open Teach > Assignments
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: area
+    attributes:
+      label: Area
+      placeholder: e.g. student session, grading, materials ingestion, deployment
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: Node version, operating system, database setup, and which model provider (if any) was configured.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste relevant terminal output. Remove any secrets first.
+      render: shell

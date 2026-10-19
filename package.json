@@ -2,7 +2,16 @@
   "name": "atlas-lms",
   "version": "0.1.0",
   "private": true,
-  "description": "Course record for teaching and study.",
+  "description": "Atlas LMS: an open-source learning management system built around teacher-governed AI, assessed work sessions, and evidence-backed grading.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Prashant002-1/Atlas-LMS.git"
+  },
+  "homepage": "https://github.com/Prashant002-1/Atlas-LMS#readme",
+  "bugs": {
+    "url": "https://github.com/Prashant002-1/Atlas-LMS/issues"
+  },
   "type": "module",
   "scripts": {
     "fonts": "node scripts/decode-fonts.mjs",
@@ -30,9 +39,6 @@
     "local:check": "node --env-file-if-exists=.env.local --import tsx scripts/local-readiness.ts",
     "documents:reingest-seed": "node --env-file-if-exists=.env.local --import tsx scripts/reingest-seed-documents.ts",
     "workflow:bootstrap": "node --env-file-if-exists=.env.local node_modules/@workflow/world-postgres/bin/setup.js",
-    "demo:provision-yc": "tsx scripts/provision-yc-access.ts",
-    "demo:provision-spc": "tsx scripts/provision-spc-access.ts",
-    "demo:revoke-disposable-access": "tsx scripts/revoke-disposable-demo-access.ts",
     "postinstall": "npm run fonts"
   },
   "dependencies": {

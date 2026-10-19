@@ -1,0 +1,29 @@
+name: Feature request
+description: Propose a change to what Atlas does.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is a professor, student, or operator trying to do that Atlas makes hard or impossible today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What would you change, and where would it live in the product?
+    validations:
+      required: true
+  - type: textarea
+    id: fit
+    attributes:
+      label: Fit with the product invariants
+      description: |
+        Atlas is teacher-shaped, evidence-backed, and propose-then-approve (see CONTRIBUTING.md).
+        Say how the change respects those, or why one of them should change.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

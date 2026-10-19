@@ -1025,7 +1025,7 @@ export const packageData: FixturePackage = {
       key: s.key,
       name: s.name,
       email: s.email,
-      image: s.key === "maya" ? "/avatars/maya-patel.jpg" : undefined,
+      image: s.key === "maya" ? "/avatars/maya-patel.svg" : undefined,
       role: "student" as const,
     })),
   ],

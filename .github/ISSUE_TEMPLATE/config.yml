@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/Prashant002-1/Atlas-LMS/security/advisories/new
+    about: Report a security problem privately instead of opening a public issue.
+  - name: Documentation
+    url: https://github.com/Prashant002-1/Atlas-LMS/blob/main/docs/README.md
+    about: The documentation map, architecture overview, and decision records.

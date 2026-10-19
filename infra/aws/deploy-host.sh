@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-aws_profile="${AWS_PROFILE:-your-profile}"
+aws_profile="${AWS_PROFILE:-default}"
 aws_region="${AWS_REGION:-us-east-1}"
 stack_name="${ATLAS_AWS_STACK:-atlas-prod}"
 image_ref="${1:-}"

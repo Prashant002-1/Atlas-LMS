@@ -348,7 +348,7 @@ test("active course conditions are correctly seeded", () => {
   const featuredStudent = pkg.users.find((u) => u.role === "student" && u.key === "maya");
   assert.ok(featuredStudent);
   assert.equal(featuredStudent!.name, "Maya Patel");
-  assert.equal(featuredStudent!.image, "/avatars/maya-patel.jpg");
+  assert.equal(featuredStudent!.image, "/avatars/maya-patel.svg");
   
   // 3. Nonzero work waiting to grade & missing states
   const submissions = pkg.courses[0].submissions;

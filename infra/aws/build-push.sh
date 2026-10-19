@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 repo_root="$(cd "$script_dir/../.." && pwd)"
-aws_profile="${AWS_PROFILE:-your-profile}"
+aws_profile="${AWS_PROFILE:-default}"
 aws_region="${AWS_REGION:-us-east-1}"
 stack_name="${ATLAS_AWS_STACK:-atlas-prod}"
 

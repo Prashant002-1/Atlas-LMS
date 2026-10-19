@@ -88,6 +88,6 @@ Not a detector. Not surveillance. Not a chatbot bolted onto an LMS. Not a replac
 
 ---
 
-## The pitch in one breath
+## In one breath
 
 Canvas records administration. Atlas records learning. The agent is the interface, the course record is its ground, and the session is the new assessment: teachers define how AI participates, students think inside it, and the learning is finally visible.

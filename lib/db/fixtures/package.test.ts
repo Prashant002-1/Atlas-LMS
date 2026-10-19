@@ -43,10 +43,10 @@ test("canonical demo accounts exist exactly once", () => {
   assert.equal(student.length, 1);
   assert.equal(student[0].key, "maya");
   assert.equal(student[0].name, "Maya Patel");
-  assert.equal(student[0].image, "/avatars/maya-patel.jpg");
+  assert.equal(student[0].image, "/avatars/maya-patel.svg");
   assert.equal(student[0].role, "student");
   assert.ok(existsSync("public/avatars/nadia-rahman.svg"));
-  assert.ok(existsSync("public/avatars/maya-patel.jpg"));
+  assert.ok(existsSync("public/avatars/maya-patel.svg"));
 
   const roleCounts = countBy(demoPackage.users, (u) => u.role);
   assert.equal(roleCounts.admin, 1);

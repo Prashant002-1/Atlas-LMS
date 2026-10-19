@@ -41,9 +41,9 @@ The disposable filesystem is useful working state, not a course record. Only cop
 
 ## AWS deployment
 
-Development uses the existing `sso-admin-user` Identity Center session in management account `000000000000`; root credentials are never used by Atlas. Production should give the Atlas workload role only the data-plane session permissions listed in the deployment runbook. No custom AgentCore control-plane resource is required for the managed interpreter.
+Development uses a named AWS Identity Center (SSO) session in the deployment account; root credentials are never used by Atlas. Production should give the Atlas workload role only the data-plane session permissions listed in the deployment runbook. No custom AgentCore control-plane resource is required for the managed interpreter.
 
-The account currently has `0` applied capacity for quota `L-CAF6F552` (concurrent active Code Interpreter sessions), so AWS rejects `StartCodeInterpreterSession` before creating a session. Local contracts and a fake data-plane adapter are tested; the real smoke test is ready and must be rerun after AWS grants capacity. This quota is external account state, not an application fallback condition.
+A new AWS account can carry `0` applied capacity for quota `L-CAF6F552` (concurrent active Code Interpreter sessions), in which case AWS rejects `StartCodeInterpreterSession` before creating a session. Local contracts and a fake data-plane adapter are tested without AWS; the real smoke test runs once the account has capacity. This quota is external account state, not an application fallback condition.
 
 See [`../deployment/aws-agentcore-code-execution.md`](../deployment/aws-agentcore-code-execution.md) for the exact commands, IAM actions, quota evidence, and verification sequence.
 

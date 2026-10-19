@@ -35,14 +35,31 @@ Dependabot, but a development-only advisory may be accepted when it is not
 reachable from the production image and no safe upstream fix exists. Record
 the package chain, exposure, upstream status, and recheck condition here.
 
-## Current development-only exception
+## Current development-only exceptions
 
-As of 2026-08-23, the full audit reports four moderate entries in the chain
+### esbuild development server under drizzle-kit
+
+As of 2026-10-19, the full audit reports four moderate entries in the chain
 `drizzle-kit -> @esbuild-kit/esm-loader -> @esbuild-kit/core-utils -> esbuild`.
 The advisory concerns the esbuild development server. Atlas does not expose
 that server, and none of these packages are installed by the production
-container's `npm ci --omit=dev` stage. `drizzle-kit` 0.31.10 is the current
+container's `npm ci --omit=dev` stage. `drizzle-kit` 0.31.11 is the current
 release in Atlas's dependency track, while npm incorrectly proposes the older
 0.18.1 release as the available fix. Recheck this exception on every
 `drizzle-kit` update or new advisory. Remove it once the current package line
 ships a patched esbuild dependency.
+
+### braces pattern expansion under eslint-config-next
+
+As of 2026-10-19, the full audit reports five high entries in the chain
+`eslint-config-next -> @next/eslint-plugin-next -> fast-glob -> micromatch ->
+braces`. The advisory (GHSA-vfj7-8cjw-p6xm) is a stack-exhaustion denial of
+service when `braces` expands a deeply nested glob pattern. Atlas only runs
+this code when `eslint` scans the repository's own source during `npm run
+lint`, and none of these packages are installed by the production
+container's `npm ci --omit=dev` stage. No patched `braces` release exists:
+3.0.3 is the latest published version and the advisory covers every release,
+so npm offers only a downgrade of `eslint-config-next` to 14.2.35, which is
+not a fix. Recheck this exception on every `eslint-config-next` update or new
+advisory. Remove it once `braces` ships a patched release and the
+`eslint-config-next` line picks it up.

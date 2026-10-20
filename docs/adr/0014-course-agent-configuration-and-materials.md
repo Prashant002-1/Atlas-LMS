@@ -123,7 +123,7 @@ The maximum file size is 25 MB. Next.js action and proxy body buffers are capped
 
 The existing `files` table remains the durable source record. `course_material_records` is a one-to-one extension carrying processing, parser, and access metadata. `document_originals` stores private original upload bytes with a file foreign key, checksum, and database-enforced size bounds. Existing seeded and imported file rows without extension metadata remain valid and resolve as ready, course-visible LMS material. The complete intake behavior is documented in [Course material intake](../course-materials/ingestion-contract.md).
 
-The document path tracked in [issue #49](https://github.com/Prashant002-1/Atlas-LMS/issues/49) uses `@firecrawl/anydoc@0.1.7` directly in Atlas. It runs against the exact uploaded bytes and returns canonical GitHub-Flavored Markdown before the intake transaction. Plain text and code use strict bounded UTF-8 decoding. Packages are stored unchanged. Scanned or image-only PDFs fail clearly because no OCR path is configured; private documents are never sent to a hosted parser by default.
+The document path uses `@firecrawl/anydoc@0.1.7` directly in Atlas. It runs against the exact uploaded bytes and returns canonical GitHub-Flavored Markdown before the intake transaction. Plain text and code use strict bounded UTF-8 decoding. Packages are stored unchanged. Scanned or image-only PDFs fail clearly because no OCR path is configured; private documents are never sent to a hosted parser by default.
 
 ### 8. Document understanding extends the same file record
 

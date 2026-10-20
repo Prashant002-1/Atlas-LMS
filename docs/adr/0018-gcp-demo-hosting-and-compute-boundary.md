@@ -137,8 +137,8 @@ unreliable.
   long-lived environment.
 - The default Compute Engine service account retains a broad project bootstrap
   role and should be reduced before permanent use.
-- Document ingestion remains external and is tracked in
-  [issue #49](https://github.com/Prashant002-1/Atlas-LMS/issues/49).
+- Document ingestion was still external at the time; it later moved into the
+  Atlas process under [ADR-0014](0014-course-agent-configuration-and-materials.md).
 
 ## Status note
 

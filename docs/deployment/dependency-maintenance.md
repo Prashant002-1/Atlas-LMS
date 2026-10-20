@@ -35,6 +35,25 @@ Dependabot, but a development-only advisory may be accepted when it is not
 reachable from the production image and no safe upstream fix exists. Record
 the package chain, exposure, upstream status, and recheck condition here.
 
+## Current overrides
+
+### `@ai-sdk/workflow` nested AI SDK copies
+
+`@ai-sdk/workflow` 1.x pins exact versions of `ai`, `@ai-sdk/provider`, and
+`@ai-sdk/provider-utils`. Once the root `ai` and `@ai-sdk/*` packages move
+past those pins, npm installs a second copy under
+`node_modules/@ai-sdk/workflow/node_modules`, and `WorkflowChatTransport`
+then types its messages against the old `UIMessage`, which fails the
+typecheck in the three chat rooms. The scoped override in `package.json`
+points the nested `ai` at the root range (`$ai`) and lets the provider
+packages float at or above the pinned versions, so one copy is installed.
+
+If a future AI SDK bump still produces a nested copy, remove the
+`node_modules/@ai-sdk/workflow/node_modules/{ai,@ai-sdk/*}` entries from
+`package-lock.json` and run `npm install`; `npm dedupe` does not hoist them.
+Remove the override once `@ai-sdk/workflow` declares ranges instead of exact
+pins, or once Atlas moves to a 2.x release together with Workflow 5.
+
 ## Current development-only exceptions
 
 ### esbuild development server under drizzle-kit

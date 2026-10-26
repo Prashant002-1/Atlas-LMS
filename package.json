@@ -52,7 +52,7 @@
     "@aws-sdk/client-bedrock-agentcore": "^3.1111.0",
     "@firecrawl/anydoc": "0.1.7",
     "@streamdown/cjk": "^1.0.3",
-    "@streamdown/code": "^1.1.1",
+    "@streamdown/code": "^2.0.0",
     "@streamdown/math": "^1.0.2",
     "@streamdown/mermaid": "^1.0.2",
     "@workflow/world-postgres": "^4.3.10",

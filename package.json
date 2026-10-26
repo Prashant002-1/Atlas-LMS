@@ -50,7 +50,7 @@
     "@ai-sdk/workflow": "^1.0.70",
     "@auth/drizzle-adapter": "^1.11.3",
     "@aws-sdk/client-bedrock-agentcore": "^3.1111.0",
-    "@firecrawl/anydoc": "0.1.7",
+    "@firecrawl/anydoc": "0.2.4",
     "@streamdown/cjk": "^1.0.3",
     "@streamdown/code": "^1.1.1",
     "@streamdown/math": "^1.0.2",
